@@ -113,7 +113,7 @@ keymap = [
 	{ on = [ "c", "f" ], run = "copy filename",         desc = "Copy the filename" },
 	{ on = [ "c", "n" ], run = "copy name_without_ext", desc = "Copy the filename without extension" },
 
-  #mactag
+  # mactag
   { on = [ "b", "a" ], run = "plugin mactag add",   desc = "Tag selected files"},
   { on = [ "b", "r" ], run = "plugin mactag remove",desc = "Untag selected files"},
 
