@@ -4,7 +4,7 @@ local sbar = require("sketchybar")
 
 -- Equivalent to the --bar domain
 sbar.bar({
-	color = colors.colors.with_alpha(0xff0d0d13, 0.6),
+	color = colors.colors.with_alpha(0xff0d0d13, 0.7),
 	border_width = 0,
 	border_color = colors.colors.active.mauve,
 	margin = 0,
