@@ -1,0 +1,5 @@
+require("items.widgets.sys")
+require("items.widgets.clash_tun")
+require("items.widgets.dingtalk")
+require("items.widgets.wechat")
+require("items.widgets.battery")
