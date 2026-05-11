@@ -18,5 +18,5 @@ sbar.bar({
 	-- position = "bottom",
 	shadow = "true",
 	y_offset = 0,
-	blur_radius = 5,
+	blur_radius = 20,
 })

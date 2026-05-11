@@ -25,7 +25,7 @@ font-size = 13
 # -------------------------------------------------- #
 theme = Mellow
 background-opacity      = 0.7
-background-blur         = 5
+background-blur         = 20
 mouse-hide-while-typing = true
 unfocused-split-opacity = 0.8
 window-padding-x        = 5
