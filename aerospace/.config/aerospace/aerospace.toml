@@ -10,11 +10,6 @@ config-version = 2
 after-startup-command = ['exec-and-forget sketchybar --reload', 'exec-and-forget sketchybar'
 ]
 
-# Run Sketchybar together with AeroSpace
-# sketchybar has a built-in detection of already running process,
-# so it won't be run twice on AeroSpace restart
-# after-startup-command = []
-
 # Start AeroSpace at login
 start-at-login = true
 
@@ -53,7 +48,7 @@ on-focused-monitor-changed = ['move-mouse monitor-lazy-center']
 # You can effectively turn off macOS "Hide application" (cmd-h) feature by toggling this flag
 # Useful if you don't use this macOS feature, but accidentally hit cmd-h or cmd-alt-h key
 # Also see: https://nikitabobko.github.io/AeroSpace/goodies#disable-hide-app
-automatically-unhide-macos-hidden-apps = false
+automatically-unhide-macos-hidden-apps = true
 
 # List of workspaces that should stay alive even when they contain no windows,
 # even when they are invisible.
@@ -452,7 +447,7 @@ run = ["move-node-to-workspace C̲hat"]
 [[on-window-detected]]
 if.app-id = "com.tencent.meeting"
 run = ["move-node-to-workspace C̲hat",
-       "layout floating",
+      "layout floating"
       ]
 
 [[on-window-detected]]
