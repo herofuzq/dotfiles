@@ -37,9 +37,9 @@ local cal = sbar.add("item", {
 cal:subscribe({ "forced", "routine", "system_woke" }, function()
 	local t = os.date("*t")
 	local is_leap = (t.year % 4 == 0 and t.year % 100 ~= 0) or (t.year % 400 == 0)
-	local day_str = is_leap and string.format("第%d/366天", t.yday) or string.format("第%d天", t.yday)
+	local day_str = is_leap and string.format("day%d/366", t.yday) or string.format("day%d", t.yday)
 	cal:set({
-		icon = string.format("%d月%d日 %s", t.month, t.day, day_str),
+		icon = string.format("%d/%d %s", t.month, t.day, day_str),
 		label = os.date("%H:%M"),
 	})
 end)

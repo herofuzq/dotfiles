@@ -60,7 +60,7 @@ local front_app = sbar.add("item", "front_app", {
 front_app:subscribe("front_app_switched", function(env)
 	front_app:set({
 		label = {
-			string = "ミ " .. env.INFO .. " 彡",
+			string = "ミ" .. env.INFO .. "彡",
 		},
 	})
 end)

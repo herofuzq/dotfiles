@@ -17,7 +17,7 @@ local battery = sbar.add("item", "widgets.battery", {
 			size = fonts.font_fira.size,
 		},
 		padding_left = settings.padding.icon_label_item.icon.padding_left,
-		padding_right = settings.padding.icon_label_item.icon.padding_right,
+		padding_right = 2,
 		color = colors.tokyo_night.sep_opaque,
 	},
 	label = {
@@ -26,6 +26,8 @@ local battery = sbar.add("item", "widgets.battery", {
 			style = fonts.font_fira.style_map["Bold"],
 			size = fonts.font_fira.size,
 		},
+		padding_left = 0,
+		padding_right = settings.padding.icon_label_item.label.padding_right,
 		color = colors.tokyo_night.sep_opaque,
 	},
 	background = {
