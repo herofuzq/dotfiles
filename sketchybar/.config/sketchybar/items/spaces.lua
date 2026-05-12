@@ -19,20 +19,20 @@ local workspace_names = {
 }
 
 local border_gradient = {
+	appearance.colors.tokyo_night.mauve,
 	appearance.colors.tokyo_night.lavender,
-	appearance.colors.tokyo_night.pink,
-	appearance.colors.tokyo_night.flamingo,
-	appearance.colors.tokyo_night.rosewater,
-	appearance.colors.tokyo_night.peach,
-	appearance.colors.tokyo_night.yellow,
-	appearance.colors.tokyo_night.green,
-	appearance.colors.tokyo_night.teal,
-	appearance.colors.tokyo_night.sky,
 	appearance.colors.tokyo_night.sapphire,
 	appearance.colors.tokyo_night.blue,
+	appearance.colors.tokyo_night.sky,
+	appearance.colors.tokyo_night.teal,
+	appearance.colors.tokyo_night.green,
+	appearance.colors.tokyo_night.yellow,
+	appearance.colors.tokyo_night.peach,
+	appearance.colors.tokyo_night.rosewater,
+	appearance.colors.tokyo_night.flamingo,
+	appearance.colors.tokyo_night.pink,
 	appearance.colors.tokyo_night.maroon,
 	appearance.colors.tokyo_night.red,
-	appearance.colors.tokyo_night.mauve,
 }
 
 local ordered_indices = { "1", "2", "3", "4", "5", "6", "7", "8", "9", "A", "B", "C", "D" }
@@ -221,6 +221,7 @@ local function updateWindows()
 				end
 				workspaces[ws_idx]:set({
 					background = { border_color = border_color, border_width = border_width },
+					icon = { color = border_color, highlight_color = appearance.colors.tokyo_night.mauve },
 				})
 			end
 		end)

@@ -145,6 +145,7 @@ M.colors = {
 		sapphire = 0xff74c7ec,
 		blue = 0xff769ff0,
 		lavender = 0xffb4befe,
+		purple = 0xff9d84e3,
 		input_border = 0xffaab4e5,
 		text = 0xffe3e5e5,
 		subtext1 = 0xffa0a9cb,

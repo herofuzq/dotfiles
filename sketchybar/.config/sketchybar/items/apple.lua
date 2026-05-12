@@ -10,14 +10,14 @@ local apple = sbar.add("item", {
 		padding_left = 13,
 		padding_right = 13,
 		string = icons.apple,
-		color = colors.colors.active.sep_opaque,
+		color = colors.colors.active.yellow,
 	},
 	label = { drawing = false },
 	click_script = "$CONFIG_DIR/helpers/menus/bin/menus -s 0",
 	background = {
 		color = colors.colors.active.bar_bg,
 		corner_radius = 10,
-		border_color = colors.colors.active.mauve,
+		border_color = colors.colors.active.purple,
 		border_width = 2,
 	},
 })
