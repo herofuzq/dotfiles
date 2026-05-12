@@ -121,4 +121,8 @@ export PATH="/Users/fuzhuoqun/.local/bin:$PATH"
 # 增加zoxide
 eval "$(zoxide init zsh)"
 # recycle-bin
-export PATH="/opt/homebrew/opt/trash-cli/bin:$PATH"
+# export PATH="/opt/homebrew/opt/trash-cli/bin:$PATH"
+
+#ruby
+export PATH="/opt/homebrew/opt/ruby/bin:$PATH"
+export PATH="$(ruby -e 'puts Gem.bindir'):$PATH"
