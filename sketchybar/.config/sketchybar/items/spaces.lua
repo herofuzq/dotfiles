@@ -2,22 +2,6 @@ local appearance = require("appearance")
 local app_icons = require("helpers.app_icons")
 local sbar = require("sketchybar")
 
-local workspace_names = {
-	["1"] = "Web",
-	["2"] = "Code",
-	["3"] = "Media",
-	["4"] = "Editing",
-	["5"] = "Gaming",
-	["6"] = "Work",
-	["7"] = "7",
-	["8"] = "8",
-	["9"] = "9",
-	["A"] = "Code",
-	["B"] = "SMS",
-	["C"] = "Bros",
-	["D"] = "Misc",
-}
-
 local border_gradient = {
 	appearance.colors.tokyo_night.mauve,
 	appearance.colors.tokyo_night.lavender,
@@ -276,8 +260,7 @@ sbar.exec(query_workspaces, function(workspaces_and_monitors)
 				padding_left = style.icon.padding_left,
 				padding_right = style.icon.padding_right,
 				drawing = true,
-				string = workspace_index
-					.. (workspace_names[workspace_index] and ": " .. workspace_names[workspace_index] or ""),
+				string = workspace_index,
 			},
 			label = {
 				color = style.label.color,
