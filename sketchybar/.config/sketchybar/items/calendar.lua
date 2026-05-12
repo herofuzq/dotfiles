@@ -31,7 +31,7 @@ local cal = sbar.add("item", {
 	position = "right",
 	update_freq = 30,
 	padding_left = 2,
-	padding_right = 9,
+	padding_right = 11,
 })
 
 cal:subscribe({ "forced", "routine", "system_woke" }, function()

@@ -4,7 +4,7 @@ local sbar = require("sketchybar")
 local colors = require("appearance")
 
 local apple = sbar.add("item", {
-	padding_left = 9,
+	padding_left = 11,
 	padding_right = 2,
 	icon = {
 		padding_left = 13,

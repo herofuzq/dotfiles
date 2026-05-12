@@ -223,7 +223,7 @@ sbar.default({
 		border_width = 0,
 		color = M.colors.tokyo_night.bar_bg,
 		corner_radius = 0,
-		height = settings.height - 4,
+		height = settings.height - 6,
 		image = {
 			corner_radius = 0,
 			border_color = M.colors.tokyo_night.text,
