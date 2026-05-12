@@ -30,33 +30,6 @@ local front_app = sbar.add("item", "front_app", {
 	},
 })
 
--- 在右边新增一个符号 item（无边框）
--- local front_app_suffix = sbar.add("item", "front_app_suffix", {
---	display = "active",
---	position = "left",
-
--- 无边框/无背景
---	background = { drawing = false },
-
--- 不需要图标，只显示文字
---	icon = { drawing = false },
-
---	label = {
---		string = " @i3 ", -- 换成你想要的符号，比如 "􀆊" 等
---		font = {
---			family = fonts.font_gohu.text,
---			style = fonts.font_gohu.style_map["Regular"],
---			size = fonts.font_gohu.size,
---		},
---	},
-
---	padding_left = 0,
---	padding_right = 2, -- 控制这个符号后面的间距
---})
-
--- sbar.exec("sketchybar --move front_app after workspace.W̲orkflow")
--- sbar.exec("sketchybar --move front_app_suffix after front_app")
-
 front_app:subscribe("front_app_switched", function(env)
 	front_app:set({
 		label = {

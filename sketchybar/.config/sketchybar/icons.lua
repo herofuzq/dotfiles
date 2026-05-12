@@ -1,4 +1,3 @@
-local fonts = require("fonts")
 local icons = {
 	sf_symbols = {
 		plus = "􀅼",
@@ -47,59 +46,6 @@ local icons = {
 			keyboard = "⌨",
 		},
 	},
-
-	-- Alternative NerdFont icons
-	nerdfont = {
-		plus = "",
-		loading = "",
-		apple = "",
-		gear = "",
-		cpu = "",
-		memory = "󰍛",
-		clipboard = "Missing Icon",
-
-		switch = {
-			on = "󱨥",
-			off = "󱨦",
-		},
-		volume = {
-			_100 = "",
-			_66 = "",
-			_33 = "",
-			_10 = "",
-			_0 = "",
-		},
-		battery = {
-			_100 = "",
-			_75 = "",
-			_50 = "",
-			_25 = "",
-			_0 = "",
-			charging = "",
-		},
-		wifi = {
-			upload = "",
-			download = "",
-			connected = "󰖩",
-			disconnected = "󰖪",
-			router = "Missing Icon",
-		},
-		media = {
-			back = "",
-			forward = "",
-			play_pause = "",
-		},
-		clash = {
-			tun = "",
-		},
-		input_method = {
-			keyboard = "⌨",
-		},
-	},
 }
 
-if not (fonts.icons == "NerdFont") then
-	return icons.sf_symbols
-else
-	return icons.nerdfont
-end
+return icons.sf_symbols

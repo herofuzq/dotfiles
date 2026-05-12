@@ -1,6 +1,5 @@
 local icons = require("icons")
 local colors = require("appearance").colors
-local settings = require("settings")
 local sbar = require("sketchybar")
 local fonts = require("fonts")
 
@@ -16,7 +15,7 @@ local battery = sbar.add("item", "widgets.battery", {
 			style = fonts.font_fira.style_map["Bold"],
 			size = fonts.font_fira.size,
 		},
-		padding_left = settings.padding.icon_label_item.icon.padding_left,
+		padding_left = 8,
 		padding_right = 2,
 		color = colors.tokyo_night.sep_opaque,
 	},
@@ -27,7 +26,7 @@ local battery = sbar.add("item", "widgets.battery", {
 			size = fonts.font_fira.size,
 		},
 		padding_left = 0,
-		padding_right = settings.padding.icon_label_item.label.padding_right,
+		padding_right = 8,
 		color = colors.tokyo_night.sep_opaque,
 	},
 	background = {
@@ -35,31 +34,6 @@ local battery = sbar.add("item", "widgets.battery", {
 		corner_radius = 10,
 		border_color = colors.tokyo_night.subtext0,
 		border_width = 2,
-	},
-})
-
--- Time remaining popup item
-local remaining_time = sbar.add("item", {
-	position = "popup." .. battery.name,
-	icon = {
-		string = "Time remaining:",
-		align = "left",
-		font = {
-			family = fonts.font_fira.text,
-			style = fonts.font_fira.style_map["Bold"],
-			size = fonts.font_fira.size,
-		},
-		padding_left = 2,
-	},
-	label = {
-		string = "00:00h",
-		align = "right",
-		font = {
-			family = fonts.font_fira.text,
-			style = fonts.font_fira.style_map["Bold"],
-			size = fonts.font_fira.size,
-		},
-		padding_right = 4,
 	},
 })
 
@@ -72,7 +46,7 @@ battery:subscribe({ "routine", "power_source_change", "system_woke" }, function(
 
 		if found then
 			charge = tonumber(charge)
-			label = charge .. "%"
+			label = string.format("%02d%%", charge)
 		end
 
 		local color = colors.green
@@ -96,31 +70,12 @@ battery:subscribe({ "routine", "power_source_change", "system_woke" }, function(
 			end
 		end
 
-		local lead = ""
-		if found and charge < 10 then
-			lead = "0"
-		end
-
 		battery:set({
 			icon = {
 				string = icon,
 				color = color,
 			},
-			label = { string = lead .. label },
+			label = { string = label },
 		})
 	end)
 end)
-
--- Click handler for popup
--- battery:subscribe("mouse.clicked", function()
--- 	local drawing = battery:query().popup.drawing
--- 	battery:set({ popup = { drawing = "toggle" } })
---
--- 	if drawing == "off" then
--- 		sbar.exec("pmset -g batt", function(batt_info)
--- 			local found, _, remaining = batt_info:find(" (%d+:%d+) remaining")
--- 			local label = found and remaining .. "h" or "No estimate"
--- 			remaining_time:set({ label = { string = label } })
--- 		end)
---	end
--- end)
