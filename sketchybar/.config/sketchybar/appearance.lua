@@ -1,10 +1,14 @@
+-- ========== 外观：配色方案 + 全局默认样式 ==========
+-- 颜色格式：0xAARRGGBB（AA=透明度, RR=红, GG=绿, BB=蓝）
 local settings = require("settings")
 local sbar = require("sketchybar")
 local fonts = require("fonts")
 
 local M = {}
 
+-- 所有配色方案集合
 M.colors = {
+	-- 基础颜色（通用）
 	default = 0x80ffffff,
 	black = 0xff181819,
 	white = 0xffffffff,
@@ -40,137 +44,86 @@ M.colors = {
 
 	spotify_green = 0xe040a02b,
 
-	-- rainbow theme tokyonight
+	-- 以下为参考配色（当前未使用，保留以备换主题）
 	rainbow = {
-		orange = 0xffe75300,
-		amber = 0xffe29600,
-		green = 0xff569f65,
-		blue = 0xff278789,
-		gray = 0xff685c53,
-		soot = 0xff3d3836,
+		orange = 0xffe75300, amber = 0xffe29600,
+		green = 0xff569f65, blue = 0xff278789,
+		gray = 0xff685c53, soot = 0xff3d3836,
 	},
-	-- Catppuccin Mocha Theme
 	mocha = {
-		rosewater = 0xfff5e0dc,
-		flamingo = 0xfff2cdcd,
-		pink = 0xfff5c2e7,
-		mauve = 0xffcba6f7,
-		red = 0xfff38ba8,
-		maroon = 0xffeba0ac,
-		peach = 0xfffab387,
-		yellow = 0xfff9e2af,
-		green = 0xffa6e3a1,
-		teal = 0xff94e2d5,
-		sky = 0xff89dceb,
-		sapphire = 0xff74c7ec,
-		blue = 0xff89b4fa,
-		lavender = 0xffb4befe,
-		text = 0xffcdd6f4,
-		base = 0xff1e1e2e,
-		mantle = 0xff181825,
-		crust = 0xff11111b,
+		rosewater = 0xfff5e0dc, flamingo = 0xfff2cdcd,
+		pink = 0xfff5c2e7, mauve = 0xffcba6f7,
+		red = 0xfff38ba8, maroon = 0xffeba0ac,
+		peach = 0xfffab387, yellow = 0xfff9e2af,
+		green = 0xffa6e3a1, teal = 0xff94e2d5,
+		sky = 0xff89dceb, sapphire = 0xff74c7ec,
+		blue = 0xff89b4fa, lavender = 0xffb4befe,
+		text = 0xffcdd6f4, base = 0xff1e1e2e,
+		mantle = 0xff181825, crust = 0xff11111b,
 	},
-
-	-- Catppuccin Macchiato Theme
 	macchiato = {
-		rosewater = 0xfff4dbd6,
-		flamingo = 0xfff0c6c6,
-		pink = 0xfff5a97f,
-		mauve = 0xffc6a0f6,
-		red = 0xffed8796,
-		maroon = 0xffee99a0,
-		peach = 0xfff5a97f,
-		yellow = 0xffeed49f,
-		green = 0xffa6da95,
-		teal = 0xff8bd5ca,
-		sky = 0xff91d7e3,
-		sapphire = 0xff7dc4e4,
-		blue = 0xff8aadf4,
-		lavender = 0xffb7bdf8,
-		text = 0xffcad3f5,
-		subtext1 = 0xffb8c0e0,
-		subtext0 = 0xffa5adcb,
-		overlay2 = 0xff939ab7,
-		overlay1 = 0xff8087a2,
-		overlay0 = 0xff6e738d,
-		surface2 = 0xff5b6078,
-		surface1 = 0xff494d64,
-		surface0 = 0xff363a4f,
-		base = 0xff24273a,
-		mantle = 0xff1e2030,
-		crust = 0xff181926,
+		rosewater = 0xfff4dbd6, flamingo = 0xfff0c6c6,
+		pink = 0xfff5a97f, mauve = 0xffc6a0f6,
+		red = 0xffed8796, maroon = 0xffee99a0,
+		peach = 0xfff5a97f, yellow = 0xffeed49f,
+		green = 0xffa6da95, teal = 0xff8bd5ca,
+		sky = 0xff91d7e3, sapphire = 0xff7dc4e4,
+		blue = 0xff8aadf4, lavender = 0xffb7bdf8,
+		text = 0xffcad3f5, subtext1 = 0xffb8c0e0,
+		subtext0 = 0xffa5adcb, overlay2 = 0xff939ab7,
+		overlay1 = 0xff8087a2, overlay0 = 0xff6e738d,
+		surface2 = 0xff5b6078, surface1 = 0xff494d64,
+		surface0 = 0xff363a4f, base = 0xff24273a,
+		mantle = 0xff1e2030, crust = 0xff181926,
 	},
-
-	-- Catppuccin Latte Theme
 	latte = {
-		rosewater = 0xffdc8a78,
-		flamingo = 0xffdd7878,
-		pink = 0xffea76cb,
-		mauve = 0xff8839ef,
-		red = 0xffd20f39,
-		maroon = 0xffe64553,
-		peach = 0xfffe640b,
-		yellow = 0xffdf8e1d,
-		green = 0xff40a02b,
-		teal = 0xff179299,
-		sky = 0xff04a5e5,
-		sapphire = 0xff209fb5,
-		blue = 0xff1e66f5,
-		lavender = 0xff7287fd,
-		text = 0xff4c4f69,
-		base = 0xffeff1f5,
-		mantle = 0xffe6e9ef,
-		crust = 0xffdce0e8,
+		rosewater = 0xffdc8a78, flamingo = 0xffdd7878,
+		pink = 0xffea76cb, mauve = 0xff8839ef,
+		red = 0xffd20f39, maroon = 0xffe64553,
+		peach = 0xfffe640b, yellow = 0xffdf8e1d,
+		green = 0xff40a02b, teal = 0xff179299,
+		sky = 0xff04a5e5, sapphire = 0xff209fb5,
+		blue = 0xff1e66f5, lavender = 0xff7287fd,
+		text = 0xff4c4f69, base = 0xffeff1f5,
+		mantle = 0xffe6e9ef, crust = 0xffdce0e8,
 	},
 
-	-- Tokyo Night Theme (inspired by Starship Tokyo Night preset)
+	-- ★ 当前活跃主题：Tokyo Night ★
 	tokyo_night = {
-		bg0 = 0x661a1b26,
-		bg1 = 0x661d2230,
-		bg2 = 0x33212736,
-		bg3 = 0x33394260,
-		accent = 0x33769ff0,
-		sep = 0x33a3aed2,
-		rosewater = 0xfff5e0dc,
-		flamingo = 0xfff2cdcd,
-		pink = 0xfff5c2e7,
-		mauve = 0xffbb9af7,
-		red = 0xfff7768e,
-		maroon = 0xffeba0ac,
-		peach = 0xffff9e64,
-		yellow = 0xffe0af68,
-		green = 0xff9ece6a,
-		teal = 0xff7dcfff,
-		sky = 0xff89dceb,
-		sapphire = 0xff74c7ec,
-		blue = 0xff769ff0,
-		lavender = 0xffb4befe,
-		purple = 0xff9d84e3,
-		input_border = 0xffaab4e5,
+		-- 半透明背景层（用于毛玻璃效果）
+		bg0 = 0x661a1b26, bg1 = 0x661d2230,
+		bg2 = 0x33212736, bg3 = 0x33394260,
+		accent = 0x33769ff0, sep = 0x33a3aed2,
+		-- 纯色颜色
+		rosewater = 0xfff5e0dc, flamingo = 0xfff2cdcd,
+		pink = 0xfff5c2e7, mauve = 0xffbb9af7,      -- 紫色（高亮色）
+		red = 0xfff7768e, maroon = 0xffeba0ac,
+		peach = 0xffff9e64, yellow = 0xffe0af68,
+		green = 0xff9ece6a, teal = 0xff7dcfff,
+		sky = 0xff89dceb, sapphire = 0xff74c7ec,
+		blue = 0xff769ff0, lavender = 0xffb4befe,
+		purple = 0xff9d84e3,                    -- 自定义深紫（Apple logo 边框用）
+		input_border = 0xffaab4e5,              -- 输入法边框色
+		-- 文字/层次色
 		text = 0xffe3e5e5,
-		subtext1 = 0xffa0a9cb,
-		subtext0 = 0xffa0a9cb,
-		overlay2 = 0xff939ab7,
-		overlay1 = 0xff8087a2,
+		subtext1 = 0xffa0a9cb, subtext0 = 0xffa0a9cb,
+		overlay2 = 0xff939ab7, overlay1 = 0xff8087a2,
 		overlay0 = 0xff6e738d,
-		surface2 = 0xff5b6078,
-		surface1 = 0xff494d64,
+		surface2 = 0xff5b6078, surface1 = 0xff494d64,
 		surface0 = 0xff363a4f,
-		base = 0x661a1b26,
-		mantle = 0x661d2230,
+		base = 0x661a1b26, mantle = 0x661d2230,
 		crust = 0x66212736,
-		white = 0xffe3e5e5,
-		black = 0xff090c0c,
-		bar_bg = 0xff1a1b26,
-		bg2_opaque = 0xff212736,
-		bg3_opaque = 0xff394260,
-		sep_opaque = 0xffa3aed2,
-		accent_opaque = 0xff769ff0,
-		deep_blue = 0xff51C0FF,
+		white = 0xffe3e5e5, black = 0xff090c0c,
+		bar_bg = 0xff1a1b26,                    -- 菜单栏背景
+		bg2_opaque = 0xff212736, bg3_opaque = 0xff394260,
+		sep_opaque = 0xffa3aed2,                -- 分隔线/默认文字色
+		accent_opaque = 0xff769ff0,             -- 强调色
+		deep_blue = 0xff51C0FF,                 -- 深蓝
 	},
 
-	-- Utility Function
-
+	-- 工具函数：给颜色加透明度
+	-- color: 原始 0xAARRGGBB 颜色值
+	-- alpha: 0.0 ~ 1.0 的透明度
 	with_alpha = function(color, alpha)
 		if alpha > 1.0 or alpha < 0.0 then
 			return color
@@ -179,23 +132,22 @@ M.colors = {
 	end,
 }
 
--- Set the active theme
+-- 设置当前活跃主题（切换主题只需要改这里）
 M.colors.active = M.colors.tokyo_night
 
--- Holds specific styles for different components, like workspaces.
--- These are applied manually in their respective files.
+-- 各组件的特定样式模板
 M.styles = {
-	-- Styles for the workspace items created in items/spaces.lua
+	-- 工作区条目的样式（在 items/spaces.lua 中使用）
 	workspace = {
 		background = {
 			color = M.colors.tokyo_night.bar_bg,
 			drawing = true,
 			corner_radius = 10,
-			border_width = 2,
+			border_width = 2,              -- 边框宽度，颜色由代码动态分配（彩虹渐变）
 		},
 		icon = {
-			color = M.colors.tokyo_night.sep_opaque,
-			highlight_color = M.colors.tokyo_night.mauve,
+			color = M.colors.tokyo_night.sep_opaque,        -- 非高亮的默认色
+			highlight_color = M.colors.tokyo_night.mauve,   -- 高亮（当前活跃）色
 			font = {
 				family = fonts.font.text,
 				style = fonts.font.style_map["Bold"],
@@ -205,21 +157,19 @@ M.styles = {
 			padding_right = 2,
 		},
 		label = {
-			color = M.colors.tokyo_night.sep_opaque,
-			highlight_color = M.colors.tokyo_night.peach,
+			color = M.colors.tokyo_night.sep_opaque,        -- 应用图标默认色
+			highlight_color = M.colors.tokyo_night.peach,   -- 高亮色
 			font = "sketchybar-app-font:Regular:14.0",
 			padding_left = 2,
 			padding_right = 10,
 			y_offset = -1,
 		},
-	blur_radius = 10,
+		blur_radius = 10,
 	},
 }
 
--- Sets the global default properties for all items in sketchybar.
--- Individual items can override these.
+-- ========== 全局默认属性（所有 noinherit item 会继承这些） ==========
 sbar.default({
-	-- Default background properties for the main bar
 	background = {
 		border_color = M.colors.tokyo_night.bg3,
 		border_width = 0,
@@ -232,7 +182,6 @@ sbar.default({
 			border_width = 1,
 		},
 	},
-	-- Default properties for all icons (e.g., apple, calendar, widgets)
 	icon = {
 		font = {
 			family = fonts.font_icon.text,
@@ -244,7 +193,6 @@ sbar.default({
 		padding_left = 0,
 		padding_right = 0,
 	},
-	-- Default properties for all text labels (e.g., volume, battery, time)
 	label = {
 		font = {
 			family = fonts.font.text,
@@ -255,7 +203,6 @@ sbar.default({
 		padding_left = settings.paddings,
 		padding_right = settings.paddings,
 	},
-	-- Default properties for popup menus
 	popup = {
 		align = "center",
 		background = {

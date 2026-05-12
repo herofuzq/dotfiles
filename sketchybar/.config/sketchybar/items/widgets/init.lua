@@ -1,6 +1,7 @@
-require("items.widgets.sys")
-require("items.widgets.clash_tun")
-require("items.widgets.dingtalk")
-require("items.widgets.wechat")
-require("items.widgets.battery")
-require("items.widgets.input_method")
+-- ========== 加载所有右侧小组件（从左到右排列） ==========
+require("items.widgets.sys")           -- CPU 占用率
+require("items.widgets.clash_tun")     -- Clash TUN 代理状态
+require("items.widgets.dingtalk")      -- 钉钉消息数
+require("items.widgets.wechat")        -- 微信消息数
+require("items.widgets.battery")       -- 电池电量
+require("items.widgets.input_method")  -- 当前输入法

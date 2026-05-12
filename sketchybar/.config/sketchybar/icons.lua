@@ -1,10 +1,12 @@
+-- 图标字形定义，使用 Apple SF Symbols（系统图标字体）
+-- 每个键代表一个图标用途，值是 Unicode 字形码点
 local icons = {
 	sf_symbols = {
 		plus = "􀅼",
 		loading = "􀖇",
-		apple = "􀣺",
-		gear = "􀍟",
-		cpu = "􀫥",
+		apple = "􀣺",     --  Apple logo
+		gear = "􀍟",       -- ⚙ 设置
+		cpu = "􀫥",        -- CPU 芯片
 		clipboard = "􀉄",
 
 		switch = {
@@ -24,7 +26,7 @@ local icons = {
 			_50 = "􀺶",
 			_25 = "􀛩",
 			_0 = "􀛪",
-			charging = "􀢋",
+			charging = "􀢋",  -- 充电中
 		},
 		wifi = {
 			upload = "􀄨",
@@ -34,16 +36,16 @@ local icons = {
 			router = "􁓤",
 		},
 		media = {
-			back = "􀊑",
-			forward = "􀊓",
-			play_pause = "􀊇",
+			back = "􀊑",        -- ⏮ 上一曲
+			forward = "􀊓",     -- ⏭ 下一曲
+			play_pause = "􀊇",  -- ▶❙❙ 播放/暂停
 		},
 		memory = "􀫦",
 		clash = {
-			tun = "",
+			tun = "",         -- 网络代理状态图标
 		},
 		input_method = {
-			keyboard = "⌨",
+			keyboard = "⌨",    -- 键盘/输入法
 		},
 	},
 }

@@ -1,7 +1,12 @@
+-- ========== aerospace 工作区显示 ==========
+-- 通过 aerospace CLI 查询窗口和屏幕信息，动态显示各工作区的应用图标
+-- 工作区边框使用彩虹渐变色，空工作区显示月亮图标（:moon:）
 local appearance = require("appearance")
 local app_icons = require("helpers.app_icons")
 local sbar = require("sketchybar")
 
+-- 可见工作区的边框颜色渐变（彩虹：紫→蓝→青→绿→黄→橙→粉→红）
+-- 从左到右依次取色，循环使用
 local border_gradient = {
 	appearance.colors.tokyo_night.mauve,
 	appearance.colors.tokyo_night.lavender,
@@ -19,6 +24,7 @@ local border_gradient = {
 	appearance.colors.tokyo_night.red,
 }
 
+-- 始终显示的工作区（即使没有应用也会显示，用 :moon: 占位）
 local always_show = {
 	["C̲hat"] = true,
 	["T̲erm"] = true,
@@ -30,41 +36,47 @@ local always_show = {
 
 local ordered_indices = { "1", "2", "3", "4", "5", "6", "7", "8", "9", "A", "B", "C", "D" }
 
+-- aerospace 查询命令模板
 local query_workspaces =
 	"aerospace list-workspaces --all --format '%{workspace}%{monitor-appkit-nsscreen-screens-id}' --json"
 
--- Root is used to handle event subscriptions
+-- 用于订阅事件的虚拟根条目（不显示）
 local root = sbar.add("item", { drawing = false })
-local workspaces = {}
-local workspace_order = {}
-	local mode_item = sbar.add("item", "aerospace_mode", {
-		position = "left",
-		padding_left = 2,
-		padding_right = 2,
-		icon = { drawing = false },
-		label = {
-			string = "󰰣",
-			font = "Hack Nerd Font:Bold:28.0",
-			padding_left = 4,
-			padding_right = 4,
-			color = appearance.colors.active.deep_blue,
-		},
-		background = { drawing = false },
-		drawing = false,
-	})
+local workspaces = {}       -- 工作区名 → 条目对象的映射
+local workspace_order = {}  -- 工作区创建顺序（保持显示顺序一致）
 
+-- aerospace 模式指示器（当前仅在 service 模式下显示 "󰰣" 图标）
+local mode_item = sbar.add("item", "aerospace_mode", {
+	position = "left",
+	padding_left = 2,
+	padding_right = 2,
+	icon = { drawing = false },
+	label = {
+		string = "󰰣",
+		font = "Hack Nerd Font:Bold:28.0",
+		padding_left = 4,
+		padding_right = 4,
+		color = appearance.colors.active.deep_blue,
+	},
+	background = { drawing = false },
+	drawing = false,
+})
+
+-- ========== 窗口信息收集函数 ==========
+-- 调用多个 aerospace 命令，收集窗口列表、可见工作区、聚焦工作区
+-- 最终调用回调函数 f(args)
 local function withWindows(f)
-	local open_windows = {}
-	local has_fullscreen = {}
-	-- Include the window ID in the query so we can track unique windows
+	local open_windows = {}    -- 工作区 → 应用列表
+	local has_fullscreen = {}  -- 工作区是否有全屏窗口
+
 	local get_windows =
 		"aerospace list-windows --monitor all --format '%{workspace}%{app-name}%{window-id}%{window-is-fullscreen}' --json"
 	local query_visible_workspaces =
 		"aerospace list-workspaces --visible --monitor all --format '%{workspace}%{monitor-appkit-nsscreen-screens-id}' --json"
 	local get_focus_workspaces = "aerospace list-workspaces --focused"
+
 	sbar.exec(get_windows, function(workspace_and_windows)
-		-- Use a set to track unique window IDs
-		local processed_windows = {}
+		local processed_windows = {}  -- 去重用：记录已处理的窗口 ID
 
 		for _, entry in ipairs(workspace_and_windows) do
 			local workspace_index = entry.workspace
@@ -75,7 +87,7 @@ local function withWindows(f)
 				has_fullscreen[workspace_index] = true
 			end
 
-			-- Only process each window ID once
+			-- 每个窗口只统计一次（同一应用可能有多个窗口）
 			if not processed_windows[window_id] then
 				processed_windows[window_id] = true
 
@@ -83,7 +95,7 @@ local function withWindows(f)
 					open_windows[workspace_index] = {}
 				end
 
-				-- Check if this app is already in the list for this workspace
+				-- 去重：同一应用不重复添加
 				local app_exists = false
 				for _, existing_app in ipairs(open_windows[workspace_index]) do
 					if existing_app == app then
@@ -92,13 +104,13 @@ local function withWindows(f)
 					end
 				end
 
-				-- Only add the app if it's not already in the list
 				if not app_exists then
 					table.insert(open_windows[workspace_index], app)
 				end
 			end
 		end
 
+		-- 嵌套查询：先查聚焦工作区，再查可见工作区，最后统一处理
 		sbar.exec(get_focus_workspaces, function(focused_workspaces)
 			sbar.exec(query_visible_workspaces, function(visible_workspaces)
 				local args = {
@@ -113,6 +125,8 @@ local function withWindows(f)
 	end)
 end
 
+-- ========== 更新单个工作区的显示 ==========
+-- 决定显示应用图标 / 月亮占位符 / 隐藏
 local function updateWindow(workspace_index, args)
 	local open_windows = args.open_windows[workspace_index]
 	local focused_workspaces = args.focused_workspaces
@@ -122,6 +136,7 @@ local function updateWindow(workspace_index, args)
 		open_windows = {}
 	end
 
+	-- 拼接应用图标字符串（使用 sketchybar-app-font 的 :name: 格式）
 	local icon_line = ""
 	local no_app = true
 	for _, open_window in ipairs(open_windows) do
@@ -133,6 +148,7 @@ local function updateWindow(workspace_index, args)
 	end
 
 	sbar.animate("tanh", 10, function()
+		-- 情况1：没有应用，但工作区当前在屏幕上可见 → 显示 :moon: 占位
 		for _, visible_workspace in ipairs(visible_workspaces) do
 			if no_app and workspace_index == visible_workspace["workspace"] then
 				local monitor_id = visible_workspace["monitor-appkit-nsscreen-screens-id"]
@@ -145,6 +161,8 @@ local function updateWindow(workspace_index, args)
 				return
 			end
 		end
+
+		-- 情况2：没有应用，也不聚焦 → 如果在 always_show 列表中则显示，否则隐藏
 		if no_app and workspace_index ~= focused_workspaces then
 			if always_show[workspace_index] then
 				icon_line = ":moon:"
@@ -159,6 +177,8 @@ local function updateWindow(workspace_index, args)
 			})
 			return
 		end
+
+		-- 情况3：没有应用，但是聚焦的工作区 → 显示 :moon: 占位
 		if no_app and workspace_index == focused_workspaces then
 			icon_line = ":moon:"
 			workspaces[workspace_index]:set({
@@ -167,6 +187,7 @@ local function updateWindow(workspace_index, args)
 			})
 		end
 
+		-- 情况4：有应用 → 显示应用图标
 		workspaces[workspace_index]:set({
 			drawing = true,
 			["label.string"] = icon_line,
@@ -174,19 +195,22 @@ local function updateWindow(workspace_index, args)
 	end)
 end
 
+-- ========== 更新所有工作区 + 分配边框颜色 ==========
 local function updateWindows()
 	withWindows(function(args)
+		-- 第一步：更新每个工作区的窗口内容
 		for workspace_index, _ in pairs(workspaces) do
 			updateWindow(workspace_index, args)
 		end
 
-		-- Dynamic gradient: collect visible workspaces in creation order
+		-- 第二步：按创建顺序收集所有「可见」的工作区
 		local visible = {}
 		for _, ws_idx in ipairs(workspace_order) do
 			local open = args.open_windows[ws_idx]
 			local has_apps = open and #open > 0
 			local is_visible = has_apps
 
+			-- 当前在屏幕上的工作区也算可见
 			if not is_visible then
 				for _, vw in ipairs(args.visible_workspaces) do
 					if vw["workspace"] == ws_idx then
@@ -195,9 +219,11 @@ local function updateWindows()
 					end
 				end
 			end
+			-- 聚焦的工作区始终可见
 			if not is_visible and ws_idx == args.focused_workspaces then
 				is_visible = true
 			end
+			-- always_show 列表中的工作区始终可见
 			if not is_visible and always_show[ws_idx] then
 				is_visible = true
 			end
@@ -207,19 +233,17 @@ local function updateWindows()
 			end
 		end
 
-		-- Assign border colors
+		-- 第三步：为可见工作区按顺序分配彩虹边框颜色
 		sbar.animate("tanh", 10, function()
 			for i, ws_idx in ipairs(visible) do
 				local fullscreen = args.has_fullscreen[ws_idx]
 				local border_color, border_width
 				if fullscreen then
 					border_color = appearance.colors.tokyo_night.accent_opaque
-					border_width = 4
+					border_width = 4                            -- 全屏时加粗边框
 				else
-					local idx = i % #border_gradient
-					if idx == 0 then
-						idx = #border_gradient
-					end
+					local idx = i % #border_gradient             -- 循环取色
+					if idx == 0 then idx = #border_gradient end
 					border_color = border_gradient[idx]
 					border_width = 2
 				end
@@ -232,6 +256,7 @@ local function updateWindows()
 	end)
 end
 
+-- ========== 多显示器支持：更新工作区所属显示器 ==========
 local function updateWorkspaceMonitor()
 	local workspace_monitor = {}
 	sbar.exec(query_workspaces, function(workspaces_and_monitors)
@@ -248,15 +273,15 @@ local function updateWorkspaceMonitor()
 	end)
 end
 
+-- ========== 初始化：为每个工作区创建 sketchybar 条目 ==========
 sbar.exec(query_workspaces, function(workspaces_and_monitors)
 	for i, entry in ipairs(workspaces_and_monitors) do
 		local workspace_index = entry.workspace
-		local style = appearance.styles.workspace
+		local style = appearance.styles.workspace    -- 引用 appearance 中的样式模板
 
+		-- 初始边框色（稍后会被 updateWindows 覆盖为正确的彩虹色）
 		local border_idx = i % #border_gradient
-		if border_idx == 0 then
-			border_idx = #border_gradient
-		end
+		if border_idx == 0 then border_idx = #border_gradient end
 		local border_color = border_gradient[border_idx]
 
 		local bg = {
@@ -269,11 +294,11 @@ sbar.exec(query_workspaces, function(workspaces_and_monitors)
 
 		local workspace = sbar.add("item", "workspace." .. workspace_index, {
 			background = bg,
-			click_script = "aerospace workspace " .. workspace_index,
-			drawing = false, -- Hide all items at first
+			click_script = "aerospace workspace " .. workspace_index,  -- 点击切换到该工作区
+			drawing = false,          -- 初始隐藏，稍后由 updateWindow 决定显示/隐藏
 			padding_left = 2,
 			padding_right = 2,
-			icon = {
+			icon = {                  -- 显示工作区名称（如 "Web", "C̲hat"）
 				color = style.icon.color,
 				highlight_color = style.icon.highlight_color,
 				font = style.icon.font_icon,
@@ -282,7 +307,7 @@ sbar.exec(query_workspaces, function(workspaces_and_monitors)
 				drawing = true,
 				string = workspace_index,
 			},
-			label = {
+			label = {                 -- 显示应用图标字符串
 				color = style.label.color,
 				highlight_color = style.label.highlight_color,
 				font = style.label.font,
@@ -296,6 +321,7 @@ sbar.exec(query_workspaces, function(workspaces_and_monitors)
 		workspaces[workspace_index] = workspace
 		table.insert(workspace_order, workspace_index)
 
+		-- 订阅工作区切换事件，更新高亮状态
 		workspace:subscribe("aerospace_workspace_change", function(env)
 			local focused_workspace = env.FOCUSED_WORKSPACE
 			local is_focused = focused_workspace == workspace_index
@@ -309,6 +335,7 @@ sbar.exec(query_workspaces, function(workspaces_and_monitors)
 		end)
 	end
 
+	-- 装饰性文字（左侧 "Powered by "）
 	sbar.add("item", "i3", {
 		position = "left",
 		padding_left = 2,
@@ -321,32 +348,35 @@ sbar.exec(query_workspaces, function(workspaces_and_monitors)
 			color = appearance.colors.active.deep_blue,
 		},
 		label = { drawing = false },
-		background = {
-			drawing = false,
-		},
+		background = { drawing = false },
 	})
 
-	-- Initial setup
+	-- 首次加载
 	updateWindows()
 	updateWorkspaceMonitor()
 
-	-- Subscribe to window creation/destruction events
+	-- ===== 事件订阅 =====
+
+	-- 工作区切换时更新窗口列表
 	root:subscribe("aerospace_workspace_change", function()
 		updateWindows()
 	end)
 
-	-- Subscribe to front app changes too
+	-- 前台应用切换时更新（可能新建/关闭窗口）
 	root:subscribe("front_app_switched", function()
 		updateWindows()
 	end)
 
+	-- 显示器变化时（插拔显示器）重新分配
 	root:subscribe("display_change", function()
 		updateWorkspaceMonitor()
 		updateWindows()
 	end)
 
+	-- 全屏切换时刷新边框
 	root:subscribe("aerospace_fullscreen_change", updateWindows)
 
+	-- aerospace 模式切换时显示/隐藏模式图标
 	root:subscribe("aerospace_mode_change", function(env)
 		sbar.exec("aerospace list-modes --current", function(result)
 			local is_service = result:match("service") ~= nil
@@ -354,6 +384,7 @@ sbar.exec(query_workspaces, function(workspaces_and_monitors)
 		end)
 	end)
 
+	-- 查询初始聚焦的工作区，标记为高亮
 	sbar.exec("aerospace list-workspaces --focused", function(focused_workspace)
 		focused_workspace = focused_workspace:match("^%s*(.-)%s*$")
 		workspaces[focused_workspace]:set({
