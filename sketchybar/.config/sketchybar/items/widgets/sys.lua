@@ -18,7 +18,7 @@ local sys = sbar.add("item", "widgets.sys", {
 			size = fonts.font_fira.size,
 		},
 		padding_left = settings.padding.icon_label_item.icon.padding_left,
-		padding_right = 2,
+		padding_right = 0,
 		color = colors.tokyo_night.accent_opaque,
 	},
 	label = {
