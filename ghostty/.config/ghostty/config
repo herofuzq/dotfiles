@@ -51,3 +51,7 @@ clipboard-read                 = allow
 clipboard-write                = allow
 clipboard-paste-protection     = true
 clipboard-trim-trailing-spaces = true
+# -------------------------------------------------- #
+# Startup
+# -------------------------------------------------- #
+command = /bin/zsh -c 'fastfetch; exec zsh'
