@@ -366,14 +366,12 @@ run = ["move-node-to-workspace C̲hat",
 if.app-id = "com.mac.utility.media.hub"
 if.window-title-regex-substring = '(^(?!.*媒体库).*(视频播放器).*)'
 run = ["move-node-to-workspace M̲edia",
-       "layout floating"
+       "layout floating",
       ]
 
 [[on-window-detected]]
 if.app-id = "com.blizzard.worldofwarcraft"
-run = ["move-node-to-workspace G̲ame",
-       "layout floating"
-      ]
+run = 'layout floating'
 
 [[on-window-detected]]
 if.app-id = "com.apple.finder"
