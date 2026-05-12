@@ -19,6 +19,15 @@ local border_gradient = {
 	appearance.colors.tokyo_night.red,
 }
 
+local always_show = {
+	["C̲hat"] = true,
+	["T̲erm"] = true,
+	["Web̲"] = true,
+	["W̲ork"] = true,
+	["V̲M"] = true,
+	["M̲edia"] = true,
+}
+
 local ordered_indices = { "1", "2", "3", "4", "5", "6", "7", "8", "9", "A", "B", "C", "D" }
 
 local query_workspaces =
@@ -127,7 +136,7 @@ local function updateWindow(workspace_index, args)
 		for _, visible_workspace in ipairs(visible_workspaces) do
 			if no_app and workspace_index == visible_workspace["workspace"] then
 				local monitor_id = visible_workspace["monitor-appkit-nsscreen-screens-id"]
-				icon_line = " —"
+				icon_line = ":moon:"
 				workspaces[workspace_index]:set({
 					drawing = true,
 					["label.string"] = icon_line,
@@ -137,13 +146,21 @@ local function updateWindow(workspace_index, args)
 			end
 		end
 		if no_app and workspace_index ~= focused_workspaces then
+			if always_show[workspace_index] then
+				icon_line = ":moon:"
+				workspaces[workspace_index]:set({
+					drawing = true,
+					["label.string"] = icon_line,
+				})
+				return
+			end
 			workspaces[workspace_index]:set({
 				drawing = false,
 			})
 			return
 		end
 		if no_app and workspace_index == focused_workspaces then
-			icon_line = " —"
+			icon_line = ":moon:"
 			workspaces[workspace_index]:set({
 				drawing = true,
 				["label.string"] = icon_line,
@@ -179,6 +196,9 @@ local function updateWindows()
 				end
 			end
 			if not is_visible and ws_idx == args.focused_workspaces then
+				is_visible = true
+			end
+			if not is_visible and always_show[ws_idx] then
 				is_visible = true
 			end
 
