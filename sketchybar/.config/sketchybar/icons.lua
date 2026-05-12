@@ -43,6 +43,9 @@ local icons = {
 		clash = {
 			tun = "",
 		},
+		input_method = {
+			keyboard = "⌨",
+		},
 	},
 
 	-- Alternative NerdFont icons
@@ -88,6 +91,9 @@ local icons = {
 		},
 		clash = {
 			tun = "",
+		},
+		input_method = {
+			keyboard = "⌨",
 		},
 	},
 }
