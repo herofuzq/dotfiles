@@ -89,6 +89,7 @@ return {
 	["Evernote Legacy"] = ":evernote_legacy:",
 	["FaceTime"] = ":face_time:",
 	["FaceTime 通话"] = ":face_time:",
+	["腾讯会议"] = ":face_time:",
 	["Figma"] = ":figma:",
 	["Final Cut Pro"] = ":final_cut_pro:",
 	["Finder"] = ":finder:",

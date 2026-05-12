@@ -451,7 +451,9 @@ run = ["move-node-to-workspace C̲hat"]
 
 [[on-window-detected]]
 if.app-id = "com.tencent.meeting"
-run = ["move-node-to-workspace C̲hat"]
+run = ["move-node-to-workspace C̲hat",
+       "layout floating",
+      ]
 
 [[on-window-detected]]
 if.app-id = "com.ltysp.phone"
