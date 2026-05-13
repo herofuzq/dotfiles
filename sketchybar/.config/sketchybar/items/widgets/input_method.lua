@@ -9,6 +9,7 @@ local fonts = require("fonts")
 local im_map = {
 	["com.apple.keylayout.ABC"] = { label = "ABC", color = colors.blue },
 	["com.tencent.inputmethod.wetype.pinyin"] = { label = "拼音", color = colors.green },
+	["im.rime.inputmethod.Squirrel.Hans"] = { label = "鼠须管", color = colors.tokyo_night.mauve },
 }
 
 local input_method = sbar.add("item", "widgets.input_method", {
