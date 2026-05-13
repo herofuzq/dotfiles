@@ -17,7 +17,7 @@ local apple = sbar.add("item", {
 	background = {
 		color = colors.colors.active.bar_bg,
 		corner_radius = 10,
-		border_color = colors.colors.active.purple,  -- 深紫边框
+		border_color = colors.colors.active.apple_border,  -- 亮紫边框
 		border_width = 2,
 	},
 })

@@ -5,24 +5,9 @@ local appearance = require("appearance")
 local app_icons = require("helpers.app_icons")
 local sbar = require("sketchybar")
 
--- 可见工作区的边框颜色渐变（彩虹：紫→蓝→青→绿→黄→橙→粉→红）
--- 从左到右依次取色，循环使用
-local border_gradient = {
-	appearance.colors.tokyo_night.mauve,
-	appearance.colors.tokyo_night.lavender,
-	appearance.colors.tokyo_night.sapphire,
-	appearance.colors.tokyo_night.blue,
-	appearance.colors.tokyo_night.sky,
-	appearance.colors.tokyo_night.teal,
-	appearance.colors.tokyo_night.green,
-	appearance.colors.tokyo_night.yellow,
-	appearance.colors.tokyo_night.peach,
-	appearance.colors.tokyo_night.rosewater,
-	appearance.colors.tokyo_night.flamingo,
-	appearance.colors.tokyo_night.pink,
-	appearance.colors.tokyo_night.maroon,
-	appearance.colors.tokyo_night.red,
-}
+-- 可见工作区的边框颜色渐变（9色统一感知亮度，色相平滑过渡）
+-- 紫 → 蓝 → 青 → 绿 → 黄 → 橙 → 红
+local border_gradient = appearance.colors.tokyo_night.ws_gradient
 
 -- 始终显示的工作区（即使没有应用也会显示，用 :moon: 占位）
 local always_show = {

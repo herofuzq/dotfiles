@@ -119,6 +119,20 @@ M.colors = {
 		sep_opaque = 0xffa3aed2,                -- 分隔线/默认文字色
 		accent_opaque = 0xff769ff0,             -- 强调色
 		deep_blue = 0xff51C0FF,                 -- 深蓝
+		-- 工作区边框渐变（9色，统一感知亮度 ~184，色相偏橙色）
+		ws_gradient = {
+			0xffc9a6ec,  -- purple (270°)
+			0xffbcaced,  -- blue-purple (255°)
+			0xff9cbcea,  -- blue (215°)
+			0xff64ded3,  -- cyan (175°)
+			0xff78e289,  -- green (130°)
+			0xffa7d745,  -- lime (80°)
+			0xffdbb956,  -- gold (45°)
+			0xffe6a98b,  -- orange (20°)
+			0xffeba2a2,  -- red (0°)
+		},
+		-- Apple logo 边框（比最左 workspace 紫更亮，luma ~205）
+		apple_border = 0xffd8bff1,
 	},
 
 	-- 工具函数：给颜色加透明度
