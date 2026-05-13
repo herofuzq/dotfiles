@@ -57,15 +57,21 @@ end
 -- 调用 macism 获取当前输入法 ID
 local function check_status()
 	sbar.exec("macism", function(im_id)
-		update_display(im_id:match("^%s*(.-)%s*$"))  -- 去除首尾空白
+		update_display(im_id:match("^%s*(.-)%s*$")) -- 去除首尾空白
 	end)
 end
 
-input_method:subscribe("input_method_change", check_status)  -- 输入法切换时刷新
-input_method:subscribe("system_woke", check_status)          -- 系统唤醒时刷新
-check_status()                                                -- 启动时主动查一次
+input_method:subscribe("input_method_change", check_status) -- 输入法切换时刷新
+input_method:subscribe("system_woke", check_status) -- 系统唤醒时刷新
+check_status() -- 启动时主动查一次
 
--- 点击切换输入法（快捷键 ctrl+opt+cmd+Q）
+-- 点击在 ABC 和鼠须管之间切换
 input_method:subscribe("mouse.clicked", function()
-	sbar.exec([[osascript -e 'tell application "System Events" to keystroke "q" using {command down, control down, option down}']])
+	sbar.exec("macism", function(current_id)
+		current_id = current_id:match("^%s*(.-)%s*$")
+		local next_id = (current_id == "com.apple.keylayout.ABC")
+			and "im.rime.inputmethod.Squirrel.Hans"
+			or "com.apple.keylayout.ABC"
+		sbar.exec("macism " .. next_id)
+	end)
 end)
