@@ -6,7 +6,7 @@ local app_icons = require("helpers.app_icons")
 local sbar = require("sketchybar")
 
 -- 可见工作区的边框颜色渐变（9色统一感知亮度，色相平滑过渡）
--- 紫 → 蓝 → 青 → 绿 → 黄 → 橙 → 红
+-- 紫 → 玫红 → 橙 → 金 → 深橙
 local border_gradient = appearance.colors.tokyo_night.ws_gradient
 
 -- 始终显示的工作区（即使没有应用也会显示，用 :moon: 占位）
@@ -234,7 +234,7 @@ local function updateWindows()
 				end
 				workspaces[ws_idx]:set({
 					background = { border_color = border_color, border_width = border_width },
-					icon = { color = border_color, highlight_color = appearance.colors.tokyo_night.mauve },
+					icon = { color = border_color, highlight_color = appearance.colors.tokyo_night.peach },
 				})
 			end
 		end)

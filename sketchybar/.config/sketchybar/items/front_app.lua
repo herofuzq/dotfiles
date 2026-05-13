@@ -21,7 +21,7 @@ local front_app = sbar.add("item", "front_app", {
 		padding_left = 8,
 		padding_right = 8,
 		align = "center",
-		color = colors.colors.active.mauve,
+		color = colors.colors.active.sep_opaque,
 	},
 	background = {
 		drawing = true,
