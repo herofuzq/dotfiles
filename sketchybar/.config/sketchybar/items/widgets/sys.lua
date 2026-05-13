@@ -40,7 +40,7 @@ local sys = sbar.add("item", "widgets.sys", {
 	background = {
 		color = colors.tokyo_night.bar_bg,
 		corner_radius = 10,
-		border_color = colors.tokyo_night.surface2,
+		border_color = colors.tokyo_night.item_gradient[7],
 		border_width = 2,
 	},
 })

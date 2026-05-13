@@ -133,6 +133,17 @@ M.colors = {
 		},
 		-- Apple logo 边框（比最左 workspace 紫更亮，luma ~205）
 		apple_border = 0xffd8bff1,
+		-- 右侧 item 边框渐变（8色，橙→暗灰，延续 workspace 渐变末端的橙）
+		item_gradient = {
+			0xffd88838,  -- deep orange
+			0xffc88040,  -- amber
+			0xffb87848,  -- warm amber
+			0xffa08850,  -- olive gold
+			0xff8e9070,  -- warm muted
+			0xff788078,  -- warm gray
+			0xff627068,  -- dark warm gray
+			0xff4e5858,  -- dark gray
+		},
 	},
 
 	-- 工具函数：给颜色加透明度

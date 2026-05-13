@@ -30,22 +30,22 @@ local clash_tun = sbar.add("item", "widgets.clash_tun", {
 		},
 		padding_left = 0,
 		padding_right = settings.padding.icon_label_item.label.padding_right,
-		color = colors.tokyo_night.bg3_opaque,
+		color = colors.tokyo_night.sep_opaque,
 	},
 	background = {
 		color = colors.tokyo_night.bar_bg,
 		corner_radius = 10,
-		border_color = colors.tokyo_night.overlay0,
+		border_color = colors.tokyo_night.item_gradient[6],
 		border_width = 2,
 	},
 })
 
--- 更新显示：TUN 开启=绿色，关闭=橙色/红色
+-- 更新显示：TUN 开启=绿色图标，关闭=红色图标，文字始终灰色
 local function update_display(tun_on)
-	local color = tun_on and colors.green or colors.tokyo_night.peach
+	local icon_color = tun_on and colors.green or colors.red
 	clash_tun:set({
-		icon = { string = icons.clash.tun, color = color },
-		label = { string = tun_on and "TUN" or "OFF", color = color },
+		icon = { string = icons.clash.tun, color = icon_color },
+		label = { string = tun_on and "TUN" or "OFF", color = colors.tokyo_night.sep_opaque },
 	})
 end
 

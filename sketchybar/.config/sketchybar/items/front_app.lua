@@ -27,7 +27,7 @@ local front_app = sbar.add("item", "front_app", {
 		drawing = true,
 		color = colors.colors.active.bar_bg,
 		corner_radius = 10,
-		border_color = colors.colors.active.lavender,
+		border_color = colors.colors.active.item_gradient[1],
 		border_width = 2,
 		shadow = { drawing = false },
 	},

@@ -28,7 +28,7 @@ local cal = sbar.add("item", {
 	background = {
 		color = colors.colors.active.bar_bg,
 		corner_radius = 10,
-		border_color = colors.colors.active.surface1,
+		border_color = colors.colors.active.item_gradient[8],
 		border_width = 2,
 	},
 	position = "right",
