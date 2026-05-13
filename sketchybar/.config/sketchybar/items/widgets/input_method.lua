@@ -24,7 +24,7 @@ local input_method = sbar.add("item", "widgets.input_method", {
 		},
 		padding_left = settings.padding.icon_label_item.icon.padding_left,
 		padding_right = 2,
-		color = colors.tokyo_night.bg3_opaque,
+		color = colors.tokyo_night.deep_blue,
 	},
 	label = {
 		font = {
@@ -34,7 +34,7 @@ local input_method = sbar.add("item", "widgets.input_method", {
 		},
 		padding_left = 0,
 		padding_right = settings.padding.icon_label_item.label.padding_right,
-		color = colors.tokyo_night.bg3_opaque,
+		color = colors.tokyo_night.sep_opaque,
 	},
 	background = {
 		color = colors.tokyo_night.bar_bg,
@@ -50,7 +50,7 @@ local function update_display(im_id)
 	local im = im_map[im_id] or { label = im_id:match("[^.]+$") or "?", color = colors.tokyo_night.bg3_opaque }
 	input_method:set({
 		icon = { string = "⌨", color = im.color },
-		label = { string = im.label, color = im.color },
+		label = { string = im.label, color = colors.tokyo_night.sep_opaque },
 	})
 end
 

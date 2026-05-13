@@ -341,12 +341,12 @@ run = 'layout floating'
 if.app-id = "com.hegenberg.BetterTouchTool"
 run = 'layout floating'
 
-[[on-window-detected]] # Q̲Space
-if.app-id = "com.jinghaoshe.qspace.pro"
-if.window-title-regex-substring = '(^(?!.*工作).*$)'
-run = ["move-node-to-workspace T̲erm",
-       "layout floating"
-      ]
+# [[on-window-detected]] # Q̲Space
+# if.app-id = "com.jinghaoshe.qspace.pro"
+# if.window-title-regex-substring = '(^(?!.*工作).*$)'
+# run = ["move-node-to-workspace T̲erm",
+#        "layout floating"
+#       ]
 
 [[on-window-detected]] # 微信浮窗
 if.app-id = "com.tencent.xinWeChat"
