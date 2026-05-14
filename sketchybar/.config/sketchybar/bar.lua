@@ -4,7 +4,7 @@ local settings = require("settings")
 local sbar = require("sketchybar")
 
 sbar.bar({
-	color = colors.colors.with_alpha(0xff0d0d13, 0.8), -- 背景色（半透明深色）
+	color = colors.colors.with_alpha(0xff0d0d13, 0.5), -- 背景色（半透明深色）
 	border_width = 0, -- 无边框
 	border_color = 0xB33a3a45,
 	margin = 0, -- 边距
@@ -17,7 +17,7 @@ sbar.bar({
 	position = "top", -- 屏幕顶部
 	shadow = "true", -- 阴影
 	y_offset = 0, -- Y 轴偏移
-	blur_radius = 15, -- 毛玻璃模糊半径
+	blur_radius = 10, -- 毛玻璃模糊半径
 	-- notch_width = 1000, --避开notch的宽度
 	-- notch_offset = 34, --避开notch的高度
 })

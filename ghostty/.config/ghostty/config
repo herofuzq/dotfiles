@@ -19,13 +19,13 @@ font-family = MesloLGS Nerd Font Mono
 font-family = Sarasa Mono SC
 font-thicken = true
 font-thicken-strength = 128
-font-size = 13
+font-size = 14
 # -------------------------------------------------- #
 # Custom 
 # -------------------------------------------------- #
 theme = Mellow
-background-opacity      = 0.6
-background-blur         = 20
+background-opacity      = 0.5
+background-blur         = 10
 mouse-hide-while-typing = true
 unfocused-split-opacity = 0.8
 window-padding-x        = 5
