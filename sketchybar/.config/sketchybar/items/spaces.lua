@@ -18,9 +18,6 @@ local always_show = {
 	["V̲M"] = true,
 	["M̲edia"] = true,
 }
-
-local ordered_indices = { "1", "2", "3", "4", "5", "6", "7", "8", "9", "A", "B", "C", "D" }
-
 -- aerospace 查询命令模板
 local query_workspaces =
 	"aerospace list-workspaces --all --format '%{workspace}%{monitor-appkit-nsscreen-screens-id}' --json"
