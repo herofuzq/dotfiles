@@ -18,4 +18,6 @@ sbar.bar({
 	shadow = "true", -- 阴影
 	y_offset = 0, -- Y 轴偏移
 	blur_radius = 15, -- 毛玻璃模糊半径
+	-- notch_width = 1000, --避开notch的宽度
+	-- notch_offset = 34, --避开notch的高度
 })
