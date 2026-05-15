@@ -122,7 +122,6 @@ M.colors = {
 		crust = 0xffdce0e8,
 	},
 
-	-- ★ 当前活跃主题：Tokyo Night ★
 	tokyo_night = {
 		-- 半透明背景层（用于毛玻璃效果）
 		bg0 = 0x661a1b26,
@@ -196,7 +195,6 @@ M.colors = {
 		},
 	},
 
-	-- ★ Catppuccin Mocha 主题（备用）★
 	catppuccin_mocha = {
 		-- 半透明背景层（用于毛玻璃效果）
 		bg0 = 0x661e1e2e,
@@ -247,7 +245,7 @@ M.colors = {
 		bar_bg = 0xff1e1e2e, -- 菜单栏背景
 		bg2_opaque = 0xff313244,
 		bg3_opaque = 0xff45475a,
-		sep_opaque = 0xff6c7086, -- 分隔线/默认文字色
+		sep_opaque = 0xffa3aed2, -- 分隔线/默认文字色
 		accent_opaque = 0xffcba6f7, -- 强调色
 		deep_blue = 0xff74c7ec, -- 深蓝
 		ws_gradient = {
@@ -264,16 +262,16 @@ M.colors = {
 		-- Apple logo 边框（配合黄色图标的对比色）
 		apple_border = 0xfff5c2e7, -- pink
 		-- 右侧 item 边框渐变（8色，从 workspace 末端粉色过渡到深灰）
-item_gradient = {
-0xff40c8e8, -- sky（front_app）
-0xff50c0e0, -- sky-purple（input_method）
-0xff60b8d8, -- blue-purple（battery）
-0xffb4befe, -- lavender（wechat）
-0xffc8a8f0, -- purple-pink（dingtalk）
-0xffd0a8f8, -- pink-purple（clash）
-0xffd8a8f4, -- purple-rose（sys）
-0xffcba6f7, -- mauve（calendar）
-},
+		item_gradient = {
+			0xff40c8e8, -- sky（front_app）
+			0xff50c0e0, -- sky-purple（input_method）
+			0xff60b8d8, -- blue-purple（battery）
+			0xffb4befe, -- lavender（wechat）
+			0xffc8a8f0, -- purple-pink（dingtalk）
+			0xffd0a8f8, -- pink-purple（clash）
+			0xffd8a8f4, -- purple-rose（sys）
+			0xffcba6f7, -- mauve（calendar）
+		},
 	},
 
 	-- 工具函数：给颜色加透明度
@@ -295,14 +293,14 @@ M.styles = {
 	-- 工作区条目的样式（在 items/spaces.lua 中使用）
 	workspace = {
 		background = {
-			color = M.colors.tokyo_night.bar_bg,
+			color = M.colors.active.bar_bg,
 			drawing = true,
 			corner_radius = 10,
 			border_width = 2, -- 边框宽度，颜色由代码动态分配（彩虹渐变）
 		},
 		icon = {
-			color = M.colors.tokyo_night.sep_opaque, -- 非高亮的默认色
-			highlight_color = M.colors.tokyo_night.peach, -- 高亮（当前活跃）色
+			color = M.colors.active.sep_opaque, -- 非高亮的默认色
+			highlight_color = M.colors.active.peach, -- 高亮（当前活跃）色
 			font = {
 				family = fonts.font.text,
 				style = fonts.font.style_map["Bold"],
@@ -312,8 +310,8 @@ M.styles = {
 			padding_right = 2,
 		},
 		label = {
-			color = M.colors.tokyo_night.sep_opaque, -- 应用图标默认色
-			highlight_color = M.colors.tokyo_night.peach, -- 高亮色
+			color = M.colors.active.sep_opaque, -- 应用图标默认色
+			highlight_color = M.colors.active.peach, -- 高亮色
 			font = "sketchybar-app-font:Regular:14.0",
 			padding_left = 2,
 			padding_right = 10,
@@ -326,14 +324,14 @@ M.styles = {
 -- ========== 全局默认属性（所有 noinherit item 会继承这些） ==========
 sbar.default({
 	background = {
-		border_color = M.colors.tokyo_night.bg3,
+		border_color = M.colors.active.bg3,
 		border_width = 0,
-		color = M.colors.tokyo_night.bar_bg,
+		color = M.colors.active.bar_bg,
 		corner_radius = 0,
 		height = settings.height - 6,
 		image = {
 			corner_radius = 0,
-			border_color = M.colors.tokyo_night.text,
+			border_color = M.colors.active.text,
 			border_width = 1,
 		},
 	},
@@ -343,8 +341,8 @@ sbar.default({
 			style = fonts.font_icon.style_map["Bold"],
 			size = fonts.font_icon.size,
 		},
-		color = M.colors.tokyo_night.bg2_opaque,
-		highlight_color = M.colors.tokyo_night.accent,
+		color = M.colors.active.bg2_opaque,
+		highlight_color = M.colors.active.accent,
 		padding_left = 0,
 		padding_right = 0,
 	},
@@ -354,7 +352,7 @@ sbar.default({
 			style = fonts.font.style_map["Semibold"],
 			size = fonts.font.size,
 		},
-		color = M.colors.tokyo_night.bg2_opaque,
+		color = M.colors.active.bg2_opaque,
 		padding_left = settings.paddings,
 		padding_right = settings.paddings,
 	},
@@ -363,7 +361,7 @@ sbar.default({
 		background = {
 			border_width = 0,
 			corner_radius = 6,
-			color = M.colors.tokyo_night.bar_bg,
+			color = M.colors.active.bar_bg,
 			shadow = { drawing = true },
 		},
 		blur_radius = 50,

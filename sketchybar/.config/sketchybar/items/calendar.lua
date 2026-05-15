@@ -13,7 +13,7 @@ local cal = sbar.add("item", {
 		},
 		padding_left = 8,
 		padding_right = 2,
-		color = colors.tokyo_night.sep_opaque,
+		color = colors.active.sep_opaque,
 	},
 	label = {
 		font = {
@@ -23,7 +23,7 @@ local cal = sbar.add("item", {
 		},
 		padding_left = 0,
 		padding_right = 17,
-		color = colors.tokyo_night.sep_opaque,
+		color = colors.active.sep_opaque,
 	},
 	background = {
 		color = colors.active.bar_bg,

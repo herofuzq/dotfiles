@@ -20,7 +20,7 @@ local clash_tun = sbar.add("item", "widgets.clash_tun", {
 		},
 		padding_left = settings.padding.icon_label_item.icon.padding_left,
 		padding_right = 2,
-		color = colors.tokyo_night.bg3_opaque,
+		color = colors.active.bg3_opaque,
 	},
 	label = {
 		font = {
@@ -30,10 +30,10 @@ local clash_tun = sbar.add("item", "widgets.clash_tun", {
 		},
 		padding_left = 0,
 		padding_right = settings.padding.icon_label_item.label.padding_right,
-		color = colors.tokyo_night.sep_opaque,
+		color = colors.active.sep_opaque,
 	},
 	background = {
-		color = colors.tokyo_night.bar_bg,
+		color = colors.active.bar_bg,
 		corner_radius = 10,
 		border_color = colors.active.item_gradient[6],
 		border_width = 2,
@@ -45,7 +45,7 @@ local function update_display(tun_on)
 	local icon_color = tun_on and colors.green or colors.red
 	clash_tun:set({
 		icon = { string = icons.clash.tun, color = icon_color },
-		label = { string = tun_on and "TUN" or "OFF", color = colors.tokyo_night.sep_opaque },
+		label = { string = tun_on and "TUN" or "OFF", color = colors.active.sep_opaque },
 	})
 end
 

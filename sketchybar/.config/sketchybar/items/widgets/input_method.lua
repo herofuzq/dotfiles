@@ -9,7 +9,7 @@ local fonts = require("fonts")
 local im_map = {
 	["com.apple.keylayout.ABC"] = { label = "ABC", color = colors.blue },
 	["com.tencent.inputmethod.wetype.pinyin"] = { label = "拼音", color = colors.green },
-	["im.rime.inputmethod.Squirrel.Hans"] = { label = "鼠须管", color = colors.tokyo_night.mauve },
+	["im.rime.inputmethod.Squirrel.Hans"] = { label = "鼠须管", color = colors.active.mauve },
 }
 
 local input_method = sbar.add("item", "widgets.input_method", {
@@ -24,7 +24,7 @@ local input_method = sbar.add("item", "widgets.input_method", {
 		},
 		padding_left = settings.padding.icon_label_item.icon.padding_left,
 		padding_right = 2,
-		color = colors.tokyo_night.deep_blue,
+		color = colors.active.deep_blue,
 	},
 	label = {
 		font = {
@@ -34,10 +34,10 @@ local input_method = sbar.add("item", "widgets.input_method", {
 		},
 		padding_left = 0,
 		padding_right = settings.padding.icon_label_item.label.padding_right,
-		color = colors.tokyo_night.sep_opaque,
+		color = colors.active.sep_opaque,
 	},
 	background = {
-		color = colors.tokyo_night.bar_bg,
+		color = colors.active.bar_bg,
 		corner_radius = 10,
 		border_color = colors.active.item_gradient[2],
 		border_width = 2,
@@ -47,10 +47,10 @@ local input_method = sbar.add("item", "widgets.input_method", {
 -- 根据输入法 ID 更新图标和文字
 local function update_display(im_id)
 	-- 如果 ID 不在映射表中，取最后一段作为名称（如 "com.apple.keylayout.ABC" → "ABC"）
-	local im = im_map[im_id] or { label = im_id:match("[^.]+$") or "?", color = colors.tokyo_night.bg3_opaque }
+	local im = im_map[im_id] or { label = im_id:match("[^.]+$") or "?", color = colors.active.bg3_opaque }
 	input_method:set({
 		icon = { string = "⌨", color = im.color },
-		label = { string = im.label, color = colors.tokyo_night.sep_opaque },
+		label = { string = im.label, color = colors.active.sep_opaque },
 	})
 end
 

@@ -22,7 +22,7 @@ local sys = sbar.add("item", "widgets.sys", {
 		},
 		padding_left = settings.padding.icon_label_item.icon.padding_left,
 		padding_right = 0,
-		color = colors.tokyo_night.accent_opaque,
+		color = colors.active.accent_opaque,
 	},
 	label = {
 		string = "0%",
@@ -35,10 +35,10 @@ local sys = sbar.add("item", "widgets.sys", {
 		padding_right = 8,
 		align = "right",
 		width = 36,         -- 固定宽度，防止数字跳动导致布局变化
-		color = colors.tokyo_night.sep_opaque,
+		color = colors.active.sep_opaque,
 	},
 	background = {
-		color = colors.tokyo_night.bar_bg,
+		color = colors.active.bar_bg,
 		corner_radius = 10,
 		border_color = colors.active.item_gradient[7],
 		border_width = 2,
@@ -53,6 +53,6 @@ sys:subscribe("cpu_update", function(env)
 	local cpu_color = cpu_load > 70 and colors.red or (cpu_load > 40 and colors.orange or colors.green)
 	sys:set({
 		icon = { color = cpu_color },
-		label = { string = cpu_str, color = colors.tokyo_night.sep_opaque },
+		label = { string = cpu_str, color = colors.active.sep_opaque },
 	})
 end)

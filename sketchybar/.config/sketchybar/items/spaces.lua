@@ -221,7 +221,7 @@ local function updateWindows()
 				local fullscreen = args.has_fullscreen[ws_idx]
 				local border_color, border_width
 				if fullscreen then
-					border_color = appearance.colors.tokyo_night.accent_opaque
+					border_color = appearance.colors.active.accent_opaque
 					border_width = 4                            -- 全屏时加粗边框
 				else
 					local idx = i % #border_gradient             -- 循环取色
@@ -231,7 +231,7 @@ local function updateWindows()
 				end
 				workspaces[ws_idx]:set({
 					background = { border_color = border_color, border_width = border_width },
-					icon = { color = border_color, highlight_color = appearance.colors.catppuccin_mocha.peach },
+					icon = { color = border_color, highlight_color = appearance.colors.active.peach },
 				})
 			end
 		end)
@@ -283,7 +283,7 @@ sbar.exec(query_workspaces, function(workspaces_and_monitors)
 			icon = {                  -- 显示工作区名称（如 "Web", "C̲hat"）
 				color = style.icon.color,
 				highlight_color = style.icon.highlight_color,
-				font = style.icon.font_icon,
+				font = style.icon.font,
 				padding_left = style.icon.padding_left,
 				padding_right = style.icon.padding_right,
 				drawing = true,

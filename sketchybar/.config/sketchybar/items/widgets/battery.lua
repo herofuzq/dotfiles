@@ -18,7 +18,7 @@ local battery = sbar.add("item", "widgets.battery", {
 		},
 		padding_left = 8,
 		padding_right = 2,
-		color = colors.tokyo_night.sep_opaque,
+		color = colors.active.sep_opaque,
 	},
 	label = {
 		font = {
@@ -28,10 +28,10 @@ local battery = sbar.add("item", "widgets.battery", {
 		},
 		padding_left = 0,
 		padding_right = 8,
-		color = colors.tokyo_night.sep_opaque,
+		color = colors.active.sep_opaque,
 	},
 	background = {
-		color = colors.tokyo_night.bar_bg,
+		color = colors.active.bar_bg,
 		corner_radius = 10,
 		border_color = colors.active.item_gradient[3],
 		border_width = 2,
