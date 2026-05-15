@@ -160,6 +160,14 @@ M.colors = {
 		green = 0xffa6e3a1, teal = 0xff94e2d5,
 		sky = 0xff89dceb, sapphire = 0xff74c7ec,
 		blue = 0xff89b4fa, lavender = 0xffb4befe,
+		purple_1 = 0xffc8b0f0, -- 自定义紫色1（245°，插值填充lavender到mauve）
+		purple_2 = 0xffc0a0f0, -- 自定义紫色2（255°，插值填充lavender到mauve）
+		purple_light = 0xffd0b0f8, -- 自定义浅紫色（250°，lavender到purple_1过渡）
+		purple_mid = 0xffc8a0f0, -- 自定义中紫色（262°，填充mauve前过渡）
+		purple_warm = 0xffd090e0, -- 自定义暖紫色（275°，填充mauve后过渡）
+		magenta = 0xffe080d0, -- 自定义品红色（300°，pink前过渡）
+		rose_pink = 0xfff090d0, -- 自定义玫瑰粉（325°，rosewater前过渡）
+		rose_deep = 0xfff070c0, -- 自定义深玫瑰（340°，rosewater后过渡）
 		input_border = 0xffb4befe,              -- 输入法边框色
 		-- 文字/层次色
 		text = 0xffcdd6f4,
@@ -176,31 +184,30 @@ M.colors = {
 		sep_opaque = 0xff6c7086,                -- 分隔线/默认文字色
 		accent_opaque = 0xffcba6f7,             -- 强调色
 		deep_blue = 0xff74c7ec,                 -- 深蓝
-		-- 工作区边框渐变（9色，Catppuccin 彩虹方向：蓝→青→绿→黄→桃→红→粉）
 		ws_gradient = {
-			0xff89b4fa,  -- blue
-			0xff74c7ec,  -- sapphire
-			0xff94e2d5,  -- teal
-			0xffa6e3a1,  -- green
-			0xfff9e2af,  -- yellow
-			0xfffab387,  -- peach
-			0xffeba0ac,  -- maroon
-			0xfff38ba8,  -- red
-			0xfff5c2e7,  -- pink
+			0xffeba0ac, -- maroon
+			0xfff38ba8, -- red
+			0xfffab387, -- peach
+			0xfff9e2af, -- yellow
+			0xffa6e3a1, -- green
+			0xff94e2d5, -- teal
+			0xff89dceb, -- sky
+			0xff89b4fa, -- blue
+			0xffb4befe, -- lavender
 		},
 		-- Apple logo 边框（配合黄色图标的对比色）
-		apple_border = 0xffb4befe,
+		apple_border = 0xfff5c2e7, -- pink
 		-- 右侧 item 边框渐变（8色，从 workspace 末端粉色过渡到深灰）
-		item_gradient = {
-			0xfff5c2e7,  -- pink（front_app）
-			0xffcba6f7,  -- mauve
-			0xffb4befe,  -- lavender
-			0xff89b4fa,  -- blue
-			0xff74c7ec,  -- sapphire
-			0xff9399b2,  -- overlay2
-			0xff7f849c,  -- overlay1
-			0xff585b70,  -- surface2（calendar）
-		},
+item_gradient = {
+0xff89b4fa, -- blue（front_app）
+0xffb6bcfc, -- lavender-purple（input_method）
+0xffb8bafc, -- purple-light（battery）
+0xffbab8ff, -- purple（wechat）
+0xffbcb6ff, -- purple-mid（dingtalk）
+0xffc0b4ff, -- purple-mauve（clash）
+0xffc4b2ff, -- mauve-light（sys）
+0xffcba6f7, -- mauve（calendar）
+},
 	},
 
 	-- 工具函数：给颜色加透明度
@@ -215,7 +222,7 @@ M.colors = {
 }
 
 -- 设置当前活跃主题（切换主题只需要改这里）
-M.colors.active = M.colors.tokyo_night
+M.colors.active = M.colors.catppuccin_mocha
 
 -- 各组件的特定样式模板
 M.styles = {

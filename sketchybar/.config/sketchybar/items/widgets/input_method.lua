@@ -39,7 +39,7 @@ local input_method = sbar.add("item", "widgets.input_method", {
 	background = {
 		color = colors.tokyo_night.bar_bg,
 		corner_radius = 10,
-		border_color = colors.tokyo_night.item_gradient[2],
+		border_color = colors.active.item_gradient[2],
 		border_width = 2,
 	},
 })

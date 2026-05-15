@@ -13,7 +13,7 @@ local cal = sbar.add("item", {
 		},
 		padding_left = 8,
 		padding_right = 2,
-		color = colors.colors.active.sep_opaque,
+		color = colors.colors.tokyo_night.sep_opaque,
 	},
 	label = {
 		font = {
@@ -23,7 +23,7 @@ local cal = sbar.add("item", {
 		},
 		padding_left = 0,
 		padding_right = 17,
-		color = colors.colors.active.sep_opaque,
+		color = colors.colors.tokyo_night.sep_opaque,
 	},
 	background = {
 		color = colors.colors.active.bar_bg,
@@ -32,16 +32,16 @@ local cal = sbar.add("item", {
 		border_width = 2,
 	},
 	position = "right",
-	update_freq = 30,        -- 每 30 秒刷新一次
+	update_freq = 30, -- 每 30 秒刷新一次
 	padding_left = 2,
 	padding_right = 11,
 })
 
 -- 强制刷新、定时刷新、系统唤醒时更新日期时间
 cal:subscribe({ "forced", "routine", "system_woke" }, function()
-	local t = os.date("*t")  -- 获取本地日期表
+	local t = os.date("*t") -- 获取本地日期表
 	cal:set({
 		icon = string.format("%d月%d日", t.month, t.day),
-		label = " " .. os.date("%H:%M"),  -- 前面加一个空格，与日期间隔
+		label = " " .. os.date("%H:%M"), -- 前面加一个空格，与日期间隔
 	})
 end)

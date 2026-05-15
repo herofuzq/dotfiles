@@ -6,7 +6,7 @@ local sbar = require("sketchybar")
 local colors = require("appearance")
 
 local front_app = sbar.add("item", "front_app", {
-	display = "active",     -- 仅在活跃显示器显示
+	display = "active", -- 仅在活跃显示器显示
 	updates = true,
 	position = "right",
 	padding_right = 2,
@@ -21,7 +21,7 @@ local front_app = sbar.add("item", "front_app", {
 		padding_left = 8,
 		padding_right = 8,
 		align = "center",
-		color = colors.colors.active.sep_opaque,
+		color = colors.colors.tokyo_night.sep_opaque,
 	},
 	background = {
 		drawing = true,
@@ -37,7 +37,7 @@ local front_app = sbar.add("item", "front_app", {
 front_app:subscribe("front_app_switched", function(env)
 	front_app:set({
 		label = {
-			string = "ミ" .. env.INFO .. "彡",  -- 日文片假名装饰
+			string = "ミ" .. env.INFO .. "彡", -- 日文片假名装饰
 		},
 	})
 end)

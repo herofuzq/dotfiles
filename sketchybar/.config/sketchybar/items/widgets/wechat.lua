@@ -10,5 +10,5 @@ status_widget {
 	icon_inactive_color = colors.tokyo_night.green, -- 无消息时暗绿
 	label_color = colors.green,
 	label_inactive_color = colors.tokyo_night.sep_opaque,
-	border_color = colors.tokyo_night.item_gradient[4],
+	border_color = colors.active.item_gradient[4],
 }
