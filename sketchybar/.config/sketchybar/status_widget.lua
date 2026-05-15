@@ -31,7 +31,7 @@ return function(opts)
 			color = opts.label_inactive_color,
 		},
 		background = {
-			color = colors.tokyo_night.bar_bg,
+			color = colors.active.bar_bg,
 			corner_radius = 10,
 			border_color = opts.border_color,
 			border_width = 2,
