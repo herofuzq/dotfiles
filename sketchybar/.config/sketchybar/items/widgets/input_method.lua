@@ -69,8 +69,7 @@ check_status() -- 启动时主动查一次
 input_method:subscribe("mouse.clicked", function()
 	sbar.exec("macism", function(current_id)
 		current_id = current_id:match("^%s*(.-)%s*$")
-		local next_id = (current_id == "com.apple.keylayout.ABC")
-			and "im.rime.inputmethod.Squirrel.Hans"
+		local next_id = (current_id == "com.apple.keylayout.ABC") and "im.rime.inputmethod.Squirrel.Hans"
 			or "com.apple.keylayout.ABC"
 		sbar.exec("macism " .. next_id)
 	end)

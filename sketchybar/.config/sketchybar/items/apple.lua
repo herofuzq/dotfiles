@@ -1,7 +1,7 @@
 -- ========== Apple Logo 按钮（最左侧） ==========
 local icons = require("icons")
 local sbar = require("sketchybar")
-local colors = require("appearance")
+local colors = require("appearance").colors
 
 local apple = sbar.add("item", {
 	padding_left = 11,
@@ -10,14 +10,14 @@ local apple = sbar.add("item", {
 		padding_left = 13,
 		padding_right = 13,
 		string = icons.apple,                   --  Apple 图标
-		color = colors.colors.active.yellow,    -- 金色图标（搭配紫色边框，互补撞色）
+		color = colors.active.yellow,    -- 金色图标（搭配紫色边框，互补撞色）
 	},
 	label = { drawing = false },               -- 不显示文字
 	click_script = "$CONFIG_DIR/helpers/menus/bin/menus -s 0",
 	background = {
-		color = colors.colors.active.bar_bg,
+		color = colors.active.bar_bg,
 		corner_radius = 10,
-		border_color = colors.colors.active.apple_border,  -- 亮紫边框
+		border_color = colors.active.apple_border,  -- 亮紫边框
 		border_width = 2,
 	},
 })

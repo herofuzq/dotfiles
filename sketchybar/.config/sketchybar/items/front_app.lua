@@ -3,7 +3,7 @@
 -- 点击可以切换到下一个工作区
 local fonts = require("fonts")
 local sbar = require("sketchybar")
-local colors = require("appearance")
+local colors = require("appearance").colors
 
 local front_app = sbar.add("item", "front_app", {
 	display = "active", -- 仅在活跃显示器显示
@@ -21,13 +21,13 @@ local front_app = sbar.add("item", "front_app", {
 		padding_left = 8,
 		padding_right = 8,
 		align = "center",
-		color = colors.colors.tokyo_night.sep_opaque,
+		color = colors.tokyo_night.sep_opaque,
 	},
 	background = {
 		drawing = true,
-		color = colors.colors.active.bar_bg,
+		color = colors.active.bar_bg,
 		corner_radius = 10,
-		border_color = colors.colors.active.item_gradient[1],
+		border_color = colors.active.item_gradient[1],
 		border_width = 2,
 		shadow = { drawing = false },
 	},

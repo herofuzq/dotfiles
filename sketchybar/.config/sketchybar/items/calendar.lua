@@ -2,7 +2,7 @@
 -- 格式：X月X日 HH:MM（图标显示日期，标签显示时间）
 local sbar = require("sketchybar")
 local fonts = require("fonts")
-local colors = require("appearance")
+local colors = require("appearance").colors
 
 local cal = sbar.add("item", {
 	icon = {
@@ -13,7 +13,7 @@ local cal = sbar.add("item", {
 		},
 		padding_left = 8,
 		padding_right = 2,
-		color = colors.colors.tokyo_night.sep_opaque,
+		color = colors.tokyo_night.sep_opaque,
 	},
 	label = {
 		font = {
@@ -23,12 +23,12 @@ local cal = sbar.add("item", {
 		},
 		padding_left = 0,
 		padding_right = 17,
-		color = colors.colors.tokyo_night.sep_opaque,
+		color = colors.tokyo_night.sep_opaque,
 	},
 	background = {
-		color = colors.colors.active.bar_bg,
+		color = colors.active.bar_bg,
 		corner_radius = 10,
-		border_color = colors.colors.active.item_gradient[8],
+		border_color = colors.active.item_gradient[8],
 		border_width = 2,
 	},
 	position = "right",
