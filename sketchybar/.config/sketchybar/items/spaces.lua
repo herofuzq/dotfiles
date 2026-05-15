@@ -7,7 +7,7 @@ local sbar = require("sketchybar")
 
 -- 可见工作区的边框颜色渐变（9色统一感知亮度，色相平滑过渡）
 -- 紫 → 玫红 → 橙 → 金 → 深橙
-local border_gradient = appearance.colors.catppuccin_mocha.ws_gradient
+local border_gradient = appearance.colors.active.ws_gradient
 
 -- 始终显示的工作区（即使没有应用也会显示，用 :moon: 占位）
 local always_show = {
