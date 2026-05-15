@@ -1,6 +1,6 @@
 -- ========== Apple Logo 按钮（最左侧） ==========
-local icons = require("icons")
 local sbar = require("sketchybar")
+local icons = require("icons")
 local colors = require("appearance").colors
 
 local apple = sbar.add("item", {
@@ -9,29 +9,28 @@ local apple = sbar.add("item", {
 	icon = {
 		padding_left = 13,
 		padding_right = 13,
-		string = icons.apple,                   --  Apple 图标
-		color = colors.active.yellow,    -- 金色图标（搭配紫色边框，互补撞色）
+		string = icons.apple,
+		color = colors.active.yellow,
 	},
-	label = { drawing = false },               -- 不显示文字
+	label = { drawing = false },
 	click_script = "$CONFIG_DIR/helpers/menus/bin/menus -s 0",
 	background = {
 		color = colors.active.bar_bg,
 		corner_radius = 10,
-		border_color = colors.active.apple_border,  -- 亮紫边框
+		border_color = colors.active.apple_border,
 		border_width = 2,
 	},
 })
 
--- 点击动画：上弹回弹效果
 apple:subscribe("mouse.clicked", function()
 	sbar.animate("tanh", 8, function()
 		apple:set({
 			background = { shadow = { distance = 0 } },
-			y_offset = -4,     -- 向上移动 4px
+			y_offset = -4,
 		})
 		apple:set({
 			background = { shadow = { distance = 4 } },
-			y_offset = 0,      -- 回到原位
+			y_offset = 0,
 		})
 	end)
 end)

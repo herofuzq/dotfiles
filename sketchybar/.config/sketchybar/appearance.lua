@@ -1,14 +1,11 @@
 -- ========== 外观：配色方案 + 全局默认样式 ==========
--- 颜色格式：0xAARRGGBB（AA=透明度, RR=红, GG=绿, BB=蓝）
 local settings = require("settings")
 local sbar = require("sketchybar")
 local fonts = require("fonts")
 
 local M = {}
 
--- 所有配色方案集合
 M.colors = {
-	-- 基础颜色（通用）
 	default = 0x80ffffff,
 	black = 0xff181819,
 	white = 0xffffffff,
@@ -38,18 +35,16 @@ M.colors = {
 	accent_tbright = 0x33efc2fc,
 
 	catppuccin_mocha = {
-		-- 半透明背景层（用于毛玻璃效果）
 		bg0 = 0x661e1e2e,
 		bg1 = 0x66181825,
 		bg2 = 0x33313244,
 		bg3 = 0x3345475a,
 		accent = 0x33cba6f7,
 		sep = 0x336c7086,
-		-- 纯色颜色
 		rosewater = 0xfff5e0dc,
 		flamingo = 0xfff2cdcd,
 		pink = 0xfff5c2e7,
-		mauve = 0xffcba6f7, -- 紫色（高亮色）
+		mauve = 0xffcba6f7,
 		red = 0xfff38ba8,
 		maroon = 0xffeba0ac,
 		peach = 0xfffab387,
@@ -60,16 +55,15 @@ M.colors = {
 		sapphire = 0xff74c7ec,
 		blue = 0xff89b4fa,
 		lavender = 0xffb4befe,
-		purple_1 = 0xffc8b0f0, -- 自定义紫色1（245°，插值填充lavender到mauve）
-		purple_2 = 0xffc0a0f0, -- 自定义紫色2（255°，插值填充lavender到mauve）
-		purple_light = 0xffd0b0f8, -- 自定义浅紫色（250°，lavender到purple_1过渡）
-		purple_mid = 0xffc8a0f0, -- 自定义中紫色（262°，填充mauve前过渡）
-		purple_warm = 0xffd090e0, -- 自定义暖紫色（275°，填充mauve后过渡）
-		magenta = 0xffe080d0, -- 自定义品红色（300°，pink前过渡）
-		rose_pink = 0xfff090d0, -- 自定义玫瑰粉（325°，rosewater前过渡）
-		rose_deep = 0xfff070c0, -- 自定义深玫瑰（340°，rosewater后过渡）
-		input_border = 0xffb4befe, -- 输入法边框色
-		-- 文字/层次色
+		purple_1 = 0xffc8b0f0,
+		purple_2 = 0xffc0a0f0,
+		purple_light = 0xffd0b0f8,
+		purple_mid = 0xffc8a0f0,
+		purple_warm = 0xffd090e0,
+		magenta = 0xffe080d0,
+		rose_pink = 0xfff090d0,
+		rose_deep = 0xfff070c0,
+		input_border = 0xffb4befe,
 		text = 0xffcdd6f4,
 		subtext1 = 0xffbac2de,
 		subtext0 = 0xffa6adc8,
@@ -89,38 +83,33 @@ M.colors = {
 		blue = 0xff76cce0,
 		bg2_opaque = 0xff313244,
 		bg3_opaque = 0xff45475a,
-		sep_opaque = 0xffa3aed2, -- 分隔线/默认文字色
-		accent_opaque = 0xffcba6f7, -- 强调色
-		deep_blue = 0xff74c7ec, -- 深蓝
+		sep_opaque = 0xffa3aed2,
+		accent_opaque = 0xffcba6f7,
+		deep_blue = 0xff74c7ec,
 		ws_gradient = {
-			0xfff2cdcd, -- flamingo（ws1）
-			0xfff8c0b0, -- peach-warm（ws2）
-			0xfff8d0a0, -- yellow-warm（ws3）
-			0xffd0e8a0, -- green-warm（ws4）
-			0xffa8e0d8, -- teal-light（ws5）
-			0xff80d8d0, -- teal（ws6）
-			0xff60d0e0, -- sky-light（ws7）
-			0xff40c8e8, -- sky（ws8）
-			0xff89dceb, -- sky（ws9）
+			0xfff2cdcd,
+			0xfff8c0b0,
+			0xfff8d0a0,
+			0xffd0e8a0,
+			0xffa8e0d8,
+			0xff80d8d0,
+			0xff60d0e0,
+			0xff40c8e8,
+			0xff89dceb,
 		},
-		-- Apple logo 边框（配合黄色图标的对比色）
-		apple_border = 0xfff5c2e7, -- pink
-		-- 右侧 item 边框渐变（8色，从 workspace 末端粉色过渡到深灰）
+		apple_border = 0xfff5c2e7,
 		item_gradient = {
-			0xff40c8e8, -- sky（front_app）
-			0xff50c0e0, -- sky-purple（input_method）
-			0xff60b8d8, -- blue-purple（battery）
-			0xffb4befe, -- lavender（wechat）
-			0xffc8a8f0, -- purple-pink（dingtalk）
-			0xffd0a8f8, -- pink-purple（clash）
-			0xffd8a8f4, -- purple-rose（sys）
-			0xffcba6f7, -- mauve（calendar）
+			0xff40c8e8,
+			0xff50c0e0,
+			0xff60b8d8,
+			0xffb4befe,
+			0xffc8a8f0,
+			0xffd0a8f8,
+			0xffd8a8f4,
+			0xffcba6f7,
 		},
 	},
 
-	-- 工具函数：给颜色加透明度
-	-- color: 原始 0xAARRGGBB 颜色值
-	-- alpha: 0.0 ~ 1.0 的透明度
 	with_alpha = function(color, alpha)
 		if alpha > 1.0 or alpha < 0.0 then
 			return color
@@ -129,22 +118,19 @@ M.colors = {
 	end,
 }
 
--- 设置当前活跃主题（切换主题只需要改这里）
 M.colors.active = M.colors.catppuccin_mocha
 
--- 各组件的特定样式模板
 M.styles = {
-	-- 工作区条目的样式（在 items/spaces.lua 中使用）
 	workspace = {
 		background = {
 			color = M.colors.active.bar_bg,
 			drawing = true,
 			corner_radius = 10,
-			border_width = 2, -- 边框宽度，颜色由代码动态分配（彩虹渐变）
+			border_width = 2,
 		},
 		icon = {
-			color = M.colors.active.sep_opaque, -- 非高亮的默认色
-			highlight_color = M.colors.active.peach, -- 高亮（当前活跃）色
+			color = M.colors.active.sep_opaque,
+			highlight_color = M.colors.active.peach,
 			font = {
 				family = fonts.font.text,
 				style = fonts.font.style_map["Bold"],
@@ -154,8 +140,8 @@ M.styles = {
 			padding_right = 2,
 		},
 		label = {
-			color = M.colors.active.sep_opaque, -- 应用图标默认色
-			highlight_color = M.colors.active.peach, -- 高亮色
+			color = M.colors.active.sep_opaque,
+			highlight_color = M.colors.active.peach,
 			font = "sketchybar-app-font:Regular:14.0",
 			padding_left = 2,
 			padding_right = 10,
@@ -165,7 +151,6 @@ M.styles = {
 	},
 }
 
--- ========== 全局默认属性（所有 noinherit item 会继承这些） ==========
 sbar.default({
 	background = {
 		border_color = M.colors.active.bg3,
