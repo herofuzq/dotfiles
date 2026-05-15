@@ -146,6 +146,63 @@ M.colors = {
 		},
 	},
 
+	-- ★ Catppuccin Mocha 主题（备用）★
+	catppuccin_mocha = {
+		-- 半透明背景层（用于毛玻璃效果）
+		bg0 = 0x661e1e2e, bg1 = 0x66181825,
+		bg2 = 0x33313244, bg3 = 0x3345475a,
+		accent = 0x33cba6f7, sep = 0x336c7086,
+		-- 纯色颜色
+		rosewater = 0xfff5e0dc, flamingo = 0xfff2cdcd,
+		pink = 0xfff5c2e7, mauve = 0xffcba6f7,      -- 紫色（高亮色）
+		red = 0xfff38ba8, maroon = 0xffeba0ac,
+		peach = 0xfffab387, yellow = 0xfff9e2af,
+		green = 0xffa6e3a1, teal = 0xff94e2d5,
+		sky = 0xff89dceb, sapphire = 0xff74c7ec,
+		blue = 0xff89b4fa, lavender = 0xffb4befe,
+		input_border = 0xffb4befe,              -- 输入法边框色
+		-- 文字/层次色
+		text = 0xffcdd6f4,
+		subtext1 = 0xffbac2de, subtext0 = 0xffa6adc8,
+		overlay2 = 0xff9399b2, overlay1 = 0xff7f849c,
+		overlay0 = 0xff6c7086,
+		surface2 = 0xff585b70, surface1 = 0xff45475a,
+		surface0 = 0xff313244,
+		base = 0x661e1e2e, mantle = 0x66181825,
+		crust = 0x6611111b,
+		white = 0xffcdd6f4, black = 0xff11111b,
+		bar_bg = 0xff1e1e2e,                    -- 菜单栏背景
+		bg2_opaque = 0xff313244, bg3_opaque = 0xff45475a,
+		sep_opaque = 0xff6c7086,                -- 分隔线/默认文字色
+		accent_opaque = 0xffcba6f7,             -- 强调色
+		deep_blue = 0xff74c7ec,                 -- 深蓝
+		-- 工作区边框渐变（9色，Catppuccin 彩虹方向：蓝→青→绿→黄→桃→红→粉）
+		ws_gradient = {
+			0xff89b4fa,  -- blue
+			0xff74c7ec,  -- sapphire
+			0xff94e2d5,  -- teal
+			0xffa6e3a1,  -- green
+			0xfff9e2af,  -- yellow
+			0xfffab387,  -- peach
+			0xffeba0ac,  -- maroon
+			0xfff38ba8,  -- red
+			0xfff5c2e7,  -- pink
+		},
+		-- Apple logo 边框（配合黄色图标的对比色）
+		apple_border = 0xffb4befe,
+		-- 右侧 item 边框渐变（8色，从 workspace 末端粉色过渡到深灰）
+		item_gradient = {
+			0xfff5c2e7,  -- pink（front_app）
+			0xffcba6f7,  -- mauve
+			0xffb4befe,  -- lavender
+			0xff89b4fa,  -- blue
+			0xff74c7ec,  -- sapphire
+			0xff9399b2,  -- overlay2
+			0xff7f849c,  -- overlay1
+			0xff585b70,  -- surface2（calendar）
+		},
+	},
+
 	-- 工具函数：给颜色加透明度
 	-- color: 原始 0xAARRGGBB 颜色值
 	-- alpha: 0.0 ~ 1.0 的透明度
