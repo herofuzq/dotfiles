@@ -1,0 +1,8 @@
+/nix/
+/System/
+/Library/
+/private/
+/usr/
+/Users/fuzhuoqun/Library/*
+/Users/fuzhuoqun/!/Library/CloudStorage/
+/Users/fuzhuoqun/**/*.photoslibrary/
