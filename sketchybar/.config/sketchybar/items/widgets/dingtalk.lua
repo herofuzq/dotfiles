@@ -6,9 +6,9 @@ status_widget({
 	name = "widgets.dingtalk",
 	app_id = "com.alibaba.DingTalkMac",
 	icon = ":dingtalk:",
-	icon_color = colors.peach,
+	icon_color = colors.active.peach,
 	icon_inactive_color = colors.active.blue,
-	label_color = colors.peach,
+	label_color = colors.active.peach,
 	label_inactive_color = colors.active.sep_opaque,
 	border_color = colors.active.item_gradient[5],
 })

@@ -94,6 +94,7 @@ local function withWindows(f)
 
 		-- 嵌套查询：先查聚焦工作区，再查可见工作区，最后统一处理
 		sbar.exec(get_focus_workspaces, function(focused_workspaces)
+			focused_workspaces = focused_workspaces:match("^%s*(.-)%s*$")
 			sbar.exec(query_visible_workspaces, function(visible_workspaces)
 				local args = {
 					open_windows = open_windows,
