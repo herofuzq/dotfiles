@@ -1,12 +1,13 @@
 -- ========== 当前输入法显示 ==========
 local sbar = require("sketchybar")
+local icons = require("icons")
 local fonts = require("fonts")
 local colors = require("appearance").colors
 local settings = require("settings")
 
 local im_map = {
-	["com.apple.keylayout.ABC"] = { label = "ABC", color = colors.blue },
-	["com.tencent.inputmethod.wetype.pinyin"] = { label = "拼音", color = colors.green },
+	["com.apple.keylayout.ABC"] = { label = "ABC", color = colors.active.blue },
+	["com.tencent.inputmethod.wetype.pinyin"] = { label = "拼音", color = colors.active.green },
 	["im.rime.inputmethod.Squirrel.Hans"] = { label = "鼠须管", color = colors.active.mauve },
 }
 
@@ -45,7 +46,7 @@ local input_method = sbar.add("item", "widgets.input_method", {
 local function update_display(im_id)
 	local im = im_map[im_id] or { label = im_id:match("[^.]+$") or "?", color = colors.active.bg3_opaque }
 	input_method:set({
-		icon = { string = "⌨", color = im.color },
+		icon = { string = icons.input_method.keyboard, color = im.color },
 		label = { string = im.label, color = colors.active.sep_opaque },
 	})
 end

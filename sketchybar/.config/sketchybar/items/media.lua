@@ -15,9 +15,9 @@ local whitelist = {
 -- Function to get background color
 local function get_media_app_color(app_name)
 	if app_name == "Music" then
-		return colors.red_bright
+		return colors.active.red_bright
 	elseif app_name == "Spotify" then
-		return colors.spotify_green
+		return colors.active.spotify_green
 	elseif
 		app_name == "Safari"
 		or app_name == "Firefox"
@@ -25,9 +25,9 @@ local function get_media_app_color(app_name)
 		or app_name == "Microsoft Edge"
 		or app_name == "QQ音乐"
 	then
-		return colors.blue_bright
+		return colors.active.blue_bright
 	else
-		return colors.default
+		return colors.active.default
 	end
 end
 
@@ -39,7 +39,7 @@ local media_cover = sbar.add("item", {
 			string = "media.artwork",
 			scale = 1,
 		},
-		color = colors.transparent,
+		color = colors.active.transparent,
 	},
 	label = { drawing = false },
 	icon = { drawing = false },
@@ -63,7 +63,7 @@ local media_artist = sbar.add("item", {
 	label = {
 		width = 0,
 		font = { size = 14 },
-		color = colors.with_alpha(colors.white, 0.6),
+		color = colors.with_alpha(colors.active.white, 0.6),
 		max_chars = 18,
 		y_offset = 0,
 		align = "right",

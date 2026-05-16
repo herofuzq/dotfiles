@@ -48,7 +48,7 @@ battery:subscribe({ "routine", "power_source_change", "system_woke" }, function(
 			label = string.format("%02d%%", charge)
 		end
 
-		local color = colors.green
+		local color = colors.active.green
 		local charging, _, _ = batt_info:find("AC Power")
 
 		if charging then
@@ -62,10 +62,10 @@ battery:subscribe({ "routine", "power_source_change", "system_woke" }, function(
 				icon = icons.battery._50
 			elseif found and charge > 20 then
 				icon = icons.battery._25
-				color = colors.orange
+				color = colors.active.peach
 			else
 				icon = icons.battery._0
-				color = colors.red
+				color = colors.active.red
 			end
 		end
 

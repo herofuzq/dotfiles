@@ -6,20 +6,6 @@ local fonts = require("fonts")
 local M = {}
 
 M.colors = {
-	default = 0x80ffffff,
-	black = 0xff181819,
-	white = 0xffffffff,
-	red = 0xfffc5d7c,
-	red_bright = 0xe0f38ba8,
-	green = 0xff9ed072,
-	blue = 0xff76cce0,
-	blue_bright = 0xe089b4fa,
-	yellow = 0xffe7c664,
-	orange = 0xfff39660,
-	magenta = 0xffb39df3,
-	grey = 0xff7f8490,
-	transparent = 0x00000000,
-
 	bar = {
 		bg = 0xe0313436,
 		border = 0xff2c2e34,
@@ -79,8 +65,6 @@ M.colors = {
 		white = 0xffcdd6f4,
 		black = 0xff11111b,
 		bar_bg = 0xff1e1e2e,
-		green = 0xff9ed072,
-		blue = 0xff76cce0,
 		bg2_opaque = 0xff313244,
 		bg3_opaque = 0xff45475a,
 		sep_opaque = 0xffa3aed2,
@@ -108,6 +92,14 @@ M.colors = {
 			0xffd8a8f4,
 			0xffcba6f7,
 		},
+
+		-- 语义别名（供全项目通过 colors.active.xxx 统一引用）
+		red_bright = 0xe0f38ba8,
+		blue_bright = 0xe089b4fa,
+		spotify_green = 0xff1db954,
+		default = 0x80ffffff,
+		transparent = 0x00000000,
+		orange = 0xfff39660,
 	},
 
 	with_alpha = function(color, alpha)

@@ -39,7 +39,7 @@ local clash_tun = sbar.add("item", "widgets.clash_tun", {
 })
 
 local function update_display(tun_on)
-	local icon_color = tun_on and colors.green or colors.red
+	local icon_color = tun_on and colors.active.green or colors.active.red
 	clash_tun:set({
 		icon = { string = icons.clash.tun, color = icon_color },
 		label = { string = tun_on and "TUN" or "OFF", color = colors.active.sep_opaque },
