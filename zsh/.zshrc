@@ -113,7 +113,7 @@ export PATH="$PATH:/Users/fuzhuoqun/.lmstudio/bin"
 
 
 # test -e "${HOME}/.iterm2_shell_integration.zsh" && source "${HOME}/.iterm2_shell_integration.zsh"
-# eval "$(starship init zsh)"
+eval "$(starship init zsh)"
 
 # Added by SkillHub CLI installer
 export PATH="/Users/fuzhuoqun/.local/bin:$PATH"

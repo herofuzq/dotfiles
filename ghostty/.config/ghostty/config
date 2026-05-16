@@ -54,4 +54,4 @@ clipboard-trim-trailing-spaces = true
 # -------------------------------------------------- #
 # Startup
 # -------------------------------------------------- #
-command = /bin/zsh -c 'fastfetch; exec zsh'
+# :command = /bin/zsh -c 'fastfetch; exec zsh'
