@@ -23,14 +23,18 @@ local apple = sbar.add("item", {
 })
 
 apple:subscribe("mouse.clicked", function()
-	sbar.animate("tanh", 8, function()
+	sbar.animate("tanh", 0.15, function()
 		apple:set({
 			background = { shadow = { distance = 0 } },
 			y_offset = -4,
 		})
-		apple:set({
-			background = { shadow = { distance = 4 } },
-			y_offset = 0,
-		})
+	end)
+	sbar.delay(0.15, function()
+		sbar.animate("tanh", 0.15, function()
+			apple:set({
+				background = { shadow = { distance = 4 } },
+				y_offset = 0,
+			})
+		end)
 	end)
 end)
