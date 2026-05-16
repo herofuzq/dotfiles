@@ -15,7 +15,7 @@ sbar.bar({
 	sticky = "on", -- 始终显示
 	topmost = "window", -- 窗口级别（高于普通窗口，低于全屏）
 	position = "top", -- 屏幕顶部
-	shadow = "true", -- 阴影
+	shadow = "on", -- 阴影
 	y_offset = 0, -- Y 轴偏移
 	blur_radius = 10, -- 毛玻璃模糊半径
 	-- notch_width = 1000, --避开notch的宽度

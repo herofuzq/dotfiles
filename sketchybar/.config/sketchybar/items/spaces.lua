@@ -167,6 +167,7 @@ local function updateWindow(workspace_index, args)
 				drawing = true,
 				["label.string"] = icon_line,
 			})
+			return
 		end
 
 		-- 情况4：有应用 → 显示应用图标
