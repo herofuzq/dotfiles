@@ -126,3 +126,10 @@ eval "$(zoxide init zsh)"
 #ruby
 export PATH="/opt/homebrew/opt/ruby/bin:$PATH"
 export PATH="$(ruby -e 'puts Gem.bindir'):$PATH"
+
+# bun completions
+[ -s "/Users/fuzhuoqun/.bun/_bun" ] && source "/Users/fuzhuoqun/.bun/_bun"
+
+# bun
+export BUN_INSTALL="$HOME/.bun"
+export PATH="$BUN_INSTALL/bin:$PATH"
