@@ -21,7 +21,7 @@ local cal = sbar.add("item", {
 			size = fonts.font_fira.size,
 		},
 		padding_left = 0,
-		padding_right = 17,
+		padding_right = 17, -- 右侧留白，使日历 item 与右侧 bar 边缘保持间距
 		color = colors.active.sep_opaque,
 	},
 	background = {

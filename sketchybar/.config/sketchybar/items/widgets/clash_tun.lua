@@ -47,12 +47,9 @@ local function update_display(tun_on)
 end
 
 local function check_status()
-	sbar.exec(
-		"curl -s --max-time 2 --unix-socket /tmp/verge/verge-mihomo.sock http://localhost/configs 2>/dev/null | python3 -c \"import sys,json; print('on' if json.load(sys.stdin)['tun']['enable'] else 'off')\" 2>/dev/null || echo 'off'",
-		function(status)
-			update_display(status:match("on") ~= nil)
-		end
-	)
+	sbar.exec("$CONFIG_DIR/helpers/clash_status.sh", function(status)
+		update_display(status:match("on") ~= nil)
+	end)
 end
 
 clash_tun:subscribe({ "routine", "system_woke" }, check_status)

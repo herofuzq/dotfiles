@@ -23,7 +23,7 @@ local media = sbar.add("item", "widgets.media", {
 		},
 		padding_left = 10,
 		padding_right = 10,
-		color = 0xfff38ba8,
+		color = colors.active.red,
 	},
 	label = { drawing = false },
 	background = {
@@ -34,7 +34,7 @@ local media = sbar.add("item", "widgets.media", {
 		},
 		color = colors.active.bar_bg,
 		corner_radius = 10,
-		border_color = 0xfff38ba8,
+		border_color = colors.active.red,
 		border_width = 2,
 	},
 	popup = {

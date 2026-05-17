@@ -11,8 +11,4 @@ if [ -z "$TITLE" ] || [ "$TITLE" = "null" ]; then
   exit 0
 fi
 
-if [ "$STATE" = "paused" ]; then
-  sketchybar --set "$NAME" drawing=on icon.color=0xfff38ba8
-else
-  sketchybar --set "$NAME" drawing=on icon.color=0xfff38ba8
-fi
+sketchybar --set "$NAME" drawing=on icon.color=0xfff38ba8

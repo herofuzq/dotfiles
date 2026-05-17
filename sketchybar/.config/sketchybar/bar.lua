@@ -4,9 +4,9 @@ local settings = require("settings")
 local sbar = require("sketchybar")
 
 sbar.bar({
-	color = colors.colors.with_alpha(0xff0d0d13, 0.6), -- 背景色（半透明深色）
-	border_width = 0, -- 无边框
-	border_color = 0xB33a3a45,
+	color = colors.colors.bar.bg,
+	border_width = 0, -- 无边框（若后续需要边框，改 width > 0 并启用下方 border_color）
+	border_color = colors.colors.bar.border, -- 预留边框色，当前 border_width=0 时不生效
 	margin = 0, -- 边距
 	corner_radius = 0, -- 圆角
 	height = settings.height, -- 高度取自 settings

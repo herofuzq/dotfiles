@@ -375,9 +375,11 @@ sbar.exec(query_workspaces, function(workspaces_and_monitors)
 	-- 查询初始聚焦的工作区，标记为高亮
 	sbar.exec("aerospace list-workspaces --focused", function(focused_workspace)
 		focused_workspace = focused_workspace:match("^%s*(.-)%s*$")
-		workspaces[focused_workspace]:set({
-			icon = { highlight = true },
-			label = { highlight = true },
-		})
+		if workspaces[focused_workspace] then
+			workspaces[focused_workspace]:set({
+				icon = { highlight = true },
+				label = { highlight = true },
+			})
+		end
 	end)
 end)

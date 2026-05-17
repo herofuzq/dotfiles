@@ -24,7 +24,7 @@ return {
 		},
 	},
 
-	-- Additional Fonts
+	-- 以下为预留字体，当前未被引用，供后续风格调整使用
 
 	font_gohu = {
 		text = "GohuFont uni11 Nerd Font Propo",

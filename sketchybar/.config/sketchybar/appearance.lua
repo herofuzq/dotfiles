@@ -7,8 +7,8 @@ local M = {}
 
 M.colors = {
 	bar = {
-		bg = 0xe0313436,
-		border = 0xff2c2e34,
+		bg = 0x990d0d13,
+		border = 0xB33a3a45,
 	},
 
 	popup = {
@@ -16,8 +16,8 @@ M.colors = {
 		border = 0xff7f8490,
 	},
 
-	accent = 0xFFb482c2,
-	accent_bright = 0x00efc2fc,
+	accent = 0xffb482c2,
+	accent_bright = 0xffefc2fc,
 	accent_tbright = 0x33efc2fc,
 
 	catppuccin_mocha = {

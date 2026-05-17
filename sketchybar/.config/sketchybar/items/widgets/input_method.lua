@@ -7,7 +7,6 @@ local settings = require("settings")
 
 local im_map = {
 	["com.apple.keylayout.ABC"] = { label = "ABC", color = colors.active.blue },
-	["com.tencent.inputmethod.wetype.pinyin"] = { label = "拼音", color = colors.active.green },
 	["im.rime.inputmethod.Squirrel.Hans"] = { label = "鼠须管", color = colors.active.mauve },
 }
 
