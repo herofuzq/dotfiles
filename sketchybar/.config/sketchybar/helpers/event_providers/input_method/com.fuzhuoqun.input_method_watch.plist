@@ -6,7 +6,9 @@
     <string>com.fuzhuoqun.input_method_watch</string>
     <key>ProgramArguments</key>
     <array>
-        <string>/Users/fuzhuoqun/.config/sketchybar/helpers/event_providers/input_method/bin/input_method_watch</string>
+        <string>/bin/sh</string>
+        <string>-c</string>
+        <string>exec $HOME/.config/sketchybar/helpers/event_providers/input_method/bin/input_method_watch</string>
     </array>
     <key>RunAtLoad</key>
     <true/>

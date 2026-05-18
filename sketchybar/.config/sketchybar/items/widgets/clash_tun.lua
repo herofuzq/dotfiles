@@ -48,7 +48,7 @@ end
 
 local function check_status()
 	sbar.exec("$CONFIG_DIR/helpers/clash_status.sh", function(status)
-		update_display(status:match("on") ~= nil)
+		update_display((status or ""):match("on") ~= nil)
 	end)
 end
 

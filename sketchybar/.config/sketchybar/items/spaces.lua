@@ -248,7 +248,8 @@ local function updateWorkspaceMonitor()
 	sbar.exec(query_workspaces, function(workspaces_and_monitors)
 		for _, entry in ipairs(workspaces_and_monitors) do
 			local space_index = entry.workspace
-			local monitor_id = math.floor(entry["monitor-appkit-nsscreen-screens-id"])
+			local raw_id = entry["monitor-appkit-nsscreen-screens-id"]
+			local monitor_id = raw_id and math.floor(raw_id)
 			workspace_monitor[space_index] = monitor_id
 		end
 		for workspace_index, _ in pairs(workspaces) do
