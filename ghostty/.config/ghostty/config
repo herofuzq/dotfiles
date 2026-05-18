@@ -1,4 +1,4 @@
-# -------------------------------------------------- #
+# ------ -------------------------------------------- #
 # Shell
 # -------------------------------------------------- #
 shell-integration-features = cursor,sudo,title,ssh-env,ssh-terminfo
@@ -55,3 +55,4 @@ clipboard-trim-trailing-spaces = true
 # Startup
 # -------------------------------------------------- #
 command = /bin/zsh -c 'fastfetch; exec zsh'
+                                     彬彬彬彬    vkj

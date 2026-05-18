@@ -27,53 +27,38 @@ local function toggle()
 end
 
 -- ============================================================
--- 规则：App 聚焦时自动切换（静默）
+-- 中文状态进入以下 App 时弹提醒
 -- ============================================================
-local EN_APPS = {
+local WARN_APPS = {
   ["com.apple.Terminal"] = true,
   ["com.googlecode.iterm2"] = true,
   ["org.alacritty"] = true,
+  ["com.mitchellh.ghostty"] = true,
   ["com.microsoft.VSCode"] = true,
   ["com.jetbrains.intellij"] = true,
   ["com.jetbrains.intellij.ce"] = true,
   ["md.obsidian"] = true,
   ["com.raycast.macos"] = true,
+  ["com.raycast-x.macos"] = true,
   ["org.vim.MacVim"] = true,
 }
 
-local ZH_APPS = {
-  ["com.tencent.xinWeChat"] = true,
-  ["com.apple.Notes"] = true,
-  ["com.apple.mail"] = true,
-}
+local function warnIfNeeded(id)
+  if WARN_APPS[id] and realSource() ~= EN_ID then
+    hs.alert.show("⚠️ 中文输入中", 1.0)
+  end
+end
+
+_WarnWatcher = hs.application.watcher.new(function(_, event, app)
+  if event == hs.application.watcher.activated then
+    warnIfNeeded(app:bundleID())
+  end
+end)
+_WarnWatcher:start()
 
 hs.window.filter.default:subscribe(hs.window.filter.windowFocused, function(_, app)
-  if not app then return end
-  local id = app:bundleID()
-  local now = realSource()
-  if EN_APPS[id] and now ~= EN_ID then
-    _Current = EN
-    hs.eventtap.keyStroke({"ctrl"}, "space")
-  elseif ZH_APPS[id] and now ~= ZH_ID then
-    _Current = ZH
-    hs.eventtap.keyStroke({"ctrl"}, "space")
-  end
+  if app then warnIfNeeded(app:bundleID()) end
 end)
-
--- ============================================================
--- ESC → 英文（不消费事件，透传给应用）
--- ============================================================
-_ESCTap = hs.eventtap.new({hs.eventtap.event.types.keyDown}, function(event)
-  if event:getKeyCode() ~= 53 then return false end
-  local app = hs.application.frontmostApplication()
-  if app and EN_APPS[app:bundleID()] then return false end
-  if realSource() ~= EN_ID then
-    _Current = EN
-    hs.eventtap.keyStroke({"ctrl"}, "space")
-  end
-  return false
-end)
-_ESCTap:start()
 
 -- ============================================================
 -- CapsLock (Hyper) 单独按下 → 切换中英文（弹通知）
