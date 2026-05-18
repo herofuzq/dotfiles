@@ -122,7 +122,7 @@ M.styles = {
 		},
 		icon = {
 			color = M.colors.active.sep_opaque,
-			highlight_color = M.colors.active.peach,
+			highlight_color = M.colors.active.red,
 			font = {
 				family = fonts.font.text,
 				style = fonts.font.style_map["Bold"],
@@ -133,7 +133,7 @@ M.styles = {
 		},
 		label = {
 			color = M.colors.active.sep_opaque,
-			highlight_color = M.colors.active.peach,
+			highlight_color = M.colors.active.red,
 			font = "sketchybar-app-font:Regular:14.0",
 			padding_left = 2,
 			padding_right = 10,

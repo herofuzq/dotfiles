@@ -223,7 +223,7 @@ local function updateWindows()
 				local fullscreen = args.has_fullscreen[ws_idx]
 				local border_color, border_width
 				if fullscreen then
-					border_color = appearance.colors.active.accent_opaque
+					border_color = appearance.colors.active.red
 					border_width = 4 -- 全屏时加粗边框
 				else
 					local idx = i % #border_gradient -- 循环取色
@@ -235,7 +235,7 @@ local function updateWindows()
 				end
 				workspaces[ws_idx]:set({
 					background = { border_color = border_color, border_width = border_width },
-					icon = { color = border_color, highlight_color = appearance.colors.active.peach },
+					icon = { color = border_color, highlight_color = appearance.colors.active.red },
 				})
 			end
 		end)
