@@ -124,7 +124,7 @@ M.styles = {
 		},
 		icon = {
 			color = M.colors.active.sep_opaque,
-			highlight_color = M.colors.active.red,
+			highlight_color = 0xffff4444, -- workspace 聚焦高亮色
 			font = {
 				family = fonts.font.text,
 				style = fonts.font.style_map["Bold"],
@@ -135,7 +135,7 @@ M.styles = {
 		},
 		label = {
 			color = M.colors.active.sep_opaque,
-			highlight_color = M.colors.active.red,
+			highlight_color = 0xffff4444,
 			font = "sketchybar-app-font:Regular:14.0",
 			padding_left = 2,
 			padding_right = 10,

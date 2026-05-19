@@ -224,11 +224,11 @@ local function updateWindows()
 		sbar.animate("tanh", 10, function()
 			for _, ws_idx in ipairs(visible) do
 				workspaces[ws_idx]:set({
-					icon = { highlight_color = appearance.colors.active.red },
+					icon = { highlight_color = 0xffff4444 },
 				})
 				if args.has_fullscreen[ws_idx] then
 					workspaces[ws_idx]:set({
-						background = { border_color = appearance.colors.active.red, border_width = 4 },
+						background = { border_color = 0xffff4444, border_width = 4 },
 					})
 				end
 			end
