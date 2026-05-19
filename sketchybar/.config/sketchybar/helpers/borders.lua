@@ -21,6 +21,12 @@ local calendar_item = "calendar"
 -- 4 套预置色值 [spaces数量] = { apple, spaces..., widgets..., calendar }
 -- 11 个关键色均匀分布在 N 个 item 上，apple/calendar 固定为两端
 local color_sets = {
+	[5] = {
+		0xfff38ba8, -- apple
+		0xffec9bab, 0xfff3aa98, 0xfff9c193, 0xfff2e2ad, 0xffb2e2a3, -- spaces
+		0xff9ae2c1, 0xff8fdfdd, 0xff85d8eb, 0xff75c8eb, 0xff82b9f5, 0xff9cb8fb, 0xffb9b8fc, -- widgets
+		0xffcba6f7, -- calendar
+	},
 	[6] = {
 		0xfff38ba8, -- apple (固定)
 		0xffed9aaa, 0xfff1a89c, 0xfff9b98c, 0xfff9dba9, 0xffc9e2a7, 0xffa0e2af, -- spaces
