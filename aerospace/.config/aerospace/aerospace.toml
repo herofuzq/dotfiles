@@ -485,8 +485,9 @@ run = ["move-node-to-workspace T̲erm"]
 
 [[on-window-detected]]
 if.app-id = "net.battle.app"
-run = ["move-node-to-workspace G̲ame"]
-
+run = ["move-node-to-workspace G̲ame",
+       "layout floating",
+      ]
 # 未匹配的软件都放到工作区1里面待命
 # [[on-window-detected]]
 # if.window-title-regex-substring = "(.*)"
