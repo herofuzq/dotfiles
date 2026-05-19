@@ -55,5 +55,10 @@ return function(opts)
 	item:subscribe({ "routine", "system_woke" }, check_status)
 	check_status()
 
+	-- 点击打开对应应用
+	item:subscribe("mouse.clicked", function()
+		sbar.exec("open -b " .. opts.app_id)
+	end)
+
 	return item
 end
