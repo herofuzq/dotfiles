@@ -8,12 +8,12 @@ local sbar = require("sketchybar")
 
 -- 始终显示的工作区（即使没有应用也会显示，用 :moon: 占位）
 local always_show = {
+	["1̲Main"] = true,
+	["2̲Sec"] = true,
 	["C̲hat"] = true,
 	["T̲erm"] = true,
 	["Web̲"] = true,
 	["W̲ork"] = true,
-	["V̲M"] = true,
-	["M̲edia"] = true,
 }
 -- aerospace 查询命令模板
 local query_workspaces =

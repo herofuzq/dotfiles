@@ -8,6 +8,7 @@ local M = {}
 M.colors = {
 	bar = {
 		bg = 0x990d0d13,
+		-- bg = 0xff000000,
 		border = 0xB33a3a45,
 	},
 
