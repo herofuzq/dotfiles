@@ -18,7 +18,7 @@ local widget_order = {
 
 local calendar_item = "calendar"
 
--- 4 套预置色值 [spaces数量] = { apple, spaces..., widgets..., calendar }
+-- 5 套预置色值 [spaces数量] = { apple, spaces..., widgets..., calendar }
 -- 11 个关键色均匀分布在 N 个 item 上，apple/calendar 固定为两端
 local color_sets = {
 	[5] = {
@@ -61,7 +61,7 @@ function distribute(visible_workspace_names)
 	end
 
 	-- apple（固定，索引 1）
-	sbar.set(apple_item, { background = { border_color = set[1] } })
+	sbar.set(apple_item, { background = { border_color = set[1] }, icon = { color = set[1] } })
 
 	-- 工作区（索引 2 ~ n+1）
 	for i, name in ipairs(visible_workspace_names) do

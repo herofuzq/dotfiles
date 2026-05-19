@@ -8,7 +8,7 @@ local M = {}
 M.colors = {
 	bar = {
 		bg = 0x990d0d13,
-		-- bg = 0xff000000,
+		-- bg = 0xff000000, -- 备用：不透明纯黑背景
 		border = 0xB33a3a45,
 	},
 

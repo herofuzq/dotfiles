@@ -1,18 +1,19 @@
 -- ========== aerospace 工作区显示 ==========
 -- 通过 aerospace CLI 查询窗口和屏幕信息，动态显示各工作区的应用图标
--- 工作区边框使用彩虹渐变色，空工作区显示月亮图标（:moon:）
+-- 工作区边框由 borders.lua 动态分配，空工作区隐藏 label、icon 居中
 local appearance = require("appearance")
 local app_icons = require("helpers.app_icons")
 local borders = require("helpers.borders")
 local sbar = require("sketchybar")
 
--- 始终显示的工作区（即使没有应用也会显示，用 :moon: 占位）
+-- 始终显示的工作区（即使没有应用也会显示）
 local always_show = {
 	["1̲Main"] = true,
 	["C̲hat"] = true,
 	["T̲erm"] = true,
 	["Web̲"] = true,
 	["W̲ork"] = true,
+	["M̲edia"] = true,
 }
 -- aerospace 查询命令模板
 local query_workspaces =
@@ -127,27 +128,27 @@ local function updateWindow(workspace_index, args)
 	end
 
 	sbar.animate("tanh", 10, function()
-		-- 情况1：没有应用，但工作区当前在屏幕上可见 → 显示 · 占位
+		-- 情况1：没有应用，但工作区当前在屏幕上可见 → 隐藏 label，icon 居中
 		for _, visible_workspace in ipairs(visible_workspaces) do
 			if no_app and workspace_index == visible_workspace["workspace"] then
 				local monitor_id = visible_workspace["monitor-appkit-nsscreen-screens-id"]
-				icon_line = "·"
 				workspaces[workspace_index]:set({
 					drawing = true,
-					["label.string"] = icon_line,
+					icon = { padding_left = 10, padding_right = 10 },
+					label = { drawing = false },
 					display = monitor_id,
 				})
 				return
 			end
 		end
 
-		-- 情况2：没有应用，也不聚焦 → 如果在 always_show 列表中则显示 · 占位，否则隐藏
+		-- 情况2：没有应用，也不聚焦 → 如果在 always_show 列表中则显示（隐藏 label），否则隐藏
 		if no_app and workspace_index ~= focused_workspace then
 			if always_show[workspace_index] then
-				icon_line = "·"
 				workspaces[workspace_index]:set({
 					drawing = true,
-					["label.string"] = icon_line,
+					icon = { padding_left = 10, padding_right = 10 },
+					label = { drawing = false },
 				})
 				return
 			end
@@ -157,12 +158,12 @@ local function updateWindow(workspace_index, args)
 			return
 		end
 
-		-- 情况3：没有应用，但是聚焦的工作区 → 显示 · 占位
+		-- 情况3：没有应用，但是聚焦的工作区 → 隐藏 label，icon 居中
 		if no_app and workspace_index == focused_workspace then
-			icon_line = "·"
 			workspaces[workspace_index]:set({
 				drawing = true,
-				["label.string"] = icon_line,
+				icon = { padding_left = 10, padding_right = 10 },
+				label = { drawing = false },
 			})
 			return
 		end
@@ -170,7 +171,8 @@ local function updateWindow(workspace_index, args)
 		-- 情况4：有应用 → 显示应用图标
 		workspaces[workspace_index]:set({
 			drawing = true,
-			["label.string"] = icon_line,
+			icon = { padding_left = 10, padding_right = 2 },
+			label = { drawing = true, string = icon_line },
 		})
 	end)
 end
