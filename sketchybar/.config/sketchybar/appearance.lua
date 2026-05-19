@@ -70,28 +70,26 @@ M.colors = {
 		sep_opaque = 0xffa3aed2,
 		accent_opaque = 0xffcba6f7,
 		deep_blue = 0xff74c7ec,
-		ws_gradient = {
-			0xfff2cdcd,
-			0xfff8c0b0,
-			0xfff8d0a0,
-			0xffd0e8a0,
-			0xffa8e0d8,
-			0xff80d8d0,
-			0xff60d0e0,
-			0xff40c8e8,
-			0xff89dceb,
-		},
-		apple_border = 0xfff5c2e7,
-		item_gradient = {
-			0xff40c8e8,
-			0xff50c0e0,
-			0xff60b8d8,
-			0xffb4befe,
-			0xffc8a8f0,
-			0xffd0a8f8,
-			0xffd8a8f4,
-			0xffcba6f7,
-		},
+		-- 统一边框渐变色（18 色，从左到右对应所有 bar item）
+		-- 切换主题时只需修改此处，无需改动各 widget 文件
+		gradient1  = 0xfff5c2e7, -- apple
+		gradient2  = 0xfff2cdcd, -- spaces 1
+		gradient3  = 0xfff8c0b0, -- spaces 2
+		gradient4  = 0xfff8d0a0, -- spaces 3
+		gradient5  = 0xffd0e8a0, -- spaces 4
+		gradient6  = 0xffa8e0d8, -- spaces 5
+		gradient7  = 0xff80d8d0, -- spaces 6
+		gradient8  = 0xff60d0e0, -- spaces 7
+		gradient9  = 0xff40c8e8, -- spaces 8
+		gradient10 = 0xff89dceb, -- spaces 9
+		gradient11 = 0xff40c8e8, -- front_app
+		gradient12 = 0xff50c0e0, -- input_method
+		gradient13 = 0xff60b8d8, -- battery
+		gradient14 = 0xffb4befe, -- wechat
+		gradient15 = 0xffc8a8f0, -- dingtalk
+		gradient16 = 0xffd0a8f8, -- clash_tun
+		gradient17 = 0xffd8a8f4, -- sys
+		gradient18 = 0xffcba6f7, -- calendar
 
 		-- 预留颜色（暂未使用，供后续扩展配色方案）
 		red_bright = 0xe0f38ba8,

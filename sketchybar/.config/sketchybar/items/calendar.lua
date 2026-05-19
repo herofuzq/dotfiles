@@ -27,7 +27,7 @@ local cal = sbar.add("item", {
 	background = {
 		color = colors.active.bar_bg,
 		corner_radius = 10,
-		border_color = colors.active.item_gradient[8],
+		border_color = colors.active.gradient18,
 		border_width = 2,
 	},
 	popup = {

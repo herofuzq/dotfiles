@@ -117,11 +117,8 @@ eval "$(starship init zsh)"
 
 # Added by SkillHub CLI installer
 export PATH="/Users/fuzhuoqun/.local/bin:$PATH"
-# export HOMEBREW_BOTTLE_DOMAIN=https://mirrors.ustc.edu.cn/homebrew-bottles
 # 增加zoxide
 eval "$(zoxide init zsh)"
-# recycle-bin
-# export PATH="/opt/homebrew/opt/trash-cli/bin:$PATH"
 
 #ruby
 export PATH="/opt/homebrew/opt/ruby/bin:$PATH"

@@ -10,5 +10,5 @@ status_widget({
 	icon_inactive_color = colors.active.green,
 	label_color = colors.active.green,
 	label_inactive_color = colors.active.sep_opaque,
-	border_color = colors.active.item_gradient[4],
+	border_color = colors.active.gradient14,
 })

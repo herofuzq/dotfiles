@@ -5,9 +5,18 @@ local appearance = require("appearance")
 local app_icons = require("helpers.app_icons")
 local sbar = require("sketchybar")
 
--- 可见工作区的边框颜色渐变（9色统一感知亮度，色相平滑过渡）
--- 紫 → 玫红 → 橙 → 金 → 深橙
-local border_gradient = appearance.colors.active.ws_gradient
+-- 可见工作区的边框颜色渐变（9色，取自统一 gradient2-10）
+local border_gradient = {
+	appearance.colors.active.gradient2,
+	appearance.colors.active.gradient3,
+	appearance.colors.active.gradient4,
+	appearance.colors.active.gradient5,
+	appearance.colors.active.gradient6,
+	appearance.colors.active.gradient7,
+	appearance.colors.active.gradient8,
+	appearance.colors.active.gradient9,
+	appearance.colors.active.gradient10,
+}
 
 -- 始终显示的工作区（即使没有应用也会显示，用 :moon: 占位）
 local always_show = {
