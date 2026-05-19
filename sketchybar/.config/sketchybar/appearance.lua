@@ -70,26 +70,47 @@ M.colors = {
 		sep_opaque = 0xffa3aed2,
 		accent_opaque = 0xffcba6f7,
 		deep_blue = 0xff74c7ec,
+		-- ── 旧主题 (catppuccin_mocha) 备份 ──
+		-- gradient1  = 0xfff5c2e7, -- apple
+		-- gradient2  = 0xfff2cdcd, -- spaces 1
+		-- gradient3  = 0xfff8c0b0, -- spaces 2
+		-- gradient4  = 0xfff8d0a0, -- spaces 3
+		-- gradient5  = 0xffd0e8a0, -- spaces 4
+		-- gradient6  = 0xffa8e0d8, -- spaces 5
+		-- gradient7  = 0xff80d8d0, -- spaces 6
+		-- gradient8  = 0xff60d0e0, -- spaces 7
+		-- gradient9  = 0xff40c8e8, -- spaces 8
+		-- gradient10 = 0xff89dceb, -- spaces 9
+		-- gradient11 = 0xff40c8e8, -- front_app
+		-- gradient12 = 0xff50c0e0, -- input_method
+		-- gradient13 = 0xff60b8d8, -- battery
+		-- gradient14 = 0xffb4befe, -- wechat
+		-- gradient15 = 0xffc8a8f0, -- dingtalk
+		-- gradient16 = 0xffd0a8f8, -- clash_tun
+		-- gradient17 = 0xffd8a8f4, -- sys
+		-- gradient18 = 0xffcba6f7, -- calendar
+		-- ────────────────────────────
+
 		-- 统一边框渐变色（18 色，从左到右对应所有 bar item）
-		-- 切换主题时只需修改此处，无需改动各 widget 文件
-		gradient1  = 0xfff5c2e7, -- apple
-		gradient2  = 0xfff2cdcd, -- spaces 1
-		gradient3  = 0xfff8c0b0, -- spaces 2
-		gradient4  = 0xfff8d0a0, -- spaces 3
-		gradient5  = 0xffd0e8a0, -- spaces 4
-		gradient6  = 0xffa8e0d8, -- spaces 5
-		gradient7  = 0xff80d8d0, -- spaces 6
-		gradient8  = 0xff60d0e0, -- spaces 7
-		gradient9  = 0xff40c8e8, -- spaces 8
-		gradient10 = 0xff89dceb, -- spaces 9
-		gradient11 = 0xff40c8e8, -- front_app
-		gradient12 = 0xff50c0e0, -- input_method
-		gradient13 = 0xff60b8d8, -- battery
-		gradient14 = 0xffb4befe, -- wechat
-		gradient15 = 0xffc8a8f0, -- dingtalk
-		gradient16 = 0xffd0a8f8, -- clash_tun
-		gradient17 = 0xffd8a8f4, -- sys
-		gradient18 = 0xffcba6f7, -- calendar
+		-- 色相过渡：暖粉 → 草绿 → 薄荷绿 → 青 → 蓝 → 靛 → 深紫
+		gradient1  = 0xffd4afa2, -- apple
+		gradient2  = 0xffcbb8a0, -- spaces 1
+		gradient3  = 0xffc2c29f, -- spaces 2
+		gradient4  = 0xffb5c9a2, -- spaces 3
+		gradient5  = 0xffa5cea9, -- spaces 4
+		gradient6  = 0xff96d2af, -- spaces 5
+		gradient7  = 0xff92cdb3, -- spaces 6
+		gradient8  = 0xff8fc9b7, -- spaces 7
+		gradient9  = 0xff89c2be, -- spaces 8
+		gradient10 = 0xff82bac5, -- spaces 9
+		gradient11 = 0xff7cb1c9, -- front_app
+		gradient12 = 0xff76a5c6, -- input_method
+		gradient13 = 0xff7098c3, -- battery
+		gradient14 = 0xff6f8bb9, -- wechat
+		gradient15 = 0xff6e7daf, -- dingtalk
+		gradient16 = 0xff6a6e9f, -- clash_tun
+		gradient17 = 0xff625d89, -- sys
+		gradient18 = 0xff5b4c73, -- calendar
 
 		-- 预留颜色（暂未使用，供后续扩展配色方案）
 		red_bright = 0xe0f38ba8,
