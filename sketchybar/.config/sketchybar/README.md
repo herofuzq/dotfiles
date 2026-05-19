@@ -51,6 +51,45 @@ These files control the overall look and feel of the bar.
     *   `event_providers/input_method/`: A Swift daemon that listens for macOS input method switch notifications and triggers Sketchybar events. See [Input Method Widget](#input-method-widget) below.
 *   `sketchybarrc`: The main entry point. You should not need to edit this file.
 
+### Setup on a New Machine
+
+1. **Clone dotfiles and symlink config:**
+   ```bash
+   git clone <your-dotfiles-repo> ~/dotfiles
+   ln -s ~/dotfiles/sketchybar/.config/sketchybar ~/.config/sketchybar
+   ```
+
+2. **Install all Homebrew dependencies** (includes sketchybar, aerospace, fonts, and more):
+   ```bash
+   brew bundle install --file=~/dotfiles/Brewfile
+   ```
+
+   Or install sketchybar-specific packages manually:
+   ```bash
+   brew install sketchybar aerospace nowplaying-cli macism
+   brew install --cask font-fira-code-nerd-font font-hack-nerd-font font-sketchybar-app-font
+   ```
+
+3. **Install Xcode Command Line Tools** (required for compiling helpers):
+   ```bash
+   xcode-select --install
+   ```
+
+4. **Set up the input method daemon** — see [Input Method Widget](#input-method-widget) section below.
+
+5. **Install Clash Verge Rev** (optional, for TUN status widget):
+   Download from [clash-verge-rev/releases](https://github.com/clash-verge-rev/clash-verge-rev/releases)
+
+6. **Install Squirrel (鼠须管)** (optional, for Rime input method):
+   ```bash
+   brew install --cask squirrel-app
+   ```
+
+7. **Reload Sketchybar:**
+   ```bash
+   sketchybar --reload
+   ```
+
 ### Input Method Widget
 
 The input method widget (`⌨ ABC` / `⌨ 拼音`) displays the current macOS input source on the bar and updates in real-time.
@@ -70,24 +109,19 @@ Instead of polling, the widget uses a **Swift daemon** that listens for the macO
 
 #### Setup on a New Machine
 
-1. **Install dependencies:**
-   ```bash
-   brew install macism sketchybar
-   ```
-
-2. **Compile the daemon:**
+1. **Compile the daemon:**
    ```bash
    cd ~/.config/sketchybar/helpers/event_providers/input_method
    swiftc -O -o bin/input_method_watch input_method_watch.swift
    ```
 
-3. **Install the LaunchAgent** (auto-start at login, auto-restart on crash):
+2. **Install the LaunchAgent** (auto-start at login, auto-restart on crash):
    ```bash
    cp com.fuzhuoqun.input_method_watch.plist ~/Library/LaunchAgents/
    launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.fuzhuoqun.input_method_watch.plist
    ```
 
-4. **Reload Sketchybar:**
+3. **Reload Sketchybar:**
    ```bash
    sketchybar --reload
    ```
@@ -147,6 +181,45 @@ Instead of polling, the widget uses a **Swift daemon** that listens for the macO
     *   `event_providers/input_method/`：一个 Swift 守护进程，监听 macOS 输入法切换通知并触发 Sketchybar 事件。详见下方[输入法 Widget](#输入法-widget)。
 *   `sketchybarrc`：主入口文件，一般不需要编辑。
 
+### 新机器部署
+
+1. **克隆 dotfiles 并建立软链接：**
+   ```bash
+   git clone <your-dotfiles-repo> ~/dotfiles
+   ln -s ~/dotfiles/sketchybar/.config/sketchybar ~/.config/sketchybar
+   ```
+
+2. **安装所有 Homebrew 依赖**（包含 sketchybar、aerospace、字体等）：
+   ```bash
+   brew bundle install --file=~/dotfiles/Brewfile
+   ```
+
+   或手动安装 sketchybar 核心依赖：
+   ```bash
+   brew install sketchybar aerospace nowplaying-cli macism
+   brew install --cask font-fira-code-nerd-font font-hack-nerd-font font-sketchybar-app-font
+   ```
+
+3. **安装 Xcode Command Line Tools**（编译 helpers 需要）：
+   ```bash
+   xcode-select --install
+   ```
+
+4. **配置输入法守护进程** — 见下方[输入法 Widget](#输入法-widget)。
+
+5. **安装 Clash Verge Rev**（可选，TUN 状态 widget 需要）：
+   从 [clash-verge-rev/releases](https://github.com/clash-verge-rev/clash-verge-rev/releases) 下载
+
+6. **安装鼠须管**（可选，Rime 输入法需要）：
+   ```bash
+   brew install --cask squirrel-app
+   ```
+
+7. **重载 Sketchybar：**
+   ```bash
+   sketchybar --reload
+   ```
+
 ### 输入法 Widget
 
 输入法 widget（`⌨ ABC` / `⌨ 拼音`）在 bar 上实时显示当前 macOS 输入法状态。
@@ -166,24 +239,19 @@ Instead of polling, the widget uses a **Swift daemon** that listens for the macO
 
 #### 新机器部署步骤
 
-1. **安装依赖：**
-   ```bash
-   brew install macism sketchybar
-   ```
-
-2. **编译守护进程：**
+1. **编译守护进程：**
    ```bash
    cd ~/.config/sketchybar/helpers/event_providers/input_method
    swiftc -O -o bin/input_method_watch input_method_watch.swift
    ```
 
-3. **安装 LaunchAgent**（开机自启，崩溃自动重启）：
+2. **安装 LaunchAgent**（开机自启，崩溃自动重启）：
    ```bash
    cp com.fuzhuoqun.input_method_watch.plist ~/Library/LaunchAgents/
    launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.fuzhuoqun.input_method_watch.plist
    ```
 
-4. **重载 Sketchybar：**
+3. **重载 Sketchybar：**
    ```bash
    sketchybar --reload
    ```

@@ -26,7 +26,7 @@ func findSketchybar() -> String {
         return result
     }
 
-    return "/opt/homebrew/bin/sketchybar"
+    return "/usr/local/bin/sketchybar"
 }
 
 let sketchybarPath = findSketchybar()

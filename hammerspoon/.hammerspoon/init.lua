@@ -16,7 +16,10 @@ local function realSource()
   return out
 end
 
+local _toggled = 0
+
 local function toggle()
+  _toggled = hs.timer.secondsSinceEpoch()
   local now = realSource()
   _Current = (now == EN_ID) and EN or ZH
 
@@ -44,7 +47,9 @@ local WARN_APPS = {
 }
 
 local function warnIfNeeded(id)
-  if WARN_APPS[id] and realSource() ~= EN_ID then
+  if not WARN_APPS[id] then return end
+  if hs.timer.secondsSinceEpoch() - _toggled < 2 then return end
+  if realSource() ~= EN_ID then
     hs.alert.show("⚠️ 中文输入中", 1.0)
   end
 end

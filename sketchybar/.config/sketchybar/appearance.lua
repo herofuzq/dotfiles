@@ -11,14 +11,14 @@ M.colors = {
 		border = 0xB33a3a45,
 	},
 
-	popup = {
+	popup = { -- 预留未使用（popup 实际配色由 sbar.default 中 colors.active.bar_bg 控制）
 		bg = 0xFF1d1b2d,
 		border = 0xff7f8490,
 	},
 
 	accent = 0xffb482c2, -- 预留未使用（实际配色通过 catppuccin_mocha.accent → colors.active.accent 引用）
-	accent_bright = 0xffefc2fc,
-	accent_tbright = 0x33efc2fc,
+	accent_bright = 0xffefc2fc, -- 预留未使用
+	accent_tbright = 0x33efc2fc, -- 预留未使用
 
 	catppuccin_mocha = {
 		bg0 = 0x661e1e2e,
@@ -93,7 +93,7 @@ M.colors = {
 			0xffcba6f7,
 		},
 
-		-- 语义别名（供全项目通过 colors.active.xxx 统一引用）
+		-- 预留颜色（暂未使用，供后续扩展配色方案）
 		red_bright = 0xe0f38ba8,
 		blue_bright = 0xe089b4fa,
 		spotify_green = 0xff1db954,
