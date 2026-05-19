@@ -32,7 +32,6 @@ local battery = sbar.add("item", "widgets.battery", {
 	background = {
 		color = colors.active.bar_bg,
 		corner_radius = 10,
-		border_color = colors.active.gradient13,
 		border_width = 2,
 	},
 })

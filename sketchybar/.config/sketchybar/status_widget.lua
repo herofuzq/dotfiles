@@ -31,7 +31,7 @@ return function(opts)
 		background = {
 			color = colors.active.bar_bg,
 			corner_radius = 10,
-			border_color = opts.border_color,
+			border_color = opts.border_color or colors.active.bg3_opaque, -- 由 borders.lua 动态覆盖
 			border_width = 2,
 		},
 	})

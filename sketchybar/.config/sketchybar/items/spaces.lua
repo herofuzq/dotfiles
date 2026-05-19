@@ -3,20 +3,8 @@
 -- 工作区边框使用彩虹渐变色，空工作区显示月亮图标（:moon:）
 local appearance = require("appearance")
 local app_icons = require("helpers.app_icons")
+local borders = require("helpers.borders")
 local sbar = require("sketchybar")
-
--- 可见工作区的边框颜色渐变（9色，取自统一 gradient2-10）
-local border_gradient = {
-	appearance.colors.active.gradient2,
-	appearance.colors.active.gradient3,
-	appearance.colors.active.gradient4,
-	appearance.colors.active.gradient5,
-	appearance.colors.active.gradient6,
-	appearance.colors.active.gradient7,
-	appearance.colors.active.gradient8,
-	appearance.colors.active.gradient9,
-	appearance.colors.active.gradient10,
-}
 
 -- 始终显示的工作区（即使没有应用也会显示，用 :moon: 占位）
 local always_show = {
@@ -226,26 +214,24 @@ local function updateWindows()
 			end
 		end
 
-		-- 第三步：为可见工作区按顺序分配彩虹边框颜色
+		-- 第三步：通过中央调色器分配边框颜色
+		local visible_names = {}
+		for _, ws_idx in ipairs(visible) do
+			visible_names[#visible_names + 1] = "workspace." .. ws_idx
+		end
+		borders.distribute(visible_names)
+
+		-- 第四步：全屏工作区特殊处理（覆盖为红边框 + 加粗）
 		sbar.animate("tanh", 10, function()
-			for i, ws_idx in ipairs(visible) do
-				local fullscreen = args.has_fullscreen[ws_idx]
-				local border_color, border_width
-				if fullscreen then
-					border_color = appearance.colors.active.red
-					border_width = 4 -- 全屏时加粗边框
-				else
-					local idx = i % #border_gradient -- 循环取色
-					if idx == 0 then
-						idx = #border_gradient
-					end
-					border_color = border_gradient[idx]
-					border_width = 2
-				end
+			for _, ws_idx in ipairs(visible) do
 				workspaces[ws_idx]:set({
-					background = { border_color = border_color, border_width = border_width },
-					icon = { color = border_color, highlight_color = appearance.colors.active.red },
+					icon = { highlight_color = appearance.colors.active.red },
 				})
+				if args.has_fullscreen[ws_idx] then
+					workspaces[ws_idx]:set({
+						background = { border_color = appearance.colors.active.red, border_width = 4 },
+					})
+				end
 			end
 		end)
 	end)
@@ -275,19 +261,13 @@ sbar.exec(query_workspaces, function(workspaces_and_monitors)
 		local workspace_index = entry.workspace
 		local style = appearance.styles.workspace -- 引用 appearance 中的样式模板
 
-		-- 初始边框色（稍后会被 updateWindows 覆盖为正确的彩虹色）
-		local border_idx = i % #border_gradient
-		if border_idx == 0 then
-			border_idx = #border_gradient
-		end
-		local border_color = border_gradient[border_idx]
-
+		-- 初始边框色（稍后会被 borders.distribute() 覆盖）
 		local bg = {
 			color = style.background.color,
 			drawing = style.background.drawing,
 			corner_radius = style.background.corner_radius,
 			border_width = style.background.border_width,
-			border_color = border_color,
+			border_color = appearance.colors.active.gradient2,
 		}
 
 		local workspace = sbar.add("item", "workspace." .. workspace_index, {

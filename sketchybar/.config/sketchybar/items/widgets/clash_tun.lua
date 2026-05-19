@@ -33,7 +33,6 @@ local clash_tun = sbar.add("item", "widgets.clash_tun", {
 	background = {
 		color = colors.active.bar_bg,
 		corner_radius = 10,
-		border_color = colors.active.gradient16,
 		border_width = 2,
 	},
 })
