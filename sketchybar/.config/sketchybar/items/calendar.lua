@@ -3,7 +3,7 @@ local sbar = require("sketchybar")
 local fonts = require("fonts")
 local colors = require("appearance").colors
 
-local cal = sbar.add("item", {
+local cal = sbar.add("item", "calendar", {
 	icon = {
 		font = {
 			family = fonts.font_fira.text,
@@ -27,7 +27,6 @@ local cal = sbar.add("item", {
 	background = {
 		color = colors.active.bar_bg,
 		corner_radius = 10,
-		border_color = colors.active.gradient18,
 		border_width = 2,
 	},
 	popup = {

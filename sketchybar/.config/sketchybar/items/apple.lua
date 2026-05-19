@@ -3,7 +3,7 @@ local sbar = require("sketchybar")
 local icons = require("icons")
 local colors = require("appearance").colors
 
-local apple = sbar.add("item", {
+local apple = sbar.add("item", "apple", {
 	padding_left = 11,
 	padding_right = 2,
 	icon = {
@@ -17,7 +17,6 @@ local apple = sbar.add("item", {
 	background = {
 		color = colors.active.bar_bg,
 		corner_radius = 10,
-		border_color = colors.active.gradient1,
 		border_width = 2,
 	},
 })
