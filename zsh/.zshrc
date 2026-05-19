@@ -133,3 +133,9 @@ export PATH="$(ruby -e 'puts Gem.bindir'):$PATH"
 # bun
 export BUN_INSTALL="$HOME/.bun"
 export PATH="$BUN_INSTALL/bin:$PATH"
+
+# User aliases
+alias BT='btop'
+alias OC='opencode'
+alias FF='fastfetch'
+alias LG='lazygit'
