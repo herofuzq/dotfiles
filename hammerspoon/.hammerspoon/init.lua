@@ -21,12 +21,18 @@ local _toggled = 0
 local function toggle()
   _toggled = hs.timer.secondsSinceEpoch()
   local now = realSource()
-  _Current = (now == EN_ID) and EN or ZH
+  local targetID  = (now == EN_ID) and ZH_ID or EN_ID
+  local targetName = (targetID == EN_ID) and EN or ZH
 
-  hs.eventtap.keyStroke({"ctrl"}, "space")
+  hs.execute(string.format("%s %s", MACISM, targetID), true)
 
-  _Current = (_Current == EN) and ZH or EN
-  hs.alert.show(_Current, 0.4)
+  if targetID == ZH_ID then
+    local fw = hs.window.focusedWindow()
+    if fw then hs.timer.doAfter(0.05, function() fw:focus() end) end
+  end
+
+  _Current = targetName
+  hs.alert.show(targetName, 0.4)
 end
 
 -- ============================================================
