@@ -1,4 +1,5 @@
--- 图标字形定义，使用 Apple SF Symbols（系统图标字体）
+-- 图标字形定义
+-- 主要使用 Apple SF Symbols，部分图标来自 Nerd Font / 标准 Unicode
 -- 每个键代表一个图标用途，值是 Unicode 字形码点
 local icons = {
 	sf_symbols = {

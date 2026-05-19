@@ -93,12 +93,12 @@ local function withWindows(f)
 		end
 
 		-- 嵌套查询：先查聚焦工作区，再查可见工作区，最后统一处理
-		sbar.exec(get_focus_workspaces, function(focused_workspaces)
-			focused_workspaces = focused_workspaces:match("^%s*(.-)%s*$")
+		sbar.exec(get_focus_workspaces, function(focused_workspace)
+			focused_workspace = focused_workspace:match("^%s*(.-)%s*$")
 			sbar.exec(query_visible_workspaces, function(visible_workspaces)
 				local args = {
 					open_windows = open_windows,
-					focused_workspaces = focused_workspaces,
+					focused_workspace = focused_workspace,
 					visible_workspaces = visible_workspaces,
 					has_fullscreen = has_fullscreen,
 				}
@@ -112,7 +112,7 @@ end
 -- 决定显示应用图标 / 月亮占位符 / 隐藏
 local function updateWindow(workspace_index, args)
 	local open_windows = args.open_windows[workspace_index]
-	local focused_workspaces = args.focused_workspaces
+	local focused_workspace = args.focused_workspace
 	local visible_workspaces = args.visible_workspaces
 
 	if open_windows == nil then
@@ -131,11 +131,11 @@ local function updateWindow(workspace_index, args)
 	end
 
 	sbar.animate("tanh", 10, function()
-		-- 情况1：没有应用，但工作区当前在屏幕上可见 → 显示 :moon: 占位
+		-- 情况1：没有应用，但工作区当前在屏幕上可见 → 显示 · 占位
 		for _, visible_workspace in ipairs(visible_workspaces) do
 			if no_app and workspace_index == visible_workspace["workspace"] then
 				local monitor_id = visible_workspace["monitor-appkit-nsscreen-screens-id"]
-				icon_line = ""
+				icon_line = "·"
 				workspaces[workspace_index]:set({
 					drawing = true,
 					["label.string"] = icon_line,
@@ -145,10 +145,10 @@ local function updateWindow(workspace_index, args)
 			end
 		end
 
-		-- 情况2：没有应用，也不聚焦 → 如果在 always_show 列表中则显示，否则隐藏
-		if no_app and workspace_index ~= focused_workspaces then
+		-- 情况2：没有应用，也不聚焦 → 如果在 always_show 列表中则显示 · 占位，否则隐藏
+		if no_app and workspace_index ~= focused_workspace then
 			if always_show[workspace_index] then
-				icon_line = ""
+				icon_line = "·"
 				workspaces[workspace_index]:set({
 					drawing = true,
 					["label.string"] = icon_line,
@@ -161,9 +161,9 @@ local function updateWindow(workspace_index, args)
 			return
 		end
 
-		-- 情况3：没有应用，但是聚焦的工作区 → 显示 :moon: 占位
-		if no_app and workspace_index == focused_workspaces then
-			icon_line = ""
+		-- 情况3：没有应用，但是聚焦的工作区 → 显示 · 占位
+		if no_app and workspace_index == focused_workspace then
+			icon_line = "·"
 			workspaces[workspace_index]:set({
 				drawing = true,
 				["label.string"] = icon_line,
@@ -204,7 +204,7 @@ local function updateWindows()
 				end
 			end
 			-- 聚焦的工作区始终可见
-			if not is_visible and ws_idx == args.focused_workspaces then
+			if not is_visible and ws_idx == args.focused_workspace then
 				is_visible = true
 			end
 			-- always_show 列表中的工作区始终可见
@@ -324,7 +324,7 @@ sbar.exec(query_workspaces, function(workspaces_and_monitors)
 		end)
 	end
 
-	-- 装饰性文字（左侧 "Powered by "）
+	-- 装饰性文字（左侧 "Powered by " —  为 i3 window management 图标，保留作装饰用）
 	sbar.add("item", "i3", {
 		position = "left",
 		padding_left = 2,

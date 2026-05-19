@@ -16,7 +16,7 @@ M.colors = {
 		border = 0xff7f8490,
 	},
 
-	accent = 0xffb482c2,
+	accent = 0xffb482c2, -- 预留未使用（实际配色通过 catppuccin_mocha.accent → colors.active.accent 引用）
 	accent_bright = 0xffefc2fc,
 	accent_tbright = 0x33efc2fc,
 

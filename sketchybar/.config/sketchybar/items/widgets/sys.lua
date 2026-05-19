@@ -6,7 +6,7 @@ local colors = require("appearance").colors
 local settings = require("settings")
 
 -- 启动 CPU 监控后台进程，每 2 秒通过事件推送 CPU 数据
-sbar.exec("killall cpu_load >/dev/null; $CONFIG_DIR/helpers/event_providers/cpu_load/bin/cpu_load cpu_update 2.0")
+sbar.exec("killall cpu_load 2>/dev/null; $CONFIG_DIR/helpers/event_providers/cpu_load/bin/cpu_load cpu_update 2.0")
 
 local sys = sbar.add("item", "widgets.sys", {
 	position = "right",

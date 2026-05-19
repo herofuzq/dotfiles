@@ -41,11 +41,12 @@ battery:subscribe({ "routine", "power_source_change", "system_woke" }, function(
 	sbar.exec("pmset -g batt", function(batt_info)
 		local icon = "!"
 		local label = "?"
-		local found, _, charge = batt_info:find("(%d+)%%")
+		local found, _, charge_str = batt_info:find("(%d+)%%")
+		local charge_num
 
 		if found then
-			charge = tonumber(charge)
-			label = string.format("%02d%%", charge)
+			charge_num = tonumber(charge_str)
+			label = string.format("%02d%%", charge_num)
 		end
 
 		local color = colors.active.green
@@ -54,13 +55,13 @@ battery:subscribe({ "routine", "power_source_change", "system_woke" }, function(
 		if charging then
 			icon = icons.battery.charging
 		else
-			if found and charge > 80 then
+			if found and charge_num > 80 then
 				icon = icons.battery._100
-			elseif found and charge > 60 then
+			elseif found and charge_num > 60 then
 				icon = icons.battery._75
-			elseif found and charge > 40 then
+			elseif found and charge_num > 40 then
 				icon = icons.battery._50
-			elseif found and charge > 20 then
+			elseif found and charge_num > 20 then
 				icon = icons.battery._25
 				color = colors.active.peach
 			else
@@ -71,6 +72,7 @@ battery:subscribe({ "routine", "power_source_change", "system_woke" }, function(
 
 		battery:set({
 			icon = { string = icon, color = color },
+			-- label 颜色始终使用 sep_opaque，不与 icon 联动（简约风格，避免视觉干扰）
 			label = { string = label },
 		})
 	end)

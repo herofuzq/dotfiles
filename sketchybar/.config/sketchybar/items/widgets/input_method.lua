@@ -10,6 +10,12 @@ local im_map = {
 	["im.rime.inputmethod.Squirrel.Hans"] = { label = "鼠须管", color = colors.active.mauve },
 }
 
+-- 输入法切换顺序（新增输入法时在此追加即可）
+local im_order = {
+	"com.apple.keylayout.ABC",
+	"im.rime.inputmethod.Squirrel.Hans",
+}
+
 local input_method = sbar.add("item", "widgets.input_method", {
     position = "right",
     padding_left = 2,
@@ -63,8 +69,17 @@ check_status()
 input_method:subscribe("mouse.clicked", function()
     sbar.exec("macism", function(current_id)
         current_id = current_id:match("^%s*(.-)%s*$")
-		local next_id = (current_id == "com.apple.keylayout.ABC") and "im.rime.inputmethod.Squirrel.Hans"
-			or "com.apple.keylayout.ABC"
+        -- 在 im_order 中查找当前输入法，切换到下一个（循环）
+        local next_id
+        for i, id in ipairs(im_order) do
+            if id == current_id then
+                next_id = im_order[i % #im_order + 1]
+                break
+            end
+        end
+        if not next_id then
+            next_id = im_order[1]  -- 未匹配时回退到第一个
+        end
         sbar.exec("macism " .. next_id)
     end)
 end)

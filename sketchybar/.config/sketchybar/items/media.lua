@@ -4,7 +4,6 @@ local sbar = require("sketchybar")
 local icons = require("icons")
 local fonts = require("fonts")
 local colors = require("appearance").colors
-local settings = require("settings")
 
 -- ========== Bar 条目：播放图标 ==========
 local media = sbar.add("item", "widgets.media", {

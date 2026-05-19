@@ -4,7 +4,6 @@
 # 只更新 bar item 的显示/隐藏和图标颜色，popup 内容在点击时由 Lua 回调更新
 
 TITLE=$(nowplaying-cli get title 2>/dev/null | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
-STATE=$(nowplaying-cli get state 2>/dev/null | tr -d '[:space:]')
 
 if [ -z "$TITLE" ] || [ "$TITLE" = "null" ]; then
   sketchybar --set "$NAME" drawing=off popup.drawing=off

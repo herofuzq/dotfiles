@@ -1,4 +1,6 @@
 #include <Carbon/Carbon.h>
+#include <math.h>
+#include <stdio.h>
 
 void ax_init() {
   const void *keys[] = { kAXTrustedCheckOptionPrompt };
@@ -79,8 +81,8 @@ void ax_print_menu_options(AXUIElementRef app) {
         CFTypeRef title = ax_get_title(item);
 
         if (title) {
-          uint32_t buffer_len = 2*CFStringGetLength(title);
-          char buffer[2*CFStringGetLength(title)];
+          uint32_t buffer_len = 2 * CFStringGetLength(title) + 1;
+          char buffer[buffer_len];
           CFStringGetCString(title, buffer, buffer_len, kCFStringEncodingUTF8);
           printf("%s\n", buffer);
           CFRelease(title);
