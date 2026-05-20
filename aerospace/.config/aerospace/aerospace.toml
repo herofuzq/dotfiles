@@ -281,6 +281,10 @@ if.app-id = "net.nutstore.NutstoreJavaBE"
 run = 'layout floating'
 
 [[on-window-detected]]
+if.app-id = "org.fcitx.inputmethod.Fcitx5"
+run = 'layout floating'
+
+[[on-window-detected]]
 if.app-id = "com.sindresorhus.Plash"
 run = 'layout floating'
 
@@ -481,6 +485,10 @@ run = ["move-node-to-workspace T̲erm"]
 
 [[on-window-detected]]
 if.app-id = "com.mitchellh.ghostty"
+run = ["move-node-to-workspace T̲erm"]
+
+[[on-window-detected]]
+if.app-id = "com.cmuxterm.app"
 run = ["move-node-to-workspace T̲erm"]
 
 [[on-window-detected]]

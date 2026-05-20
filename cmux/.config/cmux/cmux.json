@@ -1,0 +1,185 @@
+{
+  "$schema": "https://raw.githubusercontent.com/manaflow-ai/cmux/main/web/data/cmux.schema.json",
+  "schemaVersion": 1,
+
+  // This file uses JSON with comments (JSONC).
+  // Uncomment and edit any setting to make it file-managed.
+  // Remove a setting to fall back to the value saved in Settings.
+  // cmux creates this template on launch when ~/.config/cmux/cmux.json is missing.
+  // Legacy settings.json files are read only as fallback for keys not present here.
+
+  //   "app" : {
+  //     "keepWorkspaceOpenWhenClosingLastSurface" : false,
+  //     "reorderOnNotification" : true,
+  //     "warnBeforeQuit" : true,
+  //     "renameSelectsExistingName" : true,
+  //     "minimalMode" : false,
+  //     "preferredEditor" : "",
+  //     "warnBeforeClosingTab" : true,
+  //     "openMarkdownInCmuxViewer" : false,
+  //     "menuBarOnly" : false,
+  //     "language" : "system",
+  //     "appIcon" : "automatic",
+  //     "newWorkspacePlacement" : "afterCurrent",
+  //     "workspaceInheritWorkingDirectory" : true,
+  //     "focusPaneOnFirstClick" : false,
+  //     "openSupportedFilesInCmux" : true,
+  //     "iMessageMode" : false,
+  //     "commandPaletteSearchesAllSurfaces" : false,
+  //     "sendAnonymousTelemetry" : true,
+  //     "appearance" : "system"
+  //   },
+
+  //   "terminal" : {
+  //     "showScrollBar" : true,
+  //     "autoResumeAgentSessions" : true
+  //   },
+
+  //   "notifications" : {
+  //     "dockBadge" : true,
+  //     "unreadPaneRing" : true,
+  //     "sound" : "default",
+  //     "customSoundFilePath" : "",
+  //     "hooksMode" : "append",
+  //     "paneFlash" : true,
+  //     "command" : "",
+  //     "showInMenuBar" : true,
+  //     "hooks" : [
+  //
+  //     ]
+  //   },
+
+  //   "sidebar" : {
+  //     "showNotificationMessage" : true,
+  //     "showPorts" : true,
+  //     "showCustomMetadata" : true,
+  //     "showSSH" : true,
+  //     "showLog" : true,
+  //     "showProgress" : true,
+  //     "showPullRequests" : true,
+  //     "branchLayout" : "vertical",
+  //     "makePullRequestsClickable" : true,
+  //     "openPullRequestLinksInCmuxBrowser" : true,
+  //     "showBranchDirectory" : true,
+  //     "hideAllDetails" : false,
+  //     "openPortLinksInCmuxBrowser" : true,
+  //     "showWorkspaceDescription" : true
+  //   },
+
+  //   "workspaceColors" : {
+  //     "indicatorStyle" : "leftRail",
+  //     "selectionColor" : null,
+  //     "notificationBadgeColor" : null,
+  //     "colors" : {
+  //       "Magenta" : "#AD1457",
+  //       "Green" : "#196F3D",
+  //       "Indigo" : "#283593",
+  //       "Olive" : "#4A5C18",
+  //       "Navy" : "#1A5276",
+  //       "Brown" : "#7B3F00",
+  //       "Orange" : "#A04000",
+  //       "Blue" : "#1565C0",
+  //       "Purple" : "#6A1B9A",
+  //       "Charcoal" : "#3E4B5E",
+  //       "Rose" : "#880E4F",
+  //       "Teal" : "#006B6B",
+  //       "Aqua" : "#0E6B8C",
+  //       "Red" : "#C0392B",
+  //       "Crimson" : "#922B21",
+  //       "Amber" : "#7D6608"
+  //     }
+  //   },
+
+  //   "sidebarAppearance" : {
+  //     "tintColor" : "#000000",
+  //     "lightModeTintColor" : null,
+  //     "matchTerminalBackground" : false,
+  //     "tintOpacity" : 0.17999999999999999,
+  //     "darkModeTintColor" : null
+  //   },
+
+  //   "automation" : {
+  //     "claudeBinaryPath" : "",
+  //     "socketControlMode" : "cmuxOnly",
+  //     "socketPassword" : "",
+  //     "cursorIntegration" : true,
+  //     "portRange" : 10,
+  //     "ripgrepBinaryPath" : "",
+  //     "portBase" : 9100,
+  //     "claudeCodeIntegration" : true,
+  //     "geminiIntegration" : true
+  //   },
+
+  //   "browser" : {
+  //     "discardHiddenWebViews" : true,
+  //     "showImportHintOnBlankTabs" : true,
+  //     "defaultSearchEngine" : "google",
+  //     "interceptTerminalOpenCommandInCmuxBrowser" : true,
+  //     "hostsToOpenInEmbeddedBrowser" : [
+  //
+  //     ],
+  //     "urlsToAlwaysOpenExternally" : [
+  //
+  //     ],
+  //     "insecureHttpHostsAllowedInEmbeddedBrowser" : [
+  //       "localhost",
+  //       "*.localhost",
+  //       "127.0.0.1",
+  //       "::1",
+  //       "0.0.0.0",
+  //       "*.localtest.me"
+  //     ],
+  //     "showSearchSuggestions" : true,
+  //     "theme" : "system",
+  //     "openTerminalLinksInCmuxBrowser" : true,
+  //     "reactGrabVersion" : "0.1.29",
+  //     "hiddenWebViewDiscardDelaySeconds" : 300
+  //   },
+
+  "shortcuts": {
+    "bindings": {
+      // ── tmux C-a prefix mappings ──────────────────────────
+
+      // pane / surface
+      "newSurface":             ["ctrl+a", "c"],
+      "splitRight":             ["ctrl+a", "="],
+      "splitDown":              ["ctrl+a", "-"],
+      "closeTab":               ["ctrl+a", "x"],
+
+      // navigation (vim-tmux-navigator C-h/j/k/l style)
+      "focusLeft":              ["ctrl+a", "h"],
+      "focusDown":              ["ctrl+a", "j"],
+      "focusUp":                ["ctrl+a", "k"],
+      "focusRight":             ["ctrl+a", "l"],
+
+      // switch surfaces
+      "nextSurface":            ["ctrl+a", "n"],
+      "prevSurface":            ["ctrl+a", "p"],
+
+      // zoom / copy mode
+      "toggleSplitZoom":        ["ctrl+a", "z"],
+      "toggleTerminalCopyMode": ["ctrl+a", "["],
+
+      // rename
+      "renameTab":              ["ctrl+a", ","],
+      "renameWorkspace":        ["ctrl+a", "$"],
+
+      // workspace / palette
+      "goToWorkspace":          ["ctrl+a", "w"],
+      "commandPalette":         ["ctrl+a", ":"],
+
+      // reload (your tmux: bind R source-file ...)
+      "reloadConfiguration":    ["ctrl+a", "r"],
+
+      // ── vim-tmux-navigator direct bindings ────────────────
+      // no prefix — same muscle memory as tmux:
+      //   C-h=left  C-j=down  C-k=up  C-l=right
+      // note: only override these if they don't conflict
+      // with your terminal workflow. comment out to disable.
+      // "focusLeft":  "ctrl+h",
+      // "focusDown":  "ctrl+j",
+      // "focusUp":    "ctrl+k",
+      // "focusRight": "ctrl+l"
+    }
+  }
+}
