@@ -18,9 +18,9 @@ The configuration is loaded in the following sequence:
 
 3.  **Core Configuration**: `init.lua` first loads the core bar settings (`bar.lua`) and then a set of default properties (`settings.lua`, `appearance.lua`, etc.) that apply to all items.
 
-4.  **Items and Widgets**: After the core setup, it loads all the individual bar items from the `items/` directory. Each file in this directory (e.g., `cpu.lua`, `wifi.lua`, `media.lua`) corresponds to a specific element on the bar.
+4.  **Items and Widgets**: After the core setup, it loads all the individual bar items from the `items/` directory. Each file in this directory (e.g., `apple.lua`, `spaces.lua`, `calendar.lua`) corresponds to a specific element on the bar.
 
-5.  **Event Loop**: Once the entire configuration is loaded, an event loop (`sbar.event_loop()`) is started. This loop listens for system events (like Wi-Fi changes, media playback, or front application switches) and updates the corresponding bar items in real-time.
+5.  **Event Loop**: Once the entire configuration is loaded, an event loop (`sbar.event_loop()`) is started. This loop listens for system events (like input method changes, front application switches, or aerospace workspace changes) and updates the corresponding bar items in real-time.
 
 6.  **Helpers**: The `helpers/` directory contains custom C programs that act as event providers for things not natively supported by Sketchybar, such as CPU load. These are compiled automatically.
 
@@ -33,7 +33,7 @@ To customize the bar, you should edit the following files:
 These files control the overall look and feel of the bar.
 
 *   `settings.lua`: The primary file for customization. Here you can change the bar's height, corner radius, and default item/text padding.
-*   `appearance.lua`: Defines the color palette for the entire bar. Change the colors here to theme your bar.
+*   `appearance.lua`: Defines the base color palette and global default styles. Border colors are now managed by `helpers/borders.lua`.
 *   `fonts.lua`: All font definitions are located here. You can change font families, sizes, and styles.
 *   `icons.lua`: A central repository for all icons used across the bar.
 
@@ -48,6 +48,7 @@ These files control the overall look and feel of the bar.
 #### Advanced
 
 *   `helpers/`: This directory contains the source code for custom event providers. You generally won't need to touch these files unless you are adding a new, complex feature that requires an external helper.
+    *   `helpers/borders.lua`: Central border color manager. Pre-computed color sets for 5-9 visible workspaces. To change the border theme, edit only this file.
     *   `event_providers/input_method/`: A Swift daemon that listens for macOS input method switch notifications and triggers Sketchybar events. See [Input Method Widget](#input-method-widget) below.
 *   `sketchybarrc`: The main entry point. You should not need to edit this file.
 
@@ -66,7 +67,7 @@ These files control the overall look and feel of the bar.
 
    Or install sketchybar-specific packages manually:
    ```bash
-   brew install sketchybar aerospace nowplaying-cli macism
+   brew install sketchybar aerospace macism
    brew install --cask font-fira-code-nerd-font font-hack-nerd-font font-sketchybar-app-font
    ```
 
@@ -80,9 +81,9 @@ These files control the overall look and feel of the bar.
 5. **Install Clash Verge Rev** (optional, for TUN status widget):
    Download from [clash-verge-rev/releases](https://github.com/clash-verge-rev/clash-verge-rev/releases)
 
-6. **Install Squirrel (鼠须管)** (optional, for Rime input method):
+6. **Install fcitx5** (optional, for Chinese input method):
    ```bash
-   brew install --cask squirrel-app
+   brew install --cask fcitx5
    ```
 
 7. **Reload Sketchybar:**
@@ -92,11 +93,17 @@ These files control the overall look and feel of the bar.
 
 ### Input Method Widget
 
-The input method widget (`⌨ ABC` / `⌨ 拼音`) displays the current macOS input source on the bar and updates in real-time.
+The input method widget displays the current macOS input source on the bar and updates in real-time. It supports three states:
+
+| Input Source | Display |
+|-------------|---------|
+| `com.apple.keylayout.ABC` | `⌨ ABC` |
+| fcitx5 (Chinese mode) | `⌨ 中州韵(ZH)` |
+| fcitx5 (English mode) | `⌨ 中州韵(EN)` |
 
 #### How It Works
 
-Instead of polling, the widget uses a **Swift daemon** that listens for the macOS system notification `com.apple.Carbon.TISNotifySelectedKeyboardInputSourceChanged`. When the input method changes, the daemon triggers `sketchybar --trigger input_method_change`, and the widget's Lua callback queries `macism` to get the current input source name.
+The widget uses a **Swift daemon** that listens for the macOS system notification `com.apple.Carbon.TISNotifySelectedKeyboardInputSourceChanged`. When the input method changes, the daemon triggers `sketchybar --trigger input_method_change`. The Lua callback queries `macism` to get the input source, and for fcitx5, additionally queries `fcitx5-remote` to determine Chinese/English mode.
 
 #### Files Involved
 
@@ -128,8 +135,8 @@ Instead of polling, the widget uses a **Swift daemon** that listens for the macO
 
 #### Customization
 
-*   **Input method display names**: Edit the `im_map` table in `items/widgets/input_method.lua` to map macOS input source IDs to custom labels and colors.
-*   **Click action**: By default, clicking the widget sends Cmd+Ctrl+Opt+Q to switch input methods. Edit the `mouse.clicked` handler in `items/widgets/input_method.lua` to change this behavior.
+*   **Input method display names**: Edit the `update_display` function in `items/widgets/input_method.lua` to change labels and colors for each state.
+*   **fcitx5 binary path**: If fcitx5 is installed in a custom location, update the `FCITX_REMOTE` variable in `items/widgets/input_method.lua`.
 *   **Daemon binary path**: If you installed Sketchybar via a different method, update the `launchPath` in `input_method_watch.swift` and the `ProgramArguments` in the plist.
 
 ---
@@ -148,9 +155,9 @@ Instead of polling, the widget uses a **Swift daemon** that listens for the macO
 
 3.  **核心配置**：`init.lua` 先加载 bar 主体设置（`bar.lua`），再加载应用于所有 item 的默认属性（`settings.lua`、`appearance.lua` 等）。
 
-4.  **Item 与 Widget**：接着加载 `items/` 目录下所有 bar 元素。每个文件（如 `cpu.lua`、`wifi.lua`）对应 bar 上的一个组件。
+4.  **Item 与 Widget**：接着加载 `items/` 目录下所有 bar 元素。每个文件（如 `apple.lua`、`spaces.lua`、`calendar.lua`）对应 bar 上的一个组件。
 
-5.  **事件循环**：全部加载完成后启动事件循环（`sbar.event_loop()`），监听系统事件（Wi-Fi 变化、媒体播放、前台应用切换等）并实时更新对应 item。
+5.  **事件循环**：全部加载完成后启动事件循环（`sbar.event_loop()`），监听系统事件（输入法切换、前台应用切换、aerospace 工作区变化等）并实时更新对应 item。
 
 6.  **Helpers**：`helpers/` 目录包含自定义 C 程序，为 Sketchybar 原生不支持的功能提供事件，如 CPU 负载。
 
@@ -163,7 +170,7 @@ Instead of polling, the widget uses a **Swift daemon** that listens for the macO
 这些文件控制 bar 的整体外观。
 
 *   `settings.lua`：主要自定义文件。可修改 bar 高度、圆角半径、默认 item/文字内边距。
-*   `appearance.lua`：定义整个 bar 的配色方案。在此修改颜色以改变主题。
+*   `appearance.lua`：定义基础配色方案和全局默认样式。边框颜色由 `helpers/borders.lua` 统一管理。
 *   `fonts.lua`：所有字体定义。可修改字体族、大小和样式。
 *   `icons.lua`：所有图标的统一仓库。
 
@@ -178,6 +185,7 @@ Instead of polling, the widget uses a **Swift daemon** that listens for the macO
 #### 高级
 
 *   `helpers/`：包含自定义事件提供者的源码。除非需要新增复杂功能，通常无需修改。
+    *   `helpers/borders.lua`：中央边框调色器，预置 5-9 个工作区的色值。更换边框主题只需修改此文件。
     *   `event_providers/input_method/`：一个 Swift 守护进程，监听 macOS 输入法切换通知并触发 Sketchybar 事件。详见下方[输入法 Widget](#输入法-widget)。
 *   `sketchybarrc`：主入口文件，一般不需要编辑。
 
@@ -196,7 +204,7 @@ Instead of polling, the widget uses a **Swift daemon** that listens for the macO
 
    或手动安装 sketchybar 核心依赖：
    ```bash
-   brew install sketchybar aerospace nowplaying-cli macism
+   brew install sketchybar aerospace macism
    brew install --cask font-fira-code-nerd-font font-hack-nerd-font font-sketchybar-app-font
    ```
 
@@ -210,9 +218,9 @@ Instead of polling, the widget uses a **Swift daemon** that listens for the macO
 5. **安装 Clash Verge Rev**（可选，TUN 状态 widget 需要）：
    从 [clash-verge-rev/releases](https://github.com/clash-verge-rev/clash-verge-rev/releases) 下载
 
-6. **安装鼠须管**（可选，Rime 输入法需要）：
+6. **安装 fcitx5**（可选，中文输入法需要）：
    ```bash
-   brew install --cask squirrel-app
+   brew install --cask fcitx5
    ```
 
 7. **重载 Sketchybar：**
@@ -222,11 +230,17 @@ Instead of polling, the widget uses a **Swift daemon** that listens for the macO
 
 ### 输入法 Widget
 
-输入法 widget（`⌨ ABC` / `⌨ 拼音`）在 bar 上实时显示当前 macOS 输入法状态。
+输入法 widget 在 bar 上实时显示当前 macOS 输入法状态，支持三种显示：
+
+| 输入源 | 显示 |
+|--------|------|
+| `com.apple.keylayout.ABC` | `⌨ ABC` |
+| fcitx5 中文模式 | `⌨ 中州韵(ZH)` |
+| fcitx5 英文模式 | `⌨ 中州韵(EN)` |
 
 #### 工作原理
 
-采用 **Swift 守护进程**监听 macOS 系统级通知 `com.apple.Carbon.TISNotifySelectedKeyboardInputSourceChanged`，而非轮询。输入法切换时，守护进程触发 `sketchybar --trigger input_method_change`，widget 的 Lua 回调随即调用 `macism` 获取当前输入法名称。
+采用 **Swift 守护进程**监听 macOS 系统通知 `com.apple.Carbon.TISNotifySelectedKeyboardInputSourceChanged`。输入法切换时触发 `sketchybar --trigger input_method_change`，Lua 回调调用 `macism` 获取输入源，对 fcitx5 额外调用 `fcitx5-remote` 判定中/英文模式。
 
 #### 相关文件
 
@@ -258,6 +272,6 @@ Instead of polling, the widget uses a **Swift daemon** that listens for the macO
 
 #### 自定义
 
-*   **输入法显示名称**：编辑 `items/widgets/input_method.lua` 中的 `im_map` 表，将 macOS 输入源 ID 映射到自定义标签和颜色。
-*   **点击行为**：默认点击 widget 发送 Cmd+Ctrl+Opt+Q 切换输入法。修改 `items/widgets/input_method.lua` 中的 `mouse.clicked` 回调可改变行为。
+*   **输入法显示名称**：编辑 `items/widgets/input_method.lua` 中的 `update_display` 函数，修改各状态标签和颜色。
+*   **fcitx5 路径**：如果 fcitx5 安装在非默认路径，更新 `items/widgets/input_method.lua` 中的 `FCITX_REMOTE` 变量。
 *   **守护进程路径**：如果 Sketchybar 安装路径不同，需同步更新 `input_method_watch.swift` 中的 `launchPath` 和 plist 中的 `ProgramArguments`。
