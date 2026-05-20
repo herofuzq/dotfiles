@@ -16,7 +16,7 @@ macos-secure-input-indication = true
 # Font
 # -------------------------------------------------- #
 font-family = MesloLGS Nerd Font Mono
-font-family = Sarasa Mono SC
+# font-family = Sarasa Mono SC
 font-thicken = true
 font-thicken-strength = 128
 font-size = 14

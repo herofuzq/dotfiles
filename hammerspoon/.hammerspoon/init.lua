@@ -1,19 +1,20 @@
 -- ============================================================
--- 输入法自动切换
--- macism 读状态 + Ctrl+Space 切输入法
+-- 输入法切换 - fcitx5-remote
+-- 1 = 英文, 2 = 中文
 -- ============================================================
-local MACISM = "/opt/homebrew/bin/macism"
-local EN_ID  = "com.apple.keylayout.ABC"
-local ZH_ID  = "im.rime.inputmethod.Squirrel.Hans"
-local EN = "ABC"
-local ZH = "鼠须管"
+local FCITX = "/Library/Input Methods/Fcitx5.app/Contents/bin/fcitx5-remote"
+local EN = 1
+local ZH = 2
 
 _Current = EN
 
+local function fcitx(cmd)
+  hs.execute("'" .. FCITX .. "' " .. cmd, true)
+end
+
 local function realSource()
-  local out = hs.execute(MACISM, true)
-  if out then out = out:match("^%s*(.-)%s*$") end
-  return out
+  local out = hs.execute("'" .. FCITX .. "'", true)
+  return out and out:match("2") and ZH or EN
 end
 
 local _toggled = 0
@@ -21,24 +22,22 @@ local _toggled = 0
 local function toggle()
   _toggled = hs.timer.secondsSinceEpoch()
   local now = realSource()
-  local targetID  = (now == EN_ID) and ZH_ID or EN_ID
-  local targetName = (targetID == EN_ID) and EN or ZH
 
-  hs.execute(string.format("%s %s", MACISM, targetID), true)
-
-  if targetID == ZH_ID then
-    local fw = hs.window.focusedWindow()
-    if fw then hs.timer.doAfter(0.05, function() fw:focus() end) end
+  if now == ZH then
+    fcitx("-c")
+    _Current = EN
+    hs.alert.show("英文", 0.4)
+  else
+    fcitx("-o")
+    _Current = ZH
+    hs.alert.show("中文", 0.4)
   end
-
-  _Current = targetName
-  hs.alert.show(targetName, 0.4)
 end
 
 -- ============================================================
--- 中文状态进入以下 App 时弹提醒
+-- 终端/IDE 类 App → 自动切英文
 -- ============================================================
-local WARN_APPS = {
+local AUTO_EN = {
   ["com.apple.Terminal"] = true,
   ["com.googlecode.iterm2"] = true,
   ["org.alacritty"] = true,
@@ -52,27 +51,27 @@ local WARN_APPS = {
   ["org.vim.MacVim"] = true,
 }
 
-local function warnIfNeeded(id)
-  if not WARN_APPS[id] then return end
+local function autoEN(id)
+  if not AUTO_EN[id] then return end
   if hs.timer.secondsSinceEpoch() - _toggled < 2 then return end
-  if realSource() ~= EN_ID then
+  if realSource() == ZH then
     hs.alert.show("⚠️ 中文输入中", 1.0)
   end
 end
 
-_WarnWatcher = hs.application.watcher.new(function(_, event, app)
+_AutoWatcher = hs.application.watcher.new(function(_, event, app)
   if event == hs.application.watcher.activated then
-    warnIfNeeded(app:bundleID())
+    autoEN(app:bundleID())
   end
 end)
-_WarnWatcher:start()
+_AutoWatcher:start()
 
 hs.window.filter.default:subscribe(hs.window.filter.windowFocused, function(_, app)
-  if app then warnIfNeeded(app:bundleID()) end
+  if app then autoEN(app:bundleID()) end
 end)
 
 -- ============================================================
--- CapsLock (Hyper) 单独按下 → 切换中英文（弹通知）
+-- CapsLock (Hyper) 单独按下 → 切换中英文
 -- ============================================================
 local pressed = false
 local used    = false
