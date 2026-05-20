@@ -131,6 +131,77 @@ export PATH="$(ruby -e 'puts Gem.bindir'):$PATH"
 export BUN_INSTALL="$HOME/.bun"
 export PATH="$BUN_INSTALL/bin:$PATH"
 
+# =====================================================
+# Clash Verge 代理配置（端口: 7890）
+# =====================================================
+
+# 代理服务器地址
+_PROXY_HTTP="http://127.0.0.1:7890"
+_PROXY_SOCKS5="socks5://127.0.0.1:7890"
+
+# 本地网络及域名不走代理
+_NO_PROXY="localhost,127.0.0.1,::1,192.168.*,10.*,172.16.*,*.local,*.internal"
+
+# -----------------------------------------------------
+# 一键开启所有代理（终端环境变量 + Git 代理）
+function proxy_all_on() {
+    # 开启终端代理（环境变量）
+    export http_proxy="$_PROXY_HTTP"
+    export https_proxy="$_PROXY_HTTP"
+    export all_proxy="$_PROXY_SOCKS5"
+    
+    export HTTP_PROXY="$_PROXY_HTTP"
+    export HTTPS_PROXY="$_PROXY_HTTP"
+    export ALL_PROXY="$_PROXY_SOCKS5"
+    
+    export no_proxy="$_NO_PROXY"
+    export NO_PROXY="$_NO_PROXY"
+    
+    # 开启 Git 代理（写入 ~/.gitconfig）
+    git config --global http.proxy "$_PROXY_HTTP"
+    git config --global https.proxy "$_PROXY_HTTP"
+    
+    echo "✅ 已开启所有代理："
+    echo "   - 终端代理（curl/wget 等）: $_PROXY_HTTP"
+    echo "   - Git 代理（git push/lazygit）: $_PROXY_HTTP"
+}
+
+# -----------------------------------------------------
+# 一键关闭所有代理（终端环境变量 + Git 代理）
+function proxy_all_off() {
+    # 关闭终端代理（环境变量）
+    unset http_proxy https_proxy all_proxy
+    unset HTTP_PROXY HTTPS_PROXY ALL_PROXY
+    unset no_proxy NO_PROXY
+    
+    # 关闭 Git 代理（从 ~/.gitconfig 中移除）
+    git config --global --unset http.proxy
+    git config --global --unset https.proxy
+    
+    echo "❌ 已关闭所有代理（终端代理 + Git 代理）"
+}
+
+# -----------------------------------------------------
+# 查看当前所有代理状态
+function proxy_all_status() {
+    echo "========== 终端代理环境变量 =========="
+    echo "http_proxy  = $http_proxy"
+    echo "https_proxy = $https_proxy"
+    echo "all_proxy   = $all_proxy"
+    echo "no_proxy    = $no_proxy"
+    
+    echo ""
+    echo "========== Git 代理配置（全局） =========="
+    http_proxy_git=$(git config --global --get http.proxy)
+    https_proxy_git=$(git config --global --get https.proxy)
+    if [[ -z "$http_proxy_git" && -z "$https_proxy_git" ]]; then
+        echo "未设置任何 Git 代理"
+    else
+        [[ -n "$http_proxy_git" ]] && echo "http.proxy  = $http_proxy_git"
+        [[ -n "$https_proxy_git" ]] && echo "https.proxy = $https_proxy_git"
+    fi
+}
+
 # User aliases
 alias BT='btop'
 alias OC='opencode'
