@@ -5,6 +5,7 @@
                 "rules": [
                     {
                         "description": "Quit application by holding command-q",
+                        "enabled": false,
                         "manipulators": [
                             {
                                 "from": {
@@ -27,6 +28,7 @@
                     },
                     {
                         "description": "Hyper Key: Caps Lock → left control + left option + right command (⌃⇧⌘)",
+                        "enabled": false,
                         "manipulators": [
                             {
                                 "from": {
@@ -65,6 +67,7 @@
                     },
                     {
                         "description": "Change double tap right ⇧ key to caps lock",
+                        "enabled": false,
                         "manipulators": [
                             {
                                 "conditions": [
