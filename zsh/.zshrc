@@ -203,10 +203,10 @@ function proxy_all_status() {
 }
 
 # User aliases
-alias BT='btop'
-alias OC='opencode'
-alias FF='fastfetch'
-alias LG='lazygit'
+alias bt='btop'
+alias oc='opencode'
+alias ff='fastfetch'
+alias lg='lazygit'
 # 为代理命令设置简短别名
 alias pon='proxy_all_on'
 alias poff='proxy_all_off'
