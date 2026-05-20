@@ -207,3 +207,7 @@ alias BT='btop'
 alias OC='opencode'
 alias FF='fastfetch'
 alias LG='lazygit'
+# 为代理命令设置简短别名
+alias pon='proxy_all_on'
+alias poff='proxy_all_off'
+alias pst='proxy_all_status'
