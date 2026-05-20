@@ -27,10 +27,24 @@ theme = Mellow
 background-opacity      = 0.6
 background-blur         = 10
 mouse-hide-while-typing = true
-unfocused-split-opacity = 0.8
-window-padding-x        = 5
-window-padding-y        = 5
+
+# split pane dimming — unfocused panes darken to show active one
+unfocused-split-opacity = 0.65
+unfocused-split-fill    = 181825
+split-divider-color     = 45475a
+
+# padding — generous for cmux vertical tab sidebar
+window-padding-x        = 16
+window-padding-y        = 12
 window-padding-balance  = true
+
+# splits/tabs inherit CWD
+split-inherit-working-directory  = true
+window-inherit-working-directory = true
+
+# hide ghostty's own tab bar — cmux provides vertical tabs
+window-show-tab-bar     = never
+
 window-decoration       = auto
 window-theme            = auto
 window-colorspace       = display-p3

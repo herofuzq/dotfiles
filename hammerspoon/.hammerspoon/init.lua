@@ -6,12 +6,6 @@ local FCITX = "/Library/Input Methods/Fcitx5.app/Contents/bin/fcitx5-remote"
 local EN = 1
 local ZH = 2
 
-_Current = EN
-
-local function fcitx(cmd)
-  hs.execute("'" .. FCITX .. "' " .. cmd, true)
-end
-
 local function realSource()
   local out = hs.execute("'" .. FCITX .. "'", true)
   return out and out:match("2") and ZH or EN
@@ -24,20 +18,18 @@ local function toggle()
   local now = realSource()
 
   if now == ZH then
-    fcitx("-c")
-    _Current = EN
+    hs.execute("'" .. FCITX .. "' -c", true)
     hs.alert.show("英文", 0.4)
   else
-    fcitx("-o")
-    _Current = ZH
+    hs.execute("'" .. FCITX .. "' -o", true)
     hs.alert.show("中文", 0.4)
   end
 end
 
 -- ============================================================
--- 终端/IDE 类 App → 自动切英文
+-- 中文状态进入以下 App 时弹提醒
 -- ============================================================
-local AUTO_EN = {
+local WARN_APPS = {
   ["com.apple.Terminal"] = true,
   ["com.googlecode.iterm2"] = true,
   ["org.alacritty"] = true,
@@ -51,23 +43,23 @@ local AUTO_EN = {
   ["org.vim.MacVim"] = true,
 }
 
-local function autoEN(id)
-  if not AUTO_EN[id] then return end
+local function warnEN(id)
+  if not WARN_APPS[id] then return end
   if hs.timer.secondsSinceEpoch() - _toggled < 2 then return end
   if realSource() == ZH then
     hs.alert.show("⚠️ 中文输入中", 1.0)
   end
 end
 
-_AutoWatcher = hs.application.watcher.new(function(_, event, app)
+_WarnWatcher = hs.application.watcher.new(function(_, event, app)
   if event == hs.application.watcher.activated then
-    autoEN(app:bundleID())
+    warnEN(app:bundleID())
   end
 end)
-_AutoWatcher:start()
+_WarnWatcher:start()
 
 hs.window.filter.default:subscribe(hs.window.filter.windowFocused, function(_, app)
-  if app then autoEN(app:bundleID()) end
+  if app then warnEN(app:bundleID()) end
 end)
 
 -- ============================================================

@@ -2,101 +2,20 @@
   "$schema": "https://raw.githubusercontent.com/manaflow-ai/cmux/main/web/data/cmux.schema.json",
   "schemaVersion": 1,
 
-  // This file uses JSON with comments (JSONC).
-  // Uncomment and edit any setting to make it file-managed.
-  // Remove a setting to fall back to the value saved in Settings.
-  // cmux creates this template on launch when ~/.config/cmux/cmux.json is missing.
-  // Legacy settings.json files are read only as fallback for keys not present here.
+  // This file uses JSONC. Only explicitly set keys override defaults.
+  // Remove a key to fall back to the value saved in Settings.
 
-  //   "app" : {
-  //     "keepWorkspaceOpenWhenClosingLastSurface" : false,
-  //     "reorderOnNotification" : true,
-  //     "warnBeforeQuit" : true,
-  //     "renameSelectsExistingName" : true,
-  //     "minimalMode" : false,
-  //     "preferredEditor" : "",
-  //     "warnBeforeClosingTab" : true,
-  //     "openMarkdownInCmuxViewer" : false,
-  //     "menuBarOnly" : false,
-  //     "language" : "system",
-  //     "appIcon" : "automatic",
-  //     "newWorkspacePlacement" : "afterCurrent",
-  //     "workspaceInheritWorkingDirectory" : true,
-  //     "focusPaneOnFirstClick" : false,
-  //     "openSupportedFilesInCmux" : true,
-  //     "iMessageMode" : false,
-  //     "commandPaletteSearchesAllSurfaces" : false,
-  //     "sendAnonymousTelemetry" : true,
-  //     "appearance" : "system"
-  //   },
+  "app": {
+    "iMessageMode": true
+  },
 
-  //   "terminal" : {
-  //     "showScrollBar" : true,
-  //     "autoResumeAgentSessions" : true
-  //   },
+  "terminal": {
+    "showScrollBar": false
+  },
 
-  //   "notifications" : {
-  //     "dockBadge" : true,
-  //     "unreadPaneRing" : true,
-  //     "sound" : "default",
-  //     "customSoundFilePath" : "",
-  //     "hooksMode" : "append",
-  //     "paneFlash" : true,
-  //     "command" : "",
-  //     "showInMenuBar" : true,
-  //     "hooks" : [
-  //
-  //     ]
-  //   },
-
-  //   "sidebar" : {
-  //     "showNotificationMessage" : true,
-  //     "showPorts" : true,
-  //     "showCustomMetadata" : true,
-  //     "showSSH" : true,
-  //     "showLog" : true,
-  //     "showProgress" : true,
-  //     "showPullRequests" : true,
-  //     "branchLayout" : "vertical",
-  //     "makePullRequestsClickable" : true,
-  //     "openPullRequestLinksInCmuxBrowser" : true,
-  //     "showBranchDirectory" : true,
-  //     "hideAllDetails" : false,
-  //     "openPortLinksInCmuxBrowser" : true,
-  //     "showWorkspaceDescription" : true
-  //   },
-
-  //   "workspaceColors" : {
-  //     "indicatorStyle" : "leftRail",
-  //     "selectionColor" : null,
-  //     "notificationBadgeColor" : null,
-  //     "colors" : {
-  //       "Magenta" : "#AD1457",
-  //       "Green" : "#196F3D",
-  //       "Indigo" : "#283593",
-  //       "Olive" : "#4A5C18",
-  //       "Navy" : "#1A5276",
-  //       "Brown" : "#7B3F00",
-  //       "Orange" : "#A04000",
-  //       "Blue" : "#1565C0",
-  //       "Purple" : "#6A1B9A",
-  //       "Charcoal" : "#3E4B5E",
-  //       "Rose" : "#880E4F",
-  //       "Teal" : "#006B6B",
-  //       "Aqua" : "#0E6B8C",
-  //       "Red" : "#C0392B",
-  //       "Crimson" : "#922B21",
-  //       "Amber" : "#7D6608"
-  //     }
-  //   },
-
-  //   "sidebarAppearance" : {
-  //     "tintColor" : "#000000",
-  //     "lightModeTintColor" : null,
-  //     "matchTerminalBackground" : false,
-  //     "tintOpacity" : 0.17999999999999999,
-  //     "darkModeTintColor" : null
-  //   },
+  "sidebarAppearance": {
+    "matchTerminalBackground": true
+  },
 
   //   "automation" : {
   //     "claudeBinaryPath" : "",
