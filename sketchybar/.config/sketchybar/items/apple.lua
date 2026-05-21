@@ -13,7 +13,6 @@ local apple = sbar.add("item", "apple", {
 		color = colors.active.red,
 	},
 	label = { drawing = false },
-	click_script = "$CONFIG_DIR/helpers/menus/bin/menus -s 0",
 	background = {
 		color = colors.active.bar_bg,
 		corner_radius = 10,
@@ -36,4 +35,5 @@ apple:subscribe("mouse.clicked", function()
 			})
 		end)
 	end)
+	sbar.exec("$CONFIG_DIR/helpers/menus/bin/menus -s 0")
 end)

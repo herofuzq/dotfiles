@@ -18,8 +18,14 @@ local widget_order = {
 
 local calendar_item = "calendar"
 
--- 5 套预置色值 [spaces数量] = { apple, spaces..., widgets..., calendar }
+-- 预置色值 [spaces数量] = { apple, spaces..., widgets..., calendar }
 -- 11 个关键色均匀分布在 N 个 item 上，apple/calendar 固定为两端
+--
+-- 有效范围 5~9，与 aerospace 配置匹配：
+--   aerospace.toml 中 persistent-workspaces 定义了 9 个工作区
+--   items/spaces.lua 中 always_show 固定显示 6 个，其余 3 个有窗口时出现
+--   因此可见工作区数量落在 6~9 范围，color_sets 已完整覆盖
+--   若未来工作区少于 5 或多于 9，需在此扩充 color_sets
 local color_sets = {
 	[5] = {
 		0xfff38ba8, -- apple

@@ -38,10 +38,10 @@ return function(opts)
 
 	local function update_display(count)
 		local label = count:match("^%s*(.-)%s*$") or ""
-		if label == "" or not tonumber(label) then
+		if label == "" then
 			label = "0"
 		end
-		local num = tonumber(label)
+		local num = tonumber(label:match("^(%d+)")) or 0
 		item:set({
 			icon = { color = num > 0 and opts.icon_color or opts.icon_inactive_color },
 			label = { string = label, color = num > 0 and opts.label_color or opts.label_inactive_color },

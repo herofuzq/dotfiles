@@ -11,7 +11,7 @@ end
 
 local cfg = os.getenv("CONFIG_DIR")
 if cfg and not (
-	file_exists(cfg .. "/helpers/event_providers/bin/cpu_load")
+	file_exists(cfg .. "/helpers/event_providers/cpu_load/bin/cpu_load")
 	and file_exists(cfg .. "/helpers/menus/bin/menus")
 ) then
 	os.execute("cd \"" .. cfg .. "/helpers\" && make")
