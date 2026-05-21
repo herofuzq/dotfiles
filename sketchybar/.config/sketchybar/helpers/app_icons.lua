@@ -273,6 +273,7 @@ return {
 	["TeamSpeak 3"] = ":team_speak:",
 	["Telegram"] = ":telegram:",
 	["Terminal"] = ":terminal:",
+	["cmux"] = ":terminal:",
 	["终端"] = ":terminal:",
 	["Typora"] = ":text:",
 	["Microsoft To Do"] = ":things:",
