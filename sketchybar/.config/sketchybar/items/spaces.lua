@@ -363,6 +363,25 @@ sbar.exec(query_workspaces, function(workspaces_and_monitors)
 		end)
 	end)
 
+	-- 主题切换时更新所有工作区背景色 + 静态装饰项 + 边框色
+	root:subscribe("theme_changed", function()
+		for _, ws_idx in ipairs(workspace_order) do
+			local ws = workspaces[ws_idx]
+			if ws then
+				ws:set({
+					background = { color = appearance.colors.active.bar_bg },
+					icon = { color = appearance.styles.workspace.icon.color },
+					label = { color = appearance.styles.workspace.label.color },
+				})
+			end
+		end
+		-- 更新 i3 和 aerospace_mode 文字色
+		sbar.set("i3", { icon = { color = appearance.colors.active.deep_blue } })
+		sbar.set("aerospace_mode", { label = { color = appearance.colors.active.deep_blue } })
+		-- 重新分发边框色（borders.lua 已通过 set_theme 知道当前主题）
+		updateWindows()
+	end)
+
 	-- 查询初始聚焦的工作区，标记为高亮
 	sbar.exec("aerospace list-workspaces --focused", function(focused_workspace)
 		focused_workspace = focused_workspace:match("^%s*(.-)%s*$")

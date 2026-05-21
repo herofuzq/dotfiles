@@ -3,6 +3,23 @@
 -- 统一分配所有 item 的边框颜色（含 apple 和 calendar）。
 local sbar = require("sketchybar")
 
+local current_theme = "dark" -- 由 set_theme() 更新
+
+-- 浅色模式深色系数（< 1.0 使颜色略深，以在浅色背景上保持对比度）
+local DARKEN_FACTOR = 0.78
+
+local function darken_color(c, factor)
+	if factor >= 1.0 then return c end
+	local r = math.floor((((c >> 16) & 0xFF) * factor))
+	local g = math.floor((((c >> 8) & 0xFF) * factor))
+	local b = math.floor(((c & 0xFF) * factor))
+	return (0xff << 24) | (r << 16) | (g << 8) | b
+end
+
+function set_theme(theme)
+	current_theme = theme
+end
+
 -- 所有 item 的 item name（按 bar 上从左到右顺序，apple 最左，calendar 最右）
 local apple_item = "apple"
 
@@ -66,24 +83,32 @@ function distribute(visible_workspace_names)
 		return
 	end
 
+	local darken = (current_theme == "light") and DARKEN_FACTOR or 1.0
+
+	-- 计算深色版本
+	local darkened_set = {}
+	for i, c in ipairs(set) do
+		darkened_set[i] = darken_color(c, darken)
+	end
+
 	-- apple（固定，索引 1）
-	sbar.set(apple_item, { background = { border_color = set[1] }, icon = { color = set[1] } })
+	sbar.set(apple_item, { background = { border_color = darkened_set[1] }, icon = { color = darkened_set[1] } })
 
 	-- 工作区（索引 2 ~ n+1）
 	for i, name in ipairs(visible_workspace_names) do
 		sbar.set(name, {
-			background = { border_color = set[1 + i], border_width = 2 },
-			icon = { color = set[1 + i] },
+			background = { border_color = darkened_set[1 + i], border_width = 2 },
+			icon = { color = darkened_set[1 + i] },
 		})
 	end
 
 	-- 静态 widget（索引 n+2 ~ n+8）
 	for i, name in ipairs(widget_order) do
-		sbar.set(name, { background = { border_color = set[1 + n + i] } })
+		sbar.set(name, { background = { border_color = darkened_set[1 + n + i] } })
 	end
 
 	-- calendar（固定，索引 n+9）
-	sbar.set(calendar_item, { background = { border_color = set[n + 9] } })
+	sbar.set(calendar_item, { background = { border_color = darkened_set[n + 9] } })
 end
 
-return { distribute = distribute }
+return { distribute = distribute, set_theme = set_theme }

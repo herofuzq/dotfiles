@@ -104,6 +104,64 @@ M.colors = {
 		orange = 0xfff39660,
 	},
 
+	catppuccin_latte = {
+		bg0 = 0x66eff1f5,
+		bg1 = 0x66e6e9ef,
+		bg2 = 0x33ccd0da,
+		bg3 = 0x33bcc0cc,
+		accent = 0x337286bd,
+		sep = 0x339ca0b0,
+		rosewater = 0xffdc8a78,
+		flamingo = 0xffdd7878,
+		pink = 0xffea76cb,
+		mauve = 0xff8839ef,
+		red = 0xffd20f39,
+		maroon = 0xffe64553,
+		peach = 0xfffe640b,
+		yellow = 0xffdf8e1d,
+		green = 0xff40a02b,
+		teal = 0xff179299,
+		sky = 0xff04a5e5,
+		sapphire = 0xff209fb5,
+		blue = 0xff1e66f5,
+		lavender = 0xff7287fd,
+		purple_1 = 0xff8c6bb8,
+		purple_2 = 0xff8050b8,
+		purple_light = 0xffa080f0,
+		purple_mid = 0xff9070e0,
+		purple_warm = 0xffa070c0,
+		magenta = 0xffc060b0,
+		rose_pink = 0xffd070b0,
+		rose_deep = 0xffd05090,
+		input_border = 0xff7287fd,
+		text = 0xff4c4f69,
+		subtext1 = 0xff5c5f77,
+		subtext0 = 0xff6c6f85,
+		overlay2 = 0xff7c7f93,
+		overlay1 = 0xff8c8fa1,
+		overlay0 = 0xff9ca0b0,
+		surface2 = 0xffacb0be,
+		surface1 = 0xffbcc0cc,
+		surface0 = 0xffccd0da,
+		base = 0x66eff1f5,
+		mantle = 0x66e6e9ef,
+		crust = 0x66dce0e8,
+		white = 0xff4c4f69,
+		black = 0xffdce0e8,
+		bar_bg = 0xff3c3c50, -- 暗色模式亮度约 2x，保持紫色灰调
+		bg2_opaque = 0xffccd0da,
+		bg3_opaque = 0xffbcc0cc,
+		sep_opaque = 0xff9ca0b0,
+		accent_opaque = 0xff7287fd,
+		deep_blue = 0xff1e66f5,
+		red_bright = 0xe0d20f39,
+		blue_bright = 0xe01e66f5,
+		spotify_green = 0xff1db954,
+		default = 0x80000000,
+		transparent = 0x00000000,
+		orange = 0xfffe640b,
+	},
+
 	with_alpha = function(color, alpha)
 		if alpha > 1.0 or alpha < 0.0 then
 			return color
@@ -113,6 +171,109 @@ M.colors = {
 }
 
 M.colors.active = M.colors.catppuccin_mocha
+
+-- ========== 主题检测与切换 ==========
+
+-- 检测当前系统外观：返回 "dark" 或 "light"
+function M.detect_system_theme()
+	local success, result = pcall(function()
+		local f = io.popen("defaults read -g AppleInterfaceStyle 2>/dev/null")
+		local style = f:read("*l")
+		f:close()
+		return style
+	end)
+	if success and result == "Dark" then
+		return "dark"
+	end
+	return "light"
+end
+
+-- 切换主题并应用所有颜色更新
+function M.switch_theme(mode)
+	if mode == "dark" then
+		M.colors.active = M.colors.catppuccin_mocha
+		M.colors.bar.bg = 0x990d0d13
+		M.colors.bar.border = 0xB33a3a45
+	else
+		M.colors.active = M.colors.catppuccin_latte
+		M.colors.bar.bg = 0xCC8a8aa0 -- 减小透明度（80% opacity），更实
+		M.colors.bar.border = 0xB3bcc0cc
+	end
+	M.apply_current_theme()
+end
+
+-- 将当前主题（M.colors.active）应用到 bar 和所有 item
+function M.apply_current_theme()
+	-- 0. 通知 borders.lua 当前主题（影响 distribute 的深色系数）
+	local mode = (M.colors.active == M.colors.catppuccin_mocha) and "dark" or "light"
+	require("helpers.borders").set_theme(mode)
+
+	-- 1. Bar 背景
+	sbar.bar({
+		color = M.colors.bar.bg,
+		border_color = M.colors.bar.border,
+	})
+
+	-- 2. 更新 M.styles（供 spaces.lua 引用）
+	M.styles.workspace.background.color = M.colors.active.bar_bg
+	M.styles.workspace.icon.color = M.colors.active.sep_opaque
+	M.styles.workspace.label.color = M.colors.active.sep_opaque
+
+	-- 3. 更新所有已知 item 的颜色
+	sbar.set("apple", {
+		background = { color = M.colors.active.bar_bg },
+		icon = { color = M.colors.active.red },
+	})
+	sbar.set("front_app", {
+		background = { color = M.colors.active.bar_bg },
+		label = { color = M.colors.active.sep_opaque },
+	})
+	-- i3 / aerospace_mode 在 spaces.lua 异步回调中创建，由 theme_changed 事件更新
+	sbar.set("calendar", {
+		background = { color = M.colors.active.bar_bg },
+		icon = { color = M.colors.active.sep_opaque },
+		label = { color = M.colors.active.sep_opaque },
+	})
+	sbar.set("calendar.doy", {
+		label = { color = M.colors.active.text },
+	})
+	sbar.set("calendar.remaining", {
+		label = { color = M.colors.active.subtext0 },
+	})
+	sbar.set("widgets.sys", {
+		background = { color = M.colors.active.bar_bg },
+		icon = { color = M.colors.active.accent_opaque },
+		label = { color = M.colors.active.sep_opaque },
+	})
+	sbar.set("widgets.clash_tun", {
+		background = { color = M.colors.active.bar_bg },
+		icon = { color = M.colors.active.bg3_opaque },
+		label = { color = M.colors.active.sep_opaque },
+	})
+	sbar.set("widgets.battery", {
+		background = { color = M.colors.active.bar_bg },
+		icon = { color = M.colors.active.sep_opaque },
+		label = { color = M.colors.active.sep_opaque },
+	})
+	sbar.set("widgets.input_method", {
+		background = { color = M.colors.active.bar_bg },
+		icon = { color = M.colors.active.deep_blue },
+		label = { color = M.colors.active.sep_opaque },
+	})
+	sbar.set("widgets.dingtalk", {
+		background = { color = M.colors.active.bar_bg },
+		icon = { color = M.colors.active.peach },
+		label = { color = M.colors.active.peach },
+	})
+	sbar.set("widgets.wechat", {
+		background = { color = M.colors.active.bar_bg },
+		icon = { color = M.colors.active.green },
+		label = { color = M.colors.active.green },
+	})
+
+	-- 4. 通知工作区 items 更新背景色（spaces.lua / front_app.lua 订阅了 "theme_changed"）
+	sbar.exec("sketchybar --trigger theme_changed")
+end
 
 M.styles = {
 	workspace = {
