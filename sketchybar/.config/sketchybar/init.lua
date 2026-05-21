@@ -23,10 +23,23 @@ sbar.end_config()
 appearance.apply_current_theme()
 
 local last_theme = current_theme
--- 隐藏 item，每 30 秒轮询系统外观变化
+
+-- Swift 守护进程监听系统通知，即时触发主题切换
+local theme_trigger = sbar.add("item", "theme_trigger", {
+	drawing = false,
+})
+theme_trigger:subscribe("system_appearance_changed", function()
+	local new_theme = appearance.detect_system_theme()
+	if new_theme ~= last_theme then
+		last_theme = new_theme
+		appearance.switch_theme(new_theme)
+	end
+end)
+
+-- 后备轮询（5 分钟一次，守护进程未运行时兜底）
 local theme_check = sbar.add("item", "theme_check", {
 	drawing = false,
-	update_freq = 30,
+	update_freq = 300,
 })
 theme_check:subscribe("routine", function()
 	local new_theme = appearance.detect_system_theme()
