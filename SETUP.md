@@ -29,8 +29,8 @@ cd ~/dotfiles
 # 2. 安装所有 Homebrew 包（brew CLI + cask apps + fonts）
 brew bundle install --file=Brewfile
 
-# 3. Stow 所有配置包
-stow aerospace bash bat borders btop cmux fastfetch fcitx5 fd \
+# 3. Stow 所有配置包（--no-folding 避免目录折叠）
+stow --no-folding aerospace bash bat borders btop cmux fastfetch fcitx5 fd \
      ghostty git hammerspoon karabiner lazygit npm nvim \
      sketchybar ssh starship tmux yazi zsh
 
@@ -191,7 +191,7 @@ xcode-select --install
 cd ~ && git clone <your-dotfiles-repo> dotfiles
 
 # ▸ Stow 所有配置
-cd dotfiles && stow $(ls -d */ | tr -d '/')
+cd dotfiles && stow --no-folding $(ls -d */ | tr -d '/')
 
 # ▸ 安装 Homebrew 软件
 brew bundle install --file=Brewfile

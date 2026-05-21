@@ -57,7 +57,7 @@ These files control the overall look and feel of the bar.
 1. **Stow dotfiles:**
    ```bash
    git clone <your-dotfiles-repo> ~/dotfiles
-   cd ~/dotfiles && stow sketchybar
+   cd ~/dotfiles && stow --no-folding sketchybar
    ```
 
 2. **Install all Homebrew dependencies** (includes sketchybar, aerospace, fonts, and more):
@@ -186,7 +186,7 @@ The daemon binary is **compiled automatically** by `helpers/init.lua` on first s
 1. **Stow dotfiles：**
    ```bash
    git clone <your-dotfiles-repo> ~/dotfiles
-   cd ~/dotfiles && stow sketchybar
+   cd ~/dotfiles && stow --no-folding sketchybar
    ```
 
 2. **安装所有 Homebrew 依赖**（包含 sketchybar、aerospace、字体等）：
