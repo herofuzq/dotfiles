@@ -245,23 +245,15 @@ function M.apply_current_theme()
 	})
 	sbar.set("widgets.sys", {
 		background = { color = M.colors.active.bar_bg },
-		icon = { color = M.colors.active.accent_opaque },
-		label = { color = M.colors.active.sep_opaque },
 	})
 	sbar.set("widgets.clash_tun", {
 		background = { color = M.colors.active.bar_bg },
-		icon = { color = M.colors.active.bg3_opaque },
-		label = { color = M.colors.active.sep_opaque },
 	})
 	sbar.set("widgets.battery", {
 		background = { color = M.colors.active.bar_bg },
-		icon = { color = M.colors.active.sep_opaque },
-		label = { color = M.colors.active.sep_opaque },
 	})
 	sbar.set("widgets.input_method", {
 		background = { color = M.colors.active.bar_bg },
-		icon = { color = M.colors.active.deep_blue },
-		label = { color = M.colors.active.sep_opaque },
 	})
 	sbar.set("widgets.dingtalk", {
 		background = { color = M.colors.active.bar_bg },

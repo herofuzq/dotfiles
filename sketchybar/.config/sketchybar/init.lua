@@ -19,8 +19,8 @@ require("appearance")    -- 配色、字体默认值
 require("items")         -- 加载所有状态栏条目
 sbar.end_config()
 
--- ========== 系统外观主题检测与自动切换 ==========
-appearance.apply_current_theme()
+-- 通知 borders.lua 当前主题（深色系数），item 颜色已在 begin_config 内由 colors.active 正确设定
+require("helpers.borders").set_theme(current_theme)
 
 local last_theme = current_theme
 

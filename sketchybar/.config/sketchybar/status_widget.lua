@@ -48,12 +48,15 @@ return function(opts)
 		},
 	})
 
+	local last_num = 0
+
 	local function update_display(count)
 		local label = count:match("^%s*(.-)%s*$") or ""
 		if label == "" then
 			label = "0"
 		end
 		local num = tonumber(label:match("^(%d+)")) or 0
+		last_num = num
 		item:set({
 			icon = { color = num > 0 and resolve_color(opts.icon_color) or resolve_color(opts.icon_inactive_color) },
 			label = { string = label, color = num > 0 and resolve_color(opts.label_color) or resolve_color(opts.label_inactive_color) },
@@ -64,8 +67,16 @@ return function(opts)
 		sbar.exec("lsappinfo -all info -only StatusLabel " .. opts.app_id .. " | sed -n 's/.*\"label\"=\"\\([^\"]*\\)\".*/\\1/p'", update_display)
 	end
 
+	-- 主题切换时仅刷新颜色，不重查应用状态
+	local function refresh_colors()
+		item:set({
+			icon = { color = last_num > 0 and resolve_color(opts.icon_color) or resolve_color(opts.icon_inactive_color) },
+			label = { color = last_num > 0 and resolve_color(opts.label_color) or resolve_color(opts.label_inactive_color) },
+		})
+	end
+
 	item:subscribe({ "routine", "system_woke" }, check_status)
-	item:subscribe("theme_changed", check_status)
+	item:subscribe("theme_changed", refresh_colors)
 	check_status()
 
 	-- 点击打开对应应用
