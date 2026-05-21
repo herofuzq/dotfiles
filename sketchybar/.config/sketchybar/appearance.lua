@@ -134,9 +134,9 @@ M.colors = {
 		rose_pink = 0xffd070b0,
 		rose_deep = 0xffd05090,
 		input_border = 0xff7287fd,
-		text = 0xff4c4f69,
+		text = 0xff8c8fa0,
 		subtext1 = 0xff5c5f77,
-		subtext0 = 0xff6c6f85,
+		subtext0 = 0xffa0a4b4,
 		overlay2 = 0xff7c7f93,
 		overlay1 = 0xff8c8fa1,
 		overlay0 = 0xff9ca0b0,
@@ -148,10 +148,10 @@ M.colors = {
 		crust = 0x66dce0e8,
 		white = 0xff4c4f69,
 		black = 0xffdce0e8,
-		bar_bg = 0xff3c3c50, -- 暗色模式亮度约 2x，保持紫色灰调
+		bar_bg = 0xff5a5a70, -- 比暗色模式明显更浅，保持紫色灰调
 		bg2_opaque = 0xffccd0da,
 		bg3_opaque = 0xffbcc0cc,
-		sep_opaque = 0xff9ca0b0,
+		sep_opaque = 0xffc0c4d4,
 		accent_opaque = 0xff7287fd,
 		deep_blue = 0xff1e66f5,
 		red_bright = 0xe0d20f39,
@@ -192,11 +192,11 @@ end
 function M.switch_theme(mode)
 	if mode == "dark" then
 		M.colors.active = M.colors.catppuccin_mocha
-		M.colors.bar.bg = 0xFF0d0d13 -- 深色模式不透明
+		M.colors.bar.bg = 0xB20d0d13 -- 深色模式 70% opacity
 		M.colors.bar.border = 0xB33a3a45
 	else
 		M.colors.active = M.colors.catppuccin_latte
-		M.colors.bar.bg = 0xFFE3E3E3 -- 浅色模式不透明
+		M.colors.bar.bg = 0xB2E3E3E3 -- 浅色模式 70% opacity
 		M.colors.bar.border = 0xB3bcc0cc
 	end
 	M.apply_current_theme()

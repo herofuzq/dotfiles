@@ -6,10 +6,10 @@ local appearance = require("appearance")
 local current_theme = appearance.detect_system_theme()
 if current_theme == "dark" then
 	appearance.colors.active = appearance.colors.catppuccin_mocha
-	appearance.colors.bar.bg = 0xFF0d0d13
+	appearance.colors.bar.bg = 0xB20d0d13
 else
 	appearance.colors.active = appearance.colors.catppuccin_latte
-	appearance.colors.bar.bg = 0xFFE3E3E3
+	appearance.colors.bar.bg = 0xB2E3E3E3
 end
 
 -- 将所有初始化配置打包成一条消息发给 sketchybar，提高启动效率
