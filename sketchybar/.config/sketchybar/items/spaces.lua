@@ -324,7 +324,7 @@ sbar.exec(query_workspaces, function(workspaces_and_monitors)
 			font = "Hack Nerd Font:Bold:10.0",
 			padding_left = 6,
 			padding_right = 6,
-			color = appearance.colors.active.deep_blue,
+			color = 0xff74c7ec, -- 固定使用深色模式颜色，不随主题变化
 		},
 		label = { drawing = false },
 		background = { drawing = false },
@@ -375,8 +375,8 @@ sbar.exec(query_workspaces, function(workspaces_and_monitors)
 				})
 			end
 		end
-		-- 更新 i3 和 aerospace_mode 文字色
-		sbar.set("i3", { icon = { color = appearance.colors.active.deep_blue } })
+		-- 更新 i3（固定深色模式颜色）和 aerospace_mode 文字色
+		sbar.set("i3", { icon = { color = 0xff74c7ec } })
 		sbar.set("aerospace_mode", { label = { color = appearance.colors.active.deep_blue } })
 		-- 重新分发边框色（borders.lua 已通过 set_theme 知道当前主题）
 		updateWindows()

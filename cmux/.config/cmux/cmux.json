@@ -6,7 +6,8 @@
   // Remove a key to fall back to the value saved in Settings.
 
   "app": {
-    "iMessageMode": true
+    "iMessageMode": true,
+    "appearance": "system"
   },
 
   "terminal": {

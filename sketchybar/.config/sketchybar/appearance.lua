@@ -192,11 +192,11 @@ end
 function M.switch_theme(mode)
 	if mode == "dark" then
 		M.colors.active = M.colors.catppuccin_mocha
-		M.colors.bar.bg = 0x990d0d13
+		M.colors.bar.bg = 0xFF0d0d13 -- 深色模式不透明
 		M.colors.bar.border = 0xB33a3a45
 	else
 		M.colors.active = M.colors.catppuccin_latte
-		M.colors.bar.bg = 0xCC8a8aa0 -- 减小透明度（80% opacity），更实
+		M.colors.bar.bg = 0xFFE3E3E3 -- 浅色模式不透明
 		M.colors.bar.border = 0xB3bcc0cc
 	end
 	M.apply_current_theme()
@@ -208,7 +208,7 @@ function M.apply_current_theme()
 	local mode = (M.colors.active == M.colors.catppuccin_mocha) and "dark" or "light"
 	require("helpers.borders").set_theme(mode)
 
-	-- 1. Bar 背景
+	-- 1. Bar 背景（已由 begin_config 内 bar.lua 设好初始色，此处再调确保生效）
 	sbar.bar({
 		color = M.colors.bar.bg,
 		border_color = M.colors.bar.border,
@@ -233,6 +233,9 @@ function M.apply_current_theme()
 		background = { color = M.colors.active.bar_bg },
 		icon = { color = M.colors.active.sep_opaque },
 		label = { color = M.colors.active.sep_opaque },
+		popup = {
+			background = { color = M.colors.with_alpha(M.colors.active.bar_bg, 0.85) },
+		},
 	})
 	sbar.set("calendar.doy", {
 		label = { color = M.colors.active.text },
@@ -262,13 +265,9 @@ function M.apply_current_theme()
 	})
 	sbar.set("widgets.dingtalk", {
 		background = { color = M.colors.active.bar_bg },
-		icon = { color = M.colors.active.peach },
-		label = { color = M.colors.active.peach },
 	})
 	sbar.set("widgets.wechat", {
 		background = { color = M.colors.active.bar_bg },
-		icon = { color = M.colors.active.green },
-		label = { color = M.colors.active.green },
 	})
 
 	-- 4. 通知工作区 items 更新背景色（spaces.lua / front_app.lua 订阅了 "theme_changed"）

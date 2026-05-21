@@ -6,8 +6,8 @@ status_widget({
 	name = "widgets.wechat",
 	app_id = "com.tencent.xinWeChat",
 	icon = ":wechat:",
-	icon_color = colors.active.green,
-	icon_inactive_color = colors.active.green,
-	label_color = colors.active.green,
-	label_inactive_color = colors.active.sep_opaque,
+	icon_color = "green",
+	icon_inactive_color = "green",
+	label_color = "green",
+	label_inactive_color = "sep_opaque",
 })
