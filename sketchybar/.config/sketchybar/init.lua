@@ -6,10 +6,12 @@ local appearance = require("appearance")
 local current_theme = appearance.detect_system_theme()
 if current_theme == "dark" then
 	appearance.colors.active = appearance.colors.catppuccin_mocha
-	appearance.colors.bar.bg = 0xB20d0d13
+	-- appearance.colors.bar.bg = 0xB20d0d13  -- 原：深色 70% 不透明
+	appearance.colors.bar.bg = 0x000d0d13    -- 全透明
 else
 	appearance.colors.active = appearance.colors.catppuccin_latte
-	appearance.colors.bar.bg = 0xB2E3E3E3
+	-- appearance.colors.bar.bg = 0xB2E3E3E3  -- 原：浅色 70% 不透明
+	appearance.colors.bar.bg = 0x00E3E3E3    -- 全透明
 end
 
 -- 将所有初始化配置打包成一条消息发给 sketchybar，提高启动效率
@@ -36,10 +38,19 @@ theme_trigger:subscribe("system_appearance_changed", function()
 	end
 end)
 
--- 后备轮询（5 分钟一次，守护进程未运行时兜底）
+-- 启动后 3 秒主动检测（弥补守护进程刚 reload 还未就绪的空窗期）
+sbar.delay(3, function()
+	local startup_theme = appearance.detect_system_theme()
+	if startup_theme ~= last_theme then
+		last_theme = startup_theme
+		appearance.switch_theme(startup_theme)
+	end
+end)
+
+-- 后备轮询（120 秒一次，守护进程未运行时兜底）
 local theme_check = sbar.add("item", "theme_check", {
 	drawing = false,
-	update_freq = 300,
+	update_freq = 120,
 })
 theme_check:subscribe("routine", function()
 	local new_theme = appearance.detect_system_theme()
