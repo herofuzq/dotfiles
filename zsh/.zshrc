@@ -207,7 +207,12 @@ alias bt='btop'
 alias oc='opencode'
 alias ff='fastfetch'
 alias lg='lazygit'
+alias rsx='reasonix'
 # 为代理命令设置简短别名
 alias pon='proxy_all_on'
 alias poff='proxy_all_off'
 alias pst='proxy_all_status'
+
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
+[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
