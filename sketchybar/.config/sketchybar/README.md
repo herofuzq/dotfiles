@@ -22,7 +22,7 @@ The configuration is loaded in the following sequence:
 
 5.  **Event Loop**: Once the entire configuration is loaded, an event loop (`sbar.event_loop()`) is started. This loop listens for system events (like input method changes, front application switches, or aerospace workspace changes) and updates the corresponding bar items in real-time.
 
-6.  **Helpers**: The `helpers/` directory contains custom C programs that act as event providers for things not natively supported by Sketchybar, such as CPU load. These are compiled automatically.
+6.  **Helpers**: The `helpers/` directory contains custom C and Swift programs that act as event providers for things not natively supported by Sketchybar, such as CPU load, input method changes, and theme switching. These are compiled automatically on first run via the unified `make` chain (`helpers/Makefile` → `event_providers/Makefile` → each provider's `Makefile`).
 
 ### File Structure & Customization
 
@@ -54,10 +54,10 @@ These files control the overall look and feel of the bar.
 
 ### Setup on a New Machine
 
-1. **Clone dotfiles and symlink config:**
+1. **Stow dotfiles:**
    ```bash
    git clone <your-dotfiles-repo> ~/dotfiles
-   ln -s ~/dotfiles/sketchybar/.config/sketchybar ~/.config/sketchybar
+   cd ~/dotfiles && stow sketchybar
    ```
 
 2. **Install all Homebrew dependencies** (includes sketchybar, aerospace, fonts, and more):
@@ -65,31 +65,27 @@ These files control the overall look and feel of the bar.
    brew bundle install --file=~/dotfiles/Brewfile
    ```
 
-   Or install sketchybar-specific packages manually:
-   ```bash
-   brew install sketchybar aerospace macism
-   brew install --cask font-fira-code-nerd-font font-hack-nerd-font font-sketchybar-app-font
-   ```
-
 3. **Install Xcode Command Line Tools** (required for compiling helpers):
    ```bash
    xcode-select --install
    ```
 
-4. **Set up the input method daemon** — see [Input Method Widget](#input-method-widget) section below.
-
-5. **Install Clash Verge Rev** (optional, for TUN status widget):
-   Download from [clash-verge-rev/releases](https://github.com/clash-verge-rev/clash-verge-rev/releases)
-
-6. **Install fcitx5** (optional, for Chinese input method):
+4. **Register launchd services** (input method & theme watching daemons):
    ```bash
-   brew install --cask fcitx5
+   ln -s ~/.config/sketchybar/helpers/event_providers/input_method/com.fuzhuoqun.input_method_watch.plist ~/Library/LaunchAgents/
+   ln -s ~/.config/sketchybar/helpers/event_providers/theme/com.fuzhuoqun.theme_watch.plist ~/Library/LaunchAgents/
+   launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.fuzhuoqun.input_method_watch.plist
+   launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.fuzhuoqun.theme_watch.plist
    ```
 
-7. **Reload Sketchybar:**
+5. **Reload Sketchybar** — helpers are compiled automatically on first run:
    ```bash
    sketchybar --reload
    ```
+
+6. **Install optional extras:**
+   - **Clash Verge Rev** (for TUN status widget): Download from [clash-verge-rev/releases](https://github.com/clash-verge-rev/clash-verge-rev/releases)
+   - **fcitx5** (Chinese input method): `brew install --cask fcitx5`
 
 ### Input Method Widget
 
@@ -116,19 +112,15 @@ The widget uses a **Swift daemon** that listens for the macOS system notificatio
 
 #### Setup on a New Machine
 
-1. **Compile the daemon:**
-   ```bash
-   cd ~/.config/sketchybar/helpers/event_providers/input_method
-   swiftc -O -o bin/input_method_watch input_method_watch.swift
-   ```
+The daemon binary is **compiled automatically** by `helpers/init.lua` on first sketchybar reload — no manual `swiftc` needed.
 
-2. **Install the LaunchAgent** (auto-start at login, auto-restart on crash):
+1. **Install the LaunchAgent** (auto-start at login, auto-restart on crash):
    ```bash
-   cp com.fuzhuoqun.input_method_watch.plist ~/Library/LaunchAgents/
+   ln -s ~/.config/sketchybar/helpers/event_providers/input_method/com.fuzhuoqun.input_method_watch.plist ~/Library/LaunchAgents/
    launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.fuzhuoqun.input_method_watch.plist
    ```
 
-3. **Reload Sketchybar:**
+2. **Reload Sketchybar:**
    ```bash
    sketchybar --reload
    ```
@@ -159,7 +151,7 @@ The widget uses a **Swift daemon** that listens for the macOS system notificatio
 
 5.  **事件循环**：全部加载完成后启动事件循环（`sbar.event_loop()`），监听系统事件（输入法切换、前台应用切换、aerospace 工作区变化等）并实时更新对应 item。
 
-6.  **Helpers**：`helpers/` 目录包含自定义 C 程序，为 Sketchybar 原生不支持的功能提供事件，如 CPU 负载。
+6.  **Helpers**：`helpers/` 目录包含自定义 C / Swift 程序，为 Sketchybar 原生不支持的功能提供事件，如 CPU 负载、输入法切换、主题切换。首次运行时通过统一的 `make` 链自动编译（`helpers/Makefile` → `event_providers/Makefile` → 各 provider 的 `Makefile`）。
 
 ### 文件结构与自定义
 
@@ -191,10 +183,10 @@ The widget uses a **Swift daemon** that listens for the macOS system notificatio
 
 ### 新机器部署
 
-1. **克隆 dotfiles 并建立软链接：**
+1. **Stow dotfiles：**
    ```bash
    git clone <your-dotfiles-repo> ~/dotfiles
-   ln -s ~/dotfiles/sketchybar/.config/sketchybar ~/.config/sketchybar
+   cd ~/dotfiles && stow sketchybar
    ```
 
 2. **安装所有 Homebrew 依赖**（包含 sketchybar、aerospace、字体等）：
@@ -202,31 +194,27 @@ The widget uses a **Swift daemon** that listens for the macOS system notificatio
    brew bundle install --file=~/dotfiles/Brewfile
    ```
 
-   或手动安装 sketchybar 核心依赖：
-   ```bash
-   brew install sketchybar aerospace macism
-   brew install --cask font-fira-code-nerd-font font-hack-nerd-font font-sketchybar-app-font
-   ```
-
 3. **安装 Xcode Command Line Tools**（编译 helpers 需要）：
    ```bash
    xcode-select --install
    ```
 
-4. **配置输入法守护进程** — 见下方[输入法 Widget](#输入法-widget)。
-
-5. **安装 Clash Verge Rev**（可选，TUN 状态 widget 需要）：
-   从 [clash-verge-rev/releases](https://github.com/clash-verge-rev/clash-verge-rev/releases) 下载
-
-6. **安装 fcitx5**（可选，中文输入法需要）：
+4. **注册 launchd 服务**（输入法 & 主题监听守护进程）：
    ```bash
-   brew install --cask fcitx5
+   ln -s ~/.config/sketchybar/helpers/event_providers/input_method/com.fuzhuoqun.input_method_watch.plist ~/Library/LaunchAgents/
+   ln -s ~/.config/sketchybar/helpers/event_providers/theme/com.fuzhuoqun.theme_watch.plist ~/Library/LaunchAgents/
+   launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.fuzhuoqun.input_method_watch.plist
+   launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.fuzhuoqun.theme_watch.plist
    ```
 
-7. **重载 Sketchybar：**
+5. **重载 Sketchybar** — helpers 首次运行自动编译：
    ```bash
    sketchybar --reload
    ```
+
+6. **安装可选组件：**
+   - **Clash Verge Rev**（TUN 状态 widget 需要）：从 [clash-verge-rev/releases](https://github.com/clash-verge-rev/clash-verge-rev/releases) 下载
+   - **fcitx5**（中文输入法）：`brew install --cask fcitx5`
 
 ### 输入法 Widget
 
@@ -253,19 +241,15 @@ The widget uses a **Swift daemon** that listens for the macOS system notificatio
 
 #### 新机器部署步骤
 
-1. **编译守护进程：**
-   ```bash
-   cd ~/.config/sketchybar/helpers/event_providers/input_method
-   swiftc -O -o bin/input_method_watch input_method_watch.swift
-   ```
+守护进程由 `helpers/init.lua` **在首次 reload 时自动编译**，无需手动执行 `swiftc`。
 
-2. **安装 LaunchAgent**（开机自启，崩溃自动重启）：
+1. **安装 LaunchAgent**（开机自启，崩溃自动重启）：
    ```bash
-   cp com.fuzhuoqun.input_method_watch.plist ~/Library/LaunchAgents/
+   ln -s ~/.config/sketchybar/helpers/event_providers/input_method/com.fuzhuoqun.input_method_watch.plist ~/Library/LaunchAgents/
    launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.fuzhuoqun.input_method_watch.plist
    ```
 
-3. **重载 Sketchybar：**
+2. **重载 Sketchybar：**
    ```bash
    sketchybar --reload
    ```

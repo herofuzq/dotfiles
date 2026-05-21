@@ -12,12 +12,9 @@ end
 local cfg = os.getenv("CONFIG_DIR")
 if cfg and not (
 	file_exists(cfg .. "/helpers/event_providers/cpu_load/bin/cpu_load")
+	and file_exists(cfg .. "/helpers/event_providers/input_method/bin/input_method_watch")
+	and file_exists(cfg .. "/helpers/event_providers/theme/bin/theme_watch")
 	and file_exists(cfg .. "/helpers/menus/bin/menus")
 ) then
 	os.execute("cd \"" .. cfg .. "/helpers\" && make")
-end
-
--- theme_watch Swift 守护进程 — 二进制缺失时自动编译
-if cfg and not file_exists(cfg .. "/helpers/event_providers/theme/bin/theme_watch") then
-	os.execute("cd \"" .. cfg .. "/helpers/event_providers/theme\" && swiftc -O -o bin/theme_watch theme_watch.swift 2>/dev/null")
 end
