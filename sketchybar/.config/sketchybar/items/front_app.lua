@@ -9,6 +9,7 @@ local front_app = sbar.add("item", "front_app", {
 	position = "right",
 	padding_right = 2,
 	padding_left = 2,
+	shadow = "on",
 	icon = { drawing = false },
 	label = {
 		font = {
@@ -26,7 +27,6 @@ local front_app = sbar.add("item", "front_app", {
 		color = colors.active.bar_bg,
 		corner_radius = 10,
 		border_width = 2,
-		shadow = { drawing = false },
 	},
 })
 

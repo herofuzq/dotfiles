@@ -34,6 +34,7 @@ local battery = sbar.add("item", "widgets.battery", {
 		corner_radius = 10,
 		border_width = 2,
 	},
+	shadow = "on",
 })
 
 battery:subscribe({ "routine", "power_source_change", "system_woke" }, function()

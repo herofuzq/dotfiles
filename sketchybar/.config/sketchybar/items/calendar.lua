@@ -29,6 +29,7 @@ local cal = sbar.add("item", "calendar", {
 		corner_radius = 10,
 		border_width = 2,
 	},
+	shadow = "on",
 	popup = {
 		align = "center",
 		background = {
