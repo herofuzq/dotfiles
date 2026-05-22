@@ -6,17 +6,32 @@ local FCITX = "/Library/Input Methods/Fcitx5.app/Contents/bin/fcitx5-remote"
 local EN = 1
 local ZH = 2
 
+-- fcitx5 的 sourceID（macism + currentSourceID 共用）
+local FCITX5_SRC = "org.fcitx.inputmethod.Fcitx5.zhHans"
+
+local function isUsingFcitx5()
+  return hs.keycodes.currentSourceID() == FCITX5_SRC
+end
+
 local function realSource()
   local out = hs.execute("'" .. FCITX .. "'", true)
-  return out and out:match("2") and ZH or EN
+  return out and tonumber(out) == 2 and ZH or EN
 end
 
 local _toggled = 0
 
 local function toggle()
   _toggled = hs.timer.secondsSinceEpoch()
-  local now = realSource()
 
+  -- 如果当前输入源是 ABC（非 fcitx5），切到 fcitx5（macism 自带等待）
+  if not isUsingFcitx5() then
+    hs.execute("macism " .. FCITX5_SRC .. " 150", true)
+    hs.alert.show("中文", 0.4)
+    return
+  end
+
+  -- 已在 fcitx5 中，正常切换中英文
+  local now = realSource()
   if now == ZH then
     hs.execute("'" .. FCITX .. "' -c", true)
     hs.alert.show("英文", 0.4)
@@ -47,6 +62,8 @@ local WARN_APPS = {
 local function warnEN(id)
   if not WARN_APPS[id] then return end
   if hs.timer.secondsSinceEpoch() - _toggled < 2 then return end
+  -- 当前输入源不是 fcitx5（如 ABC）→ 不警告，因为 fcitx5 未激活
+  if not isUsingFcitx5() then return end
   if realSource() == ZH then
     hs.alert.show("⚠️ 中文输入中", 1.0)
   end
@@ -59,6 +76,12 @@ _WarnWatcher = hs.application.watcher.new(function(_, event, app)
 end)
 _WarnWatcher:start()
 
+-- 启动时对当前前台应用做一次初始检查
+do
+  local frontApp = hs.application.frontmostApplication()
+  if frontApp then warnEN(frontApp:bundleID()) end
+end
+
 -- 已移除 hs.window.filter 订阅，避免与 hs.application.watcher 双重触发
 
 -- ============================================================
@@ -68,12 +91,17 @@ local pressed = false
 local used    = false
 
 _InputTap = hs.eventtap.new(
-  {hs.eventtap.event.types.flagsChanged, hs.eventtap.event.types.keyDown},
+  {hs.eventtap.event.types.flagsChanged,
+   hs.eventtap.event.types.keyDown,
+   hs.eventtap.event.types.leftMouseDown,
+   hs.eventtap.event.types.rightMouseDown,
+   hs.eventtap.event.types.otherMouseDown},
   function(event)
+    local etype = event:getType()
     local f = event:getFlags()
     local hyper = f.ctrl and f.alt and f.cmd
 
-    if event:getType() == hs.eventtap.event.types.flagsChanged then
+    if etype == hs.eventtap.event.types.flagsChanged then
       if hyper and not pressed then
         -- Hyper 刚刚按下
         pressed, used = true, false
@@ -85,7 +113,8 @@ _InputTap = hs.eventtap.new(
         pressed = false
         if not used then toggle() end
       end
-    elseif event:getType() == hs.eventtap.event.types.keyDown and pressed then
+    elseif pressed then
+      -- 任何非修饰键事件（按键、鼠标点击）在 Hyper 按住期间 → 视为组合键
       used = true
     end
     return false

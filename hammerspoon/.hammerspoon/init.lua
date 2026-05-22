@@ -6,11 +6,11 @@ local FCITX = "/Library/Input Methods/Fcitx5.app/Contents/bin/fcitx5-remote"
 local EN = 1
 local ZH = 2
 
--- 通过 hs.keycodes.methods() 确认的输入法名称
-local FCITX5_METHOD = "Fcitx5"
+-- fcitx5 的 sourceID（macism + currentSourceID 共用）
+local FCITX5_SRC = "org.fcitx.inputmethod.Fcitx5.zhHans"
 
 local function isUsingFcitx5()
-  return hs.keycodes.currentMethod() == FCITX5_METHOD
+  return hs.keycodes.currentSourceID() == FCITX5_SRC
 end
 
 local function realSource()
@@ -23,14 +23,10 @@ local _toggled = 0
 local function toggle()
   _toggled = hs.timer.secondsSinceEpoch()
 
-  -- 如果当前输入源是 ABC（非 fcitx5），切到 fcitx5 后等初始化再切中文
+  -- 如果当前输入源是 ABC（非 fcitx5），切到 fcitx5（macism 自带等待）
   if not isUsingFcitx5() then
-    hs.keycodes.setMethod(FCITX5_METHOD)
+    hs.execute("macism " .. FCITX5_SRC .. " 150", true)
     hs.alert.show("中文", 0.4)
-    -- fcitx5 初始化需要一小段时间，异步补一发 -o 确保中文
-    hs.timer.doAfter(0.15, function()
-      hs.execute("'" .. FCITX .. "' -o", true)
-    end)
     return
   end
 
