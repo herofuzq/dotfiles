@@ -34,6 +34,7 @@ local WARN_APPS = {
   ["com.googlecode.iterm2"] = true,
   ["org.alacritty"] = true,
   ["com.mitchellh.ghostty"] = true,
+  ["com.cmuxterm.app"] = true,
   ["com.microsoft.VSCode"] = true,
   ["com.jetbrains.intellij"] = true,
   ["com.jetbrains.intellij.ce"] = true,
