@@ -3,15 +3,8 @@
 -- 统一分配所有 item 的边框颜色（含 apple 和 calendar）。
 local sbar = require("sketchybar")
 
--- 浅色模式深色系数（< 1.0 使颜色略深，以在浅色背景上保持对比度）
-local DARKEN_FACTOR = 0.78
-
-local function darken_color(c)
-	local r = math.floor((((c >> 16) & 0xFF) * DARKEN_FACTOR))
-	local g = math.floor((((c >> 8) & 0xFF) * DARKEN_FACTOR))
-	local b = math.floor(((c & 0xFF) * DARKEN_FACTOR))
-	return (0xff << 24) | (r << 16) | (g << 8) | b
-end
+-- 浅色主题（Catppuccin Latte）独立色表，直接使用标准 Latte 色值
+-- 暗色系数逻辑已废弃
 
 -- 所有 item 的 item name（按 bar 上从左到右顺序，apple 最左，calendar 最右）
 local apple_item = "apple"
@@ -58,19 +51,66 @@ local dark_sets = {
 	},
 }
 
--- 预计算浅色模式版本（深色系数应用一次）
-local light_sets = {}
-for n, set in pairs(dark_sets) do
-	light_sets[n] = {}
-	for i, c in ipairs(set) do
-		light_sets[n][i] = darken_color(c)
+-- 浅色主题独立色表：[spaces数量] = { apple, spaces..., widgets..., calendar }
+-- 彩虹顺序：红→橙→黄→绿→青→蓝→紫→粉，使用标准 Catppuccin Latte 色值
+-- 插值函数：在颜色 c1 和 c2 之间按 t(0~1) 线性插值
+local function lerp_color(c1, c2, t)
+	local r1 = (c1 >> 16) & 0xFF
+	local g1 = (c1 >> 8) & 0xFF
+	local b1 = c1 & 0xFF
+	local r2 = (c2 >> 16) & 0xFF
+	local g2 = (c2 >> 8) & 0xFF
+	local b2 = c2 & 0xFF
+	local r = math.floor(r1 + (r2 - r1) * t + 0.5)
+	local g = math.floor(g1 + (g2 - g1) * t + 0.5)
+	local b = math.floor(b1 + (b2 - b1) * t + 0.5)
+	return (0xff << 24) | (r << 16) | (g << 8) | b
+end
+
+-- 生成从 red 到 mauve 的平滑渐变，count = apple + spaces + widgets + calendar
+local LATTE_ANCHORS = {
+	0xffd20f39, -- red
+	0xffe64553, -- maroon
+	0xfffe640b, -- peach
+	0xffdf8e1d, -- yellow
+	0xff40a02b, -- green
+	0xff179299, -- teal
+	0xff209fb5, -- sapphire
+	0xff04a5e5, -- sky
+	0xff1e66f5, -- blue
+	0xff7287fd, -- lavender
+	0xff8c6bb8, -- purple_1
+	0xff9070e0, -- purple_mid
+	0xffc060b0, -- magenta
+	0xff8839ef, -- mauve
+}
+
+local function generate_latte_set(count)
+	local n = #LATTE_ANCHORS
+	local result = {}
+	for i = 1, count do
+		local t = (i - 1) / (count - 1)
+		local pos = t * (n - 1)
+		local idx = math.floor(pos) + 1
+		local frac = pos - math.floor(pos)
+		if idx >= n then
+			result[i] = LATTE_ANCHORS[n]
+		else
+			result[i] = lerp_color(LATTE_ANCHORS[idx], LATTE_ANCHORS[idx + 1], frac)
+		end
 	end
+	return result
+end
+
+local latte_sets = {}
+for n = 5, 9 do
+	latte_sets[n] = generate_latte_set(n + 9) -- n+9 = apple+N+widgets+calendar
 end
 
 local current_sets = dark_sets
 
 function set_theme(theme)
-	current_sets = (theme == "light") and light_sets or dark_sets
+	current_sets = (theme == "light") and latte_sets or dark_sets
 end
 
 function distribute(visible_workspace_names)

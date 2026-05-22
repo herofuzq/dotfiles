@@ -248,16 +248,21 @@ function M.apply_current_theme()
 	})
 	sbar.set("widgets.sys", {
 		background = { color = M.colors.active.bar_bg },
+		label = { color = M.colors.active.sep_opaque },
 	})
 	sbar.set("widgets.clash_tun", {
 		background = { color = M.colors.active.bar_bg },
+		label = { color = M.colors.active.sep_opaque },
 	})
 	sbar.set("widgets.battery", {
 		background = { color = M.colors.active.bar_bg },
+		label = { color = M.colors.active.sep_opaque },
 	})
 	sbar.set("widgets.input_method", {
 		background = { color = M.colors.active.bar_bg },
+		label = { color = M.colors.active.sep_opaque },
 	})
+	-- dingtalk / wechat 通过 theme_changed 事件触发 refresh_colors() 更新颜色
 	sbar.set("widgets.dingtalk", {
 		background = { color = M.colors.active.bar_bg },
 	})

@@ -10,43 +10,43 @@ DefaultTheme=System
 # 覆盖默认值
 OverrideDefault=True
 # 高亮颜色
-HighlightColor=#8839ef
+HighlightColor=#c6a0f6
 # 悬停时高亮颜色
-HighlightHoverColor=#9c5cf5
+HighlightHoverColor=#e189e2
 # 高亮文本颜色
 HighlightTextColor=#ffffff
 # 按下时高亮文本颜色
-HighlightTextPressColor=#ccd0da
+HighlightTextPressColor=#7f7f7f
 # 高亮标签颜色
-HighlightLabelColor=#dce0e8
+HighlightLabelColor=#ffffff
 # 高亮注释颜色
-HighlightCommentColor=#dce0e8
+HighlightCommentColor=#ffffff
 # 高亮标记颜色
-HighlightMarkColor=#dce0e8
+HighlightMarkColor=#ffffff
 # 面板颜色
-PanelColor=#eff1f5
+PanelColor=#fff3eb
 # 文本颜色
-TextColor=#4c4f69
+TextColor=#ed8796
 # 标签颜色
-LabelColor=#fe640b
+LabelColor=#ff7000
 # 注释颜色
-CommentColor=#1e66f5
+CommentColor=#7bc0df
 # 翻页按钮颜色
-PagingButtonColor=#1e66f5
+PagingButtonColor=#eed49f
 # 禁用的翻页按钮颜色
-DisabledPagingButtonColor=#acb0be
+DisabledPagingButtonColor=#7f7f7f
 # 指示文本颜色
-AuxColor=#40a02b
+AuxColor=#000000
 # 光标前的预编辑颜色
-PreeditColorPreCaret=#4c4f69
+PreeditColorPreCaret=#000000
 # 预编辑光标颜色
-PreeditColorCaret=#8839ef
+PreeditColorCaret=#000000
 # 光标后的预编辑颜色
-PreeditColorPostCaret=#9ca0b0
+PreeditColorPostCaret=#000000
 # 边框颜色
-BorderColor=#8839ef
+BorderColor=#f3d2dc
 # 分隔线颜色
-DividerColor=#ea76cb
+DividerColor=#f5a97f
 
 [DarkMode]
 # 覆盖默认值
@@ -54,43 +54,43 @@ OverrideDefault=True
 # 与浅色模式相同
 SameWithLightMode=False
 # 高亮颜色
-HighlightColor=#cba6f7
+HighlightColor=#c6a0f6
 # 悬停时高亮颜色
-HighlightHoverColor=#d4b8f9
+HighlightHoverColor=#e189e2
 # 高亮文本颜色
-HighlightTextColor=#1e1e2e
+HighlightTextColor=#fff9f9
 # 按下时高亮文本颜色
-HighlightTextPressColor=#313244
+HighlightTextPressColor=#7f7f7f
 # 高亮标签颜色
-HighlightLabelColor=#11111b
+HighlightLabelColor=#fff9f9
 # 高亮注释颜色
-HighlightCommentColor=#11111b
+HighlightCommentColor=#fff9f9
 # 高亮标记颜色
-HighlightMarkColor=#11111b
+HighlightMarkColor=#ffffff
 # 面板颜色
-PanelColor=#1e1e2e
+PanelColor=#29273c
 # 文本颜色
-TextColor=#cdd6f4
+TextColor=#ed8796
 # 标签颜色
-LabelColor=#fab387
+LabelColor=#ff7000
 # 注释颜色
-CommentColor=#89b4fa
+CommentColor=#7dc4e4
 # 翻页按钮颜色
-PagingButtonColor=#89b4fa
+PagingButtonColor=#eed49f
 # 禁用的翻页按钮颜色
-DisabledPagingButtonColor=#585b70
+DisabledPagingButtonColor=#7f7f7f
 # 指示文本颜色
-AuxColor=#a6e3a1
+AuxColor=#ffffff
 # 光标前的预编辑颜色
-PreeditColorPreCaret=#cdd6f4
+PreeditColorPreCaret=#ffffff
 # 预编辑光标颜色
-PreeditColorCaret=#cba6f7
+PreeditColorCaret=#ffffff
 # 光标后的预编辑颜色
-PreeditColorPostCaret=#6c7086
+PreeditColorPostCaret=#ffffff
 # 边框颜色
-BorderColor=#cba6f7
+BorderColor=#e189e2
 # 分隔线颜色
-DividerColor=#f5c2e7
+DividerColor=#f5a97f
 
 [Typography]
 # 布局
@@ -100,9 +100,9 @@ WritingMode="Horizontal top-bottom"
 # 输入法感知版式
 TypographyAwarenessForIM=True
 # 垂直时注释右对齐
-VerticalCommentsAlignRight=True
+VerticalCommentsAlignRight=False
 # 翻页按钮样式
-PagingButtonsStyle=Arrow
+PagingButtonsStyle=Triangle
 
 [ScrollMode]
 # 启用卷轴

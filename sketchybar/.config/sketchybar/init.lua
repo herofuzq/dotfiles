@@ -42,33 +42,36 @@ theme_trigger:subscribe("system_appearance_changed", function()
 	end
 end)
 
--- 启动后 3 秒主动检测（弥补守护进程刚 reload 还未就绪的空窗期）
-sbar.delay(3, function()
-	local startup_theme = appearance.detect_system_theme()
-	if startup_theme ~= last_theme then
-		last_theme = startup_theme
-		appearance.switch_theme(startup_theme)
-	end
-end)
+-- 等 10 秒系统稳定后，注册主题检测的兜底机制
+sbar.delay(10, function()
+	-- 短间隔主动检测（弥补守护进程 reload 空窗期）
+	sbar.delay(3, function()
+		local check_theme = appearance.detect_system_theme()
+		if check_theme ~= last_theme then
+			last_theme = check_theme
+			appearance.switch_theme(check_theme)
+		end
+	end)
 
--- 后备轮询（120 秒一次，守护进程未运行时兜底）
-local theme_check = sbar.add("item", "theme_check", {
-	drawing = false,
-	update_freq = 120,
-})
-theme_check:subscribe("routine", function()
-	local new_theme = appearance.detect_system_theme()
-	if new_theme ~= last_theme then
-		last_theme = new_theme
-		appearance.switch_theme(new_theme)
-	end
-end)
-theme_check:subscribe("system_woke", function()
-	local new_theme = appearance.detect_system_theme()
-	if new_theme ~= last_theme then
-		last_theme = new_theme
-		appearance.switch_theme(new_theme)
-	end
+	-- 后备轮询（120 秒一次，守护进程未运行时兜底）
+	local theme_check = sbar.add("item", "theme_check", {
+		drawing = false,
+		update_freq = 120,
+	})
+	theme_check:subscribe("routine", function()
+		local new_theme = appearance.detect_system_theme()
+		if new_theme ~= last_theme then
+			last_theme = new_theme
+			appearance.switch_theme(new_theme)
+		end
+	end)
+	theme_check:subscribe("system_woke", function()
+		local new_theme = appearance.detect_system_theme()
+		if new_theme ~= last_theme then
+			last_theme = new_theme
+			appearance.switch_theme(new_theme)
+		end
+	end)
 end)
 
 -- 启动事件循环（必须！否则所有回调函数不会执行）
