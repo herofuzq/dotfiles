@@ -18,6 +18,10 @@ end
 sbar.begin_config()
 require("bar")           -- 菜单栏本体尺寸/样式（此时 colors.bar.bg 已是正确主题色）
 require("appearance")    -- 配色、字体默认值
+-- 同步 M.styles 到当前主题（M.styles 在模块加载时以 mocha 定值）
+appearance.styles.workspace.background.color = appearance.colors.active.bar_bg
+appearance.styles.workspace.icon.color = appearance.colors.active.sep_opaque
+appearance.styles.workspace.label.color = appearance.colors.active.sep_opaque
 require("items")         -- 加载所有状态栏条目
 sbar.end_config()
 
