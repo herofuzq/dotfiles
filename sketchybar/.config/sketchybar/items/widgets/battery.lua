@@ -37,7 +37,7 @@ local battery = sbar.add("item", "widgets.battery", {
 	shadow = "on",
 })
 
-battery:subscribe({ "routine", "power_source_change", "system_woke" }, function()
+local function update_battery()
 	sbar.exec("pmset -g batt", function(batt_info)
 		local icon = "!"
 		local label = "?"
@@ -76,4 +76,7 @@ battery:subscribe({ "routine", "power_source_change", "system_woke" }, function(
 			label = { string = label },
 		})
 	end)
-end)
+end
+
+battery:subscribe({ "routine", "power_source_change", "system_woke" }, update_battery)
+battery:subscribe("theme_changed", update_battery)

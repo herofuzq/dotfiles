@@ -1,6 +1,6 @@
 #pragma once
 
-#include <mach/arm/kern_return.h>
+#include <mach/kern_return.h>
 #include <mach/mach.h>
 #include <mach/mach_port.h>
 #include <mach/message.h>

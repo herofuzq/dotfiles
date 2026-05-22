@@ -17,7 +17,6 @@ end
 -- 将所有初始化配置打包成一条消息发给 sketchybar，提高启动效率
 sbar.begin_config()
 require("bar")           -- 菜单栏本体尺寸/样式（此时 colors.bar.bg 已是正确主题色）
-require("appearance")    -- 配色、字体默认值
 -- 同步 M.styles 到当前主题（M.styles 在模块加载时以 mocha 定值）
 appearance.styles.workspace.background.color = appearance.colors.active.bar_bg
 appearance.styles.workspace.icon.color = appearance.colors.active.sep_opaque

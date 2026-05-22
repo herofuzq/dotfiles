@@ -55,6 +55,8 @@ end
 clash_tun:subscribe({ "routine", "system_woke" }, check_status)
 check_status()
 
+clash_tun:subscribe("theme_changed", check_status)
+
 clash_tun:subscribe("mouse.clicked", function()
 	sbar.exec("osascript -e 'tell application \"System Events\" to keystroke \"d\" using {command down, control down, option down}'")
 end)

@@ -6,13 +6,10 @@
     <string>com.fuzhuoqun.theme_watch</string>
     <key>ProgramArguments</key>
     <array>
-        <string>/Users/fuzhuoqun/.config/sketchybar/helpers/event_providers/theme/bin/theme_watch</string>
+        <string>/bin/sh</string>
+        <string>-c</string>
+        <string>exec $HOME/.config/sketchybar/helpers/event_providers/theme/bin/theme_watch</string>
     </array>
-    <key>EnvironmentVariables</key>
-    <dict>
-        <key>PATH</key>
-        <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
-    </dict>
     <key>RunAtLoad</key>
     <true/>
     <key>KeepAlive</key>

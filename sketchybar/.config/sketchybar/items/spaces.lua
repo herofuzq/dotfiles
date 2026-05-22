@@ -131,7 +131,7 @@ local function updateWindow(workspace_index, args)
 		-- 情况1：没有应用，但工作区当前在屏幕上可见 → 隐藏 label，icon 居中
 		for _, visible_workspace in ipairs(visible_workspaces) do
 			if no_app and workspace_index == visible_workspace["workspace"] then
-				local monitor_id = visible_workspace["monitor-appkit-nsscreen-screens-id"]
+				local monitor_id = math.floor(visible_workspace["monitor-appkit-nsscreen-screens-id"])
 				workspaces[workspace_index]:set({
 					drawing = true,
 					icon = { padding_left = 10, padding_right = 10 },
@@ -268,7 +268,7 @@ sbar.exec(query_workspaces, function(workspaces_and_monitors)
 			drawing = style.background.drawing,
 			corner_radius = style.background.corner_radius,
 			border_width = style.background.border_width,
-			border_color = 0xffcba6f7, -- 初始默认色（由 borders.distribute() 立即覆盖）
+			border_color = appearance.colors.active.mauve, -- 初始色（与当前主题匹配，由 borders.distribute() 立即覆盖）
 		}
 
 		local workspace = sbar.add("item", "workspace." .. workspace_index, {
