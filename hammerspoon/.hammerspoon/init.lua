@@ -57,6 +57,7 @@ local WARN_APPS = {
   ["com.raycast.macos"] = true,
   ["com.raycast-x.macos"] = true,
   ["org.vim.MacVim"] = true,
+  ["com.neovide.neovide"] = true,
 }
 
 local function warnEN(id)
@@ -121,3 +122,23 @@ _InputTap = hs.eventtap.new(
   end
 )
 _InputTap:start()
+
+-- ============================================================
+-- WPS Office 冷启动 → 自动移入 W̲ork 工作区
+-- AeroSpace on-window-detected 在 WPS 冷启动时不触发（AX 通知缺失），
+-- 用 Hammerspoon 监听应用启动（NSWorkspace 通知）来兜底
+-- ============================================================
+local function wpsToWork()
+  local out = hs.execute("/usr/local/bin/aerospace move-node-to-workspace W̲ork --focus-follows-window", true)
+end
+
+_WPSWatcher = hs.application.watcher.new(function(name, event, app)
+  if event == hs.application.watcher.launched
+    and app
+    and app:bundleID() == "com.kingsoft.wpsoffice.mac"
+  then
+    -- 冷启动时窗口没那么快就绪，等 3 秒再执行
+    hs.timer.doAfter(3, wpsToWork)
+  end
+end)
+_WPSWatcher:start()
