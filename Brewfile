@@ -45,7 +45,6 @@ brew "switchaudio-osx"    # 音频输出切换
 # =============================================================================
 # 编辑器 / Git
 # =============================================================================
-brew "neovide"            # Neovim GUI 前端
 cask "neovide-app"        # Neovim GUI (cask)
 brew "lazygit"            # Git TUI
 brew "git"                # Git
@@ -149,7 +148,6 @@ cask "soundsource"        # 音频管理
 cask "hazeover"           # 聚焦窗口
 cask "lunarbar"           # 菜单栏整理
 brew "btop"               # 终端系统监控
-brew "fastfetch"          # 系统信息
 
 # =============================================================================
 # 媒体 / 图像
@@ -158,7 +156,6 @@ brew "ffmpeg"             # 音视频处理
 brew "ffmpegthumbnailer"  # 视频缩略图
 brew "media-info"         # 媒体信息查询
 brew "vips"               # 图像处理库
-brew "chafa"              # 终端图片渲染
 
 # =============================================================================
 # 游戏

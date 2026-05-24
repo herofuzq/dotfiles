@@ -26,14 +26,14 @@ local sys = sbar.add("item", "widgets.sys", {
 	label = {
 		string = "0%",
 		font = {
-			family = fonts.font_fira.text,
-			style = fonts.font_fira.style_map["Bold"],
-			size = fonts.font_fira.size,
+			family = fonts.font.text,
+			style = fonts.font.style_map["Bold"],
+			size = fonts.font.size,
 		},
 		padding_left = 2,
 		padding_right = 8,
 		align = "right",
-		width = 36,
+		width = 40,
 		color = colors.active.sep_opaque,
 	},
 	background = {

@@ -1,14 +1,12 @@
 return {
 	font = {
-		text = "SF Pro",
-		numbers = "SF Pro",
+		text = "Sarasa Gothic SC",
+		numbers = "Sarasa Gothic SC",
 		size = 13.0,
 		style_map = {
 			["Regular"] = "Regular",
-			["Semibold"] = "Semibold",
+			["Semibold"] = "SemiBold",
 			["Bold"] = "Bold",
-			["Heavy"] = "Heavy",
-			["Black"] = "Black",
 		},
 	},
 	font_icon = {

@@ -23,9 +23,9 @@ local input_method = sbar.add("item", "widgets.input_method", {
     },
 	label = {
 		font = {
-			family = fonts.font_fira.text,
-			style = fonts.font_fira.style_map["Bold"],
-			size = fonts.font_fira.size,
+			family = fonts.font.text,
+			style = fonts.font.style_map["Bold"],
+			size = fonts.font.size,
 		},
 		padding_left = 0,
 		padding_right = settings.padding.icon_label_item.label.padding_right,
