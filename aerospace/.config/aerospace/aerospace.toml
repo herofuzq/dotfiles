@@ -250,6 +250,7 @@ outer.right = [
     r = ['flatten-workspace-tree', 'mode main'] # reset layout
     f = ['layout floating tiling', 'mode main'] # Toggle between floating and tiling layout
     backspace = ['close-all-windows-but-current', 'mode main']
+    g = ['''exec-and-forget aerospace list-windows --all --json | jq -r '.[] | select(."window-title"=="") | ."window-id"' | xargs -n1 aerospace close --window-id''', 'mode main']
 
     # sticky is not yet supported https://github.com/nikitabobko/AeroSpace/issues/2
     #s = ['layout sticky tiling', 'mode main']
@@ -405,9 +406,10 @@ if.app-id = "com.superultra.Homerow"
 run = 'layout floating'
 
 #根据程序自动设定工作区
+# Edge (Chromium) — AeroSpace #1562 已知 Electron 应用检测不可靠，备用手动快捷键 cmd-alt-ctrl-shift-b
 [[on-window-detected]]
 if.app-id = "com.microsoft.edgemac"
-run = ["move-node-to-workspace Web̲"]
+run = ["move-node-to-workspace Web̲ --focus-follows-window"]
 
 [[on-window-detected]]
 if.app-id = "com.brave.Browser"
@@ -415,7 +417,7 @@ run = ["move-node-to-workspace Web̲"]
 
 [[on-window-detected]]
 if.app-id = "com.kingsoft.wpsoffice.mac"
-run = ["move-node-to-workspace W̲ork"]
+run = ["move-node-to-workspace W̲ork --focus-follows-window"]
 
 [[on-window-detected]]
 if.app-id = "com.tableausoftware.tableaudesktop"
