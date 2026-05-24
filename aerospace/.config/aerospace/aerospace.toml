@@ -104,9 +104,9 @@ outer.left = [
   14,
 ]
 outer.bottom = [
-  { monitor."Built-in Retina Display" = 14 },
-  { monitor."VG271U" = 14 },
-  14,
+  { monitor."Built-in Retina Display" = 16 },
+  { monitor."VG271U" = 16 },
+  16,
 ]
 outer.top = [
   { monitor."Built-in Retina Display" = 14 },
@@ -114,9 +114,9 @@ outer.top = [
   46,
 ]
 outer.right = [
-  { monitor."Built-in Retina Display" = 14 },
-  { monitor."VG271U" = 14 },
-  14,
+  { monitor."Built-in Retina Display" = 16 },
+  { monitor."VG271U" = 16 },
+  16,
 ]
 # 'main' binding mode declaration
 # See: https://nikitabobko.github.io/AeroSpace/guide#binding-modes
