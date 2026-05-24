@@ -8,19 +8,19 @@ local settings = require("settings")
 local FCITX_REMOTE = "/Library/Input Methods/Fcitx5.app/Contents/bin/fcitx5-remote"
 
 local input_method = sbar.add("item", "widgets.input_method", {
-    position = "right",
-    padding_left = 2,
-    padding_right = 2,
-    icon = {
-        font = {
-            family = fonts.font_fira.text,
-            style = fonts.font_fira.style_map["Bold"],
-            size = fonts.font_fira.size,
-        },
-        padding_left = settings.padding.icon_label_item.icon.padding_left,
-        padding_right = 2,
-        color = colors.active.deep_blue,
-    },
+	position = "right",
+	padding_left = 2,
+	padding_right = 2,
+	icon = {
+		font = {
+			family = fonts.font_fira.text,
+			style = fonts.font_fira.style_map["Bold"],
+			size = fonts.font_fira.size,
+		},
+		padding_left = settings.padding.icon_label_item.icon.padding_left,
+		padding_right = 2,
+		color = colors.active.deep_blue,
+	},
 	label = {
 		font = {
 			family = fonts.font.text,
@@ -31,12 +31,12 @@ local input_method = sbar.add("item", "widgets.input_method", {
 		padding_right = settings.padding.icon_label_item.label.padding_right,
 		color = colors.active.sep_opaque,
 	},
-    background = {
-        color = colors.active.bar_bg,
-        corner_radius = 10,
-        border_width = 2,
-    },
-    shadow = "on",
+	background = {
+		color = colors.active.bar_bg,
+		corner_radius = 10,
+		border_width = 2,
+	},
+	shadow = "on",
 })
 
 local function update_display(im_id, fcitx_mode)

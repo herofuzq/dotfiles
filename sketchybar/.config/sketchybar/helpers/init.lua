@@ -1,5 +1,5 @@
 -- Add the sketchybar module to the package cpath
-package.cpath = package.cpath .. ";/Users/" .. os.getenv("USER") .. "/.local/share/sketchybar_lua/?.so"
+package.cpath = package.cpath .. ";" .. os.getenv("HOME") .. "/.local/share/sketchybar_lua/?.so"
 
 -- 仅在 helpers 二进制缺失时才编译，避免每次启动都重新 make
 -- 使用 Lua io.open 检查文件，避免不必要的 shell fork

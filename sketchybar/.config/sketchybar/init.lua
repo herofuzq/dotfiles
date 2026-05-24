@@ -8,10 +8,12 @@ if current_theme == "dark" then
 	appearance.colors.active = appearance.colors.catppuccin_mocha
 	-- appearance.colors.bar.bg = 0xB20d0d13  -- 原：深色 70% 不透明
 	appearance.colors.bar.bg = 0x000d0d13    -- 全透明
+	appearance.colors.bar.border = 0xB33a3a45
 else
 	appearance.colors.active = appearance.colors.catppuccin_latte
 	-- appearance.colors.bar.bg = 0xB2E3E3E3  -- 原：浅色 70% 不透明
 	appearance.colors.bar.bg = 0x00E3E3E3    -- 全透明
+	appearance.colors.bar.border = 0xB3bcc0cc
 end
 
 -- 将所有初始化配置打包成一条消息发给 sketchybar，提高启动效率
@@ -42,7 +44,8 @@ theme_trigger:subscribe("system_appearance_changed", function()
 end)
 
 -- 等 10 秒系统稳定后，注册主题检测的兜底机制
-sbar.delay(10, function()
+local STARTUP_DELAY = 10
+sbar.delay(STARTUP_DELAY, function()
 	-- 短间隔主动检测（弥补守护进程 reload 空窗期）
 	sbar.delay(3, function()
 		local check_theme = appearance.detect_system_theme()
