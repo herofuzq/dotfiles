@@ -16,8 +16,7 @@ macos-secure-input-indication = true
 # Font
 # -------------------------------------------------- #
 font-family = JetBrainsMono Nerd Font Mono
-# font-family = MesloLGS Nerd Font Mono
-# font-family = Sarasa Mono SC
+font-family = Sarasa Mono SC
 font-thicken = true
 font-thicken-strength = 128
 font-size = 14
@@ -69,4 +68,5 @@ clipboard-trim-trailing-spaces = true
 # -------------------------------------------------- #
 # Startup
 # -------------------------------------------------- #
+env = LANG=zh_CN.UTF-8
 command = /bin/zsh -c 'fastfetch; exec zsh'
