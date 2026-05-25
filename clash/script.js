@@ -115,10 +115,10 @@ if (['securest', 'secure', 'default', 'fast', 'fastest'].includes(mode)) {
 
 skipIps = stringToArray(skipIps)
 defaultDNS = stringToArray(defaultDNS)
-// 添加内网DNS作为兜底解析
+// 添加内网DNS作为兜底解析 ← 用户内网
 defaultDNS.push('10.223.0.145', '10.223.0.146')
 directDNS = stringToArray(directDNS)
-// 添加内网DNS（fake-ip-filter的域名用direct-nameserver解析）
+// 添加内网DNS（fake-ip-filter→direct-nameserver） ← 用户内网
 directDNS.push('10.223.0.145', '10.223.0.146')
 chinaDNS = stringToArray(chinaDNS)
 foreignDNS = stringToArray(foreignDNS)
@@ -200,7 +200,7 @@ const rules = [
   'DOMAIN-SUFFIX,nblink.cc,直连',
   'DOMAIN-SUFFIX,ionewu.com,直连',
   'DOMAIN-SUFFIX,vicp.net,直连',
-  // ===== 内网域名直连 =====
+  // ===== 内网域名直连 ← 用户内网 =====
   'DOMAIN-SUFFIX,chinaunicom.cn,直连',
   'DOMAIN-SUFFIX,10010.com,直连',
   'DOMAIN-SUFFIX,unicom.local,直连',
@@ -313,7 +313,7 @@ const dnsConfig = {
     'geosite:amazon',
     'geosite:category-bank-jp',
     // 'geosite:category-bank-cn@!cn',
-    // ===== 内网域名：不走 fake-ip，返回真实 IP =====
+    // ===== 内网域名：不走 fake-ip，返回真实 IP ← 用户内网 =====
     '+.chinaunicom.cn',
     '+.10010.com',
     '+.unicom.local',
@@ -334,7 +334,7 @@ const dnsConfig = {
     chinaDNS,
     'geosite:gfw,jetbrains-ai,category-ai-!cn,category-ai-chat-!cn': foreignDNS,
     // 'geosite:telegram': foreignDNS,
-    // ===== 内网域名（暂不生效，fake-ip-filter 走 direct-nameserver） =====
+    // ===== 内网域名（暂不生效，待客户端升级） ← 用户内网 =====
     // 'chinaunicom.cn': '10.223.0.145;10.223.0.146',
     // '10010.com': '10.223.0.145;10.223.0.146',
     // 'unicom.local': '10.223.0.145;10.223.0.146',

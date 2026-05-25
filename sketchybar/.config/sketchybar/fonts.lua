@@ -1,7 +1,7 @@
 return {
 	font = {
-		text = "Sarasa Gothic SC",
-		numbers = "Sarasa Gothic SC",
+		text = "JetBrainsMono Nerd Font Mono",
+		numbers = "JetBrainsMono Nerd Font Mono",
 		size = 13.0,
 		style_map = {
 			["Regular"] = "Regular",
