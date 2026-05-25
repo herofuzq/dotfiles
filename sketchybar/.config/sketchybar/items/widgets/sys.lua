@@ -33,7 +33,7 @@ local sys = sbar.add("item", "widgets.sys", {
 		padding_left = 2,
 		padding_right = 8,
 		align = "right",
-		width = 40,
+		width = 36,
 		color = colors.active.sep_opaque,
 	},
 	background = {
@@ -47,7 +47,8 @@ local sys = sbar.add("item", "widgets.sys", {
 sys:subscribe("cpu_update", function(env)
 	local cpu_load = tonumber(env.total_load) or 0
 	local cpu_str = string.format("%d%%", cpu_load)
-	local cpu_color = cpu_load > 70 and colors.active.red or (cpu_load > 40 and colors.active.peach or colors.active.green)
+	local cpu_color = cpu_load > 70 and colors.active.red
+		or (cpu_load > 40 and colors.active.peach or colors.active.green)
 	sys:set({
 		icon = { color = cpu_color },
 		label = { string = cpu_str, color = colors.active.sep_opaque },

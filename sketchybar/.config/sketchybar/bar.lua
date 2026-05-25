@@ -9,7 +9,7 @@ sbar.bar({
 	border_color = colors.colors.bar.border,
 	margin = 0,
 	corner_radius = 0,
-	height = 34,
+	height = 32,
 	padding_right = 1,
 	padding_left = 0,
 	sticky = "on",

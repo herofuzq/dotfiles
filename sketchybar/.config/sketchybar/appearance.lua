@@ -8,7 +8,7 @@ local M = {}
 M.colors = {
 	bar = {
 		-- bg = 0xB20d0d13,  -- 原：深色 70% 不透明（init.lua 会覆盖此值，默认值从未生效）
-		bg = 0x000d0d13,    -- 全透明
+		bg = 0x000d0d13, -- 全透明
 		-- bg = 0xff000000, -- 备用：不透明纯黑背景
 		border = 0xB33a3a45,
 	},
@@ -194,12 +194,12 @@ function M.switch_theme(mode)
 	if mode == "dark" then
 		M.colors.active = M.colors.catppuccin_mocha
 		-- M.colors.bar.bg = 0xB20d0d13 -- 原：深色模式 70% opacity
-		M.colors.bar.bg = 0x000d0d13   -- 全透明
+		M.colors.bar.bg = 0x000d0d13 -- 全透明
 		M.colors.bar.border = 0xB33a3a45
 	else
 		M.colors.active = M.colors.catppuccin_latte
 		-- M.colors.bar.bg = 0xB2E3E3E3 -- 原：浅色模式 70% opacity
-		M.colors.bar.bg = 0x00E3E3E3   -- 全透明
+		M.colors.bar.bg = 0x00E3E3E3 -- 全透明
 		M.colors.bar.border = 0xB3bcc0cc
 	end
 	M.apply_current_theme()
@@ -310,7 +310,7 @@ sbar.default({
 		border_color = M.colors.active.bg3,
 		border_width = 0,
 		color = M.colors.active.bar_bg,
-		corner_radius = 0,
+		corner_radius = 10,
 		height = settings.height - 6,
 		image = {
 			corner_radius = 0,
