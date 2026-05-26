@@ -299,7 +299,7 @@ M.styles = {
 			font = "sketchybar-app-font:Regular:14.0",
 			padding_left = 2,
 			padding_right = 10,
-			y_offset = -1,
+			y_offset = 0,
 		},
 		blur_radius = 10,
 	},
@@ -311,7 +311,7 @@ sbar.default({
 		border_width = 0,
 		color = M.colors.active.bar_bg,
 		corner_radius = 10,
-		height = settings.height - 6,
+		height = settings.height - 8,
 		image = {
 			corner_radius = 0,
 			border_color = M.colors.active.text,

@@ -109,9 +109,9 @@ outer.bottom = [
   16,
 ]
 outer.top = [
-  { monitor."Built-in Retina Display" = 13 },
-  { monitor."VG271U" = 44 },
-  44,
+  { monitor."Built-in Retina Display" = 12 },
+  { monitor."VG271U" = 43 },
+  43,
 ]
 outer.right = [
   { monitor."Built-in Retina Display" = 16 },

@@ -21,7 +21,7 @@ local cal = sbar.add("item", "calendar", {
 			size = fonts.font.size,
 		},
 		padding_left = 0,
-		padding_right = 17, -- 右侧留白，使日历 item 与右侧 bar 边缘保持间距
+		padding_right = 14, -- 右侧留白
 		color = colors.active.sep_opaque,
 	},
 	background = {
@@ -43,7 +43,7 @@ local cal = sbar.add("item", "calendar", {
 	position = "right",
 	update_freq = 30,
 	padding_left = 2,
-	padding_right = 11,
+	padding_right = 4,
 })
 
 cal:subscribe({ "forced", "routine", "system_woke" }, function()
