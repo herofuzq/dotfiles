@@ -34,24 +34,9 @@ rev = "41ebef8"
 hash = "5805affd3ae8adcb3c72b6997d21c0a6"
 
 [[plugin.deps]]
-use = "MasouShizuka/close-and-restore-tab"
-rev = "d7638aa"
-hash = "a7cd2d252dfb478af581948bfbea2158"
-
-[[plugin.deps]]
-use = "terrakok/split-tabs"
-rev = "da25bc0"
-hash = "108ee3048ba3a0d1ba77df7c41bcb7fe"
-
-[[plugin.deps]]
 use = "Gallardo994/clippy"
 rev = "8ce5541"
 hash = "977c6f4ffceada33ced20d941f1defab"
-
-[[plugin.deps]]
-use = "AnirudhG07/archivemount"
-rev = "3d353c4"
-hash = "28caf2541e627582e75add7a9f98a32a"
 
 [[plugin.deps]]
 use = "Rolv-Apneseth/bypass"
@@ -74,11 +59,6 @@ rev = "e60e122"
 hash = "fbaf0adc8efc59555b748d36aab62d40"
 
 [[plugin.deps]]
-use = "uhs-robert/recycle-bin"
-rev = "fa68711"
-hash = "8714306b5cac6359edbacbf545fbd691"
-
-[[plugin.deps]]
 use = "DreamMaoMao/sjch"
 rev = "213f94f"
 hash = "c19d6c9f0ceff7c7a81bc5496daf917"
@@ -87,6 +67,21 @@ hash = "c19d6c9f0ceff7c7a81bc5496daf917"
 use = "DreamMaoMao/searchjump"
 rev = "8a1a785"
 hash = "36bf4d772125a51af4ef440c06820e32"
+
+[[plugin.deps]]
+use = "Lil-Dank/lazygit"
+rev = "e73fd74"
+hash = "6ea5f37c7f219671ec504cb8311f889d"
+
+[[plugin.deps]]
+use = "barbanevosa/autosession"
+rev = "7a12b20"
+hash = "f9b76184511c983db7c6f719eea1e14d"
+
+[[plugin.deps]]
+use = "atareao/convert"
+rev = "ce060d9"
+hash = "1c0465351f2a344e842f065ab316f265"
 
 [[flavor.deps]]
 use = "yazi-rs/flavors:catppuccin-mocha"

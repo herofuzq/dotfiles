@@ -58,3 +58,6 @@ require("mactag"):setup({
 	-- Order of the color circle showing in the line mode
 	order = 500,
 })
+
+-- smartsession
+require("autosession"):setup()
