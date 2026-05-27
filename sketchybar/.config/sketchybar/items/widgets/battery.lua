@@ -34,7 +34,6 @@ local battery = sbar.add("item", "widgets.battery", {
 		corner_radius = 10,
 		border_width = 2,
 	},
-	shadow = "on",
 })
 
 local function update_battery()

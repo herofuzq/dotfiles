@@ -8,7 +8,7 @@ config-version = 2
 # You can use it to add commands that run after AeroSpace startup.
 # Available commands : https://nikitabobko.github.io/AeroSpace/commands
 after-startup-command = [
-  'exec-and-forget borders active_color=0xffff9e64 inactive_color=0x00000000 width=6.0 hidpi=on',
+  # 'exec-and-forget borders active_color=0xffff9e64 inactive_color=0x00000000 width=6.0 hidpi=on',
   'exec-and-forget sketchybar --reload',
   'exec-and-forget sketchybar',
 ]
@@ -89,34 +89,34 @@ on-mode-changed = ['exec-and-forget sketchybar --trigger aerospace_mode_change']
     
 [gaps]
 inner.horizontal = [
-  { monitor."Built-in Retina Display" = 8 },
-  { monitor."VG271U" = 8 },
-  8,
+  { monitor."Built-in Retina Display" = 6 },
+  { monitor."VG271U" = 6 },
+  6,
 ]
 inner.vertical = [
+  { monitor."Built-in Retina Display" = 6 },
+  { monitor."VG271U" = 6 },
+  6,
+]
+outer.left = [
   { monitor."Built-in Retina Display" = 8 },
   { monitor."VG271U" = 8 },
   8,
 ]
-outer.left = [
-  { monitor."Built-in Retina Display" = 10 },
-  { monitor."VG271U" = 10 },
-  10,
-]
 outer.bottom = [
-  { monitor."Built-in Retina Display" = 10 },
-  { monitor."VG271U" = 10 },
-  10,
+  { monitor."Built-in Retina Display" = 8 },
+  { monitor."VG271U" = 8 },
+  8,
 ]
 outer.top = [
-  { monitor."Built-in Retina Display" = 10 },
-  { monitor."VG271U" = 41 },
-  41,
+  { monitor."Built-in Retina Display" = 5 },
+  { monitor."VG271U" = 36 },
+  35,
 ]
 outer.right = [
-  { monitor."Built-in Retina Display" = 10 },
-  { monitor."VG271U" = 10 },
-  10,
+  { monitor."Built-in Retina Display" = 8 },
+  { monitor."VG271U" = 8 },
+  8,
 ]
 # 'main' binding mode declaration
 # See: https://nikitabobko.github.io/AeroSpace/guide#binding-modes

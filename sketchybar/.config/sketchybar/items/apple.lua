@@ -6,7 +6,6 @@ local colors = require("appearance").colors
 local apple = sbar.add("item", "apple", {
 	padding_left = 7,
 	padding_right = 2,
-	shadow = "on",
 	icon = {
 		padding_left = 13,
 		padding_right = 13,

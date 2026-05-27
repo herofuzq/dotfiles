@@ -354,6 +354,7 @@ sbar.default({
 	blur_radius = 0,
 	padding_right = 0,
 	scroll_texts = true,
+	shadow = "off",
 	updates = "on",
 })
 

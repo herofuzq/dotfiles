@@ -46,7 +46,6 @@ return function(opts)
 			border_color = opts.border_color or colors.active.bg3_opaque,
 			border_width = 2,
 		},
-		shadow = "on",
 	})
 
 	local last_num = 0

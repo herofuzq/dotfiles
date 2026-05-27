@@ -35,7 +35,6 @@ local clash_tun = sbar.add("item", "widgets.clash_tun", {
 		corner_radius = 10,
 		border_width = 2,
 	},
-	shadow = "on",
 })
 
 local function update_display(tun_on)

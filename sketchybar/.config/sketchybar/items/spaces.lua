@@ -272,7 +272,6 @@ sbar.exec(query_workspaces, function(workspaces_and_monitors)
 		}
 
 		local workspace = sbar.add("item", "workspace." .. workspace_index, {
-			shadow = "on",
 			background = bg,
 			click_script = "aerospace workspace " .. workspace_index, -- 点击切换到该工作区
 			drawing = false, -- 初始隐藏，稍后由 updateWindow 决定显示/隐藏

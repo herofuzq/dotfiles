@@ -41,7 +41,6 @@ local sys = sbar.add("item", "widgets.sys", {
 		corner_radius = 10,
 		border_width = 2,
 	},
-	shadow = "on",
 })
 
 sys:subscribe("cpu_update", function(env)

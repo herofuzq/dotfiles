@@ -36,7 +36,6 @@ local input_method = sbar.add("item", "widgets.input_method", {
 		corner_radius = 10,
 		border_width = 2,
 	},
-	shadow = "on",
 })
 
 local function update_display(im_id, fcitx_mode)
