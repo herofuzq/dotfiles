@@ -13,7 +13,13 @@ fi
 if [ -n "$PYTHON" ]; then
 	STATUS=$(curl -s --max-time 2 --unix-socket /tmp/verge/verge-mihomo.sock \
 		http://localhost/configs 2>/dev/null \
-		| $PYTHON -c "import sys,json; print('on' if json.load(sys.stdin)['tun']['enable'] else 'off')" 2>/dev/null)
+		| $PYTHON -c "
+import sys, json
+try:
+    print('on' if json.load(sys.stdin)['tun']['enable'] else 'off')
+except Exception:
+    print('off')
+" 2>/dev/null)
 	echo "${STATUS:-off}"
 else
 	echo "off"

@@ -121,11 +121,11 @@ AXUIElementRef ax_get_extra_menu_item(char* alias) {
     if (!name_ref || !owner_ref || !owner_pid_ref || !layer_ref || !bounds_ref)
       continue;
 
-    long long int layer = 0;
-    CFNumberGetValue(layer_ref, CFNumberGetType(layer_ref), &layer);
-    uint64_t owner_pid = 0;
+    int32_t layer = 0;
+    CFNumberGetValue(layer_ref, kCFNumberSInt32Type, &layer);
+    int32_t owner_pid = 0;
     CFNumberGetValue(owner_pid_ref,
-                     CFNumberGetType(owner_pid_ref),
+                     kCFNumberSInt32Type,
                      &owner_pid                     );
 
     if (layer != 0x19) continue;

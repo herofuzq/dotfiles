@@ -20,7 +20,7 @@ local query_workspaces =
 	"aerospace list-workspaces --all --format '%{workspace}%{monitor-appkit-nsscreen-screens-id}' --json"
 
 -- 用于订阅事件的虚拟根条目（不显示）
-local root = sbar.add("item", { drawing = false })
+local root = sbar.add("item", "spaces.root", { drawing = false })
 local workspaces = {} -- 工作区名 → 条目对象的映射
 local workspace_order = {} -- 工作区创建顺序（保持显示顺序一致）
 
@@ -56,6 +56,7 @@ local function withWindows(f)
 
 	sbar.exec(get_windows, function(workspace_and_windows)
 		local processed_windows = {} -- 去重用：记录已处理的窗口 ID
+		local seen_apps = {} -- 去重用：记录每个工作区已添加的应用
 
 		for _, entry in ipairs(workspace_and_windows) do
 			local workspace_index = entry.workspace
@@ -74,16 +75,10 @@ local function withWindows(f)
 					open_windows[workspace_index] = {}
 				end
 
-				-- 去重：同一应用不重复添加
-				local app_exists = false
-				for _, existing_app in ipairs(open_windows[workspace_index]) do
-					if existing_app == app then
-						app_exists = true
-						break
-					end
-				end
-
-				if not app_exists then
+				-- 去重：同一应用不重复添加（O(1) hash set）
+				local seen_key = workspace_index .. "\0" .. app
+				if not seen_apps[seen_key] then
+					seen_apps[seen_key] = true
 					table.insert(open_windows[workspace_index], app)
 				end
 			end

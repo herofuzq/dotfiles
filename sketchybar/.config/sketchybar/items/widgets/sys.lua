@@ -19,7 +19,7 @@ local sys = sbar.add("item", "widgets.sys", {
 			style = fonts.font_fira.style_map["Bold"],
 			size = fonts.font_fira.size,
 		},
-		padding_left = settings.padding.icon_label_item.icon.padding_left,
+		padding_left = settings.item_padding.icon_label_item.icon.padding_left,
 		padding_right = 0,
 		color = colors.active.accent_opaque,
 	},

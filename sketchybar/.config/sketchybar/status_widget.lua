@@ -25,7 +25,7 @@ return function(opts)
 		icon = {
 			string = opts.icon,
 			font = "sketchybar-app-font:Regular:14.0",
-			padding_left = settings.padding.icon_label_item.icon.padding_left,
+			padding_left = settings.item_padding.icon_label_item.icon.padding_left,
 			padding_right = 2,
 			color = resolve_color(opts.icon_inactive_color),
 		},
@@ -37,7 +37,7 @@ return function(opts)
 				size = fonts.font.size,
 			},
 			padding_left = 0,
-			padding_right = settings.padding.icon_label_item.label.padding_right,
+			padding_right = settings.item_padding.icon_label_item.label.padding_right,
 			color = resolve_color(opts.label_inactive_color),
 		},
 		background = {
@@ -51,10 +51,8 @@ return function(opts)
 	local last_num = 0
 
 	local function update_display(count)
-		local label = (count or ""):match("^%s*(.-)%s*$") or ""
-		if label == "" then
-			label = "0"
-		end
+		local raw = (count or ""):match("^%s*(.-)%s*$")
+		local label = (raw and raw ~= "") and raw or "0"
 		local num = tonumber(label:match("^(%d+)")) or 0
 		last_num = num
 		item:set({
@@ -63,8 +61,9 @@ return function(opts)
 		})
 	end
 
+	local safe_id = opts.app_id:gsub("[^%w%.%-]", "") -- 过滤非法字符，防止 shell 注入
+
 	local function check_status()
-		local safe_id = opts.app_id:gsub("[^%w%.%-]", "") -- 过滤非法字符，防止 shell 注入
 		sbar.exec("lsappinfo -all info -only StatusLabel " .. safe_id .. " | sed -n 's/.*\"label\"=\"\\([^\"]*\\)\".*/\\1/p'", update_display)
 	end
 
@@ -82,7 +81,7 @@ return function(opts)
 
 	-- 点击打开对应应用
 	item:subscribe("mouse.clicked", function()
-		sbar.exec("open -b " .. opts.app_id)
+		sbar.exec("open -b " .. safe_id)
 	end)
 
 	return item

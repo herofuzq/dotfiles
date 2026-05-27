@@ -16,7 +16,7 @@ local clash_tun = sbar.add("item", "widgets.clash_tun", {
 			style = fonts.font_fira.style_map["Bold"],
 			size = fonts.font_fira.size,
 		},
-		padding_left = settings.padding.icon_label_item.icon.padding_left,
+		padding_left = settings.item_padding.icon_label_item.icon.padding_left,
 		padding_right = 2,
 		color = colors.active.bg3_opaque,
 	},
@@ -27,7 +27,7 @@ local clash_tun = sbar.add("item", "widgets.clash_tun", {
 			size = fonts.font.size,
 		},
 		padding_left = 0,
-		padding_right = settings.padding.icon_label_item.label.padding_right,
+		padding_right = settings.item_padding.icon_label_item.label.padding_right,
 		color = colors.active.sep_opaque,
 	},
 	background = {

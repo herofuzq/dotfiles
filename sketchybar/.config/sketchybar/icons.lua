@@ -41,7 +41,6 @@ local icons = {
 			forward = "􀊓",     -- ⏭ 下一曲
 			play_pause = "􀊇",  -- ▶❙❙ 播放/暂停
 		},
-		memory = "􀫦",
 		clash = {
 			tun = "",         -- 网络代理状态图标
 		},

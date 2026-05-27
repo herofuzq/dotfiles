@@ -7,9 +7,7 @@ local M = {}
 
 M.colors = {
 	bar = {
-		-- bg = 0xB20d0d13,  -- 原：深色 70% 不透明（init_colors() 会覆盖此值）
-		bg = 0x000d0d13, -- 全透明
-		-- bg = 0xff000000, -- 备用：不透明纯黑背景
+		bg = 0x000d0d13, -- 全透明（启动时由 init_colors() 根据系统外观覆盖为对应主题色）
 		border = 0xB33a3a45,
 	},
 
@@ -304,8 +302,8 @@ sbar.default({
 			size = fonts.font.size,
 		},
 		color = M.colors.active.bg2_opaque,
-		padding_left = settings.paddings,
-		padding_right = settings.paddings,
+		padding_left = settings.default_padding,
+		padding_right = settings.default_padding,
 	},
 	popup = {
 		align = "center",

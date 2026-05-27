@@ -52,7 +52,7 @@ local dark_sets = {
 }
 
 -- 浅色主题独立色表：[spaces数量] = { apple, spaces..., widgets..., calendar }
--- 彩虹顺序：红→橙→黄→绿→青→蓝→紫→粉，使用标准 Catppuccin Latte 色值
+-- 彩虹顺序：红→橙→黄→绿→青→蓝→紫→粉，色值为自定义渐变色表以保证视觉过渡平滑
 -- 插值函数：在颜色 c1 和 c2 之间按 t(0~1) 线性插值
 local function lerp_color(c1, c2, t)
 	local r1 = (c1 >> 16) & 0xFF

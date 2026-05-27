@@ -37,6 +37,3 @@ front_app:subscribe("front_app_switched", function(env)
 	})
 end)
 
-front_app:subscribe("mouse.clicked", function()
-	sbar.exec("aerospace workspace next")
-end)
