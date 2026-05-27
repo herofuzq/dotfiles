@@ -124,7 +124,7 @@ local function updateWindow(workspace_index, args)
 		local app = open_window
 		local lookup = app_icons[app]
 		local icon = ((lookup == nil) and app_icons["Default"] or lookup)
-		icon_line = icon_line .. "" .. icon
+		icon_line = icon_line .. icon
 	end
 
 	sbar.animate("tanh", 10, function()
@@ -357,7 +357,7 @@ sbar.exec(query_workspaces, function(workspaces_and_monitors)
 	root:subscribe("aerospace_fullscreen_change", updateWindows)
 
 	-- aerospace 模式切换时显示/隐藏模式图标
-	root:subscribe("aerospace_mode_change", function(env)
+	root:subscribe("aerospace_mode_change", function(_)
 		sbar.exec("aerospace list-modes --current", function(result)
 			local is_service = (result or ""):match("service") ~= nil
 			mode_item:set({ drawing = is_service })

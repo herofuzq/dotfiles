@@ -49,9 +49,9 @@ local function update_battery()
 		end
 
 		local color = colors.active.green
-		local charging, _, _ = batt_info:find("AC Power")
+		local ac_found = batt_info:find("AC Power")
 
-		if charging then
+		if ac_found then
 			icon = icons.battery.charging
 		else
 			if found and charge_num > 80 then

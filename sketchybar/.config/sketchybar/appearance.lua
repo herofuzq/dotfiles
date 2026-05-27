@@ -7,20 +7,11 @@ local M = {}
 
 M.colors = {
 	bar = {
-		-- bg = 0xB20d0d13,  -- 原：深色 70% 不透明（init.lua 会覆盖此值，默认值从未生效）
+		-- bg = 0xB20d0d13,  -- 原：深色 70% 不透明（init_colors() 会覆盖此值）
 		bg = 0x000d0d13, -- 全透明
 		-- bg = 0xff000000, -- 备用：不透明纯黑背景
 		border = 0xB33a3a45,
 	},
-
-	popup = { -- 预留未使用（popup 实际配色由 sbar.default 中 colors.active.bar_bg 控制）
-		bg = 0xFF1d1b2d,
-		border = 0xff7f8490,
-	},
-
-	accent = 0xffb482c2, -- 预留未使用（实际配色通过 catppuccin_mocha.accent → colors.active.accent 引用）
-	accent_bright = 0xffefc2fc, -- 预留未使用
-	accent_tbright = 0x33efc2fc, -- 预留未使用
 
 	catppuccin_mocha = {
 		bg0 = 0x661e1e2e,
@@ -72,29 +63,8 @@ M.colors = {
 		sep_opaque = 0xffa3aed2,
 		accent_opaque = 0xffcba6f7,
 		deep_blue = 0xff74c7ec,
-		-- ── 旧主题 (catppuccin_mocha) 备份 ──
-		-- gradient1  = 0xfff5c2e7, -- apple
-		-- gradient2  = 0xfff2cdcd, -- spaces 1
-		-- gradient3  = 0xfff8c0b0, -- spaces 2
-		-- gradient4  = 0xfff8d0a0, -- spaces 3
-		-- gradient5  = 0xffd0e8a0, -- spaces 4
-		-- gradient6  = 0xffa8e0d8, -- spaces 5
-		-- gradient7  = 0xff80d8d0, -- spaces 6
-		-- gradient8  = 0xff60d0e0, -- spaces 7
-		-- gradient9  = 0xff40c8e8, -- spaces 8
-		-- gradient10 = 0xff89dceb, -- spaces 9
-		-- gradient11 = 0xff40c8e8, -- front_app
-		-- gradient12 = 0xff50c0e0, -- input_method
-		-- gradient13 = 0xff60b8d8, -- battery
-		-- gradient14 = 0xffb4befe, -- wechat
-		-- gradient15 = 0xffc8a8f0, -- dingtalk
-		-- gradient16 = 0xffd0a8f8, -- clash_tun
-		-- gradient17 = 0xffd8a8f4, -- sys
-		-- gradient18 = 0xffcba6f7, -- calendar
-		-- ────────────────────────────
 
 		-- 所有边框颜色已迁移至 helpers/borders.lua 统一管理
-		-- 此处 gradient1-18 保留仅为兼容占位，实际颜色由 borders.lua 动态分配
 
 		-- 预留颜色（暂未使用，供后续扩展配色方案）
 		red_bright = 0xe0f38ba8,
@@ -189,19 +159,22 @@ function M.detect_system_theme()
 	return "light"
 end
 
--- 切换主题并应用所有颜色更新
-function M.switch_theme(mode)
+-- 仅设置 bar/active 颜色值，不触发 apply（供 init.lua 在 begin_config 前使用）
+function M.init_colors(mode)
 	if mode == "dark" then
 		M.colors.active = M.colors.catppuccin_mocha
-		-- M.colors.bar.bg = 0xB20d0d13 -- 原：深色模式 70% opacity
 		M.colors.bar.bg = 0x000d0d13 -- 全透明
 		M.colors.bar.border = 0xB33a3a45
 	else
 		M.colors.active = M.colors.catppuccin_latte
-		-- M.colors.bar.bg = 0xB2E3E3E3 -- 原：浅色模式 70% opacity
 		M.colors.bar.bg = 0x00E3E3E3 -- 全透明
 		M.colors.bar.border = 0xB3bcc0cc
 	end
+end
+
+-- 切换主题并应用所有颜色更新（init_colors + apply_current_theme）
+function M.switch_theme(mode)
+	M.init_colors(mode)
 	M.apply_current_theme()
 end
 
@@ -217,12 +190,8 @@ function M.apply_current_theme()
 		border_color = M.colors.bar.border,
 	})
 
-	-- 2. 更新 M.styles（供 spaces.lua 引用）
-	M.styles.workspace.background.color = M.colors.active.bar_bg
-	M.styles.workspace.icon.color = M.colors.active.sep_opaque
-	M.styles.workspace.label.color = M.colors.active.sep_opaque
-
-	-- 3. 更新所有已知 item 的颜色
+	-- 2. 更新所有已知 item 的颜色
+	--    (M.styles 中的 color 已通过元表动态读取 M.colors.active，无需手动同步)
 	sbar.set("apple", {
 		background = { color = M.colors.active.bar_bg },
 		icon = { color = M.colors.active.red },
@@ -270,20 +239,20 @@ function M.apply_current_theme()
 		background = { color = M.colors.active.bar_bg },
 	})
 
-	-- 4. 通知工作区 items 更新背景色（spaces.lua / front_app.lua 订阅了 "theme_changed"）
+	-- 3. 通知工作区 items 更新背景色（spaces.lua / front_app.lua 订阅了 "theme_changed"）
 	sbar.exec("sketchybar --trigger theme_changed")
 end
 
+-- color 字段通过 __index 元表动态读取 M.colors.active，
+-- 主题切换时自动更新，无需手动覆盖。
 M.styles = {
 	workspace = {
-		background = {
-			color = M.colors.active.bar_bg,
+		background = setmetatable({
 			drawing = true,
 			corner_radius = 10,
 			border_width = 2,
-		},
-		icon = {
-			color = M.colors.active.sep_opaque,
+		}, { __index = function(_, k) if k == "color" then return M.colors.active.bar_bg end end }),
+		icon = setmetatable({
 			highlight_color = 0xffff4444, -- workspace 聚焦高亮色
 			font = {
 				family = fonts.font.text,
@@ -292,15 +261,14 @@ M.styles = {
 			},
 			padding_left = 10,
 			padding_right = 2,
-		},
-		label = {
-			color = M.colors.active.sep_opaque,
+		}, { __index = function(_, k) if k == "color" then return M.colors.active.sep_opaque end end }),
+		label = setmetatable({
 			highlight_color = 0xffff4444,
 			font = "sketchybar-app-font:Regular:14.0",
 			padding_left = 2,
 			padding_right = 10,
 			y_offset = 0,
-		},
+		}, { __index = function(_, k) if k == "color" then return M.colors.active.sep_opaque end end }),
 		blur_radius = 10,
 	},
 }

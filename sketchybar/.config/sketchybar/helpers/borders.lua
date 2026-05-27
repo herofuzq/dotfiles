@@ -4,7 +4,7 @@
 local sbar = require("sketchybar")
 
 -- 浅色主题（Catppuccin Latte）独立色表，直接使用标准 Latte 色值
--- 暗色系数逻辑已废弃
+-- 旧版的暗色系数乘法逻辑已废弃，深色主题同样使用预置色值（dark_sets）
 
 -- 所有 item 的 item name（按 bar 上从左到右顺序，apple 最左，calendar 最右）
 local apple_item = "apple"
@@ -81,7 +81,7 @@ local LATTE_ANCHORS = {
 	0xff7287fd, -- lavender
 	0xff8c6bb8, -- purple_1
 	0xff9070e0, -- purple_mid
-	0xffc060b0, -- magenta
+	0xff9060d8, -- magenta（微调：降低红色分量，与左右蓝紫色系平滑过渡）
 	0xff8839ef, -- mauve
 }
 

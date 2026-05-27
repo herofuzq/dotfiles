@@ -4,25 +4,12 @@ local sbar = require("sketchybar")
 -- 预先检测主题并设好色值，让 begin_config 内的 bar/items 直接用正确的颜色
 local appearance = require("appearance")
 local current_theme = appearance.detect_system_theme()
-if current_theme == "dark" then
-	appearance.colors.active = appearance.colors.catppuccin_mocha
-	-- appearance.colors.bar.bg = 0xB20d0d13  -- 原：深色 70% 不透明
-	appearance.colors.bar.bg = 0x000d0d13    -- 全透明
-	appearance.colors.bar.border = 0xB33a3a45
-else
-	appearance.colors.active = appearance.colors.catppuccin_latte
-	-- appearance.colors.bar.bg = 0xB2E3E3E3  -- 原：浅色 70% 不透明
-	appearance.colors.bar.bg = 0x00E3E3E3    -- 全透明
-	appearance.colors.bar.border = 0xB3bcc0cc
-end
+appearance.init_colors(current_theme)
 
 -- 将所有初始化配置打包成一条消息发给 sketchybar，提高启动效率
 sbar.begin_config()
 require("bar")           -- 菜单栏本体尺寸/样式（此时 colors.bar.bg 已是正确主题色）
--- 同步 M.styles 到当前主题（M.styles 在模块加载时以 mocha 定值）
-appearance.styles.workspace.background.color = appearance.colors.active.bar_bg
-appearance.styles.workspace.icon.color = appearance.colors.active.sep_opaque
-appearance.styles.workspace.label.color = appearance.colors.active.sep_opaque
+-- M.styles 中的 color 已通过元表动态读取 M.colors.active，无需手动同步
 require("items")         -- 加载所有状态栏条目
 sbar.end_config()
 
