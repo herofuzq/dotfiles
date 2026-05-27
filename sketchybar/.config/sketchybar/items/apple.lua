@@ -4,7 +4,7 @@ local icons = require("icons")
 local colors = require("appearance").colors
 
 local apple = sbar.add("item", "apple", {
-	padding_left = 7,
+	padding_left = 8,
 	padding_right = 2,
 	icon = {
 		padding_left = 13,
