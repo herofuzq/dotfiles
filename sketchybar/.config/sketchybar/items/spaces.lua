@@ -131,7 +131,8 @@ local function updateWindow(workspace_index, args)
 		-- 情况1：没有应用，但工作区当前在屏幕上可见 → 隐藏 label，icon 居中
 		for _, visible_workspace in ipairs(visible_workspaces) do
 			if no_app and workspace_index == visible_workspace["workspace"] then
-				local monitor_id = math.floor(visible_workspace["monitor-appkit-nsscreen-screens-id"])
+				local raw_id = visible_workspace["monitor-appkit-nsscreen-screens-id"]
+				local monitor_id = raw_id and math.floor(raw_id)
 				workspaces[workspace_index]:set({
 					drawing = true,
 					icon = { padding_left = 10, padding_right = 10 },
@@ -358,7 +359,7 @@ sbar.exec(query_workspaces, function(workspaces_and_monitors)
 	-- aerospace 模式切换时显示/隐藏模式图标
 	root:subscribe("aerospace_mode_change", function(env)
 		sbar.exec("aerospace list-modes --current", function(result)
-			local is_service = result:match("service") ~= nil
+			local is_service = (result or ""):match("service") ~= nil
 			mode_item:set({ drawing = is_service })
 		end)
 	end)

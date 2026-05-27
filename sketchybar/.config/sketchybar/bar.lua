@@ -1,15 +1,16 @@
 -- ========== 菜单栏本体配置 ==========
--- sbar.bar() 在此调用（在 begin_config 内），颜色读取自 theme-aware 的 colors.colors.bar.bg
-local colors = require("appearance")
+-- sbar.bar() 在此调用（在 begin_config 内），颜色读取自 theme-aware 的 appearance.colors.bar.bg
+local appearance = require("appearance")
+local settings = require("settings")
 local sbar = require("sketchybar")
 
 sbar.bar({
-	color = colors.colors.bar.bg,
+	color = appearance.colors.bar.bg,
 	border_width = 0,
-	border_color = colors.colors.bar.border,
+	border_color = appearance.colors.bar.border,
 	margin = 0,
 	corner_radius = 0,
-	height = 32,
+	height = settings.height,
 	padding_right = 1,
 	padding_left = 0,
 	sticky = "on",

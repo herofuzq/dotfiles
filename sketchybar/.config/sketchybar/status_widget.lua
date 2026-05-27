@@ -51,7 +51,7 @@ return function(opts)
 	local last_num = 0
 
 	local function update_display(count)
-		local label = count:match("^%s*(.-)%s*$") or ""
+		local label = (count or ""):match("^%s*(.-)%s*$") or ""
 		if label == "" then
 			label = "0"
 		end
