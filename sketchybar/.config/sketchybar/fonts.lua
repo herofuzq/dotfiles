@@ -1,7 +1,7 @@
 return {
 	font = {
-		text = "JetBrainsMono Nerd Font Mono",
-		numbers = "JetBrainsMono Nerd Font Mono",
+		text = "JetBrains Maple Mono",
+		numbers = "JetBrains Maple Mono",
 		size = 13.0,
 		style_map = {
 			["Regular"] = "Regular",
