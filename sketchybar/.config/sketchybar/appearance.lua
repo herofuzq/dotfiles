@@ -249,7 +249,13 @@ M.styles = {
 			drawing = true,
 			corner_radius = 10,
 			border_width = 2,
-		}, { __index = function(_, k) if k == "color" then return M.colors.active.bar_bg end end }),
+		}, {
+			__index = function(_, k)
+				if k == "color" then
+					return M.colors.active.bar_bg
+				end
+			end,
+		}),
 		icon = setmetatable({
 			highlight_color = 0xffff4444, -- workspace 聚焦高亮色
 			font = {
@@ -259,14 +265,26 @@ M.styles = {
 			},
 			padding_left = 10,
 			padding_right = 2,
-		}, { __index = function(_, k) if k == "color" then return M.colors.active.sep_opaque end end }),
+		}, {
+			__index = function(_, k)
+				if k == "color" then
+					return M.colors.active.sep_opaque
+				end
+			end,
+		}),
 		label = setmetatable({
 			highlight_color = 0xffff4444,
 			font = "sketchybar-app-font:Regular:14.0",
 			padding_left = 2,
 			padding_right = 10,
 			y_offset = 0,
-		}, { __index = function(_, k) if k == "color" then return M.colors.active.sep_opaque end end }),
+		}, {
+			__index = function(_, k)
+				if k == "color" then
+					return M.colors.active.sep_opaque
+				end
+			end,
+		}),
 		blur_radius = 10,
 	},
 }
@@ -276,7 +294,7 @@ sbar.default({
 		border_color = M.colors.active.bg3,
 		border_width = 0,
 		color = M.colors.active.bar_bg,
-		corner_radius = 10,
+		corner_radius = 9,
 		height = settings.height - 4,
 		image = {
 			corner_radius = 0,
