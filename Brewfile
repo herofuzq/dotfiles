@@ -114,15 +114,10 @@ cask "microsoft-edge"     # Edge 浏览器
 # =============================================================================
 # 字体
 # =============================================================================
-cask "font-fira-code-nerd-font"
 cask "font-hack-nerd-font"
-cask "font-meslo-lg-nerd-font"
-cask "font-gohufont-nerd-font"
-cask "font-victor-mono-nerd-font"
-cask "font-sf-pro"
-cask "font-sf-mono"
+cask "font-jetbrains-maple-mono-nf"
+cask "font-sarasa-gothic"
 cask "font-sketchybar-app-font"
-cask "sf-symbols"
 
 # =============================================================================
 # 通讯 / 社交

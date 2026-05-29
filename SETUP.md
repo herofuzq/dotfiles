@@ -53,7 +53,7 @@ sketchybar --reload       # 状态栏（helpers 自动编译）
 | Editor | neovide, lazygit |
 | macOS Tools | raycast, hammerspoon, karabiner-elements, aerospace, borders |
 | Desktop Apps | obsidian, typora, bitwarden, iina |
-| Fonts | fira/hack/meslo/victor-mono-nerd-font, sf-pro, sf-mono |
+| Fonts | hack-nerd-font, jetbrains-maple-mono-nf, sarasa-gothic, sketchybar-app-font |
 | Dev | node, pnpm, ruby, opencode, docker |
 | Network | wireshark, transmission-cli, mole |
 
