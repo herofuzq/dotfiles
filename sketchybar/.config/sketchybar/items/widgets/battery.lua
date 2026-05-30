@@ -11,9 +11,9 @@ local battery = sbar.add("item", "widgets.battery", {
 	padding_right = 2,
 	icon = {
 		font = {
-			family = fonts.font_fira.text,
-			style = fonts.font_fira.style_map["Bold"],
-			size = fonts.font_fira.size,
+			family = fonts.font_icon.text,
+			style = fonts.font_icon.style_map["Bold"],
+			size = fonts.font_icon.size,
 		},
 		padding_left = 8,
 		padding_right = 2,

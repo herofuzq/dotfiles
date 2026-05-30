@@ -1,6 +1,7 @@
 -- ========== 当前输入法显示 ==========
 -- ABC 系统输入法 / fcitx5 中英状态
 local sbar = require("sketchybar")
+local icons = require("icons")
 local fonts = require("fonts")
 local colors = require("appearance").colors
 local settings = require("settings")
@@ -13,9 +14,9 @@ local input_method = sbar.add("item", "widgets.input_method", {
 	padding_right = 2,
 	icon = {
 		font = {
-			family = fonts.font_fira.text,
-			style = fonts.font_fira.style_map["Bold"],
-			size = fonts.font_fira.size,
+			family = fonts.font_icon.text,
+			style = fonts.font_icon.style_map["Bold"],
+			size = fonts.font_icon.size,
 		},
 		padding_left = settings.item_padding.icon_label_item.icon.padding_left,
 		padding_right = 2,
@@ -41,27 +42,26 @@ local input_method = sbar.add("item", "widgets.input_method", {
 local function update_display(im_id, fcitx_mode)
 	if im_id == "com.apple.keylayout.ABC" then
 		input_method:set({
-			icon = { string = "⌨", color = colors.active.blue },
+			icon = { string = icons.input_method.keyboard, color = colors.active.blue },
 			label = { string = "ABC", color = colors.active.sep_opaque },
 		})
 	elseif im_id == "org.fcitx.inputmethod.Fcitx5.zhHans" then
-		if fcitx_mode == "2" then
-			-- fcitx 中文模式
+		if fcitx_mode == "2" then  -- fcitx5-remote: 0=关闭, 1=不活跃, 2=中文
 			input_method:set({
-				icon = { string = "⌨", color = colors.active.mauve },
+				icon = { string = icons.input_method.keyboard, color = colors.active.mauve },
 				label = { string = "中州韵(ZH)", color = colors.active.sep_opaque },
 			})
 		else
 			-- fcitx 英文模式
 			input_method:set({
-				icon = { string = "⌨", color = colors.active.mauve },
+				icon = { string = icons.input_method.keyboard, color = colors.active.mauve },
 				label = { string = "中州韵(EN)", color = colors.active.sep_opaque },
 			})
 		end
 	else
 		-- 未知输入法
 		input_method:set({
-			icon = { string = "⌨", color = colors.active.bg3_opaque },
+			icon = { string = icons.input_method.keyboard, color = colors.active.bg3_opaque },
 			label = { string = im_id:match("[^.]+$") or "?", color = colors.active.sep_opaque },
 		})
 	end
@@ -69,7 +69,7 @@ end
 
 local function check_status()
 	sbar.exec("macism", function(im_id)
-		im_id = im_id:match("^%s*(.-)%s*$")
+		im_id = im_id and im_id:match("^%s*(.-)%s*$")
 		if im_id == "org.fcitx.inputmethod.Fcitx5.zhHans" then
 			sbar.exec("'" .. FCITX_REMOTE .. "'", function(mode)
 				update_display(im_id, mode and mode:match("^%s*(.-)%s*$"))

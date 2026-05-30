@@ -243,20 +243,23 @@ end
 
 -- color 字段通过 __index 元表动态读取 M.colors.active，
 -- 主题切换时自动更新，无需手动覆盖。
+local function dynamic_color(base, get_color)
+	return setmetatable(base, {
+		__index = function(_, k)
+			if k == "color" then return get_color() end
+		end,
+	})
+end
+
 M.styles = {
 	workspace = {
-		background = setmetatable({
+		background = dynamic_color({
 			drawing = true,
 			corner_radius = 10,
 			border_width = 2,
-		}, {
-			__index = function(_, k)
-				if k == "color" then
-					return M.colors.active.bar_bg
-				end
-			end,
-		}),
-		icon = setmetatable({
+		}, function() return M.colors.active.bar_bg end),
+
+		icon = dynamic_color({
 			highlight_color = 0xffff4444, -- workspace 聚焦高亮色
 			font = {
 				family = fonts.font.text,
@@ -265,26 +268,16 @@ M.styles = {
 			},
 			padding_left = 10,
 			padding_right = 2,
-		}, {
-			__index = function(_, k)
-				if k == "color" then
-					return M.colors.active.sep_opaque
-				end
-			end,
-		}),
-		label = setmetatable({
+		}, function() return M.colors.active.sep_opaque end),
+
+		label = dynamic_color({
 			highlight_color = 0xffff4444,
 			font = "sketchybar-app-font:Regular:14.0",
 			padding_left = 2,
 			padding_right = 10,
 			y_offset = 0,
-		}, {
-			__index = function(_, k)
-				if k == "color" then
-					return M.colors.active.sep_opaque
-				end
-			end,
-		}),
+		}, function() return M.colors.active.sep_opaque end),
+
 		blur_radius = 10,
 	},
 }

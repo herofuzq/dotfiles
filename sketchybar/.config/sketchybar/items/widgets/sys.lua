@@ -15,9 +15,9 @@ local sys = sbar.add("item", "widgets.sys", {
 	icon = {
 		string = icons.cpu,
 		font = {
-			family = fonts.font_fira.text,
-			style = fonts.font_fira.style_map["Bold"],
-			size = fonts.font_fira.size,
+			family = fonts.font_icon.text,
+			style = fonts.font_icon.style_map["Bold"],
+			size = fonts.font_icon.size,
 		},
 		padding_left = settings.item_padding.icon_label_item.icon.padding_left,
 		padding_right = 0,

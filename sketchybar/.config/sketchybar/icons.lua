@@ -45,7 +45,7 @@ local icons = {
 			tun = "",         -- 网络代理状态图标
 		},
 		input_method = {
-			keyboard = "⌨",    -- 键盘/输入法
+			keyboard = "",    -- 键盘/输入法（Nerd Font nf-fa-keyboard_o）
 		},
 	},
 }

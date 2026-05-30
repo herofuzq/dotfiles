@@ -7,6 +7,7 @@ local borders = require("helpers.borders")
 local sbar = require("sketchybar")
 
 -- 始终显示的工作区（即使没有应用也会显示）
+-- 注：键名含 U+0332 组合下划线，对应 aerospace 工作区名称，请勿修改
 local always_show = {
 	["1̲Main"] = true,
 	["C̲hat"] = true,
@@ -101,75 +102,47 @@ local function withWindows(f)
 end
 
 -- ========== 更新单个工作区的显示 ==========
--- 决定显示应用图标 / 月亮占位符 / 隐藏
 local function updateWindow(workspace_index, args)
-	local open_windows = args.open_windows[workspace_index]
+	local open_windows = args.open_windows[workspace_index] or {}
 	local focused_workspace = args.focused_workspace
-	local visible_workspaces = args.visible_workspaces
-
-	if open_windows == nil then
-		open_windows = {}
-	end
 
 	-- 拼接应用图标字符串（使用 sketchybar-app-font 的 :name: 格式）
 	local icon_line = ""
 	local no_app = true
-	for _, open_window in ipairs(open_windows) do
+	for _, app in ipairs(open_windows) do
 		no_app = false
-		local app = open_window
 		local lookup = app_icons[app]
-		local icon = ((lookup == nil) and app_icons["Default"] or lookup)
-		icon_line = icon_line .. icon
+		icon_line = icon_line .. (lookup or app_icons["Default"])
+	end
+
+	-- 确认当前工作区所在的显示器
+	local monitor_id
+	for _, vw in ipairs(args.visible_workspaces) do
+		if workspace_index == vw["workspace"] then
+			local raw_id = vw["monitor-appkit-nsscreen-screens-id"]
+			monitor_id = raw_id and math.floor(raw_id)
+			break
+		end
 	end
 
 	sbar.animate("tanh", 10, function()
-		-- 情况1：没有应用，但工作区当前在屏幕上可见 → 隐藏 label，icon 居中
-		for _, visible_workspace in ipairs(visible_workspaces) do
-			if no_app and workspace_index == visible_workspace["workspace"] then
-				local raw_id = visible_workspace["monitor-appkit-nsscreen-screens-id"]
-				local monitor_id = raw_id and math.floor(raw_id)
-				workspaces[workspace_index]:set({
-					drawing = true,
-					icon = { padding_left = 10, padding_right = 10 },
-					label = { drawing = false },
-					display = monitor_id,
-				})
-				return
-			end
-		end
-
-		-- 情况2：没有应用，也不聚焦 → 如果在 always_show 列表中则显示（隐藏 label），否则隐藏
-		if no_app and workspace_index ~= focused_workspace then
-			if always_show[workspace_index] then
-				workspaces[workspace_index]:set({
-					drawing = true,
-					icon = { padding_left = 10, padding_right = 10 },
-					label = { drawing = false },
-				})
-				return
-			end
+		if no_app then
+			local should_show = (monitor_id ~= nil)
+				or workspace_index == focused_workspace
+				or always_show[workspace_index]
 			workspaces[workspace_index]:set({
-				drawing = false,
-			})
-			return
-		end
-
-		-- 情况3：没有应用，但是聚焦的工作区 → 隐藏 label，icon 居中
-		if no_app and workspace_index == focused_workspace then
-			workspaces[workspace_index]:set({
-				drawing = true,
+				drawing = should_show,
 				icon = { padding_left = 10, padding_right = 10 },
 				label = { drawing = false },
+				display = monitor_id,
 			})
-			return
+		else
+			workspaces[workspace_index]:set({
+				drawing = true,
+				icon = { padding_left = 10, padding_right = 2 },
+				label = { drawing = true, string = icon_line },
+			})
 		end
-
-		-- 情况4：有应用 → 显示应用图标
-		workspaces[workspace_index]:set({
-			drawing = true,
-			icon = { padding_left = 10, padding_right = 2 },
-			label = { drawing = true, string = icon_line },
-		})
 	end)
 end
 
@@ -182,29 +155,20 @@ local function updateWindows()
 		end
 
 		-- 第二步：按创建顺序收集所有「可见」的工作区
+		-- 先将 visible_workspaces 列表转为 hash set，避免后续 O(n) 查表
+		local visible_ws_set = {}
+		for _, vw in ipairs(args.visible_workspaces) do
+			visible_ws_set[vw["workspace"]] = true
+		end
+
 		local visible = {}
 		for _, ws_idx in ipairs(workspace_order) do
 			local open = args.open_windows[ws_idx]
 			local has_apps = open and #open > 0
 			local is_visible = has_apps
-
-			-- 当前在屏幕上的工作区也算可见
-			if not is_visible then
-				for _, vw in ipairs(args.visible_workspaces) do
-					if vw["workspace"] == ws_idx then
-						is_visible = true
-						break
-					end
-				end
-			end
-			-- 聚焦的工作区始终可见
-			if not is_visible and ws_idx == args.focused_workspace then
-				is_visible = true
-			end
-			-- always_show 列表中的工作区始终可见
-			if not is_visible and always_show[ws_idx] then
-				is_visible = true
-			end
+				or visible_ws_set[ws_idx]
+				or ws_idx == args.focused_workspace
+				or always_show[ws_idx]
 
 			if is_visible then
 				table.insert(visible, ws_idx)
@@ -254,7 +218,7 @@ end
 
 -- ========== 初始化：为每个工作区创建 sketchybar 条目 ==========
 sbar.exec(query_workspaces, function(workspaces_and_monitors)
-	for i, entry in ipairs(workspaces_and_monitors) do
+	for _, entry in ipairs(workspaces_and_monitors) do
 		local workspace_index = entry.workspace
 		local style = appearance.styles.workspace -- 引用 appearance 中的样式模板
 

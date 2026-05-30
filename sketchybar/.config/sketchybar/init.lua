@@ -33,7 +33,7 @@ end)
 -- 等 10 秒系统稳定后，注册主题检测的兜底机制
 local STARTUP_DELAY = 10
 sbar.delay(STARTUP_DELAY, function()
-	-- 短间隔主动检测（弥补守护进程 reload 空窗期）
+	-- 启动阶段一次性复检（弥补守护进程启动后可能遗漏的首次变更）
 	sbar.delay(3, function()
 		local check_theme = appearance.detect_system_theme()
 		if check_theme ~= last_theme then

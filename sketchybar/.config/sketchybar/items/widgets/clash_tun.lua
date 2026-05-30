@@ -12,9 +12,9 @@ local clash_tun = sbar.add("item", "widgets.clash_tun", {
 	padding_right = 2,
 	icon = {
 		font = {
-			family = fonts.font_fira.text,
-			style = fonts.font_fira.style_map["Bold"],
-			size = fonts.font_fira.size,
+			family = fonts.font_icon.text,
+			style = fonts.font_icon.style_map["Bold"],
+			size = fonts.font_icon.size,
 		},
 		padding_left = settings.item_padding.icon_label_item.icon.padding_left,
 		padding_right = 2,
@@ -56,6 +56,3 @@ check_status()
 
 clash_tun:subscribe("theme_changed", check_status)
 
-clash_tun:subscribe("mouse.clicked", function()
-	sbar.exec("osascript -e 'tell application \"System Events\" to keystroke \"d\" using {command down, control down, option down}'")
-end)

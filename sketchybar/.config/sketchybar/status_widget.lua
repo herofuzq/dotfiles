@@ -51,7 +51,7 @@ return function(opts)
 	local last_num = 0
 
 	local function update_display(count)
-		local raw = (count or ""):match("^%s*(.-)%s*$")
+		local raw = count and count:match("^%s*(.-)%s*$") or ""
 		local label = (raw and raw ~= "") and raw or "0"
 		local num = tonumber(label:match("^(%d+)")) or 0
 		last_num = num
@@ -62,6 +62,7 @@ return function(opts)
 	end
 
 	local safe_id = opts.app_id:gsub("[^%w%.%-]", "") -- 过滤非法字符，防止 shell 注入
+	if safe_id == "" then return end -- app_id 无效，不创建查询
 
 	local function check_status()
 		sbar.exec("lsappinfo -all info -only StatusLabel " .. safe_id .. " | sed -n 's/.*\"label\"=\"\\([^\"]*\\)\".*/\\1/p'", update_display)
