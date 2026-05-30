@@ -27,6 +27,7 @@ tap "otuerk/sidebar"
 # 终端 / Shell
 # =============================================================================
 brew "ghostty"            # GPU 加速终端 (formula)
+brew "kitty"              # GPU 终端模拟器 (formula)
 brew "tmux"               # 终端复用器
 brew "starship"           # shell 提示符
 brew "zoxide"             # 智能 cd

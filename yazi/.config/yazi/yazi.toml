@@ -52,6 +52,9 @@ reveal = [
 	{ run = "termux-open %d1", desc = "Reveal", for = "android" },
 	{ run = "clear; exiftool %s1; echo 'Press enter to exit'; read _", desc = "Show EXIF", for = "unix", block = true },
 ]
+image = [
+	{ run = 'open -a XnViewMP %s', desc = "XnView MP", for = "macos", orphan = true },
+]
 open_terminal = [
 	{ run = "open -a Terminal %s", desc = "Terminal", for = "macos" },
 ]
@@ -72,7 +75,7 @@ rules = [
 	{ mime = "text/csv",           use = ["open", "edit", "reveal"] },
 	{ mime = "text/*", use = ["edit", "reveal"] },
 	# Image
-	{ mime = "image/*", use = ["open", "reveal"] },
+	{ mime = "image/*", use = ["image", "open", "reveal"] },
 	# Media
 	{ mime = "{audio,video}/*", use = ["play", "reveal"] },
 	# OFD

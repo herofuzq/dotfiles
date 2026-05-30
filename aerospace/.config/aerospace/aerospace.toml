@@ -494,6 +494,10 @@ if.app-id = "com.cmuxterm.app"
 run = ["move-node-to-workspace T̲erm"]
 
 [[on-window-detected]]
+if.app-id = "net.kovidgoyal.kitty"
+run = ["move-node-to-workspace T̲erm"]
+
+[[on-window-detected]]
 if.app-id = "net.battle.app"
 run = ["move-node-to-workspace G̲ame",
        "layout floating",

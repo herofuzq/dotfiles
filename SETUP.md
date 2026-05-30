@@ -31,7 +31,7 @@ brew bundle install --file=Brewfile
 
 # 3. Stow 所有配置包（--no-folding 避免目录折叠）
 stow --no-folding aerospace bash bat borders btop cmux fastfetch fcitx5 fd \
-     ghostty git hammerspoon karabiner lazygit npm nvim \
+     ghostty git hammerspoon karabiner kitty lazygit npm nvim \
      sketchybar ssh starship tmux yazi zsh
 
 # 4. 安装 Xcode Command Line Tools（编译 helpers 需要）
@@ -107,6 +107,7 @@ brew bundle cleanup --file=Brewfile       # 清理未列出项
 | `borders` | `~/.config/borders/bordersrc` | 窗口边框 |
 | `hammerspoon` | `~/.hammerspoon/init.lua` | macOS 自动化 |
 | `karabiner` | `~/.config/karabiner/` | 键盘改键（含 complex_modifications） |
+| `kitty` | `~/.config/kitty/` | GPU 终端模拟器 + Catppuccin 主题 |
 | `ghostty` | `~/.config/ghostty/` | 终端模拟器配置 + GLSL 着色器 |
 | `yazi` | `~/.config/yazi/` | 终端文件管理器（含插件） |
 | `cmux` | `~/.config/cmux/cmux.json` | 窗口布局管理 |
