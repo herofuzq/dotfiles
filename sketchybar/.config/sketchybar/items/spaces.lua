@@ -102,9 +102,15 @@ local function withWindows(f)
 end
 
 -- ========== 更新单个工作区的显示 ==========
+-- 决定显示应用图标 / 隐藏
 local function updateWindow(workspace_index, args)
-	local open_windows = args.open_windows[workspace_index] or {}
+	local open_windows = args.open_windows[workspace_index]
 	local focused_workspace = args.focused_workspace
+	local visible_workspaces = args.visible_workspaces
+
+	if open_windows == nil then
+		open_windows = {}
+	end
 
 	-- 拼接应用图标字符串（使用 sketchybar-app-font 的 :name: 格式）
 	local icon_line = ""
@@ -112,37 +118,52 @@ local function updateWindow(workspace_index, args)
 	for _, app in ipairs(open_windows) do
 		no_app = false
 		local lookup = app_icons[app]
-		icon_line = icon_line .. (lookup or app_icons["Default"])
-	end
-
-	-- 确认当前工作区所在的显示器
-	local monitor_id
-	for _, vw in ipairs(args.visible_workspaces) do
-		if workspace_index == vw["workspace"] then
-			local raw_id = vw["monitor-appkit-nsscreen-screens-id"]
-			monitor_id = raw_id and math.floor(raw_id)
-			break
-		end
+		local icon = ((lookup == nil) and app_icons["Default"] or lookup)
+		icon_line = icon_line .. icon
 	end
 
 	sbar.animate("tanh", 10, function()
-		if no_app then
-			local should_show = (monitor_id ~= nil)
-				or workspace_index == focused_workspace
-				or always_show[workspace_index]
+		-- 情况1：没有应用，但工作区当前在屏幕上可见
+		for _, vw in ipairs(visible_workspaces) do
+			if no_app and workspace_index == vw["workspace"] then
+				local raw_id = vw["monitor-appkit-nsscreen-screens-id"]
+				local monitor_id = raw_id and math.floor(raw_id)
+				workspaces[workspace_index]:set({
+					drawing = true,
+					icon = { padding_left = 10, padding_right = 10 },
+					label = { drawing = false },
+					display = monitor_id,
+				})
+				return
+			end
+		end
+
+		-- 情况2：没有应用，也不聚焦 → always_show 则显示，否则隐藏
+		if no_app and workspace_index ~= focused_workspace then
 			workspaces[workspace_index]:set({
-				drawing = should_show,
+				drawing = always_show[workspace_index] and true or false,
 				icon = { padding_left = 10, padding_right = 10 },
 				label = { drawing = false },
-				display = monitor_id,
 			})
-		else
+			return
+		end
+
+		-- 情况3：没有应用，但是聚焦的工作区
+		if no_app and workspace_index == focused_workspace then
 			workspaces[workspace_index]:set({
 				drawing = true,
-				icon = { padding_left = 10, padding_right = 2 },
-				label = { drawing = true, string = icon_line },
+				icon = { padding_left = 10, padding_right = 10 },
+				label = { drawing = false },
 			})
+			return
 		end
+
+		-- 情况4：有应用
+		workspaces[workspace_index]:set({
+			drawing = true,
+			icon = { padding_left = 10, padding_right = 2 },
+			label = { drawing = true, string = icon_line },
+		})
 	end)
 end
 
