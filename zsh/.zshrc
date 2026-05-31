@@ -110,6 +110,10 @@ source ${ZIM_HOME}/init.zsh
 # }}} End configuration added by Zim Framework install
 
 
+# 交互式 shell 启动时显示系统信息（所有终端通用）
+if [[ -o interactive ]] && (( ${+commands[fastfetch]} )); then
+    ~/.config/fastfetch/pokemon.sh
+fi
 
 # Added by LM Studio CLI (lms)
 export PATH="$PATH:/Users/fuzhuoqun/.lmstudio/bin"
@@ -209,7 +213,7 @@ function proxy_all_status() {
 # User aliases
 alias bt='btop'
 alias oc='opencode'
-alias ff='fastfetch'
+alias ff='~/.config/fastfetch/pokemon.sh'
 alias lg='lazygit'
 alias rsx='reasonix'
 # 为代理命令设置简短别名

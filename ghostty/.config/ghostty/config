@@ -71,4 +71,3 @@ clipboard-trim-trailing-spaces = true
 # Startup
 # -------------------------------------------------- #
 env = LANG=zh_CN.UTF-8
-command = /bin/zsh -c 'fastfetch; exec zsh'
