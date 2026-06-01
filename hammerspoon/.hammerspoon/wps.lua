@@ -1,0 +1,85 @@
+-- ============================================================
+-- WPS 右键自动切英文 → 菜单消失后恢复中文
+-- 仅在 WPS 激活时监听，不影响其他应用性能。
+-- ============================================================
+
+-- ---- 配置 ----
+local WPS_APPS = {
+	["com.kingsoft.wpsoffice.mac"] = true,
+}
+
+-- ---- 内部状态 ----
+local _switched = false
+local _wpsTap = nil
+
+-- ---- eventtap 管理 ----
+
+local function createWPSTap()
+	if _wpsTap then return end
+	_wpsTap = hs.eventtap.new(
+		{ hs.eventtap.event.types.rightMouseDown,
+		  hs.eventtap.event.types.leftMouseDown,
+		  hs.eventtap.event.types.keyDown },
+		function(event)
+			local etype = event:getType()
+			if etype == hs.eventtap.event.types.rightMouseDown then
+				_FcitxInput.switchToEnglish()
+				_switched = true
+				hs.alert.show("⚠️ ABC", 0.3)
+			elseif _switched then
+				if etype == hs.eventtap.event.types.leftMouseDown then
+					_FcitxInput.switchToChinese()
+					_switched = false
+					hs.alert.show("⚠️ 中文", 0.3)
+				elseif etype == hs.eventtap.event.types.keyDown then
+					hs.timer.doAfter(0.15, function()
+						if _switched then
+							_FcitxInput.switchToChinese()
+							_switched = false
+							hs.alert.show("⚠️ 中文", 0.3)
+						end
+					end)
+				end
+			end
+			return false
+		end
+	)
+	_wpsTap:start()
+end
+
+local function destroyWPSTap()
+	if not _wpsTap then return end
+	if _switched then
+		_FcitxInput.switchToChinese()
+		_switched = false
+	end
+	_wpsTap:stop()
+	_wpsTap = nil
+end
+
+-- ---- 应用激活/失活监听 ----
+
+local function isWPSApp(app)
+	return app and WPS_APPS[app:bundleID()]
+end
+
+_WPSAppWatcher = hs.application.watcher.new(function(_, event, app)
+	if event == hs.application.watcher.activated then
+		if isWPSApp(app) then
+			createWPSTap()
+		end
+	elseif event == hs.application.watcher.deactivated then
+		if isWPSApp(app) then
+			destroyWPSTap()
+		end
+	end
+end)
+_WPSAppWatcher:start()
+
+-- ---- 启动时检查 ----
+do
+	local front = hs.application.frontmostApplication()
+	if isWPSApp(front) then
+		createWPSTap()
+	end
+end

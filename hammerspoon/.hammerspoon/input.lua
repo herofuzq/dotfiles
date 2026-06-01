@@ -13,10 +13,9 @@ local function isUsingFcitx5()
 	return hs.keycodes.currentSourceID() == FCITX5_SRC
 end
 
-local function realSource()
-	local out = hs.execute("'" .. FCITX .. "'", true)
-	return out and tonumber(out) == 2 and ZH or EN
-end
+-- 内部状态追踪：不依赖 fcitx5-remote 查询（返回值不稳定），
+-- 由 toggle() 每次切换后自己记录，默认假设为中文。
+local _zhState = ZH
 
 local _toggled = 0
 
@@ -27,17 +26,19 @@ local function toggle()
 	if not isUsingFcitx5() then
 		hs.execute("macism " .. FCITX5_SRC .. " 150", true)
 		hs.alert.show("中文", 0.4)
+		_zhState = ZH
 		return
 	end
 
-	-- 已在 fcitx5 中，正常切换中英文
-	local now = realSource()
-	if now == ZH then
+	-- 已在 fcitx5 中，切换中英文
+	if _zhState == ZH then
 		hs.execute("'" .. FCITX .. "' -c", true)
 		hs.alert.show("英文", 0.4)
+		_zhState = EN
 	else
 		hs.execute("'" .. FCITX .. "' -o", true)
 		hs.alert.show("中文", 0.4)
+		_zhState = ZH
 	end
 end
 
@@ -61,17 +62,10 @@ local WARN_APPS = {
 }
 
 local function warnEN(id)
-	if not WARN_APPS[id] then
-		return
-	end
-	if hs.timer.secondsSinceEpoch() - _toggled < 2 then
-		return
-	end
-	-- 当前输入源不是 fcitx5（如 ABC）→ 不警告，因为 fcitx5 未激活
-	if not isUsingFcitx5() then
-		return
-	end
-	if realSource() == ZH then
+	if not WARN_APPS[id] then return end
+	if hs.timer.secondsSinceEpoch() - _toggled < 2 then return end
+	if not isUsingFcitx5() then return end
+	if _zhState == ZH then
 		hs.alert.show("⚠️ 中文输入中", 1.0)
 	end
 end
@@ -86,12 +80,8 @@ _WarnWatcher:start()
 -- 启动时对当前前台应用做一次初始检查
 do
 	local frontApp = hs.application.frontmostApplication()
-	if frontApp then
-		warnEN(frontApp:bundleID())
-	end
+	if frontApp then warnEN(frontApp:bundleID()) end
 end
-
--- 已移除 hs.window.filter 订阅，避免与 hs.application.watcher 双重触发
 
 -- ============================================================
 -- CapsLock (Hyper) 单独按下 → 切换中英文
@@ -99,38 +89,46 @@ end
 local pressed = false
 local used = false
 
-_InputTap = hs.eventtap.new(
-	{
-		hs.eventtap.event.types.flagsChanged,
-		hs.eventtap.event.types.keyDown,
-		hs.eventtap.event.types.leftMouseDown,
-		hs.eventtap.event.types.rightMouseDown,
-		hs.eventtap.event.types.otherMouseDown,
-	},
-	function(event)
-		local etype = event:getType()
-		local f = event:getFlags()
-		local hyper = f.ctrl and f.alt and f.cmd
+_InputTap = hs.eventtap.new({
+	hs.eventtap.event.types.flagsChanged,
+	hs.eventtap.event.types.keyDown,
+	hs.eventtap.event.types.leftMouseDown,
+	hs.eventtap.event.types.rightMouseDown,
+	hs.eventtap.event.types.otherMouseDown,
+}, function(event)
+	local etype = event:getType()
+	local f = event:getFlags()
+	local hyper = f.ctrl and f.alt and f.cmd
 
-		if etype == hs.eventtap.event.types.flagsChanged then
-			if hyper and not pressed then
-				-- Hyper 刚刚按下
-				pressed, used = true, false
-			elseif hyper and pressed then
-				-- Hyper 保持期间修饰键发生了变化（如加了 Shift）→ 视为组合键
-				used = true
-			elseif not hyper and pressed then
-				-- Hyper 释放
-				pressed = false
-				if not used then
-					toggle()
-				end
-			end
-		elseif pressed then
-			-- 任何非修饰键事件（按键、鼠标点击）在 Hyper 按住期间 → 视为组合键
+	if etype == hs.eventtap.event.types.flagsChanged then
+		if hyper and not pressed then
+			pressed, used = true, false
+		elseif hyper and pressed then
 			used = true
+		elseif not hyper and pressed then
+			pressed = false
+			if not used then toggle() end
 		end
-		return false
+	elseif pressed then
+		used = true
 	end
-)
+	return false
+end)
 _InputTap:start()
+
+-- ============================================================
+-- 暴露接口给外部模块使用（如 wps.lua）
+-- ============================================================
+_FcitxInput = {
+	isChinese = function()
+		return isUsingFcitx5() and _zhState == ZH
+	end,
+	switchToEnglish = function()
+		hs.execute("'" .. FCITX .. "' -c", true)
+		_zhState = EN
+	end,
+	switchToChinese = function()
+		hs.execute("'" .. FCITX .. "' -o", true)
+		_zhState = ZH
+	end,
+}
