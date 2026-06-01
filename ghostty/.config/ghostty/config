@@ -35,9 +35,9 @@ unfocused-split-opacity = 0.65
 unfocused-split-fill    = 181825
 split-divider-color     = 45475a
 
-# padding — generous for cmux vertical tab sidebar
-window-padding-x        = 16
-window-padding-y        = 12
+# padding — compact
+window-padding-x        = 4
+window-padding-y        = 4
 window-padding-balance  = true
 
 # splits/tabs inherit CWD
