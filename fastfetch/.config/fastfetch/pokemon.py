@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """Pokefetch — 随机宝可梦精灵图 + fastfetch 系统信息"""
 
-import json, re, os, random, subprocess, sys, tempfile
+import json, re, os, random, subprocess, tempfile
 
 CONFIG_FILE = os.path.expanduser("~/.config/fastfetch/config.jsonc")
 
-# ========== 宝可梦数据库（编号 + 名字） ==========
+# ========== 宝可梦数据库（编号 + 英文名） ==========
 POKEDEX = {
     1: "bulbasaur", 2: "ivysaur", 3: "venusaur", 4: "charmander",
     5: "charmeleon", 6: "charizard", 7: "squirtle", 8: "wartortle",
@@ -79,7 +79,81 @@ POKEDEX = {
     810: "grookey", 813: "scorbunny", 816: "sobble",
     869: "alcremie", 880: "dracozolt", 887: "dragapult",
     888: "zacian", 889: "zamazenta", 890: "eternatus",
+}
 
+# ========== 中文名映射 ==========
+NAME_ZH = {
+    1: "妙蛙种子", 2: "妙蛙草", 3: "妙蛙花", 4: "小火龙",
+    5: "火恐龙", 6: "喷火龙", 7: "杰尼龟", 8: "卡咪龟",
+    9: "水箭龟", 10: "绿毛虫", 11: "铁甲蛹", 12: "巴大蝶",
+    13: "独角虫", 14: "铁壳蛹", 15: "大针蜂", 16: "波波",
+    17: "比比鸟", 18: "大比鸟", 19: "小拉达", 20: "拉达",
+    21: "烈雀", 22: "大嘴雀", 23: "阿柏蛇", 24: "阿柏怪",
+    25: "皮卡丘", 26: "雷丘", 27: "穿山鼠", 28: "穿山王",
+    29: "尼多兰", 30: "尼多娜", 31: "尼多后", 32: "尼多朗",
+    33: "尼多力诺", 34: "尼多王", 35: "皮皮", 36: "皮可西",
+    37: "六尾", 38: "九尾", 39: "胖丁", 40: "胖可丁",
+    41: "超音蝠", 42: "大嘴蝠", 43: "走路草", 44: "臭臭花",
+    45: "霸王花", 46: "派拉斯", 47: "派拉斯特", 48: "毛球",
+    49: "摩鲁蛾", 50: "地鼠", 51: "三地鼠", 52: "喵喵",
+    53: "猫老大", 54: "可达鸭", 55: "哥达鸭", 56: "猴怪",
+    57: "火暴猴", 58: "卡蒂狗", 59: "风速狗", 60: "蚊香蝌蚪",
+    61: "蚊香君", 62: "蚊香泳士", 63: "凯西", 64: "勇基拉",
+    65: "胡地", 66: "腕力", 67: "豪力", 68: "怪力",
+    69: "喇叭芽", 70: "口呆花", 71: "大食花", 72: "玛瑙水母",
+    73: "毒刺水母", 74: "小拳石", 75: "隆隆石", 76: "隆隆岩",
+    77: "小火马", 78: "烈焰马", 79: "呆呆兽", 80: "呆壳兽",
+    81: "小磁怪", 82: "三合一磁怪", 83: "大葱鸭", 84: "嘟嘟",
+    85: "嘟嘟利", 86: "小海狮", 87: "白海狮", 88: "臭泥",
+    89: "臭臭泥", 90: "大舌贝", 91: "刺甲贝", 92: "鬼斯",
+    93: "鬼斯通", 94: "耿鬼", 95: "大岩蛇", 96: "催眠貘",
+    97: "引梦貘人", 98: "大钳蟹", 99: "巨钳蟹", 100: "霹雳电球",
+    101: "顽皮雷弹", 102: "蛋蛋", 103: "椰蛋树", 104: "卡拉卡拉",
+    105: "嘎啦嘎啦", 106: "飞腿郎", 107: "快拳郎", 108: "大舌头",
+    109: "瓦斯弹", 110: "双弹瓦斯", 111: "独角犀牛", 112: "钻角犀兽",
+    113: "吉利蛋", 114: "蔓藤怪", 115: "袋兽", 116: "墨海马",
+    117: "海刺龙", 118: "角金鱼", 119: "金鱼王", 120: "海星星",
+    121: "宝石海星", 122: "魔墙人偶", 123: "飞天螳螂", 124: "迷唇姐",
+    125: "电击兽", 126: "鸭嘴火兽", 127: "凯罗斯", 128: "肯泰罗",
+    129: "鲤鱼王", 130: "暴鲤龙", 131: "拉普拉斯", 132: "百变怪",
+    133: "伊布", 134: "水伊布", 135: "雷伊布", 136: "火伊布",
+    137: "多边兽", 138: "菊石兽", 139: "多刺菊石兽", 140: "化石盔",
+    141: "镰刀盔", 142: "化石翼龙", 143: "卡比兽", 144: "急冻鸟",
+    145: "闪电鸟", 146: "火焰鸟", 147: "迷你龙", 148: "哈克龙",
+    149: "快龙", 150: "超梦", 151: "梦幻",
+    152: "菊草叶", 155: "火球鼠", 158: "小锯鳄",
+    169: "叉字蝠", 172: "皮丘", 175: "波克比", 179: "咩利羊",
+    181: "电龙", 183: "玛力露", 196: "太阳伊布", 197: "月亮伊布",
+    200: "梦妖", 208: "大钢蛇", 212: "巨钳螳螂", 214: "赫拉克罗斯",
+    222: "太阳珊瑚", 227: "盔甲鸟", 228: "戴鲁比", 229: "黑鲁加",
+    243: "雷公", 244: "炎帝", 245: "水君", 246: "幼基拉斯",
+    248: "班基拉斯", 249: "洛奇亚", 250: "凤王", 251: "时拉比",
+    252: "木守宫", 255: "火稚鸡", 258: "水跃鱼",
+    280: "拉鲁拉丝", 282: "沙奈朵", 292: "脱壳忍者",
+    302: "勾魂眼", 303: "大嘴娃", 304: "可可多拉", 306: "波士可多拉",
+    334: "七夕青鸟", 349: "丑丑鱼", 350: "美纳斯",
+    359: "阿勃梭鲁", 373: "暴飞龙", 376: "巨金怪",
+    380: "拉帝亚斯", 381: "拉帝欧斯", 382: "盖欧卡", 383: "固拉多",
+    384: "烈空坐", 385: "基拉祈", 386: "代欧奇希斯",
+    390: "小火焰猴", 393: "波加曼", 403: "小猫怪",
+    443: "圆陆鲨", 445: "烈咬陆鲨", 447: "利欧路", 448: "路卡利欧",
+    461: "玛狃拉", 468: "波克基斯", 470: "叶伊布", 471: "冰伊布",
+    479: "洛托姆", 483: "帝牙卢卡", 484: "帕路奇亚", 487: "骑拉帝纳",
+    491: "达克莱伊", 492: "谢米", 493: "阿尔宙斯",
+    495: "藤藤蛇", 498: "暖暖猪", 501: "水水獭",
+    570: "索罗亚", 571: "索罗亚克", 587: "电飞鼠",
+    607: "烛光灵", 609: "水晶灯火灵", 610: "牙牙",
+    635: "三首恶龙", 637: "火神蛾", 638: "勾帕路翁",
+    643: "莱希拉姆", 644: "捷克罗姆", 646: "酋雷姆",
+    653: "火狐狸", 656: "呱呱泡蛙", 658: "甲贺忍蛙",
+    700: "仙子伊布", 704: "黏黏宝", 706: "黏美龙",
+    716: "哲尔尼亚斯", 717: "伊裴尔塔尔", 719: "蒂安希",
+    722: "木木枭", 725: "火斑喵", 728: "球球海狮",
+    778: "谜拟丘", 785: "卡璞·鸣鸣", 791: "索尔迦雷欧", 792: "露奈雅拉",
+    800: "奈克洛兹玛", 807: "捷拉奥拉",
+    810: "敲音猴", 813: "炎兔儿", 816: "泪眼蜥",
+    869: "霜奶仙", 880: "雷鸟龙", 887: "多龙巴鲁托",
+    888: "苍响", 889: "藏玛然特", 890: "无极汰那",
 }
 
 # ========== 随机形态选项 ==========
@@ -93,26 +167,36 @@ SPECIAL_FORMS = {
     "galar": "--galar",
 }
 
+# 形态中文名
+FORM_ZH = {
+    "mega": "超级进化",
+    "mega_x": "超级进化X",
+    "mega_y": "超级进化Y",
+    "gmax": "超极巨化",
+    "alolan": "阿罗拉的样子",
+    "hisui": "洗翠的样子",
+    "galar": "伽勒尔的样子",
+}
+
 
 def main():
     # 随机宝可梦
     num, name = random.choice(list(POKEDEX.items()))
+    zh_name = NAME_ZH.get(num, name)
 
     # 构建 pokeget 参数
     args = [name]
 
     # 30% 概率闪光
-    if random.random() < 0.3:
+    shiny = random.random() < 0.3
+    if shiny:
         args.append("--shiny")
-        name_label = f"★ {name}"
-    else:
-        name_label = name
 
     # 10% 概率特殊形态
+    form_key = None
     if random.random() < 0.1:
         form_key = random.choice(list(SPECIAL_FORMS.keys()))
         args.append(SPECIAL_FORMS[form_key])
-        name_label += f" ({form_key})"
 
     # 获取精灵图
     result = subprocess.run(["pokeget"] + args + ["--hide-name"],
@@ -126,19 +210,35 @@ def main():
         subprocess.run(["fastfetch", "-c", CONFIG_FILE, "--logo", "none"])
         return
 
+    # 构建中文标签
+    label_parts = []
+    if shiny:
+        label_parts.append("★")
+    label_parts.append(zh_name)
+    if form_key:
+        label_parts.append(f"（{FORM_ZH.get(form_key, form_key)}）")
+    name_label = "".join(label_parts)
+
+    # 清理精灵图尾部空白行 + 每行尾随空格（减少右侧无意义间隔）
+    sprite = sprite.rstrip('\n')
+    sprite_lines = [line.rstrip() for line in sprite.split('\n')]
+    while sprite_lines and not re.sub(r'\x1b\[[0-9;]*m', '', sprite_lines[-1]).strip():
+        sprite_lines.pop()
+    sprite = '\n'.join(sprite_lines)
+
     # 精灵图下方追加名字（居中）
     sprite_width = max((len(re.sub(r'\x1b\[[0-9;]*m', '', line))
-                        for line in sprite.split('\n')), default=0)
+                        for line in sprite_lines), default=0)
     label = f"No.{num:03d} {name_label}"
     label_pad = max(0, (sprite_width - len(label)) // 2)
-    sprite = sprite.rstrip('\n') + f"\n{' ' * label_pad}{label}"
+    sprite = sprite + f"\n{' ' * label_pad}{label}"
 
-    # 测量高度
+    # 测量高度（含精灵名标签行）
     sprite_height = sprite.count('\n') + 1
 
     r = subprocess.run(["fastfetch", "-c", CONFIG_FILE, "--logo", "none"],
                        capture_output=True, text=True, timeout=10)
-    info_height = r.stdout.count('\n') + 1
+    info_height = r.stdout.rstrip('\n').count('\n') + 1
 
     # 动态生成配置（垂直居中）
     with open(CONFIG_FILE) as f:
@@ -147,21 +247,39 @@ def main():
     text = re.sub(r',(\s*[}\]])', r'\1', text)
     cfg = json.loads(text)
 
+    # 修复 shell 显示：用实际 $SHELL 替换
+    real_shell = os.path.basename(os.environ.get('SHELL', 'unknown'))
+    for module in cfg["modules"]:
+        if module.get("type") == "shell":
+            module["type"] = "custom"
+            module["format"] = real_shell
+            break
+
+    # Logo padding 设置（新版 fastfetch 需通过 modules 中的 logo 条目）
+    logo_module = {
+        "type": "logo",
+        "padding": {"top": 0, "bottom": 0, "left": 1, "right": 0}
+    }
+    # 如果 modules 中已有 logo 条目则替换，否则插入到最前面
+    existing_logo_idx = next((i for i, m in enumerate(cfg["modules"]) if m.get("type") == "logo"), None)
+    if existing_logo_idx is not None:
+        cfg["modules"][existing_logo_idx] = logo_module
+    else:
+        cfg["modules"].insert(0, logo_module)
+
     if sprite_height > info_height:
         top_blank = (sprite_height - info_height) // 2
         blank = {"key": " ", "type": "custom"}
-        for _ in range(top_blank):
-            cfg["modules"].insert(0, dict(blank))
+        # 插在 logo 模块之后（logo 模块总在最前面）
+        for i in range(top_blank):
+            cfg["modules"].insert(1 + i, dict(blank))
 
     tmp = os.path.join(tempfile.gettempdir(), "pokefetch_config.json")
     with open(tmp, 'w') as f:
         json.dump(cfg, f)
 
-    # 显示
-    p = subprocess.Popen(["fastfetch", "-c", tmp, "--file-raw", "-",
-                           "--logo-padding-top", "0",
-                           "--logo-padding-left", "1",
-                           "--logo-padding-right", "2"],
+    # 显示（logo padding 已在 JSON 配置中通过 modules logo 条目设置）
+    p = subprocess.Popen(["fastfetch", "-c", tmp, "--file-raw", "-"],
                           stdin=subprocess.PIPE)
     p.communicate(input=sprite.encode())
 

@@ -131,4 +131,13 @@ _FcitxInput = {
 		hs.execute("'" .. FCITX .. "' -o", true)
 		_zhState = ZH
 	end,
+	-- 异步版本：用 hs.task 避免阻塞 eventtap 回调，减少右键延迟
+	switchToEnglishAsync = function()
+		hs.task.new(FCITX, nil, {"-c"}):start()
+		_zhState = EN
+	end,
+	switchToChineseAsync = function()
+		hs.task.new(FCITX, nil, {"-o"}):start()
+		_zhState = ZH
+	end,
 }

@@ -93,12 +93,14 @@ local function onScreenChange()
 	_screenCount = newCount
 
 	if newCount > 1 then
+		hs.alert.show("🖥️ 外接显示器 → 切换音频...", 1.0)
 		print("[AudioSwitch] 检测到外接显示器，" .. SWITCH_DELAY .. " 秒后切换音频...")
 		_pendingTimer = hs.timer.doAfter(SWITCH_DELAY, function()
 			_pendingTimer = nil
 			switchToExternal()
 		end)
 	else
+		hs.alert.show("🔈 切回内置扬声器", 1.0)
 		print("[AudioSwitch] 外接显示器已断开，切回内置扬声器")
 		switchToInternal()
 	end

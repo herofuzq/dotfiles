@@ -23,18 +23,20 @@ local function createWPSTap()
 		function(event)
 			local etype = event:getType()
 			if etype == hs.eventtap.event.types.rightMouseDown then
-				_FcitxInput.switchToEnglish()
-				_switched = true
-				hs.alert.show("⚠️ ABC", 0.3)
+				if _FcitxInput.isChinese() then
+					_FcitxInput.switchToEnglishAsync()
+					_switched = true
+					hs.alert.show("⚠️ ABC", 0.3)
+				end
 			elseif _switched then
 				if etype == hs.eventtap.event.types.leftMouseDown then
-					_FcitxInput.switchToChinese()
+					_FcitxInput.switchToChineseAsync()
 					_switched = false
 					hs.alert.show("⚠️ 中文", 0.3)
 				elseif etype == hs.eventtap.event.types.keyDown then
 					hs.timer.doAfter(0.15, function()
 						if _switched then
-							_FcitxInput.switchToChinese()
+							_FcitxInput.switchToChineseAsync()
 							_switched = false
 							hs.alert.show("⚠️ 中文", 0.3)
 						end
@@ -50,7 +52,7 @@ end
 local function destroyWPSTap()
 	if not _wpsTap then return end
 	if _switched then
-		_FcitxInput.switchToChinese()
+		_FcitxInput.switchToChineseAsync()
 		_switched = false
 	end
 	_wpsTap:stop()
