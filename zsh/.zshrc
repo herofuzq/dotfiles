@@ -109,12 +109,6 @@ fi
 source ${ZIM_HOME}/init.zsh
 # }}} End configuration added by Zim Framework install
 
-
-# 交互式 shell 启动时显示系统信息（所有终端通用）
-# if [[ -o interactive ]] && (( ${+commands[fastfetch]} )); then
-#     ~/.config/fastfetch/pokemon.sh
-# fi
-
 # test -e "${HOME}/.iterm2_shell_integration.zsh" && source "${HOME}/.iterm2_shell_integration.zsh"
 eval "$(starship init zsh)"
 

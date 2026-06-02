@@ -2,6 +2,7 @@
 # Shell
 # -------------------------------------------------- #
 shell-integration-features = cursor,sudo,title,ssh-env,ssh-terminfo
+command = /bin/zsh -c "$HOME/.config/fastfetch/pokemon.sh; exec /bin/zsh -l"
 # -------------------------------------------------- #
 # Macos
 # -------------------------------------------------- #
