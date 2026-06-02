@@ -386,6 +386,18 @@ if.app-id = "com.apple.finder"
 run = 'layout floating'
 
 [[on-window-detected]]
+if.app-id = "com.HyperartFlow.Barbee.bb-agent"
+run = 'layout floating'
+
+[[on-window-detected]]
+if.app-id = "com.apple.printcenter"
+run = 'layout floating'
+
+[[on-window-detected]]
+if.app-id = "org.hammerspoon.Hammerspoon"
+run = 'layout floating'
+
+[[on-window-detected]]
 if.app-id = "com.daisydiskapp.DaisyDiskStandAlone"
 run = 'layout floating'
 

@@ -104,9 +104,10 @@ local function onScreenChange()
 			_pendingTimer = nil
 			switchToExternal()
 		end)
-	else
+	elseif not hasExternalAudio() then
+		-- 外接音频设备全部断开才切回内置（合盖不会误切）
 		hs.alert.show("🔈 切回内置扬声器", 1.0)
-		print("[AudioSwitch] 外接显示器已断开，切回内置扬声器")
+		print("[AudioSwitch] 无外接音频设备，切回内置扬声器")
 		switchToInternal()
 	end
 end
