@@ -30,7 +30,7 @@ cd ~/dotfiles
 brew bundle install --file=Brewfile
 
 # 3. Stow 所有配置包（--no-folding 避免目录折叠）
-stow --no-folding aerospace bash bat borders btop cmux fastfetch fcitx5 fd \
+stow --no-folding aerospace bash bat borders btop clash cmux fastfetch fcitx5 fd \
      ghostty git hammerspoon karabiner kitty lazygit npm nvim \
      sketchybar ssh starship tmux yazi zsh
 
@@ -115,6 +115,7 @@ brew bundle cleanup --file=Brewfile       # 清理未列出项
 | `fd` | `~/.config/fd/ignore` | find 替代品忽略规则 |
 | `fastfetch` | `~/.config/fastfetch/config.jsonc` | 系统信息 |
 | `btop` | `~/.config/btop/btop.conf` | 终端资源监视器 |
+| `clash` | `~/script.js` | Clash Verge Rev / Mihomo Party 分流脚本（YaNet） |
 
 ### Sketchybar
 
@@ -223,6 +224,7 @@ dotfiles/
 ├── bat/                  # 语法高亮
 ├── borders/              # 窗口边框
 ├── btop/                 # 系统监控
+├── clash/                # 代理脚本
 ├── cmux/                 # 窗口布局
 ├── fastfetch/            # 系统信息
 ├── fcitx5/               # 输入法框架
