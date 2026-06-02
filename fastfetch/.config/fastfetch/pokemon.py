@@ -255,6 +255,25 @@ def main():
             module["format"] = real_shell
             break
 
+    # 修复终端显示：从环境变量检测真正的终端模拟器
+    real_term = os.environ.get('TERM_PROGRAM', '')
+    if real_term in ('iTerm.app',):   real_term = 'iTerm2'
+    elif real_term == 'Apple_Terminal': real_term = 'Terminal'
+    elif real_term == 'WarpTerminal':   real_term = 'Warp'
+    if not real_term:
+        term = os.environ.get('TERM', '')
+        for name in ('ghostty', 'kitty', 'alacritty', 'wezterm', 'hyper', 'contour'):
+            if name in term:
+                real_term = name.capitalize()
+                break
+    if not real_term:
+        real_term = os.environ.get('LC_TERMINAL', '') or 'unknown'
+    for module in cfg["modules"]:
+        if module.get("type") == "terminal":
+            module["type"] = "custom"
+            module["format"] = real_term
+            break
+
     # Logo padding 设置（新版 fastfetch 需通过 modules 中的 logo 条目）
     logo_module = {
         "type": "logo",

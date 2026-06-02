@@ -77,6 +77,11 @@ local function switchToInternal()
 	end
 end
 
+-- ---- 检测是否有外接音频设备 ----
+local function hasExternalAudio()
+	return findDevice(EXTERNAL_TRANSPORTS) ~= nil
+end
+
 -- ---- 屏幕变化回调 ----
 local function onScreenChange()
 	local newCount = #hs.screen.allScreens()
@@ -106,12 +111,28 @@ local function onScreenChange()
 	end
 end
 
+-- ---- 系统唤醒监听（盒盖待机连接显示器场景） ----
+_WakeWatcher = hs.caffeinate.watcher.new(function(eventType)
+	if eventType == hs.caffeinate.watcher.systemDidWake then
+		print("[AudioSwitch] 系统唤醒，检测显示器...")
+		-- 唤醒后屏幕恢复可能有延迟，等 SWITCH_DELAY 再检查
+		hs.timer.doAfter(SWITCH_DELAY, function()
+			if hasExternalAudio() then
+				print("[AudioSwitch] 唤醒后检测到外接显示器，切换音频")
+				hs.alert.show("🖥️ 外接显示器 → 切换音频...", 1.0)
+				switchToExternal()
+			end
+		end)
+	end
+end)
+_WakeWatcher:start()
+
 -- ---- 启动屏幕监听 ----
 _ScreenWatcher = hs.screen.watcher.new(onScreenChange)
 _ScreenWatcher:start()
 
 -- ---- 启动时检查 ----
-if #hs.screen.allScreens() > 1 then
-	print("[AudioSwitch] 启动时检测到外接显示器，切换音频...")
+if hasExternalAudio() then
+	print("[AudioSwitch] 启动时检测到外接音频设备，切换音频...")
 	hs.timer.doAfter(SWITCH_DELAY, switchToExternal)
 end
