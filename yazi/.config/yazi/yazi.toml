@@ -59,6 +59,7 @@ open_terminal = [
 	{ run = "open -a Terminal %s", desc = "Terminal", for = "macos" },
 ]
 extract = [{ run = "ya pub extract --list %s", desc = "Extract here" }]
+extract_rar = [{ run = 'unar -output-directory %d %s', desc = "Extract RAR with unar", for = "unix" }]
 download = [
 	{ run = "ya emit download --open %S", desc = "Download and open" },
 	{ run = "ya emit download %S", desc = "Download" },
@@ -81,7 +82,8 @@ rules = [
 	# OFD
 	{ url = "*.ofd", use = ["open", "reveal"] },
 	# Archive
-	{ mime = "application/{zip,rar,7z*,tar,gzip,xz,zstd,bzip*,lzma,compress,archive,cpio,arj,xar,ms-cab*}", use = ["extract", "reveal"] },
+	{ mime = "application/rar", use = ["extract_rar", "reveal"] },
+	{ mime = "application/{zip,7z*,tar,gzip,xz,zstd,bzip*,lzma,compress,archive,cpio,arj,xar,ms-cab*}", use = ["extract", "reveal"] },
 	# JSON
 	{ mime = "application/{json,ndjson}", use = ["edit", "reveal"] },
 	{ mime = "*/javascript", use = ["edit", "reveal"] },
