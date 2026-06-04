@@ -11,9 +11,9 @@ local sbar = require("sketchybar")
 local always_show = {
 	["1̲Main"] = true,
 	["2̲Sec"] = true,
-	["C̲hat"] = true,
-	["T̲erm"] = true,
-	["W̲ork"] = true,
+	["3̲Chat"] = true,
+	["5̲Term"] = true,
+	["4̲Work"] = true,
 }
 -- aerospace 查询命令模板
 local query_workspaces =
@@ -255,7 +255,7 @@ sbar.exec(query_workspaces, function(workspaces_and_monitors)
 			drawing = false, -- 初始隐藏，稍后由 updateWindow 决定显示/隐藏
 			padding_left = 2,
 			padding_right = 2,
-			icon = { -- 显示工作区名称（如 "Web", "C̲hat"）
+			icon = { -- 显示工作区名称（如 "3̲Chat", "5̲Term"）
 				color = style.icon.color,
 				highlight_color = style.icon.highlight_color,
 				font = style.icon.font,
