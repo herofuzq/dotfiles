@@ -781,4 +781,5 @@ return {
 	["百度网盘"] = ":baidunetdisk:",
 	["飞书"] = ":feishu:",
 	["飞书会议"] = ":feishu:",
+	["小米互联服务"] = ":iphone_mirroring:",
 }

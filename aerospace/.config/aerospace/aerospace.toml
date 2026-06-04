@@ -443,6 +443,10 @@ if.app-id = "com.parallels.desktop.console"
 run = ["move-node-to-workspace 2̲Sec"]
 
 [[on-window-detected]]
+if.app-id = "com.xiaomi.hyperConnect"
+run = ["move-node-to-workspace 2̲Sec"]
+
+[[on-window-detected]]
 if.app-id = "com.tencent.xinWeChat"
 run = ["move-node-to-workspace 3̲Chat"]
 
