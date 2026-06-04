@@ -5,11 +5,11 @@ local fonts = require("fonts")
 local colors = require("appearance").colors
 local settings = require("settings")
 
-local clash_tun = sbar.add("item", "widgets.clash_tun", {
-	position = "right",
-	update_freq = 5,
-	padding_left = 2,
-	padding_right = 2,
+	local clash_tun = sbar.add("item", "widgets.clash_tun", {
+		position = "right",
+		update_freq = 30,
+		padding_left = 2,
+		padding_right = 2,
 	icon = {
 		font = {
 			family = fonts.font_icon.text,
@@ -45,14 +45,24 @@ local function update_display(tun_on)
 	})
 end
 
+local last_tun_on = false
+
 local function check_status()
 	sbar.exec("$CONFIG_DIR/helpers/clash_status.sh", function(status)
-		update_display((status or ""):match("on") ~= nil)
+		last_tun_on = (status or ""):match("on") ~= nil
+		update_display(last_tun_on)
 	end)
+end
+
+local function refresh_colors()
+	clash_tun:set({
+		icon = { color = last_tun_on and colors.active.green or colors.active.red },
+		label = { color = colors.active.sep_opaque },
+	})
 end
 
 clash_tun:subscribe({ "routine", "system_woke" }, check_status)
 check_status()
 
-clash_tun:subscribe("theme_changed", check_status)
+clash_tun:subscribe("theme_changed", refresh_colors)
 
