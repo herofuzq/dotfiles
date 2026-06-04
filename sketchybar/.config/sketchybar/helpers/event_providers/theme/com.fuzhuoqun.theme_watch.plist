@@ -16,9 +16,5 @@
     <true/>
     <key>ProcessType</key>
     <string>Background</string>
-    <key>StandardOutPath</key>
-    <string>/tmp/theme_watch.out</string>
-    <key>StandardErrorPath</key>
-    <string>/tmp/theme_watch.err</string>
 </dict>
 </plist>

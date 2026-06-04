@@ -181,8 +181,6 @@ AXUIElementRef ax_get_extra_menu_item(char* alias) {
         AXValueGetValue(size_ref, kAXValueCGSizeType, &size);
         CFRelease(position_ref);
         CFRelease(size_ref);
-        // The offset is exactly 8 on macOS Sonoma...
-        // printf("%f %f\n", position.x, bounds.origin.x);
         if (error == kAXErrorSuccess
             && fabs(position.x - bounds.origin.x) <= 10) {
           result = item;
@@ -197,7 +195,6 @@ AXUIElementRef ax_get_extra_menu_item(char* alias) {
 }
 
 extern int SLSMainConnectionID();
-extern void SLSSetMenuBarVisibilityOverrideOnDisplay(int cid, int did, bool enabled);
 extern void SLSSetMenuBarVisibilityOverrideOnDisplay(int cid, int did, bool enabled);
 extern void SLSSetMenuBarInsetAndAlpha(int cid, double u1, double u2, float alpha);
 void ax_select_menu_extra(char* alias) {
