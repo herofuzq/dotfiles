@@ -303,19 +303,13 @@ sbar.exec(query_workspaces, function(workspaces_and_monitors)
 	-- ===== 事件订阅 =====
 
 	-- 工作区切换时更新窗口列表
-	root:subscribe("aerospace_workspace_change", function()
-		updateWindows()
-	end)
+	root:subscribe("aerospace_workspace_change", updateWindows)
 
-	-- 窗口变化时更新（Hammerspoon window_watcher: windowCreated + windowFocused）
-	root:subscribe("space_windows_change", function()
-		updateWindows()
-	end)
-
-	-- 前台应用切换时更新（兜底，覆盖 windowFocused 未触发的边缘情况）
-	root:subscribe("front_app_switched", function()
-		updateWindows()
-	end)
+	-- 窗口变化时更新（Hammerspoon window_watcher 50ms 防抖后单源触发，
+	-- 之前 front_app_switched 兜底会跟它撞车 → 6 个 sbar.exec 挤在 layout
+	-- 切换窗口期里把 1 帧的 tile→float 拖成可见的"飞"。去掉兜底后单源化
+	-- 不会出现 6 shell 撞车，也就不会再闪）
+	root:subscribe("space_windows_change", updateWindows)
 
 	-- 显示器变化时（插拔显示器）重新分配
 	root:subscribe("display_change", function()
@@ -352,6 +346,8 @@ sbar.exec(query_workspaces, function(workspaces_and_monitors)
 		-- 重新分发边框色（borders.lua 已通过 set_theme 知道当前主题）
 		updateWindows()
 	end)
+
+	-- （已移除 front_app_switched 兜底订阅，理由见 space_windows_change 注释）
 
 	-- 查询初始聚焦的工作区，标记为高亮
 	sbar.exec("aerospace list-workspaces --focused", function(focused_workspace)
