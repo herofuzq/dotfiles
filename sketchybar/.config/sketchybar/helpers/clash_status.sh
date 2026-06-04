@@ -1,6 +1,16 @@
 #!/bin/bash
-# 查询 Clash Verge TUN 代理状态，输出 "on" 或 "off"
-# 依赖：/tmp/verge/verge-mihomo.sock（Clash Verge Unix socket）
+# 查询 Clash Verge TUN + 系统代理状态
+# 输出: all / tun / sys / off / nod
+#   all - TUN + 系统代理都开
+#   tun - 仅 TUN 开
+#   sys - 仅系统代理开
+#   off - 都关
+#   nod - Clash Verge 未运行
+
+SOCKET="/tmp/verge/verge-mihomo.sock"
+
+# Clash Verge 未运行
+[ -S "$SOCKET" ] || { echo "nod"; exit 0; }
 
 # 查找可用的 Python 解释器
 PYTHON=""
@@ -11,7 +21,7 @@ elif command -v python &>/dev/null; then
 fi
 
 if [ -n "$PYTHON" ]; then
-	STATUS=$(curl -s --max-time 2 --unix-socket /tmp/verge/verge-mihomo.sock \
+	TUN_STATE=$(curl -s --max-time 2 --unix-socket "$SOCKET" \
 		http://localhost/configs 2>/dev/null \
 		| $PYTHON -c "
 import sys, json
@@ -20,7 +30,22 @@ try:
 except Exception:
     print('off')
 " 2>/dev/null)
-	echo "${STATUS:-off}"
+else
+	TUN_STATE="off"
+fi
+
+# 系统代理状态: HTTP 或 HTTPS 任一开启即视为系统代理开启
+SYS_STATE="off"
+if scutil --proxy 2>/dev/null | grep -qE 'HTTPEnable : 1|HTTPSEnable : 1'; then
+	SYS_STATE="on"
+fi
+
+if [ "$TUN_STATE" = "on" ] && [ "$SYS_STATE" = "on" ]; then
+	echo "all"
+elif [ "$TUN_STATE" = "on" ]; then
+	echo "tun"
+elif [ "$SYS_STATE" = "on" ]; then
+	echo "sys"
 else
 	echo "off"
 fi

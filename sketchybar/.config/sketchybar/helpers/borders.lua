@@ -117,27 +117,33 @@ function distribute(visible_workspace_names)
 	local n = #visible_workspace_names
 	local set = current_sets[n]
 	if not set then
-		return
+		local fallback_n = math.min(math.max(n, 5), 9)
+		set = current_sets[fallback_n]
+		if not set then return end
+	end
+
+	local function color_at(idx)
+		return set[((idx - 1) % #set) + 1]
 	end
 
 	-- apple（固定，索引 1）
-	sbar.set(apple_item, { background = { border_color = set[1] }, icon = { color = set[1] } })
+	sbar.set(apple_item, { background = { border_color = color_at(1) }, icon = { color = color_at(1) } })
 
 	-- 工作区（索引 2 ~ n+1）
 	for i, name in ipairs(visible_workspace_names) do
 		sbar.set(name, {
-			background = { border_color = set[1 + i], border_width = 2 },
-			icon = { color = set[1 + i] },
+			background = { border_color = color_at(1 + i), border_width = 2 },
+			icon = { color = color_at(1 + i) },
 		})
 	end
 
 	-- 静态 widget（索引 n+2 ~ n+8）
 	for i, name in ipairs(widget_order) do
-		sbar.set(name, { background = { border_color = set[1 + n + i] } })
+		sbar.set(name, { background = { border_color = color_at(1 + n + i) } })
 	end
 
 	-- calendar（固定，索引 n+9）
-	sbar.set(calendar_item, { background = { border_color = set[n + 9] } })
+	sbar.set(calendar_item, { background = { border_color = color_at(n + 9) } })
 end
 
 return { distribute = distribute, set_theme = set_theme }

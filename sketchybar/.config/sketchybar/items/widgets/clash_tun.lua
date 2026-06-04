@@ -37,26 +37,42 @@ local settings = require("settings")
 	},
 })
 
-local function update_display(tun_on)
-	local icon_color = tun_on and colors.active.green or colors.active.red
+local function color_for(state)
+	if state == "all" then return colors.active.mauve end
+	if state == "tun" then return colors.active.green end
+	if state == "sys" then return colors.active.sapphire end
+	if state == "off" then return colors.active.red end
+	return colors.active.bg3_opaque
+end
+
+local function label_for(state)
+	if state == "all" then return "ALL" end
+	if state == "tun" then return "TUN" end
+	if state == "sys" then return "SYS" end
+	if state == "off" then return "OFF" end
+	return "—"
+end
+
+local function update_display(state)
 	clash_tun:set({
-		icon = { string = icons.clash.tun, color = icon_color },
-		label = { string = tun_on and "TUN" or "OFF", color = colors.active.sep_opaque },
+		icon = { string = icons.clash.tun, color = color_for(state) },
+		label = { string = label_for(state), color = colors.active.sep_opaque },
 	})
 end
 
-local last_tun_on = false
+local last_state = "off"
 
 local function check_status()
 	sbar.exec("$CONFIG_DIR/helpers/clash_status.sh", function(status)
-		last_tun_on = (status or ""):match("on") ~= nil
-		update_display(last_tun_on)
+		status = (status or ""):match("^%s*(.-)%s*$")
+		last_state = status
+		update_display(status)
 	end)
 end
 
 local function refresh_colors()
 	clash_tun:set({
-		icon = { color = last_tun_on and colors.active.green or colors.active.red },
+		icon = { color = color_for(last_state) },
 		label = { color = colors.active.sep_opaque },
 	})
 end

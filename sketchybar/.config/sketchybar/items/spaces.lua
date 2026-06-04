@@ -45,8 +45,20 @@ local mode_item = sbar.add("item", "aerospace_mode", {
 -- 调用多个 aerospace 命令，收集窗口列表、可见工作区、聚焦工作区
 -- 最终调用回调函数 f(args)
 local function withWindows(f)
-	local open_windows = {} -- 工作区 → 应用列表
-	local has_fullscreen = {} -- 工作区是否有全屏窗口
+	local results = {
+		open_windows = {},
+		has_fullscreen = {},
+		focused_workspace = nil,
+		visible_workspaces = nil,
+	}
+	local pending = 3
+
+	local function check_done()
+		pending = pending - 1
+		if pending == 0 then
+			f(results)
+		end
+	end
 
 	local get_windows =
 		"aerospace list-windows --monitor all --format '%{workspace}%{app-name}%{window-id}%{window-is-fullscreen}' --json"
@@ -63,34 +75,32 @@ local function withWindows(f)
 			local window_id = entry["window-id"]
 
 			if entry["window-is-fullscreen"] then
-				has_fullscreen[workspace_index] = true
+				results.has_fullscreen[workspace_index] = true
 			end
 
 			-- 每个窗口独立统计，允许同一应用多个窗口显示多个图标
 			if not processed_windows[window_id] then
 				processed_windows[window_id] = true
 
-				if open_windows[workspace_index] == nil then
-					open_windows[workspace_index] = {}
+				if results.open_windows[workspace_index] == nil then
+					results.open_windows[workspace_index] = {}
 				end
 
-				table.insert(open_windows[workspace_index], app)
+				table.insert(results.open_windows[workspace_index], app)
 			end
 		end
 
-		-- 嵌套查询：先查聚焦工作区，再查可见工作区，最后统一处理
-		sbar.exec(get_focus_workspaces, function(focused_workspace)
-			focused_workspace = focused_workspace:match("^%s*(.-)%s*$")
-			sbar.exec(query_visible_workspaces, function(visible_workspaces)
-				local args = {
-					open_windows = open_windows,
-					focused_workspace = focused_workspace,
-					visible_workspaces = visible_workspaces,
-					has_fullscreen = has_fullscreen,
-				}
-				f(args)
-			end)
-		end)
+		check_done()
+	end)
+
+	sbar.exec(get_focus_workspaces, function(focused_workspace)
+		results.focused_workspace = focused_workspace:match("^%s*(.-)%s*$")
+		check_done()
+	end)
+
+	sbar.exec(query_visible_workspaces, function(visible_workspaces)
+		results.visible_workspaces = visible_workspaces
+		check_done()
 	end)
 end
 

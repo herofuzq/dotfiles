@@ -16,5 +16,8 @@ if cfg and not (
 	and file_exists(cfg .. "/helpers/event_providers/theme/bin/theme_watch")
 	and file_exists(cfg .. "/helpers/menus/bin/menus")
 ) then
-	os.execute("cd \"" .. cfg .. "/helpers\" && make")
+	local ok = os.execute("cd \"" .. cfg .. "/helpers\" && make 2>&1")
+	if ok ~= 0 and ok ~= true then
+		io.stderr:write("sketchybar: helper compile failed (exit " .. tostring(ok) .. ")\n")
+	end
 end
