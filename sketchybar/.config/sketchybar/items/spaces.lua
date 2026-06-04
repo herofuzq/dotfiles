@@ -44,7 +44,10 @@ local mode_item = sbar.add("item", "aerospace_mode", {
 -- ========== 窗口信息收集函数 ==========
 -- 调用多个 aerospace 命令，收集窗口列表、可见工作区、聚焦工作区
 -- 最终调用回调函数 f(args)
+local generation = 0
+
 local function withWindows(f)
+	local my_gen = generation
 	local results = {
 		open_windows = {},
 		has_fullscreen = {},
@@ -54,6 +57,7 @@ local function withWindows(f)
 	local pending = 3
 
 	local function check_done()
+		if my_gen ~= generation then return end
 		pending = pending - 1
 		if pending == 0 then
 			f(results)
@@ -172,6 +176,7 @@ end
 
 -- ========== 更新所有工作区 + 分配边框颜色 ==========
 local function updateWindows()
+	generation = generation + 1
 	withWindows(function(args)
 		-- 第一步：更新每个工作区的窗口内容
 		for workspace_index, _ in pairs(workspaces) do
