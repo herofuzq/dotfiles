@@ -8,7 +8,7 @@ config-version = 2
 # You can use it to add commands that run after AeroSpace startup.
 # Available commands : https://nikitabobko.github.io/AeroSpace/commands
 after-startup-command = [
-  'exec-and-forget borders active_color=0xffff9e64 inactive_color=0x00000000 width=2.0 hidpi=off',
+  'exec-and-forget borders active_color=0xffff9e64 inactive_color=0x00000000 width=2.0 hidpi=on',
   'exec-and-forget sketchybar --reload',
   'exec-and-forget sketchybar',
 ]
@@ -99,24 +99,24 @@ inner.vertical = [
   6,
 ]
 outer.left = [
-  { monitor."Built-in Retina Display" = 7 },
-  { monitor."VG271U" = 7 },
-  7,
+  { monitor."Built-in Retina Display" = 8 },
+  { monitor."VG271U" = 8 },
+  8,
 ]
 outer.bottom = [
-  { monitor."Built-in Retina Display" = 3 },
-  { monitor."VG271U" = 3},
-  3,
+  { monitor."Built-in Retina Display" = 6 },
+  { monitor."VG271U" = 6},
+  6,
 ]
 outer.top = [
-  { monitor."Built-in Retina Display" = 5 },
-  { monitor."VG271U" = 36 },
-  35,
+  { monitor."Built-in Retina Display" = 6 },
+  { monitor."VG271U" = 37 },
+  37,
 ]
 outer.right = [
-  { monitor."Built-in Retina Display" = 7 },
-  { monitor."VG271U" = 7 },
-  7,
+  { monitor."Built-in Retina Display" = 8 },
+  { monitor."VG271U" = 8 },
+  8,
 ]
 # 'main' binding mode declaration
 # See: https://nikitabobko.github.io/AeroSpace/guide#binding-modes

@@ -56,7 +56,6 @@ local function withWindows(f)
 
 	sbar.exec(get_windows, function(workspace_and_windows)
 		local processed_windows = {} -- 去重用：记录已处理的窗口 ID
-		local seen_apps = {} -- 去重用：记录每个工作区已添加的应用
 
 		for _, entry in ipairs(workspace_and_windows) do
 			local workspace_index = entry.workspace
@@ -67,7 +66,7 @@ local function withWindows(f)
 				has_fullscreen[workspace_index] = true
 			end
 
-			-- 每个窗口只统计一次（同一应用可能有多个窗口）
+			-- 每个窗口独立统计，允许同一应用多个窗口显示多个图标
 			if not processed_windows[window_id] then
 				processed_windows[window_id] = true
 
@@ -75,12 +74,7 @@ local function withWindows(f)
 					open_windows[workspace_index] = {}
 				end
 
-				-- 去重：同一应用不重复添加（O(1) hash set）
-				local seen_key = workspace_index .. "\0" .. app
-				if not seen_apps[seen_key] then
-					seen_apps[seen_key] = true
-					table.insert(open_windows[workspace_index], app)
-				end
+				table.insert(open_windows[workspace_index], app)
 			end
 		end
 
@@ -321,8 +315,13 @@ sbar.exec(query_workspaces, function(workspaces_and_monitors)
 		updateWindows()
 	end)
 
-	-- 窗口增减时更新（macOS 原生事件，aerospace 下可用）
+	-- 窗口变化时更新（Hammerspoon window_watcher: windowCreated + windowFocused）
 	root:subscribe("space_windows_change", function()
+		updateWindows()
+	end)
+
+	-- 前台应用切换时更新（兜底，覆盖 windowFocused 未触发的边缘情况）
+	root:subscribe("front_app_switched", function()
 		updateWindows()
 	end)
 

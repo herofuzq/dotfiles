@@ -6,4 +6,5 @@
 require("input") -- 输入法切换 + 终端中文提醒（必须在 wps 之前）
 require("wps") -- WPS 右键自动切英文（依赖 input 的 _FcitxInput）
 require("audio") -- 外接显示器自动切换音频输出
+require("window_watcher") -- 窗口变化 → sketchybar 更新
 -- require("aero_float") -- 浮动窗口置顶（依赖 BetterTouchTool）
