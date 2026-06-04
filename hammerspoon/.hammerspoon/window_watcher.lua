@@ -3,7 +3,7 @@
 --
 -- 注意：watcher 必须用全局变量持有，否则会被 Lua GC 回收（Hammerspoon #681）
 
-local DEBOUNCE_MS = 300
+local DEBOUNCE_MS = 50
 local next_notify = 0
 
 local function notify()

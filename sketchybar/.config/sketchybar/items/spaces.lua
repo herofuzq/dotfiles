@@ -114,6 +114,7 @@ local function updateWindow(workspace_index, args)
 	local open_windows = args.open_windows[workspace_index]
 	local focused_workspace = args.focused_workspace
 	local visible_workspaces = args.visible_workspaces
+	local is_focused = workspace_index == focused_workspace
 
 	if open_windows == nil then
 		open_windows = {}
@@ -129,49 +130,47 @@ local function updateWindow(workspace_index, args)
 		icon_line = icon_line .. icon
 	end
 
-	sbar.animate("tanh", 10, function()
-		-- 情况1：没有应用，但工作区当前在屏幕上可见
-		for _, vw in ipairs(visible_workspaces) do
-			if no_app and workspace_index == vw["workspace"] then
-				local raw_id = vw["monitor-appkit-nsscreen-screens-id"]
-				local monitor_id = raw_id and math.floor(raw_id)
-				workspaces[workspace_index]:set({
-					drawing = true,
-					icon = { padding_left = 10, padding_right = 10 },
-					label = { drawing = false },
-					display = monitor_id,
-				})
-				return
-			end
-		end
-
-		-- 情况2：没有应用，也不聚焦 → always_show 则显示，否则隐藏
-		if no_app and workspace_index ~= focused_workspace then
-			workspaces[workspace_index]:set({
-				drawing = always_show[workspace_index] and true or false,
-				icon = { padding_left = 10, padding_right = 10 },
-				label = { drawing = false },
-			})
-			return
-		end
-
-		-- 情况3：没有应用，但是聚焦的工作区
-		if no_app and workspace_index == focused_workspace then
+	-- 情况1：没有应用，但工作区当前在屏幕上可见
+	for _, vw in ipairs(visible_workspaces) do
+		if no_app and workspace_index == vw["workspace"] then
+			local raw_id = vw["monitor-appkit-nsscreen-screens-id"]
+			local monitor_id = raw_id and math.floor(raw_id)
 			workspaces[workspace_index]:set({
 				drawing = true,
-				icon = { padding_left = 10, padding_right = 10 },
-				label = { drawing = false },
+				icon = { padding_left = 10, padding_right = 10, highlight = is_focused },
+				label = { drawing = false, highlight = is_focused },
+				display = monitor_id,
 			})
 			return
 		end
+	end
 
-		-- 情况4：有应用
+	-- 情况2：没有应用，也不聚焦 → always_show 则显示，否则隐藏
+	if no_app and workspace_index ~= focused_workspace then
+		workspaces[workspace_index]:set({
+			drawing = always_show[workspace_index] and true or false,
+			icon = { padding_left = 10, padding_right = 10, highlight = is_focused },
+			label = { drawing = false, highlight = is_focused },
+		})
+		return
+	end
+
+	-- 情况3：没有应用，但是聚焦的工作区
+	if no_app and workspace_index == focused_workspace then
 		workspaces[workspace_index]:set({
 			drawing = true,
-			icon = { padding_left = 10, padding_right = 2 },
-			label = { drawing = true, string = icon_line },
+			icon = { padding_left = 10, padding_right = 10, highlight = is_focused },
+			label = { drawing = false, highlight = is_focused },
 		})
-	end)
+		return
+	end
+
+	-- 情况4：有应用
+	workspaces[workspace_index]:set({
+		drawing = true,
+		icon = { padding_left = 10, padding_right = 2, highlight = is_focused },
+		label = { drawing = true, string = icon_line, highlight = is_focused },
+	})
 end
 
 -- ========== 更新所有工作区 + 分配边框颜色 ==========
@@ -204,26 +203,16 @@ local function updateWindows()
 			end
 		end
 
-		-- 第三步：通过中央调色器分配边框颜色
+		-- 第三步：通过中央调色器分配边框颜色 + 全屏处理
 		local visible_names = {}
-		for _, ws_idx in ipairs(visible) do
+		local fullscreen_idx = {}
+		for i, ws_idx in ipairs(visible) do
 			visible_names[#visible_names + 1] = "workspace." .. ws_idx
-		end
-		borders.distribute(visible_names)
-
-		-- 第四步：全屏工作区特殊处理（覆盖为红边框 + 加粗）
-		sbar.animate("tanh", 10, function()
-			for _, ws_idx in ipairs(visible) do
-				workspaces[ws_idx]:set({
-					icon = { highlight_color = 0xffff4444 },
-				})
-				if args.has_fullscreen[ws_idx] then
-					workspaces[ws_idx]:set({
-						background = { border_color = 0xffff4444, border_width = 4 },
-					})
-				end
+			if args.has_fullscreen[ws_idx] then
+				fullscreen_idx[i] = true
 			end
-		end)
+		end
+		borders.distribute(visible_names, fullscreen_idx)
 	end)
 end
 
@@ -288,19 +277,6 @@ sbar.exec(query_workspaces, function(workspaces_and_monitors)
 
 		workspaces[workspace_index] = workspace
 		table.insert(workspace_order, workspace_index)
-
-		-- 订阅工作区切换事件，更新高亮状态
-		workspace:subscribe("aerospace_workspace_change", function(env)
-			local focused_workspace = env.FOCUSED_WORKSPACE
-			local is_focused = focused_workspace == workspace_index
-
-			sbar.animate("tanh", 10, function()
-				workspace:set({
-					icon = { highlight = is_focused },
-					label = { highlight = is_focused },
-				})
-			end)
-		end)
 	end
 
 	-- 装饰性文字（左侧 "Powered by " —  为 i3 window management 图标，保留作装饰用）

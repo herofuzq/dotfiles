@@ -113,7 +113,8 @@ function set_theme(theme)
 	current_sets = (theme == "light") and latte_sets or dark_sets
 end
 
-function distribute(visible_workspace_names)
+function distribute(visible_workspace_names, fullscreen_set)
+	fullscreen_set = fullscreen_set or {}
 	local n = #visible_workspace_names
 	local set = current_sets[n]
 	if not set then
@@ -131,9 +132,16 @@ function distribute(visible_workspace_names)
 
 	-- 工作区（索引 2 ~ n+1）
 	for i, name in ipairs(visible_workspace_names) do
+		local is_fullscreen = fullscreen_set[i]
 		sbar.set(name, {
-			background = { border_color = color_at(1 + i), border_width = 2 },
-			icon = { color = color_at(1 + i) },
+			background = {
+				border_color = is_fullscreen and 0xffff4444 or color_at(1 + i),
+				border_width = is_fullscreen and 4 or 2,
+			},
+			icon = {
+				color = color_at(1 + i),
+				highlight_color = 0xffff4444,
+			},
 		})
 	end
 
