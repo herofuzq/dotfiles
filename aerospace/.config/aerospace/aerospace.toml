@@ -8,7 +8,7 @@ config-version = 2
 # You can use it to add commands that run after AeroSpace startup.
 # Available commands : https://nikitabobko.github.io/AeroSpace/commands
 after-startup-command = [
-  # 'exec-and-forget borders active_color=0xffff9e64 inactive_color=0x00000000 width=6.0 hidpi=on',
+  'exec-and-forget borders active_color=0xffff9e64 inactive_color=0x00000000 width=2.0 hidpi=off',
   'exec-and-forget sketchybar --reload',
   'exec-and-forget sketchybar',
 ]
@@ -30,10 +30,10 @@ enable-normalization-opposite-orientation-for-nested-containers = true
 # See: https://nikitabobko.github.io/AeroSpace/guide#layouts
 # The 'accordion-padding' specifies the size of accordion padding
 # You can set 0 to disable the padding feature
-accordion-padding = 25
+accordion-padding = 30
 
 # Possible values: tiles|accordion
-default-root-container-layout = 'tiles'
+default-root-container-layout = 'accordion'
 
 # Possible values: horizontal|vertical|auto
 # 'auto' means: wide monitor (anything wider than high) gets horizontal orientation,
@@ -349,13 +349,6 @@ run = 'layout floating'
 if.app-id = "com.hegenberg.BetterTouchTool"
 run = 'layout floating'
 
-# [[on-window-detected]] # Q̲Space
-# if.app-id = "com.jinghaoshe.qspace.pro"
-# if.window-title-regex-substring = '(^(?!.*工作).*$)'
-# run = ["move-node-to-workspace T̲erm",
-#        "layout floating"
-#       ]
-
 [[on-window-detected]] # 微信浮窗
 if.app-id = "com.tencent.xinWeChat"
 if.window-title-regex-substring = '(^(?!\s*微信\s*$).*$)'
@@ -369,7 +362,7 @@ if.window-title-regex-substring = '(^(?!.*钉钉).*$)'
 run = ["move-node-to-workspace C̲hat",
        "layout floating"
       ]
-      
+
 [[on-window-detected]] # VidHub播放浮窗
 if.app-id = "com.mac.utility.media.hub"
 if.window-title-regex-substring = '(^(?!.*媒体库).*(视频播放器).*)'

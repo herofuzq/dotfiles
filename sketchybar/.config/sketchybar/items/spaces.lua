@@ -14,7 +14,6 @@ local always_show = {
 	["T̲erm"] = true,
 	["Web̲"] = true,
 	["W̲ork"] = true,
-	["M̲edia"] = true,
 }
 -- aerospace 查询命令模板
 local query_workspaces =
@@ -322,8 +321,8 @@ sbar.exec(query_workspaces, function(workspaces_and_monitors)
 		updateWindows()
 	end)
 
-	-- 前台应用切换时更新（可能新建/关闭窗口）
-	root:subscribe("front_app_switched", function()
+	-- 窗口增减时更新（macOS 原生事件，aerospace 下可用）
+	root:subscribe("space_windows_change", function()
 		updateWindows()
 	end)
 
