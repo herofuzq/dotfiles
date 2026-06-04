@@ -33,7 +33,7 @@ enable-normalization-opposite-orientation-for-nested-containers = true
 accordion-padding = 30
 
 # Possible values: tiles|accordion
-default-root-container-layout = 'accordion'
+default-root-container-layout = 'tiles'
 
 # Possible values: horizontal|vertical|auto
 # 'auto' means: wide monitor (anything wider than high) gets horizontal orientation,
@@ -51,7 +51,7 @@ on-focused-monitor-changed = ['move-mouse monitor-lazy-center']
 # You can effectively turn off macOS "Hide application" (cmd-h) feature by toggling this flag
 # Useful if you don't use this macOS feature, but accidentally hit cmd-h or cmd-alt-h key
 # Also see: https://nikitabobko.github.io/AeroSpace/goodies#disable-hide-app
-automatically-unhide-macos-hidden-apps = true
+automatically-unhide-macos-hidden-apps = false
 
 # List of workspaces that should stay alive even when they contain no windows,
 # even when they are invisible.
@@ -408,7 +408,7 @@ run = 'layout floating'
 # Edge (Chromium) — AeroSpace #1562 已知 Electron 应用检测不可靠，备用手动快捷键 cmd-alt-ctrl-shift-b
 [[on-window-detected]]
 if.app-id = "com.microsoft.edgemac"
-run = ["move-node-to-workspace 1̲Main --focus-follows-window"]
+run = ["move-node-to-workspace 1̲Main"]
 
 [[on-window-detected]]
 if.app-id = "com.brave.Browser"
@@ -416,7 +416,7 @@ run = ["move-node-to-workspace 1̲Main"]
 
 [[on-window-detected]]
 if.app-id = "com.kingsoft.wpsoffice.mac"
-run = ["move-node-to-workspace 4̲Work --focus-follows-window"]
+run = ["move-node-to-workspace 4̲Work"]
 
 [[on-window-detected]]
 if.app-id = "com.tableausoftware.tableaudesktop"
@@ -505,8 +505,3 @@ if.app-id = "net.battle.app"
 run = ["move-node-to-workspace 6̲Play",
        "layout floating",
       ]
-
-# 未匹配的软件都放到工作区1里面待命
-# [[on-window-detected]]
-# if.window-title-regex-substring = "(.*)"
-# run = ["move-node-to-workspace 1̲Main"]

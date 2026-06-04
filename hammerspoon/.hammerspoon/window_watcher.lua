@@ -8,7 +8,9 @@ local next_notify = 0
 
 local function notify()
 	local now = hs.timer.absoluteTime() / 1000000000
-	if now < next_notify then return end
+	if now < next_notify then
+		return
+	end
 	next_notify = now + DEBOUNCE_MS / 1000
 	hs.execute("sketchybar --trigger space_windows_change", true)
 end
