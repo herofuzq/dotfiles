@@ -46,16 +46,16 @@ local function update_display(im_id, fcitx_mode)
 			label = { string = "ABC", color = colors.active.sep_opaque },
 		})
 	elseif im_id == "org.fcitx.inputmethod.Fcitx5.zhHans" then
-		if fcitx_mode == "2" then  -- fcitx5-remote: 0=关闭, 1=不活跃, 2=中文
+		if fcitx_mode == "2" then -- fcitx5-remote: 0=关闭, 1=不活跃, 2=中文
 			input_method:set({
 				icon = { string = icons.input_method.keyboard, color = colors.active.mauve },
-				label = { string = "中州韵(ZH)", color = colors.active.sep_opaque },
+				label = { string = "RIME(ZH)", color = colors.active.sep_opaque },
 			})
 		else
 			-- fcitx 英文模式
 			input_method:set({
 				icon = { string = icons.input_method.keyboard, color = colors.active.mauve },
-				label = { string = "中州韵(EN)", color = colors.active.sep_opaque },
+				label = { string = "RIME(EN)", color = colors.active.sep_opaque },
 			})
 		end
 	else

@@ -31,7 +31,7 @@ background-blur         = 10
 mouse-hide-while-typing = true
 
 # split pane dimming — unfocused panes darken to show active one
-unfocused-split-opacity = 0.65
+unfocused-split-opacity = 0.50
 unfocused-split-fill    = 181825
 split-divider-color     = 45475a
 
@@ -71,3 +71,7 @@ clipboard-trim-trailing-spaces = true
 # Startup
 # -------------------------------------------------- #
 env = LANG=zh_CN.UTF-8
+# -------------------------------------------------- #
+# Quick_drop
+# -------------------------------------------------- #
+keybind = global:ctrl+alt+cmd+q=toggle_quick_terminal
