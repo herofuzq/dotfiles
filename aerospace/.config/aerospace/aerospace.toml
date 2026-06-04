@@ -57,7 +57,7 @@ automatically-unhide-macos-hidden-apps = true
 # even when they are invisible.
 # This config version is only available since 'config-version = 2'
 # Fallback value (if you omit the key): persistent-workspaces = []
-persistent-workspaces = ["1̲Main", "2̲Sec", "G̲ame", "C̲hat", "M̲edia", "Web̲", "T̲erm", "V̲M", "W̲ork"]
+persistent-workspaces = ["1̲Main", "2̲Sec", "G̲ame", "C̲hat", "M̲edia", "T̲erm", "W̲ork"]
 
 # A callback that runs every time binding mode changes
 # See: https://nikitabobko.github.io/AeroSpace/guide#binding-modes
@@ -196,7 +196,6 @@ outer.right = [
     cmd-alt-ctrl-m = 'workspace M̲edia'
     # cmd-alt-ctrl-7 = 'workspace Area7̲'
     # cmd-alt-ctrl-a = 'workspace A' # In your config, you can drop workspace bindings that you don't need
-    cmd-alt-ctrl-b = 'workspace Web̲'
     cmd-alt-ctrl-c = ['workspace C̲hat']
     # cmd-alt-ctrl-d = 'workspace D'
     # cmd-alt-ctrl-e = 'workspace E'
@@ -211,7 +210,6 @@ outer.right = [
     # cmd-alt-ctrl-s = 'workspace S'
     cmd-alt-ctrl-t = ['workspace T̲erm']
     # cmd-alt-ctrl-u = 'workspace U'
-    cmd-alt-ctrl-v = 'workspace V̲M'
     cmd-alt-ctrl-w = ['workspace W̲ork']
     # cmd-alt-ctrl-x = 'workspace X'
     # cmd-alt-ctrl-y = 'workspace Y'
@@ -228,11 +226,9 @@ outer.right = [
     cmd-alt-ctrl-shift-c = 'move-node-to-workspace C̲hat --focus-follows-window'
     cmd-alt-ctrl-shift-m = 'move-node-to-workspace M̲edia --focus-follows-window'
     cmd-alt-ctrl-shift-g = 'move-node-to-workspace G̲ame --focus-follows-window'
-    cmd-alt-ctrl-shift-b = 'move-node-to-workspace Web̲ --focus-follows-window'
     cmd-alt-ctrl-shift-w = 'move-node-to-workspace W̲ork --focus-follows-window'
     cmd-alt-ctrl-shift-t = 'move-node-to-workspace T̲erm --focus-follows-window'
     # cmd-alt-ctrl-shift-q = 'move-node-to-workspace Q̲Space --focus-follows-window'
-    cmd-alt-ctrl-shift-v = 'move-node-to-workspace V̲M --focus-follows-window'
 
     # See: https://nikitabobko.github.io/AeroSpace/commands#workspace-back-and-forth
     # alt-tab = 'workspace-back-and-forth'
@@ -414,11 +410,11 @@ run = 'layout floating'
 # Edge (Chromium) — AeroSpace #1562 已知 Electron 应用检测不可靠，备用手动快捷键 cmd-alt-ctrl-shift-b
 [[on-window-detected]]
 if.app-id = "com.microsoft.edgemac"
-run = ["move-node-to-workspace Web̲ --focus-follows-window"]
+run = ["move-node-to-workspace 1̲Main --focus-follows-window"]
 
 [[on-window-detected]]
 if.app-id = "com.brave.Browser"
-run = ["move-node-to-workspace Web̲"]
+run = ["move-node-to-workspace 1̲Main"]
 
 [[on-window-detected]]
 if.app-id = "com.kingsoft.wpsoffice.mac"
@@ -446,7 +442,7 @@ run = ["move-node-to-workspace T̲erm"]
 
 [[on-window-detected]]
 if.app-id = "com.parallels.desktop.console"
-run = ["move-node-to-workspace V̲M"]
+run = ["move-node-to-workspace 2̲Sec"]
 
 [[on-window-detected]]
 if.app-id = "com.tencent.xinWeChat"
@@ -508,6 +504,6 @@ run = ["move-node-to-workspace G̲ame",
        "layout floating",
       ]
 # 未匹配的软件都放到工作区1里面待命
-# [[on-window-detected]]
-# if.window-title-regex-substring = "(.*)"
-# run = ["move-node-to-workspace 1̲Main"]
+[[on-window-detected]]
+if.window-title-regex-substring = "(.*)"
+run = ["move-node-to-workspace 1̲Main"]

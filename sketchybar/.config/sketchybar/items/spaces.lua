@@ -10,9 +10,9 @@ local sbar = require("sketchybar")
 -- 注：键名含 U+0332 组合下划线，对应 aerospace 工作区名称，请勿修改
 local always_show = {
 	["1̲Main"] = true,
+	["2̲Sec"] = true,
 	["C̲hat"] = true,
 	["T̲erm"] = true,
-	["Web̲"] = true,
 	["W̲ork"] = true,
 }
 -- aerospace 查询命令模板
