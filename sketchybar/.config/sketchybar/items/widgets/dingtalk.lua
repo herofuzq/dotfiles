@@ -1,5 +1,4 @@
 -- ========== 钉钉未读消息数 ==========
-local colors = require("appearance").colors
 local status_widget = require("status_widget")
 
 status_widget({

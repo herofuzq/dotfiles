@@ -30,6 +30,7 @@ local front_app = sbar.add("item", "front_app", {
 })
 
 front_app:subscribe("front_app_switched", function(env)
+	-- 装饰性尖括号，i3 风格（品牌一致）。如需纯应用名，去掉 ">" 和 "<"
 	front_app:set({
 		label = {
 			string = ">" .. env.INFO .. "<",

@@ -177,6 +177,7 @@ function M.switch_theme(mode)
 end
 
 -- 将当前主题（M.colors.active）应用到 bar 和所有 item
+-- 依赖：M.colors.active 必须已被 init_colors() 设置过（init.lua 调用顺序保证）
 function M.apply_current_theme()
 	-- 0. 通知 borders.lua 当前主题（影响 distribute 的深色系数）
 	local mode = (M.colors.active == M.colors.catppuccin_mocha) and "dark" or "light"

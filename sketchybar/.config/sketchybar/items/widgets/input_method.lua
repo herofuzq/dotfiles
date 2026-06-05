@@ -6,7 +6,20 @@ local fonts = require("fonts")
 local colors = require("appearance").colors
 local settings = require("settings")
 
-local FCITX_REMOTE = "/Library/Input Methods/Fcitx5.app/Contents/bin/fcitx5-remote"
+-- 动态查找 fcitx5-remote 路径（支持 .app 安装和 brew 安装两种方式）
+local function findFcitxRemote()
+	local candidates = {
+		"/Library/Input Methods/Fcitx5.app/Contents/bin/fcitx5-remote",
+		"/opt/homebrew/bin/fcitx5-remote",
+		"/usr/local/bin/fcitx5-remote",
+	}
+	for _, p in ipairs(candidates) do
+		local f = io.open(p, "r")
+		if f then f:close(); return p end
+	end
+	return "/Library/Input Methods/Fcitx5.app/Contents/bin/fcitx5-remote"
+end
+local FCITX_REMOTE = findFcitxRemote()
 
 local input_method = sbar.add("item", "widgets.input_method", {
 	position = "right",
@@ -59,10 +72,10 @@ local function update_display(im_id, fcitx_mode)
 			})
 		end
 	else
-		-- 未知输入法
+		-- 未知输入法（macism 失败时 im_id 可能为 nil，加防护避免崩溃）
 		input_method:set({
 			icon = { string = icons.input_method.keyboard, color = colors.active.bg3_opaque },
-			label = { string = im_id:match("[^.]+$") or "?", color = colors.active.sep_opaque },
+			label = { string = (im_id and im_id:match("[^.]+$")) or "?", color = colors.active.sep_opaque },
 		})
 	end
 end

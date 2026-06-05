@@ -1,3 +1,5 @@
+# Stow-managed: this file is symlinked to ~/.config/aerospace/aerospace.toml
+# Aerospace reads config from $XDG_CONFIG_HOME/aerospace/aerospace.toml by default
 # Place a copy of this config to ~/.aerospace.toml
 # After that, you can edit ~/.aerospace.toml to your liking
 
@@ -9,6 +11,10 @@ config-version = 2
 # Available commands : https://nikitabobko.github.io/AeroSpace/commands
 after-startup-command = [
   # 'exec-and-forget borders active_color=0xffff9e64 inactive_color=0x00000000 width=2.0 hidpi=on',
+  # 兜底设计：无论 sketchybar 是否已运行都能正确启动
+  # - 已有实例 → 第 1 条发 reload 信号（向运行中的实例请求重载配置）
+  # - 未启动   → 第 1 条无效（无实例接收），第 2 条冷启动 sketchybar
+  # - 同时存在 → 第 2 条因 Mach 端口被占优雅退出，无副作用
   'exec-and-forget sketchybar --reload',
   'exec-and-forget sketchybar',
 ]
@@ -244,6 +250,8 @@ outer.right = [
     r = ['flatten-workspace-tree', 'mode main'] # reset layout
     f = ['layout floating tiling', 'mode main'] # Toggle between floating and tiling layout
     backspace = ['close-all-windows-but-current', 'mode main']
+    # WARNING: 静默关闭所有空标题窗口（设计目的：清理不可见僵尸窗口）。
+    # 入口需先 cmd-alt-ctrl-; 进 service mode，是双重确认机制的一部分。
     g = ['''exec-and-forget aerospace list-windows --all --json | jq -r '.[] | select(."window-title"=="") | ."window-id"' | xargs -n1 aerospace close --window-id''', 'mode main']
 
     # sticky is not yet supported https://github.com/nikitabobko/AeroSpace/issues/2
