@@ -12,9 +12,9 @@ local always_show = {
 	["1̲Main"] = true,
 	["2̲Sec"] = true,
 	["3̲Chat"] = true,
-	["5̲Term"] = true,
 	["4̲Work"] = true,
-	-- ["6̲Play"] = true,
+	["5̲Term"] = true,
+	-- ["6̲Play"] = true,  -- 6̲Play 不强制常显（仅在有窗口或被聚焦时显示）
 }
 -- aerospace 查询命令模板
 local query_workspaces =
@@ -68,12 +68,17 @@ local function withWindows(f)
 	end
 
 	local get_windows =
+
 		"aerospace list-windows --monitor all --format '%{workspace}%{app-name}%{window-id}%{window-is-fullscreen}' --json"
 	local query_visible_workspaces =
 		"aerospace list-workspaces --visible --monitor all --format '%{workspace}%{monitor-appkit-nsscreen-screens-id}' --json"
 	local get_focus_workspaces = "aerospace list-workspaces --focused"
 
 	sbar.exec(get_windows, function(workspace_and_windows)
+		if not workspace_and_windows then
+			check_done()
+			return
+		end
 		local processed_windows = {} -- 去重用：记录已处理的窗口 ID
 
 		for _, entry in ipairs(workspace_and_windows) do
@@ -101,12 +106,20 @@ local function withWindows(f)
 	end)
 
 	sbar.exec(get_focus_workspaces, function(focused_workspace)
-		results.focused_workspace = focused_workspace:match("^%s*(.-)%s*$")
+		if focused_workspace then
+			results.focused_workspace = focused_workspace:match("^%s*(.-)%s*$")
+		else
+			results.focused_workspace = ""
+		end
 		check_done()
 	end)
 
 	sbar.exec(query_visible_workspaces, function(visible_workspaces)
-		results.visible_workspaces = visible_workspaces
+		if not visible_workspaces then
+			results.visible_workspaces = {}
+		else
+			results.visible_workspaces = visible_workspaces
+		end
 		check_done()
 	end)
 end
@@ -140,8 +153,8 @@ local function updateWindow(workspace_index, args)
 			local monitor_id = raw_id and math.floor(raw_id)
 			workspaces[workspace_index]:set({
 				drawing = true,
-				icon = { padding_left = 10, padding_right = 10, highlight = is_focused },
-				label = { drawing = false, highlight = is_focused },
+				icon = { padding_left = 10, padding_right = 10 },
+				label = { drawing = false },
 				display = monitor_id,
 			})
 			return
@@ -152,8 +165,8 @@ local function updateWindow(workspace_index, args)
 	if no_app and workspace_index ~= focused_workspace then
 		workspaces[workspace_index]:set({
 			drawing = always_show[workspace_index] and true or false,
-			icon = { padding_left = 10, padding_right = 10, highlight = is_focused },
-			label = { drawing = false, highlight = is_focused },
+			icon = { padding_left = 10, padding_right = 10 },
+			label = { drawing = false },
 		})
 		return
 	end
@@ -162,17 +175,19 @@ local function updateWindow(workspace_index, args)
 	if no_app and workspace_index == focused_workspace then
 		workspaces[workspace_index]:set({
 			drawing = true,
-			icon = { padding_left = 10, padding_right = 10, highlight = is_focused },
-			label = { drawing = false, highlight = is_focused },
+			icon = { padding_left = 10, padding_right = 10 },
+			label = { drawing = false },
 		})
 		return
 	end
 
 	-- 情况4：有应用
+	-- 注：高亮由 root subscribe("aerospace_workspace_change") 立即设置（env.FOCUSED_WORKSPACE），
+	-- 此处不重复设置，避免 aerospace CLI 偶尔失败时把高亮误清
 	workspaces[workspace_index]:set({
 		drawing = true,
-		icon = { padding_left = 10, padding_right = 2, highlight = is_focused },
-		label = { drawing = true, string = icon_line, highlight = is_focused },
+		icon = { padding_left = 10, padding_right = 2 },
+		label = { drawing = true, string = icon_line },
 	})
 end
 
@@ -304,8 +319,21 @@ sbar.exec(query_workspaces, function(workspaces_and_monitors)
 
 	-- ===== 事件订阅 =====
 
-	-- 工作区切换时更新窗口列表
-	root:subscribe("aerospace_workspace_change", updateWindows)
+	-- 工作区切换时立即更新高亮（用 env 变量，0ms 延迟） + 异步更新窗口内容
+	-- 这替代了 6a39153 移除的 per-workspace subscription
+	root:subscribe("aerospace_workspace_change", function(env)
+		local focused = env.FOCUSED_WORKSPACE
+		if focused then
+			for ws_idx, ws in pairs(workspaces) do
+				local is_focused = (ws_idx == focused)
+				ws:set({
+					icon = { highlight = is_focused },
+					label = { highlight = is_focused },
+				})
+			end
+		end
+		updateWindows()
+	end)
 
 	-- 窗口变化时更新（Hammerspoon window_watcher 50ms 防抖后单源触发，
 	-- 之前 front_app_switched 兜底会跟它撞车 → 6 个 sbar.exec 挤在 layout
