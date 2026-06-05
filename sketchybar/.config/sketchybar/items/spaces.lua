@@ -14,7 +14,7 @@ local always_show = {
 	["3̲Chat"] = true,
 	["5̲Term"] = true,
 	["4̲Work"] = true,
-	["6̲Play"] = true,
+	-- ["6̲Play"] = true,
 }
 -- aerospace 查询命令模板
 local query_workspaces =
@@ -58,7 +58,9 @@ local function withWindows(f)
 	local pending = 3
 
 	local function check_done()
-		if my_gen ~= generation then return end
+		if my_gen ~= generation then
+			return
+		end
 		pending = pending - 1
 		if pending == 0 then
 			f(results)
