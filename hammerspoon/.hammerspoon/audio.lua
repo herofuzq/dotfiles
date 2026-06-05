@@ -45,9 +45,14 @@ local function doSwitch(target, label)
 		print("[AudioSwitch] 已是目标设备: " .. target:name())
 		return
 	end
-	target:setDefaultOutputDevice()
-	hs.alert.show(label .. target:name(), 1.5)
-	print("[AudioSwitch] 已切换: " .. target:name())
+	-- 设备可能在 3 秒延迟期间消失（如线缆被拔），切换前再校验
+	if target and target:isOutputDevice() then
+		target:setDefaultOutputDevice()
+		hs.alert.show(label .. target:name(), 1.5)
+		print("[AudioSwitch] 已切换: " .. target:name())
+	else
+		print("[AudioSwitch] 设备在切换前消失: " .. tostring(target and target:name() or "nil"))
+	end
 end
 
 local function switchToExternal(retries)
@@ -106,7 +111,8 @@ local function onScreenChange()
 		end)
 	elseif not hasExternalAudio() then
 		-- 外接音频设备全部断开才切回内置（合盖不会误切）
-		hs.alert.show("🔈 切回内置扬声器", 1.0)
+		-- 文案用"音频"而非"扬声器"，避免在 DP-only 外接显示器（有视频无音频）场景下误导用户以为显示器没接
+		hs.alert.show("🔈 切回内置音频", 1.0)
 		print("[AudioSwitch] 无外接音频设备，切回内置扬声器")
 		switchToInternal()
 	end
