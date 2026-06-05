@@ -130,9 +130,10 @@ spotters = [
 	{ url = "*", run = "file" },
 ]
 preloaders = [
-	{ mime = "application/openxmlformats-officedocument.*", run = "office" },
-	{ mime = "application/ms-*", run = "office" },
-	{ mime = "application/msword", run = "office" },
+  # Office
+  # { mime = "application/openxmlformats-officedocument.*", run = "office" },
+  # { mime = "application/ms-*", run = "office" },
+  # { mime = "application/msword", run = "office" },
 	# Image
 	{ mime = "image/{avif,hei?,jxl}", run = "magick" },
 	{ mime = "image/svg+xml", run = "svg" },
@@ -149,9 +150,10 @@ previewers = [
 	{ url = "*.tar*", run = 'piper --format=url -- tar tf "$1"' },
 	{ url = "*.csv", run = 'piper -- bat -p --color=always "$1"' },
 	{ mime = "application/sqlite3", run = 'piper -- sqlite3 "$1" ".schema --indent"' },
-	{ mime = "application/openxmlformats-officedocument.*", run = "office" },
-	{ mime = "application/ms-*", run = "office" },
-	{ mime = "application/msword", run = "office" },
+  # Office
+  # { mime = "application/openxmlformats-officedocument.*", run = "office" },
+  # { mime = "application/ms-*", run = "office" },
+  # { mime = "application/msword", run = "office" },
 	{ url = "*/", run = "folder" },
 	# Code
 	{ mime = "text/*", run = "code" },

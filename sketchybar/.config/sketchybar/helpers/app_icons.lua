@@ -197,7 +197,7 @@ return {
 	["Nova"] = ":nova:",
 	["Numbers"] = ":numbers:",
 	["Numbers 表格"] = ":numbers:",
-	["NVIDIA GeForce NOW"] = "􀛹",
+	["NVIDIA GeForce NOW"] = ":nvidia_geforce_now:",
 	["Obsidian"] = ":obsidian:",
 	["OBS Studio"] = ":obsstudio:",
 	["OmniFocus"] = ":omni_focus:",

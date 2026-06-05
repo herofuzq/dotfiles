@@ -280,10 +280,6 @@ if.app-id = "org.fcitx.inputmethod.Fcitx5"
 run = 'layout floating'
 
 [[on-window-detected]]
-if.app-id = "com.sindresorhus.Plash"
-run = 'layout floating'
-
-[[on-window-detected]]
 if.app-id = "org.te4.T-Engine"
 run = 'layout floating'
 
@@ -333,10 +329,6 @@ run = 'layout floating'
 
 [[on-window-detected]]
 if.app-id = "com.soundmindgames.GnollHack"
-run = 'layout floating'
-
-[[on-window-detected]]
-if.app-id = "iordv.Droppy"
 run = 'layout floating'
 
 [[on-window-detected]] # BetterTouchTool
