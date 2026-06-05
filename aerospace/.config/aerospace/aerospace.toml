@@ -33,7 +33,7 @@ enable-normalization-opposite-orientation-for-nested-containers = true
 accordion-padding = 30
 
 # Possible values: tiles|accordion
-default-root-container-layout = 'tiles'
+default-root-container-layout = 'accordion'
 
 # Possible values: horizontal|vertical|auto
 # 'auto' means: wide monitor (anything wider than high) gets horizontal orientation,
@@ -99,24 +99,24 @@ inner.vertical = [
   6,
 ]
 outer.left = [
-  { monitor."Built-in Retina Display" = 8 },
-  { monitor."VG271U" = 8 },
-  8,
+  { monitor."Built-in Retina Display" = 5 },
+  { monitor."VG271U" = 5 },
+  5,
 ]
 outer.bottom = [
-  { monitor."Built-in Retina Display" = 6 },
-  { monitor."VG271U" = 6},
-  6,
+  { monitor."Built-in Retina Display" = 5 },
+  { monitor."VG271U" = 5},
+  5,
 ]
 outer.top = [
-  { monitor."Built-in Retina Display" = 6 },
-  { monitor."VG271U" = 37 },
-  37,
+  { monitor."Built-in Retina Display" = 5 },
+  { monitor."VG271U" = 36 },
+  36,
 ]
 outer.right = [
-  { monitor."Built-in Retina Display" = 8 },
-  { monitor."VG271U" = 8 },
-  8,
+  { monitor."Built-in Retina Display" = 5 },
+  { monitor."VG271U" = 5 },
+  5,
 ]
 # 'main' binding mode declaration
 # See: https://nikitabobko.github.io/AeroSpace/guide#binding-modes
