@@ -348,7 +348,7 @@ sbar.exec(query_workspaces, function(workspaces_and_monitors)
 				drawing = true,
 			},
 			popup = {
-				align = "center",
+				align = "left",
 				background = {
 					color = appearance.colors.with_alpha(appearance.colors.active.bar_bg, 0.85),
 					corner_radius = 12,
@@ -409,10 +409,18 @@ sbar.exec(query_workspaces, function(workspaces_and_monitors)
 			_popup_items[workspace_index][i] = popup_item
 
 			popup_item:subscribe("mouse.entered", function()
-				popup_item:set({ background = { color = appearance.colors.active.bg2 } })
+				popup_item:set({
+					background = { color = appearance.colors.active.bg2 },
+					icon = { color = appearance.colors.active.accent },
+					label = { color = appearance.colors.active.rosewater },
+				})
 			end)
 			popup_item:subscribe("mouse.exited", function()
-				popup_item:set({ background = { color = appearance.colors.active.bg0 } })
+				popup_item:set({
+					background = { color = appearance.colors.active.bg0 },
+					icon = { color = appearance.colors.active.sep_opaque },
+					label = { color = appearance.colors.active.text },
+				})
 			end)
 
 			popup_item:subscribe("mouse.clicked", function()
