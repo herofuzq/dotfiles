@@ -400,11 +400,7 @@ sbar.exec(query_workspaces, function(workspaces_and_monitors)
 					max_chars = 50,
 					color = appearance.colors.active.text,
 				},
-				background = {
-					drawing = true,
-					color = appearance.colors.active.bg2_opaque,
-					corner_radius = 13,
-				},
+				background = { drawing = false },
 			})
 			_popup_items[workspace_index][i] = popup_item
 
@@ -515,7 +511,6 @@ sbar.exec(query_workspaces, function(workspaces_and_monitors)
 			for i, item in ipairs(items) do
 				if item then
 					item:set({
-						background = { color = appearance.colors.active.bg2_opaque },
 						icon = { color = appearance.colors.active.sep_opaque },
 						label = { color = appearance.colors.active.text },
 					})
