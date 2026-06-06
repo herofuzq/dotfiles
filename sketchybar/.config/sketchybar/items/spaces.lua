@@ -403,7 +403,7 @@ sbar.exec(query_workspaces, function(workspaces_and_monitors)
 				background = {
 					drawing = true,
 					color = appearance.colors.active.bg0,
-					corner_radius = 0,
+					corner_radius = 12,
 				},
 			})
 			_popup_items[workspace_index][i] = popup_item
