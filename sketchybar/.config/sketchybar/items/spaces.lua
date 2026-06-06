@@ -411,7 +411,7 @@ sbar.exec(query_workspaces, function(workspaces_and_monitors)
 			popup_item:subscribe("mouse.entered", function()
 				popup_item:set({
 					background = { color = appearance.colors.active.bg2 },
-					icon = { color = appearance.colors.active.accent },
+               icon = { color = appearance.colors.active.rosewater },
 					label = { color = appearance.colors.active.rosewater },
 				})
 			end)
