@@ -216,7 +216,7 @@ local function togglePopup(ws_index, workspace_item)
 			_popup_windows[ws_index][i] = {
 				id = id,
 				app = w["app-name"] or "?",
-				title = w["window-title"] or w["app-name"] or "Untitled",
+				title = (w["window-title"] and #w["window-title"] > 0 and w["window-title"]) or w["app-name"] or "Untitled",
 			}
 		end
 
@@ -403,7 +403,7 @@ sbar.exec(query_workspaces, function(workspaces_and_monitors)
 				background = {
 					drawing = true,
 					color = appearance.colors.active.bg0,
-					corner_radius = 12,
+					corner_radius = 13,
 				},
 			})
 			_popup_items[workspace_index][i] = popup_item
