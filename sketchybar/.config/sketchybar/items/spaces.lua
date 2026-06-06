@@ -5,6 +5,7 @@ local appearance = require("appearance")
 local app_icons = require("helpers.app_icons")
 local borders = require("helpers.borders")
 local sbar = require("sketchybar")
+local fonts = require("fonts")
 
 -- 始终显示的工作区（即使没有应用也会显示）
 -- 注：键名含 U+0332 组合下划线，对应 aerospace 工作区名称，请勿修改
@@ -24,6 +25,9 @@ local query_workspaces =
 local root = sbar.add("item", "spaces.root", { drawing = false })
 local workspaces = {} -- 工作区名 → 条目对象的映射
 local workspace_order = {} -- 工作区创建顺序（保持显示顺序一致）
+local MAX_POPUP_SLOTS = 10
+local _popup_items = {}   -- { [ws_name] = { item1, ..., item10 } }
+local _popup_windows = {} -- { [ws_name] = { {id, app, title}, ... } }
 
 -- aerospace 模式指示器（当前仅在 service 模式下显示 "󰰣" 图标）
 local mode_item = sbar.add("item", "aerospace_mode", {
@@ -191,6 +195,58 @@ local function updateWindow(workspace_index, args)
 	})
 end
 
+-- ========== Popup：点击当前工作区时展示窗口列表 ==========
+local function togglePopup(ws_index, workspace_item)
+	if not workspace_item then return end
+
+	local cmd = "aerospace list-windows --workspace \""
+		.. ws_index
+		.. "\" --format '%{window-id}%{app-name}%{window-title}' --json"
+
+	sbar.exec(cmd, function(windows)
+		if not windows or #windows == 0 then
+			return
+		end
+
+		_popup_windows[ws_index] = {}
+		for i, w in ipairs(windows) do
+			if i > MAX_POPUP_SLOTS then break end
+			local id = w["window-id"]
+			if not id then break end
+			_popup_windows[ws_index][i] = {
+				id = id,
+				app = w["app-name"] or "?",
+				title = w["window-title"] or w["app-name"] or "Untitled",
+			}
+		end
+
+		for _, ws in pairs(workspaces) do
+			if ws ~= workspace_item then
+				ws:set({ popup = { drawing = false } })
+			end
+		end
+
+		for i = 1, MAX_POPUP_SLOTS do
+			local item = _popup_items[ws_index] and _popup_items[ws_index][i]
+			local win = _popup_windows[ws_index] and _popup_windows[ws_index][i]
+			if item then
+				if win then
+					local icon = (app_icons[win.app] or app_icons["Default"])
+					item:set({
+						drawing = true,
+						icon = { string = icon },
+						label = { string = win.title },
+					})
+				else
+					item:set({ drawing = false })
+				end
+			end
+		end
+
+		workspace_item:set({ popup = { drawing = "toggle" } })
+	end)
+end
+
 -- ========== 更新所有工作区 + 分配边框颜色 ==========
 local function updateWindows()
 	generation = generation + 1
@@ -269,7 +325,7 @@ sbar.exec(query_workspaces, function(workspaces_and_monitors)
 
 		local workspace = sbar.add("item", "workspace." .. workspace_index, {
 			background = bg,
-			click_script = "aerospace workspace " .. workspace_index, -- 点击切换到该工作区
+
 			drawing = false, -- 初始隐藏，稍后由 updateWindow 决定显示/隐藏
 			padding_left = 2,
 			padding_right = 2,
@@ -291,10 +347,75 @@ sbar.exec(query_workspaces, function(workspaces_and_monitors)
 				y_offset = style.label.y_offset,
 				drawing = true,
 			},
+			popup = {
+				align = "center",
+				background = {
+					color = appearance.colors.with_alpha(appearance.colors.active.bar_bg, 0.85),
+					corner_radius = 12,
+					border_width = 0,
+					shadow = { drawing = false },
+				},
+				blur_radius = 30,
+			},
 		})
 
 		workspaces[workspace_index] = workspace
 		table.insert(workspace_order, workspace_index)
+
+		-- 点击行为：当前工作区 → 弹 popup，其他工作区 → 切换
+		workspace:subscribe("mouse.clicked", function()
+			sbar.exec("aerospace list-workspaces --focused", function(focused)
+				focused = focused and focused:match("^%s*(.-)%s*$")
+				if focused == workspace_index then
+					togglePopup(workspace_index, workspace)
+				else
+					sbar.exec("aerospace workspace \"" .. workspace_index .. "\"")
+				end
+			end)
+		end)
+
+		workspace:subscribe("mouse.exited.global", function()
+			workspace:set({ popup = { drawing = false } })
+		end)
+
+		_popup_items[workspace_index] = {}
+		for i = 1, MAX_POPUP_SLOTS do
+			local popup_item = sbar.add("item", "workspace." .. workspace_index .. ".popup." .. i, {
+				position = "popup.workspace." .. workspace_index,
+				drawing = false,
+				icon = {
+					font = "sketchybar-app-font:Regular:14.0",
+					padding_left = 12,
+					padding_right = 6,
+					color = appearance.colors.active.sep_opaque,
+				},
+				label = {
+					font = {
+						family = fonts.font.text,
+						style = fonts.font.style_map["Semibold"],
+						size = fonts.font.size,
+					},
+					padding_left = 0,
+					padding_right = 16,
+					max_chars = 50,
+					color = appearance.colors.active.text,
+				},
+				background = {
+					drawing = true,
+					color = appearance.colors.active.bg0,
+					corner_radius = 4,
+				},
+			})
+			_popup_items[workspace_index][i] = popup_item
+
+			popup_item:subscribe("mouse.clicked", function()
+				local win = _popup_windows[workspace_index] and _popup_windows[workspace_index][i]
+				if win then
+					sbar.exec("aerospace focus --window-id " .. win.id)
+					workspace:set({ popup = { drawing = false } })
+				end
+			end)
+		end
 	end
 
 	-- 装饰性文字（左侧 "Powered by " —  为 i3 window management 图标，保留作装饰用）
@@ -329,6 +450,7 @@ sbar.exec(query_workspaces, function(workspaces_and_monitors)
 				ws:set({
 					icon = { highlight = is_focused },
 					label = { highlight = is_focused },
+					popup = { drawing = false },
 				})
 			end
 		end
