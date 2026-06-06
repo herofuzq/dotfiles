@@ -31,7 +31,7 @@ local cal = sbar.add("item", "calendar", {
 		border_color = colors.active.mauve, -- 初始值，borders.distribute() 随后覆盖
 	},
 	popup = {
-		align = "center",
+		align = "right",
 		background = {
 			color = colors.with_alpha(colors.active.bar_bg, 0.85),
 			corner_radius = 12,
