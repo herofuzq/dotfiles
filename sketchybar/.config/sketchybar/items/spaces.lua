@@ -402,7 +402,7 @@ sbar.exec(query_workspaces, function(workspaces_and_monitors)
 				},
 				background = {
 					drawing = true,
-					color = appearance.colors.active.bg0,
+					color = appearance.colors.active.bg2_opaque,
 					corner_radius = 13,
 				},
 			})
@@ -515,7 +515,7 @@ sbar.exec(query_workspaces, function(workspaces_and_monitors)
 			for i, item in ipairs(items) do
 				if item then
 					item:set({
-						background = { color = appearance.colors.active.bg0 },
+						background = { color = appearance.colors.active.bg2_opaque },
 						icon = { color = appearance.colors.active.sep_opaque },
 						label = { color = appearance.colors.active.text },
 					})
