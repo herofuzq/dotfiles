@@ -408,6 +408,13 @@ sbar.exec(query_workspaces, function(workspaces_and_monitors)
 			})
 			_popup_items[workspace_index][i] = popup_item
 
+			popup_item:subscribe("mouse.entered", function()
+				popup_item:set({ background = { color = appearance.colors.active.bg2 } })
+			end)
+			popup_item:subscribe("mouse.exited", function()
+				popup_item:set({ background = { color = appearance.colors.active.bg0 } })
+			end)
+
 			popup_item:subscribe("mouse.clicked", function()
 				local win = _popup_windows[workspace_index] and _popup_windows[workspace_index][i]
 				if win then
@@ -489,7 +496,24 @@ sbar.exec(query_workspaces, function(workspaces_and_monitors)
 					background = { color = appearance.colors.active.bar_bg },
 					icon = { color = appearance.styles.workspace.icon.color },
 					label = { color = appearance.styles.workspace.label.color },
+					popup = {
+						background = {
+							color = appearance.colors.with_alpha(appearance.colors.active.bar_bg, 0.85),
+						},
+					},
 				})
+			end
+		end
+		-- 更新所有 popup 子项颜色（跟随亮色/暗色主题切换）
+		for ws_idx, items in pairs(_popup_items) do
+			for i, item in ipairs(items) do
+				if item then
+					item:set({
+						background = { color = appearance.colors.active.bg0 },
+						icon = { color = appearance.colors.active.sep_opaque },
+						label = { color = appearance.colors.active.text },
+					})
+				end
 			end
 		end
 		-- 更新 i3（固定深色模式颜色）和 aerospace_mode 文字色
