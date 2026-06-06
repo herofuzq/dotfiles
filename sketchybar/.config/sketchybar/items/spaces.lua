@@ -232,11 +232,11 @@ local function togglePopup(ws_index, workspace_item)
 			if item then
 				if win then
 					local icon = (app_icons[win.app] or app_icons["Default"])
-					item:set({
-						drawing = true,
-						icon = { string = icon },
-						label = { string = win.title },
-					})
+               item:set({
+                  drawing = true,
+                  icon = { string = icon, color = appearance.colors.active.sep_opaque },
+                  label = { string = win.title, color = appearance.colors.active.text },
+               })
 				else
 					item:set({ drawing = false })
 				end
