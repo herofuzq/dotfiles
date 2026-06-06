@@ -8,6 +8,7 @@ appearance.init_colors(current_theme)
 
 -- 将所有初始化配置打包成一条消息发给 sketchybar，提高启动效率
 sbar.begin_config()
+appearance.install_defaults()
 require("bar")           -- 菜单栏本体尺寸/样式（此时 colors.bar.bg 已是正确主题色）
 -- M.styles 中的 color 已通过元表动态读取 M.colors.active，无需手动同步
 require("items")         -- 加载所有状态栏条目

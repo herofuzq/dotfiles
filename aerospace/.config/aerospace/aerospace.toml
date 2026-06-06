@@ -447,6 +447,10 @@ if.app-id = "com.xiaomi.hyperConnect"
 run = ["move-node-to-workspace 2̲Sec"]
 
 [[on-window-detected]]
+if.app-id = "com.enlink.EnUES"
+run = ["move-node-to-workspace 2̲Sec"]
+
+[[on-window-detected]]
 if.app-id = "com.tencent.xinWeChat"
 run = ["move-node-to-workspace 3̲Chat"]
 
@@ -498,6 +502,14 @@ run = ["move-node-to-workspace 5̲Term"]
 
 [[on-window-detected]]
 if.app-id = "net.kovidgoyal.kitty"
+run = ["move-node-to-workspace 5̲Term"]
+
+[[on-window-detected]]
+if.app-id = "com.ccswitch.desktop"
+run = ["move-node-to-workspace 5̲Term"]
+
+[[on-window-detected]]
+if.app-id = "com.openai.codex"
 run = ["move-node-to-workspace 5̲Term"]
 
 [[on-window-detected]]

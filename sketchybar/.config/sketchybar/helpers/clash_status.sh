@@ -7,7 +7,7 @@
 #   off - 都关
 #   nod - Clash Verge 未运行
 
-SOCKET="/tmp/verge/verge-mihomo.sock"
+SOCKET="${CLASH_SOCKET:-/tmp/verge/verge-mihomo.sock}"
 
 # Clash Verge 未运行
 [ -S "$SOCKET" ] || { echo "nod"; exit 0; }
@@ -36,7 +36,7 @@ fi
 
 # 系统代理状态: HTTP 或 HTTPS 任一开启即视为系统代理开启
 SYS_STATE="off"
-if scutil --proxy 2>/dev/null | grep -qE 'HTTPEnable : 1|HTTPSEnable : 1'; then
+if timeout 5 scutil --proxy 2>/dev/null | grep -qE 'HTTPEnable : 1|HTTPSEnable : 1'; then
 	SYS_STATE="on"
 fi
 

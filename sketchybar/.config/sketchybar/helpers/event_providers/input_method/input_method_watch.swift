@@ -26,7 +26,8 @@ func findSketchybar() -> String {
         return result
     }
 
-    return "/usr/local/bin/sketchybar"
+    fputs("error: sketchybar not found\n", stderr)
+    exit(1)
 }
 
 let sketchybarPath = findSketchybar()

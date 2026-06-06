@@ -115,8 +115,8 @@ static inline void sketchybar(char* message) {
   if (!mach_send_message(g_mach_port, formatted_message, length)) {
     g_mach_port = mach_get_bs_port();
     if (!mach_send_message(g_mach_port, formatted_message, length)) {
-      // No sketchybar instance running, exit.
-      exit(0);
+      fprintf(stderr, "sketchybar: mach message send failed, will retry\n");
+      return;
     }
   }
 }

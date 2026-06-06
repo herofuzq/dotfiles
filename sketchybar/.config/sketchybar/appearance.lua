@@ -283,7 +283,8 @@ M.styles = {
 	},
 }
 
-sbar.default({
+function M.install_defaults()
+  sbar.default({
 	background = {
 		border_color = M.colors.active.bg3,
 		border_width = 0,
@@ -334,6 +335,7 @@ sbar.default({
 	scroll_texts = true,
 	shadow = "off",
 	updates = "on",
-})
+  })
+end
 
 return M
