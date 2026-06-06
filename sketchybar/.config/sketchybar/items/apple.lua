@@ -7,8 +7,8 @@ local apple = sbar.add("item", "apple", {
 	padding_left = 6,
 	padding_right = 2,
 	icon = {
-		padding_left = 13,
-		padding_right = 13,
+		padding_left = 16,
+		padding_right = 16,
 		string = icons.apple,
 		color = colors.active.red,
 	},
