@@ -354,7 +354,7 @@ sbar.exec(query_workspaces, function(workspaces_and_monitors)
 				background = {
 					color = appearance.colors.with_alpha(appearance.colors.active.bar_bg, 0.85),
 					corner_radius = 12,
-					border_width = 0,
+					border_width = 2,
 					shadow = { drawing = false },
 				},
 				blur_radius = 30,

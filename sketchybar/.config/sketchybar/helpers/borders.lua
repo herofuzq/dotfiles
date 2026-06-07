@@ -142,6 +142,11 @@ function distribute(visible_workspace_names, fullscreen_set)
 				color = color_at(1 + i),
 				highlight_color = 0xffff4444,
 			},
+			popup = {
+				background = {
+					border_color = is_fullscreen and 0xffff4444 or color_at(1 + i),
+				},
+			},
 		})
 	end
 
