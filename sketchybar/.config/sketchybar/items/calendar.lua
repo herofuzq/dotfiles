@@ -35,7 +35,7 @@ local cal = sbar.add("item", "calendar", {
 		background = {
 			color = colors.with_alpha(colors.active.bar_bg, 0.85),
 			corner_radius = 12,
-			border_width = 0,
+			border_width = 2,
 			shadow = { drawing = false },
 		},
 		blur_radius = 30,

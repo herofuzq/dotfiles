@@ -156,7 +156,10 @@ function distribute(visible_workspace_names, fullscreen_set)
 	end
 
 	-- calendar（固定，索引 n+9）
-	sbar.set(calendar_item, { background = { border_color = color_at(n + 9) } })
+	sbar.set(calendar_item, {
+		background = { border_color = color_at(n + 9) },
+		popup = { background = { border_color = color_at(n + 9) } },
+	})
 end
 
 return { distribute = distribute, set_theme = set_theme }
