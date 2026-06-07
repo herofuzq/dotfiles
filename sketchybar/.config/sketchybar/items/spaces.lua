@@ -471,8 +471,12 @@ sbar.exec(query_workspaces, function(workspaces_and_monitors)
 	-- 窗口变化时更新（Hammerspoon window_watcher 50ms 防抖后单源触发，
 	-- 之前 front_app_switched 兜底会跟它撞车 → 6 个 sbar.exec 挤在 layout
 	-- 切换窗口期里把 1 帧的 tile→float 拖成可见的"飞"。去掉兜底后单源化
-
 	-- 延迟 300ms 执行，避免 IPC 查询干扰 aerospace 处理 on-window-detected
+	-- 原因：aerospace 处理新窗口是先放进布局树、再配成浮动。Hammerspoon 的 windowCreated
+	-- 事件到达 sketchybar 时（~50ms 后），我们发起的 3 条 aerospace CLI IPC 查询
+	--（list-windows, list-workspaces）会让 daemon 遍历窗口树。这个遍历会把已经设成
+	-- 浮动的窗口短暂"钩"回布局排列位置，等 IPC 结束后才恢复。用户就会看到先平铺再浮动的闪烁。
+	-- 解决方法：等 300ms 再查，aerospace 早就处理完了，tree 遍历钩不到了。
 	local _space_change_gen = 0
 	root:subscribe("space_windows_change", function()
 		local my_gen = _space_change_gen + 1
