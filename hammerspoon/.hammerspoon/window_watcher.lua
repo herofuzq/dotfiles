@@ -39,7 +39,10 @@ end
 
 -- 窗口变化（用默认 filter）
 -- 注：原订阅 windowNotVisible（噪音大：minimize/hide/occlusion 都会触发），已移除
+
 _windowWatcher_filter = hs.window.filter.default
+_windowWatcher_filter:rejectApp("iStat Menus")
+
 _windowWatcher_filter:subscribe(hs.window.filter.windowCreated, notify)
 _windowWatcher_filter:subscribe(hs.window.filter.windowFocused, notify)
 

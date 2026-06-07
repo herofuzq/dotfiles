@@ -294,6 +294,7 @@ end
 local function updateWorkspaceMonitor()
 	local workspace_monitor = {}
 	sbar.exec(query_workspaces, function(workspaces_and_monitors)
+		if not workspaces_and_monitors then return end
 		for _, entry in ipairs(workspaces_and_monitors) do
 			local space_index = entry.workspace
 			local raw_id = entry["monitor-appkit-nsscreen-screens-id"]
@@ -310,6 +311,7 @@ end
 
 -- ========== 初始化：为每个工作区创建 sketchybar 条目 ==========
 sbar.exec(query_workspaces, function(workspaces_and_monitors)
+	if not workspaces_and_monitors then return end
 	for _, entry in ipairs(workspaces_and_monitors) do
 		local workspace_index = entry.workspace
 		local style = appearance.styles.workspace -- 引用 appearance 中的样式模板
@@ -528,6 +530,7 @@ sbar.exec(query_workspaces, function(workspaces_and_monitors)
 
 	-- 查询初始聚焦的工作区，标记为高亮
 	sbar.exec("aerospace list-workspaces --focused", function(focused_workspace)
+		if not focused_workspace then return end
 		focused_workspace = focused_workspace:match("^%s*(.-)%s*$")
 		if workspaces[focused_workspace] then
 			workspaces[focused_workspace]:set({

@@ -104,9 +104,14 @@ local function warnEN(id)
 	end
 end
 
+-- 中文警告监听：进入指定应用时检查中文输入法状态
+-- 用 pcall 保护，避免进程已终止时抛出 "Unable to fetch NSRunningApplication"
 _WarnWatcher = hs.application.watcher.new(function(_, event, app)
 	if event == hs.application.watcher.activated and app then
-		warnEN(app:bundleID())
+		local ok, id = pcall(function() return app:bundleID() end)
+		if ok and id then
+			warnEN(id)
+		end
 	end
 end)
 _WarnWatcher:start()
@@ -115,7 +120,10 @@ _WarnWatcher:start()
 do
 	local frontApp = hs.application.frontmostApplication()
 	if frontApp then
-		warnEN(frontApp:bundleID())
+		local ok, id = pcall(function() return frontApp:bundleID() end)
+		if ok and id then
+			warnEN(id)
+		end
 	end
 end
 
