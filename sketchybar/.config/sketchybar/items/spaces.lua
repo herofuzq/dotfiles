@@ -471,8 +471,17 @@ sbar.exec(query_workspaces, function(workspaces_and_monitors)
 	-- 窗口变化时更新（Hammerspoon window_watcher 50ms 防抖后单源触发，
 	-- 之前 front_app_switched 兜底会跟它撞车 → 6 个 sbar.exec 挤在 layout
 	-- 切换窗口期里把 1 帧的 tile→float 拖成可见的"飞"。去掉兜底后单源化
-	-- 不会出现 6 shell 撞车，也就不会再闪）
-	root:subscribe("space_windows_change", updateWindows)
+
+	-- 延迟 300ms 执行，避免 IPC 查询干扰 aerospace 处理 on-window-detected
+	local _space_change_gen = 0
+	root:subscribe("space_windows_change", function()
+		local my_gen = _space_change_gen + 1
+		_space_change_gen = my_gen
+		sbar.delay(0.3, function()
+			if _space_change_gen ~= my_gen then return end
+			updateWindows()
+		end)
+	end)
 
 	-- 显示器变化时（插拔显示器）重新分配
 	root:subscribe("display_change", function()
