@@ -30,8 +30,6 @@ local _popup_items = {}   -- { [ws_name] = { item1, ..., item10 } }
 local _popup_windows = {} -- { [ws_name] = { {id, app, title}, ... } }
 local EMPTY_DOT = "·"  -- 空工作区显示的点
 local _app_counts = {} -- { [ws_index] = count } 缓存窗口数
-local MAPLE_FONT = "JetBrains Maple Mono:Bold:14.0" -- 数字和点的字体（maple 字体能正确渲染 0-9 数字和 · 点）
-local APP_FONT = "sketchybar-app-font:Regular:14.0" -- app 图标字符串的字体（包含 app icon glyphs）
 
 -- aerospace 模式指示器（当前仅在 service 模式下显示 "󰰣" 图标）
 local mode_item = sbar.add("item", "aerospace_mode", {
@@ -161,8 +159,8 @@ local function updateWindow(workspace_index, args)
 			local monitor_id = raw_id and math.floor(raw_id)
 			workspaces[workspace_index]:set({
 				drawing = true,
-				icon = { padding_left = 5, padding_right = 5 },
-				label = { drawing = true, string = EMPTY_DOT, font = MAPLE_FONT },
+				icon = { padding_left = 10, padding_right = 10 },
+				label = { drawing = true, string = EMPTY_DOT },
 				display = monitor_id,
 			})
 			return
@@ -183,8 +181,8 @@ local function updateWindow(workspace_index, args)
 	if no_app and workspace_index == focused_workspace then
 		workspaces[workspace_index]:set({
 			drawing = true,
-			icon = { padding_left = 15, padding_right = 15 },
-			label = { drawing = true, string = EMPTY_DOT, font = MAPLE_FONT },
+			icon = { padding_left = 10, padding_right = 10 },
+			label = { drawing = true, string = EMPTY_DOT },
 		})
 		return
 	end
@@ -193,20 +191,16 @@ local function updateWindow(workspace_index, args)
 	-- 注：高亮由 root subscribe("aerospace_workspace_change") 立即设置（env.FOCUSED_WORKSPACE），
 	-- 此处不重复设置，避免 aerospace CLI 偶尔失败时把高亮误清
 	_app_counts[workspace_index] = #open_windows
-	local display_string, label_font, icon_pad_l, icon_pad_r
+	local display_string
 	if is_focused then
 		display_string = icon_line
-		label_font = APP_FONT
-		icon_pad_l, icon_pad_r = 15, 15
 	else
 		display_string = tostring(#open_windows)
-		label_font = MAPLE_FONT
-		icon_pad_l, icon_pad_r = 5, 5
 	end
 	workspaces[workspace_index]:set({
 		drawing = true,
-		icon = { padding_left = icon_pad_l, padding_right = icon_pad_r },
-		label = { drawing = true, string = display_string, font = label_font },
+		icon = { padding_left = 10, padding_right = 2 },
+		label = { drawing = true, string = display_string },
 	})
 end
 
@@ -471,17 +465,13 @@ sbar.exec(query_workspaces, function(workspaces_and_monitors)
 	root:subscribe("aerospace_workspace_change", function(env)
 		local focused = env.FOCUSED_WORKSPACE
 		if focused then
-			-- 0.5s 视觉过渡：icon padding 物理拉长/缩短
-			-- （highlight 布尔值不可动画，但 padding 是；label 内容由 updateWindows() 异步设置）
+			-- 0.5s 视觉过渡：高亮色平滑过渡
+			-- label 内容（数字 vs 图标串）由 updateWindows() 异步查询后设置
 			sbar.animate("tanh", 0.5, function()
 				for ws_idx, ws in pairs(workspaces) do
 					local is_focused = (ws_idx == focused)
 					ws:set({
-						icon = {
-							highlight = is_focused,
-							padding_left = is_focused and 15 or 5,
-							padding_right = is_focused and 15 or 5,
-						},
+						icon = { highlight = is_focused },
 						label = { highlight = is_focused },
 						popup = { drawing = false },
 					})
