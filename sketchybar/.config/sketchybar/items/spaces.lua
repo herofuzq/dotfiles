@@ -234,8 +234,8 @@ local function togglePopup(ws_index, workspace_item)
 					local icon = (app_icons[win.app] or app_icons["Default"])
                item:set({
                   drawing = true,
-                  icon = { string = icon, color = appearance.colors.active.sep_opaque },
-                  label = { string = win.title, color = appearance.colors.active.text },
+                  icon = { string = icon, color = { alpha = 0 } },
+                  label = { string = win.title, color = { alpha = 0 } },
                })
 				else
 					item:set({ drawing = false })
@@ -244,6 +244,20 @@ local function togglePopup(ws_index, workspace_item)
 		end
 
 		workspace_item:set({ popup = { drawing = "toggle" } })
+
+		-- 淡入动画：颜色从透明恢复到正常
+		sbar.animate("tanh", 0.2, function()
+			for i = 1, MAX_POPUP_SLOTS do
+				local item = _popup_items[ws_index] and _popup_items[ws_index][i]
+				local win = _popup_windows[ws_index] and _popup_windows[ws_index][i]
+				if item and win then
+               item:set({
+                  icon = { color = appearance.colors.active.sep_opaque },
+                  label = { color = appearance.colors.active.text },
+               })
+				end
+			end
+		end)
 	end)
 end
 
