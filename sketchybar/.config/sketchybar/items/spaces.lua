@@ -243,20 +243,36 @@ local function togglePopup(ws_index, workspace_item)
 			end
 		end
 
-		workspace_item:set({ popup = { drawing = "toggle" } })
+		workspace_item:set({
+			popup = {
+				drawing = "toggle",
+				background = { color = { alpha = 0 } },
+			},
+		})
 
-		-- 淡入动画：颜色从透明恢复到正常
-		sbar.animate("tanh", 0.2, function()
-			for i = 1, MAX_POPUP_SLOTS do
-				local item = _popup_items[ws_index] and _popup_items[ws_index][i]
-				local win = _popup_windows[ws_index] and _popup_windows[ws_index][i]
-				if item and win then
-               item:set({
-                  icon = { color = appearance.colors.active.sep_opaque },
-                  label = { color = appearance.colors.active.text },
-               })
+		-- 50ms 延迟确保 popup 已渲染，然后淡入（0.3s tanh）
+		sbar.delay(0.05, function()
+			sbar.animate("tanh", 0.3, function()
+				-- popup 背景 alpha 0 → 0.85
+				workspace_item:set({
+					popup = {
+						background = {
+							color = appearance.colors.with_alpha(appearance.colors.active.bar_bg, 0.85),
+						},
+					},
+				})
+				-- popup 子项颜色恢复正常
+				for i = 1, MAX_POPUP_SLOTS do
+					local item = _popup_items[ws_index] and _popup_items[ws_index][i]
+					local win = _popup_windows[ws_index] and _popup_windows[ws_index][i]
+					if item and win then
+						item:set({
+							icon = { color = appearance.colors.active.sep_opaque },
+							label = { color = appearance.colors.active.text },
+						})
+					end
 				end
-			end
+			end)
 		end)
 	end)
 end
