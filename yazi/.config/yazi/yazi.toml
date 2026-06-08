@@ -131,9 +131,7 @@ spotters = [
 ]
 preloaders = [
   # Office
-  # { mime = "application/openxmlformats-officedocument.*", run = "office" },
-  # { mime = "application/ms-*", run = "office" },
-  # { mime = "application/msword", run = "office" },
+  # { url = "*.[xX][lL][sS]*" , run = 'piper -- python3 -m xlsx2csv "$1" | bat --style=numbers --color=always --language=csv' },
 	# Image
 	{ mime = "image/{avif,hei?,jxl}", run = "magick" },
 	{ mime = "image/svg+xml", run = "svg" },
@@ -151,10 +149,11 @@ previewers = [
 	{ url = "*.csv", run = 'piper -- bat -p --color=always "$1"' },
 	{ mime = "application/sqlite3", run = 'piper -- sqlite3 "$1" ".schema --indent"' },
   # Office
-  # { mime = "application/openxmlformats-officedocument.*", run = "office" },
-  # { mime = "application/ms-*", run = "office" },
-  # { mime = "application/msword", run = "office" },
-	{ url = "*/", run = "folder" },
+  { url = "*.[xX][lL][sS]*" , run = 'piper -- python3 -m xlsx2csv -s 0 "$1" | bat --style=header,grid --color=always --language=csv' },
+  { url = "*.[dD][oO][cC][xX]" , run = 'piper -- pandoc -f docx -t markdown "$1" | rich - -m --theme=monokai --max-width=$w' },
+  { url = "*.[pP][pP][tT][xX]" , run = 'piper -- sh -c "python3 -c \"import sys, pptx; prs=pptx.Presentation(sys.argv[1]); [print(f\\\"--- Slide {i+1} ---\\\n\\\" + \\\"\n\\\".join([p.text for s in slide.shapes if s.has_text_frame for p in s.text_frame.paragraphs])) for i, slide in enumerate(prs.slides)]\" \"$1\" 2>/dev/null | bat --style=header,grid --color=always --language=csv"' },
+
+  { url = "*/", run = "folder" },
 	# Code
 	{ mime = "text/*", run = "code" },
 	{ mime = "application/{mbox,javascript,wine-extension-ini}", run = "code" },
