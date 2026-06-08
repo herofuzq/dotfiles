@@ -408,8 +408,8 @@ sbar.exec(query_workspaces, function(workspaces_and_monitors)
 
 		popup_item:subscribe("mouse.entered", function()
 			popup_item:set({
-				icon = { color = appearance.colors.active.rosewater },
-				label = { color = appearance.colors.active.rosewater },
+				icon = { color = 0xffff4444 },
+				label = { color = 0xffff4444 },
 			})
 		end)
 		popup_item:subscribe("mouse.exited", function()
