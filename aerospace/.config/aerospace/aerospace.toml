@@ -323,6 +323,14 @@ run = 'layout floating'
 if.app-id = "com.hegenberg.BetterTouchTool"
 run = 'layout floating'
 
+[[on-window-detected]] 
+if.app-id = "com.raycast-x.macos"
+run = 'layout floating'
+
+[[on-window-detected]] 
+if.app-id = "xyz.chatboxapp.app"
+run = 'layout floating'
+
 [[on-window-detected]] # 微信浮窗
 if.app-id = "com.tencent.xinWeChat"
 if.window-title-regex-substring = '(^(?!\s*微信\s*$).*$)'
