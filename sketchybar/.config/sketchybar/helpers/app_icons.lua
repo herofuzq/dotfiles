@@ -783,4 +783,6 @@ return {
 	["飞书会议"] = ":feishu:",
 	["小米互联服务"] = ":iphone_mirroring:",
 	["CC Switch"] = ":claude:",
+	["联通云会议"] = ":face_time:",
+	["biagmeeting"] = ":face_time:",
 }

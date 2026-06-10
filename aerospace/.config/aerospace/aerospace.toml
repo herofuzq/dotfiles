@@ -250,7 +250,7 @@ outer.right = [
 
 # 设置界面自动悬浮
 [[on-window-detected]]
-if.window-title-regex-substring = '(setting|设置|LuLu|lulu|滴答|会议|钉钉会议)'
+if.window-title-regex-substring = '(setting|设置|LuLu|lulu|滴答|会议|钉钉会议|biagmeeting)'
 run = 'layout floating'
 
 # 画中画窗口自动悬浮
@@ -318,6 +318,12 @@ run = 'layout floating'
 [[on-window-detected]]
 if.app-id = "com.soundmindgames.GnollHack"
 run = 'layout floating'
+
+[[on-window-detected]]
+if.app-id = "cn.unisk.wohuiyi"
+run = ["move-node-to-workspace 3̲Chat",
+      "layout floating"
+      ]
 
 [[on-window-detected]] # BetterTouchTool
 if.app-id = "com.hegenberg.BetterTouchTool"
