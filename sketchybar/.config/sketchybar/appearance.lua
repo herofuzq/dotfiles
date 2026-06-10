@@ -327,7 +327,7 @@ function M.install_defaults()
 			shadow = { drawing = true },
 		},
 		blur_radius = 50,
-		y_offset = 5,
+		y_offset = 2,
 	},
 	padding_left = 0,
 	blur_radius = 0,
