@@ -23,6 +23,11 @@ local ZH = 2
 -- fcitx5 的 sourceID（macism + currentSourceID 共用）
 local FCITX5_SRC = "org.fcitx.inputmethod.Fcitx5.zhHans"
 
+-- fcitx5 内的输入法名（用 `fcitx5-remote -n` 查得）
+-- -s <imname> 是显式切换：行为比 -c/-o 更可预测，不依赖上次激活记忆
+local IM_ZH = "rime"
+local IM_EN = "keyboard-us"
+
 -- 动态查找 macism 路径（避免依赖 PATH）
 local MACISM_BIN = (function()
 	local candidates = { "/opt/homebrew/bin/macism", "/usr/local/bin/macism" }
@@ -38,11 +43,8 @@ local function isUsingFcitx5()
 	return hs.keycodes.currentSourceID() == FCITX5_SRC
 end
 
--- 内部状态追踪：不依赖 fcitx5-remote 查询（返回值不稳定），
--- 由 toggle() 每次切换后自己记录，默认假设为中文。
--- _zhState 乐观追踪：仅由 toggle() 更新。
--- 注意：用户通过 fcitx5 GUI 或其他工具切换时，本变量会与现实脱节。
--- 这是有意为之（fcitx5-remote 单独调用返回值不稳定），保持现状。
+-- 内部状态追踪：与 fcitx5 内部状态通过 eventtap 同步（caps / shift 都触发 toggle），
+-- 不再轮询，避免同步 fork 子进程造成卡顿。
 local _zhState = ZH
 
 local _toggled = 0
@@ -58,16 +60,14 @@ local function toggle()
 		return
 	end
 
-	-- 已在 fcitx5 中，切换中英文
-	if _zhState == ZH then
-		hs.execute("'" .. FCITX .. "' -c", true)
-		hs.alert.show("⌨ 英文", 0.4)
-		_zhState = EN
-	else
-		hs.execute("'" .. FCITX .. "' -o", true)
-		hs.alert.show("⌨ 中文", 0.4)
-		_zhState = ZH
-	end
+	-- 已在 fcitx5 中，用 -t 强制翻转 fcitx5 引擎激活态（异步避免阻塞 eventtap）
+	-- -t 不输出，需分两步：先翻再查真实态
+	hs.task.new(FCITX, function()
+		hs.task.new(FCITX, function(_, stdout)
+			_zhState = (tonumber(stdout and stdout:match("(%d)")) == 2) and ZH or EN
+			hs.alert.show(_zhState == ZH and "⌨ 中文" or "⌨ 英文", 0.4)
+		end, {}):start()
+	end, { "-t" }):start()
 end
 
 -- ============================================================
@@ -129,9 +129,11 @@ end
 
 -- ============================================================
 -- CapsLock (Hyper) 单独按下 → 切换中英文
+-- 不监听 shift：shift 由 fcitx5 内部处理（左 shift = -t 切激活），
+-- Hammerspoon 主动 -s 切 IM，shift 的状态变化 _zhState 不感知。
 -- ============================================================
-local pressed = false
-local used = false
+local hyper_pressed = false
+local hyper_used = false
 
 _InputTap = hs.eventtap.new({
 	hs.eventtap.event.types.flagsChanged,
@@ -145,18 +147,18 @@ _InputTap = hs.eventtap.new({
 	local hyper = f.ctrl and f.alt and f.cmd
 
 	if etype == hs.eventtap.event.types.flagsChanged then
-		if hyper and not pressed then
-			pressed, used = true, false
-		elseif hyper and pressed then
-			used = true
-		elseif not hyper and pressed then
-			pressed = false
-			if not used then
+		if hyper and not hyper_pressed then
+			hyper_pressed, hyper_used = true, false
+		elseif hyper and hyper_pressed then
+			hyper_used = true
+		elseif not hyper and hyper_pressed then
+			hyper_pressed = false
+			if not hyper_used then
 				toggle()
 			end
 		end
-	elseif pressed then
-		used = true
+	elseif hyper_pressed then
+		hyper_used = true
 	end
 	return false
 end)
@@ -171,21 +173,21 @@ _FcitxInput = {
 	end,
 	-- @deprecated 同步阻塞，eventtap 回调中应使用 switchToEnglishAsync
 	switchToEnglish = function()
-		hs.execute("'" .. FCITX .. "' -c", true)
+		hs.execute("'" .. FCITX .. "' -s " .. IM_EN, true)
 		_zhState = EN
 	end,
 	-- @deprecated 同步阻塞，eventtap 回调中应使用 switchToChineseAsync
 	switchToChinese = function()
-		hs.execute("'" .. FCITX .. "' -o", true)
+		hs.execute("'" .. FCITX .. "' -s " .. IM_ZH, true)
 		_zhState = ZH
 	end,
 	-- 异步版本：用 hs.task 避免阻塞 eventtap 回调，减少右键延迟
 	switchToEnglishAsync = function()
-		hs.task.new(FCITX, nil, { "-c" }):start()
+		hs.task.new(FCITX, nil, { "-s", IM_EN }):start()
 		_zhState = EN
 	end,
 	switchToChineseAsync = function()
-		hs.task.new(FCITX, nil, { "-o" }):start()
+		hs.task.new(FCITX, nil, { "-s", IM_ZH }):start()
 		_zhState = ZH
 	end,
 }
