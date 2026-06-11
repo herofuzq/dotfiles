@@ -55,10 +55,10 @@ local cal_items = {}
 		local item = sbar.add("item", "calendar.cal_" .. i, {
 			position = "popup." .. cal.name,
 			icon = {
-				string = string.rep(" ", 32),
-				font = { family = "Hack Nerd Font Mono", style = fonts.font.style_map["Bold"], size = 11.0 },
+				string = string.rep(" ", 35),
+				font = { family = "Hack Nerd Font Mono", style = fonts.font.style_map["Bold"], size = 10.0 },
 				color = colors.active.text,
-				padding_left = 14, padding_right = 14,
+				padding_left = 16, padding_right = 16,
 			},
 			label = { drawing = false },
 			background = { drawing = false },
