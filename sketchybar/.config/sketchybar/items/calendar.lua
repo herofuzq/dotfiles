@@ -11,7 +11,7 @@ local cal = sbar.add("item", "calendar", {
 	},
 	label = {
 		font = { family = fonts.font.text, style = fonts.font.style_map["Bold"], size = fonts.font.size },
-		padding_left = 0, padding_right = 30,
+		padding_left = 0, padding_right = 14,
 		color = colors.active.sep_opaque,
 	},
 	background = {
@@ -19,7 +19,7 @@ local cal = sbar.add("item", "calendar", {
 		border_color = colors.active.mauve,
 	},
 	popup = {
-		align = "right",
+		align = "center",
 		background = {
 			color = colors.with_alpha(colors.active.bar_bg, 0.85),
 			corner_radius = 12, border_width = 2,
@@ -59,7 +59,7 @@ local cal_items = {}
 				string = string.rep(" ", 30),
 				font = { family = "Menlo", style = "Regular", size = 10.0 },
 				color = colors.active.text,
-				padding_left = 8, padding_right = 16,
+				padding_left = 8, padding_right = 8,
 			},
 			background = { drawing = false },
 		})
