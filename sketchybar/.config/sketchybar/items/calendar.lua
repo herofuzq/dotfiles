@@ -86,8 +86,8 @@ for i = 1, CAL_LINES do
 				size = 15.0,
 			},
 			color = colors.active.text,
-			padding_left = 10,
-			padding_right = 10,
+			padding_left = 6,
+			padding_right = 6,
 		},
 		background = { drawing = false },
 	})
@@ -113,34 +113,35 @@ local function updatePopupContent()
 	end
 	f:close()
 
-	-- 居中标题行（日期行中找最大宽度，不含末行统计）
-	local max_w = 0
-	for i = 2, 8 do
-		if lines[i] and #lines[i] > max_w then max_w = #lines[i] end
-	end
-	local pad = math.floor((max_w - #lines[1]) / 2)
-	if pad > 0 then
-		lines[1] = string.rep(" ", pad) .. lines[1]
+	-- 高亮今天（日期行 3~8）
+	for i = 3, 8 do
+		if lines[i] then
+			local ts = string.format("%2d", today)
+			local text = " " .. lines[i] .. " "
+			text = text:gsub(" " .. ts .. " ", "[" .. today .. "]")
+			lines[i] = text:sub(2, -2)
+		end
 	end
 
-	-- 计算今年第几天
+	-- 今年第几天
 	local days_in_month = { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 }
 	local is_leap = (t.year % 4 == 0 and t.year % 100 ~= 0) or (t.year % 400 == 0)
 	if is_leap then days_in_month[2] = 29 end
 	local doy = today
 	for i = 1, t.month - 1 do doy = doy + days_in_month[i] end
 	local total = is_leap and 366 or 365
-	lines[9] = string.format("第 %d / %d 天", doy, total)
+	local stat = string.format("第 %d / %d 天", doy, total)
+
+	-- 居中末行（相对日期行最大宽度）
+	local max_w = 0
+	for i = 2, 8 do
+		if lines[i] and #lines[i] > max_w then max_w = #lines[i] end
+	end
+	local pad = math.floor((max_w - #stat) / 2)
+	lines[9] = (pad > 0 and string.rep(" ", pad) or "") .. stat
 
 	for i = 1, CAL_LINES do
-		local text = lines[i] or ""
-		if i >= 3 and i <= 8 then
-			local ts = string.format("%2d", today)
-			text = " " .. text .. " "
-			text = text:gsub(" " .. ts .. " ", "[" .. today .. "]")
-			text = text:sub(2, -2)
-		end
-		cal_items[i]:set({ label = text })
+		cal_items[i]:set({ label = lines[i] or "" })
 	end
 end
 
