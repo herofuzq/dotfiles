@@ -94,42 +94,17 @@ on-mode-changed = ['exec-and-forget sketchybar --trigger aerospace_mode_change']
 #     outer.right =      10
     
 [gaps]
-inner.horizontal = [
-  { monitor."Built-in Retina Display" = 6 },
-  { monitor."VG271U" = 6 },
-  { monitor."Mi Monitor" = 6 },
-  6,
-]
-inner.vertical = [
-  { monitor."Built-in Retina Display" = 6 },
-  { monitor."VG271U" = 6 },
-  { monitor."Mi Monitor" = 6 },
-  6,
-]
-outer.left = [
-  { monitor."Built-in Retina Display" = 5 },
-  { monitor."VG271U" = 5 },
-  { monitor."Mi Monitor" = 4 },
-  5,
-]
-outer.bottom = [
-  { monitor."Built-in Retina Display" = 5 },
-  { monitor."VG271U" = 5},
-  { monitor."Mi Monitor" = 5 },
-  5,
-]
+inner.horizontal = 5
+inner.vertical = 5
+outer.left = 5
+outer.bottom = 5
 outer.top = [
-  { monitor."Built-in Retina Display" = 5 },
-  { monitor."VG271U" = 36 },
-  { monitor."Mi Monitor" = 36 },
-  36,
+  { monitor."Built-in Retina Display" = 2 },
+  { monitor."VG271U" = 34 },
+  { monitor."Mi Monitor" = 34 },
+  34,
 ]
-outer.right = [
-  { monitor."Built-in Retina Display" = 5 },
-  { monitor."VG271U" = 5 },
-  { monitor."Mi Monitor" = 4 },
-  5,
-]
+outer.right = 5
 # 'main' binding mode declaration
 # See: https://nikitabobko.github.io/AeroSpace/guide#binding-modes
 # 'main' binding mode must be always presented
