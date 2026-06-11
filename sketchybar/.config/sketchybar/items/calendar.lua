@@ -54,13 +54,13 @@ local cal_items = {}
 	for i = 1, CAL_LINES do
 		local item = sbar.add("item", "calendar.cal_" .. i, {
 			position = "popup." .. cal.name,
-			icon = {
+			icon = { drawing = false },
+			label = {
 				string = "",
-				font = { family = "Menlo", style = fonts.font.style_map["Bold"], size = 12.0 },
+				font = { family = "Menlo", style = "Regular", size = 13.0 },
 				color = colors.active.text,
-				padding_left = 8, padding_right = 8,
+				padding_left = 6, padding_right = 8,
 			},
-			label = { drawing = false },
 			background = { drawing = false },
 		})
 		item:subscribe("mouse.entered", function() _exit_gen = _exit_gen + 1; _popup_hovering = true end)
@@ -116,7 +116,7 @@ local function updatePopupContent()
 	lines[nlines] = (pad > 0 and string.rep(" ", pad) or "") .. stat
 
 	for i = 1, CAL_LINES do
-		cal_items[i]:set({ icon = lines[i] or "" })
+		cal_items[i]:set({ label = lines[i] or "" })
 	end
 end
 
