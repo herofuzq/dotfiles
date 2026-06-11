@@ -28,6 +28,10 @@ local workspace_order = {} -- 工作区创建顺序（保持显示顺序一致�
 local MAX_POPUP_SLOTS = 10
 local _popup_items = {}   -- { [ws_name] = { item1, ..., item10 } }
 local _popup_windows = {} -- { [ws_name] = { {id, app, title}, ... } }
+local _popup_pinned = {}   -- { [ws_name] = true/false } 记录点击固定状态，固定后鼠标离开不隐藏
+local _popup_gen = {}     -- { [ws_name] = gen } 防止 hover 异步回调覆盖 mouse.exited.global 的隐藏
+local _popup_hovering = {} -- { [ws_name] = true/false } 鼠标当前是否在 popup 子项上
+local _popup_exit_gen = {} -- { [ws_name] = gen } 延迟隐藏的代数，进入 popup 时作废旧延迟
 
 -- aerospace 模式指示器（当前仅在 service 模式下显示 "󰰣" 图标）
 local mode_item = sbar.add("item", "aerospace_mode", {
@@ -195,8 +199,21 @@ local function updateWindow(workspace_index, args)
 	})
 end
 
--- ========== Popup：点击当前工作区时展示窗口列表 ==========
-local function togglePopup(ws_index, workspace_item)
+local function scheduleHide(ws_index, workspace)
+	_popup_gen[ws_index] = (_popup_gen[ws_index] or 0) + 1
+	if _popup_pinned[ws_index] then return end
+	local gen = (_popup_exit_gen[ws_index] or 0) + 1
+	_popup_exit_gen[ws_index] = gen
+	sbar.delay(0.2, function()
+		if _popup_exit_gen[ws_index] ~= gen then return end
+		if _popup_hovering[ws_index] or _popup_pinned[ws_index] then return end
+		workspace:set({ popup = { drawing = false } })
+	end)
+end
+
+-- ========== Popup：展示/切换工作区窗口列表 ==========
+-- force_show=true 用于 hover（总是展示，不 toggle），留空则是 toggle（点击切换）
+local function togglePopup(ws_index, workspace_item, force_show, gen)
 	if not workspace_item then return end
 
 	local cmd = "aerospace list-windows --workspace \""
@@ -243,7 +260,10 @@ local function togglePopup(ws_index, workspace_item)
 			end
 		end
 
-      workspace_item:set({ popup = { drawing = "toggle" } })
+      if gen and _popup_gen[ws_index] ~= gen then return end
+
+      local drawing = force_show and true or "toggle"
+      workspace_item:set({ popup = { drawing = drawing } })
 	end)
 end
 
@@ -364,20 +384,38 @@ sbar.exec(query_workspaces, function(workspaces_and_monitors)
 		workspaces[workspace_index] = workspace
 		table.insert(workspace_order, workspace_index)
 
-		-- 点击行为：当前工作区 → 弹 popup，其他工作区 → 切换
+		workspace:subscribe("mouse.entered", function()
+			_popup_exit_gen[workspace_index] = (_popup_exit_gen[workspace_index] or 0) + 1
+			local gen = (_popup_gen[workspace_index] or 0) + 1
+			_popup_gen[workspace_index] = gen
+			togglePopup(workspace_index, workspace, true, gen)
+		end)
+
+		workspace:subscribe("mouse.exited", function()
+			scheduleHide(workspace_index, workspace)
+		end)
+
+		workspace:subscribe("mouse.exited.global", function()
+			_popup_exit_gen[workspace_index] = (_popup_exit_gen[workspace_index] or 0) + 1
+			_popup_gen[workspace_index] = (_popup_gen[workspace_index] or 0) + 1
+			if not _popup_pinned[workspace_index] then
+				workspace:set({ popup = { drawing = false } })
+			end
+		end)
+
 		workspace:subscribe("mouse.clicked", function()
 			sbar.exec("aerospace list-workspaces --focused", function(focused)
 				focused = focused and focused:match("^%s*(.-)%s*$")
 				if focused == workspace_index then
+					_popup_pinned[workspace_index] = not _popup_pinned[workspace_index]
 					togglePopup(workspace_index, workspace)
 				else
+					for k, _ in pairs(_popup_pinned) do
+						_popup_pinned[k] = false
+					end
 					sbar.exec("aerospace workspace \"" .. workspace_index .. "\"")
 				end
 			end)
-		end)
-
-		workspace:subscribe("mouse.exited.global", function()
-			workspace:set({ popup = { drawing = false } })
 		end)
 
 		_popup_items[workspace_index] = {}
@@ -407,16 +445,20 @@ sbar.exec(query_workspaces, function(workspaces_and_monitors)
 			_popup_items[workspace_index][i] = popup_item
 
 		popup_item:subscribe("mouse.entered", function()
+			_popup_exit_gen[workspace_index] = (_popup_exit_gen[workspace_index] or 0) + 1
+			_popup_hovering[workspace_index] = true
 			popup_item:set({
 				icon = { color = 0xffff4444 },
 				label = { color = 0xffff4444 },
 			})
 		end)
 		popup_item:subscribe("mouse.exited", function()
+			_popup_hovering[workspace_index] = false
 			popup_item:set({
 				icon = { color = appearance.colors.active.sep_opaque },
 				label = { color = appearance.colors.active.text },
 			})
+			scheduleHide(workspace_index, workspace)
 		end)
 
 			popup_item:subscribe("mouse.clicked", function()
@@ -456,6 +498,12 @@ sbar.exec(query_workspaces, function(workspaces_and_monitors)
 	root:subscribe("aerospace_workspace_change", function(env)
 		local focused = env.FOCUSED_WORKSPACE
 		if focused then
+			for k, _ in pairs(_popup_pinned) do
+				_popup_pinned[k] = false
+			end
+			for k, _ in pairs(_popup_hovering) do
+				_popup_hovering[k] = false
+			end
 			for ws_idx, ws in pairs(workspaces) do
 				local is_focused = (ws_idx == focused)
 				ws:set({
