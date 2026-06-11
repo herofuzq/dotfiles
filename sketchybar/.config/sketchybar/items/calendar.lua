@@ -39,6 +39,7 @@ local cal = sbar.add("item", "calendar", {
 			shadow = { drawing = false },
 		},
 		blur_radius = 30,
+		height = 135,
 	},
 	position = "right",
 	update_freq = 30,
@@ -69,48 +70,27 @@ cal:subscribe({ "forced", "routine", "system_woke" }, function()
 	})
 end)
 
--- ========== Popup：今年第几天 ==========
+-- ========== Popup：完整月历 ==========
 
--- 闰年判断
-local function is_leap(year)
-	return (year % 4 == 0 and year % 100 ~= 0) or (year % 400 == 0)
-end
-
-local doy_item = sbar.add("item", "calendar.doy", {
-	position = "popup." .. cal.name,
-	icon = { drawing = false },
-	label = {
-		string = "",
-		font = {
-			family = fonts.font.text,
-			style = fonts.font.style_map["Bold"],
-			size = 14.0,
+local CAL_LINES = 8
+local cal_items = {}
+for i = 1, CAL_LINES do
+	local item = sbar.add("item", "calendar.cal_" .. i, {
+		position = "popup." .. cal.name,
+		icon = { drawing = false },
+		label = {
+			string = "",
+			font = {
+				family = "Hack Nerd Font Mono",
+				style = fonts.font.style_map["Regular"],
+				size = 13.0,
+			},
+			color = colors.active.text,
+			padding_left = 16,
+			padding_right = 16,
 		},
-		color = colors.active.text,
-		padding_left = 12,
-		padding_right = 12,
-	},
-	background = { drawing = false },
-})
-
-local rem_item = sbar.add("item", "calendar.remaining", {
-	position = "popup." .. cal.name,
-	icon = { drawing = false },
-	label = {
-		string = "",
-		font = {
-			family = fonts.font.text,
-			style = fonts.font.style_map["Regular"],
-			size = 12.0,
-		},
-		color = colors.active.subtext0,
-		padding_left = 12,
-		padding_right = 12,
-	},
-	background = { drawing = false },
-})
-
-for _, item in ipairs({ doy_item, rem_item }) do
+		background = { drawing = false },
+	})
 	item:subscribe("mouse.entered", function()
 		_exit_gen = _exit_gen + 1
 		_popup_hovering = true
@@ -119,25 +99,29 @@ for _, item in ipairs({ doy_item, rem_item }) do
 		_popup_hovering = false
 		scheduleHide()
 	end)
+	cal_items[i] = item
 end
 
 local function updatePopupContent()
-	local t = os.date("*t")
-	local days_in_month = { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 }
-	if is_leap(t.year) then
-		days_in_month[2] = 29
+	local today = tonumber(os.date("%d"))
+	local f = io.popen("LC_ALL=en_US.UTF-8 cal")
+	if not f then return end
+	local lines = {}
+	for line in f:lines() do
+		lines[#lines + 1] = line
 	end
+	f:close()
 
-	local doy = t.day
-	for i = 1, t.month - 1 do
-		doy = doy + days_in_month[i]
+	for i = 1, CAL_LINES do
+		local text = lines[i] or ""
+		if i >= 3 then
+			local ts = string.format("%2d", today)
+			text = " " .. text .. " "
+			text = text:gsub(" " .. ts .. " ", "[" .. today .. "]")
+			text = text:sub(2, -2)
+		end
+		cal_items[i]:set({ label = text })
 	end
-
-	local total = is_leap(t.year) and 366 or 365
-	local remaining = total - doy
-
-	sbar.set("calendar.doy", { label = string.format("今年第 %d 天", doy) })
-	sbar.set("calendar.remaining", { label = string.format("共 %d 天 · 剩余 %d 天", total, remaining) })
 end
 
 cal:subscribe("mouse.entered", function()
