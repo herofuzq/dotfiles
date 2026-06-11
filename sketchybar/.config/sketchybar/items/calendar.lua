@@ -53,18 +53,6 @@ end)
 
 -- ========== Popup：完整月历 ==========
 
--- 透明 spacer 撑宽 popup，防止日期右边缘被截断
-sbar.add("item", "calendar.spacer", {
-	position = "popup." .. cal.name,
-	icon = { drawing = false },
-	label = {
-		string = string.rep(" ", 32),
-		font = { family = "Hack Nerd Font Mono", style = "Regular", size = 12.0 },
-		color = 0x00000000,
-	},
-	background = { drawing = false },
-})
-
 local CAL_LINES = 8
 local cal_items = {}
 for i = 1, CAL_LINES do
