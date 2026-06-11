@@ -1,22 +1,27 @@
 -- 全局设置：高度、默认边距等
 local function detect_bar_height()
 	local fallback = 36
-	-- 尝试用编译好的 Swift helper 实际测量（依赖 NSApplication GUI 上下文）
 	local cfg = os.getenv("CONFIG_DIR")
 	if cfg then
 		local f = io.popen('"' .. cfg .. '/helpers/bar_height/bin/bar_height" 2>/dev/null')
 		if f then
 			for line in f:lines() do
-				local is_main, h = line:match("^(1) (%d+)")
+				local is_main, bar, safe = line:match("^(1) bar=(%d+) safe=(%d+)")
 				if is_main then
 					f:close()
-					return tonumber(h)
+					bar, safe = tonumber(bar), tonumber(safe)
+					if safe and safe > 0 then
+						return safe
+					elseif bar and bar > 0 then
+						return bar
+					else
+						return fallback
+					end
 				end
 			end
 			f:close()
 		end
 	end
-	-- helper 不可用时用版本检测兜底
 	return fallback
 end
 

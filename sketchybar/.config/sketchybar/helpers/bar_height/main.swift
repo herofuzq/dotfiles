@@ -10,5 +10,6 @@ for screen in NSScreen.screens {
     let barHeight = frame.height - visible.height
     let scale = screen.backingScaleFactor
     let isMain = frame.origin.y == 0
-    print("\(isMain ? 1 : 0) \(Int(barHeight)) \(Int(scale))x")
+    let safeTop = screen.safeAreaInsets.top
+    print("\(isMain ? 1 : 0) bar=\(Int(barHeight)) safe=\(Int(safeTop)) thick=\(Int(NSStatusBar.system.thickness)) scale=\(Int(scale))x")
 }
