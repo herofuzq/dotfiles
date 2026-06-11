@@ -56,7 +56,7 @@ local cal_items = {}
 			position = "popup." .. cal.name,
 			icon = { drawing = false },
 			label = {
-				string = "",
+				string = string.rep(" ", 30),
 				font = { family = "Menlo", style = "Regular", size = 10.0 },
 				color = colors.active.text,
 				padding_left = 8, padding_right = 16,
