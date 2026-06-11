@@ -15,6 +15,7 @@ if cfg and not (
 	and file_exists(cfg .. "/helpers/event_providers/input_method/bin/input_method_watch")
 	and file_exists(cfg .. "/helpers/event_providers/theme/bin/theme_watch")
 	and file_exists(cfg .. "/helpers/menus/bin/menus")
+	and file_exists(cfg .. "/helpers/bar_height/bin/bar_height")
 ) then
 	local ok = os.execute("cd \"" .. cfg .. "/helpers\" && make 2>&1")
 	if ok ~= 0 and ok ~= true then

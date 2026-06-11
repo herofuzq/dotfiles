@@ -1,26 +1,23 @@
 -- 全局设置：高度、默认边距等
 local function detect_bar_height()
 	local fallback = 36
-	local ver = 15
-	local f = io.popen("sw_vers -productVersion 2>/dev/null")
-	if f then
-		ver = tonumber(f:read("*a"):match("^(%d+)")) or 15
-		f:close()
+	-- 尝试用编译好的 Swift helper 实际测量（依赖 NSApplication GUI 上下文）
+	local cfg = os.getenv("CONFIG_DIR")
+	if cfg then
+		local f = io.popen('"' .. cfg .. '/helpers/bar_height/bin/bar_height" 2>/dev/null')
+		if f then
+			for line in f:lines() do
+				local is_main, h = line:match("^(1) (%d+)")
+				if is_main then
+					f:close()
+					return tonumber(h)
+				end
+			end
+			f:close()
+		end
 	end
-	local has_notch = false
-	f = io.popen("aerospace list-monitors --json 2>/dev/null")
-	if f then
-		local output = f:read("*a")
-		f:close()
-		has_notch = output and output:match("Built%-in") ~= nil
-	end
-	-- macOS 26 Tahoe 把非刘海屏菜单栏从 24pt 增加到 ~31pt
-	if has_notch then
-		return 37
-	elseif ver >= 26 then
-		return 31
-	end
-	return 24
+	-- helper 不可用时用版本检测兜底
+	return fallback
 end
 
 return {
