@@ -57,9 +57,9 @@ local cal_items = {}
 			icon = { drawing = false },
 			label = {
 				string = "",
-				font = { family = "Menlo", style = "Regular", size = 13.0 },
+				font = { family = "Menlo", style = "Regular", size = 10.0 },
 				color = colors.active.text,
-				padding_left = 6, padding_right = 8,
+				padding_left = 4, padding_right = 4,
 			},
 			background = { drawing = false },
 		})
@@ -86,19 +86,21 @@ local function updatePopupContent()
 	if leap then dinm[2] = 29 end
 	local ndays = dinm[month]
 
-	-- 星期头（紧凑）
+	-- 星期头，4字符等宽
 	local wdays = { "Su", "Mo", "Tu", "We", "Th", "Fr", "Sa" }
-	local lines = { table.concat(wdays, " ") }
+	local hdr = {}
+	for _, wd in ipairs(wdays) do hdr[#hdr + 1] = string.format(" %-2s ", wd) end
+	local lines = { table.concat(hdr):gsub("%s+$", "") }
 	local nlines = 1
 
-	-- 日期：2字符右对齐 + 单空格分隔，今天 [XX]，空列补齐偏移
+	-- 日期：4字符等宽 " %2d " 或 "[%2d]"，空列 "    "
 	local cells = {}
-	for skip = 1, first_wday - 1 do cells[#cells + 1] = "  " end
+	for skip = 1, first_wday - 1 do cells[#cells + 1] = "    " end
 	for d = 1, ndays do
-		cells[#cells + 1] = (d == today) and string.format("[%d]", d) or string.format("%2d", d)
+		cells[#cells + 1] = (d == today) and string.format("[%2d]", d) or string.format(" %2d ", d)
 		if #cells == 7 or d == ndays then
 			nlines = nlines + 1
-			lines[nlines] = table.concat(cells, " "):gsub("%s+$", "")
+			lines[nlines] = table.concat(cells):gsub("%s+$", "")
 			cells = {}
 		end
 	end
