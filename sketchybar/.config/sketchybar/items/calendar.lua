@@ -39,7 +39,7 @@ local cal = sbar.add("item", "calendar", {
 			shadow = { drawing = false },
 		},
 		blur_radius = 30,
-		height = 135,
+		height = 18,
 	},
 	position = "right",
 	update_freq = 30,
