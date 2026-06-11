@@ -93,7 +93,7 @@ local function updatePopupContent()
 
 	-- 日期：2字符右对齐 + 单空格分隔，今天 [XX]，空列补齐偏移
 	local cells = {}
-	for skip = 1, first_wday - 1 do cells[#cells + 1] = "   " end
+	for skip = 1, first_wday - 1 do cells[#cells + 1] = "  " end
 	for d = 1, ndays do
 		cells[#cells + 1] = (d == today) and string.format("[%d]", d) or string.format("%2d", d)
 		if #cells == 7 or d == ndays then
