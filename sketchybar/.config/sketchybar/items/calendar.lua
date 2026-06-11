@@ -59,7 +59,7 @@ local cal_items = {}
 				string = string.rep(" ", 30),
 				font = { family = "Hack Nerd Font Mono", style = fonts.font.style_map["Bold"], size = 15.0 },
 				color = colors.active.text,
-				padding_left = 28, padding_right = 60,
+				padding_left = 32, padding_right = 60,
 			},
 			background = { drawing = false },
 		})
