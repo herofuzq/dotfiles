@@ -1,6 +1,6 @@
 -- 全局设置：高度、默认边距等
 local function detect_bar_height()
-	local fallback = 36
+	local fallback = 32
 	local cfg = os.getenv("CONFIG_DIR")
 	if cfg then
 		local f = io.popen('"' .. cfg .. '/helpers/bar_height/bin/bar_height" 2>/dev/null')
