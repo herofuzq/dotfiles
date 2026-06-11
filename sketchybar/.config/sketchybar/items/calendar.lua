@@ -84,11 +84,11 @@ for i = 1, CAL_LINES do
 			font = {
 				family = "Hack Nerd Font Mono",
 				style = fonts.font.style_map["Bold"],
-				size = 13.0,
+				size = 12.0,
 			},
 			color = colors.active.text,
-			padding_left = 4,
-			padding_right = 4,
+			padding_left = 2,
+			padding_right = 2,
 		},
 		background = { drawing = false },
 	})
@@ -115,40 +115,43 @@ end
 local function updatePopupContent()
 	local t = os.date("*t")
 	local today = t.day
-	local f = io.popen("LC_ALL=en_US.UTF-8 cal")
-	if not f then return end
-	local raw = {}
-	for line in f:lines() do
-		raw[#raw + 1] = line:gsub("%s+$", "")
-	end
-	f:close()
+	local year, month = t.year, t.month
 
-	-- 跳过第 1 行（月份标题），取 2~8 行（星期 + 6 日期行）
+	local first_wday = os.date("*t", os.time({ year = year, month = month, day = 1 })).wday
+	local days_in_month = { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 }
+	local leap = (year % 4 == 0 and year % 100 ~= 0) or (year % 400 == 0)
+	if leap then days_in_month[2] = 29 end
+	local ndays = days_in_month[month]
+
 	local lines = {}
-	for i = 2, 8 do
-		lines[#lines + 1] = raw[i] or ""
-	end
+	lines[1] = "Su Mo Tu We Th Fr Sa"
 
-	-- 高亮今天（日期行 2~7，即 raw 的 3~8）
-	for i = 2, 7 do
-		if lines[i] then
-			local ts = string.format("%2d", today)
-			local text = " " .. lines[i] .. " "
-			text = text:gsub(" " .. ts .. " ", "[" .. today .. "]")
-			lines[i] = text:sub(2, -2)
+	local cells, col = {}, first_wday
+	for d = 1, ndays do
+		cells[#cells + 1] = (d == today)
+			and string.format("[%2d]", d)
+			or string.format(" %2d ", d)
+		if col % 7 == 0 or d == ndays then
+			local row = table.concat(cells)
+			if #lines == 1 then
+				row = string.rep("    ", first_wday - 1) .. row
+			end
+			lines[#lines + 1] = row:gsub("%s+$", "")
+			cells, col = {}, 1
+		else
+			col = col + 1
 		end
 	end
 
-	-- 今年第几天（第 8 行）
-	local days = { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 }
-	local leap = (t.year % 4 == 0 and t.year % 100 ~= 0) or (t.year % 400 == 0)
-	if leap then days[2] = 29 end
+	while #lines < 7 do
+		lines[#lines + 1] = ""
+	end
+
 	local doy = today
-	for i = 1, t.month - 1 do doy = doy + days[i] end
+	for i = 1, month - 1 do doy = doy + days_in_month[i] end
 	local total = leap and 366 or 365
 	local stat = string.format("第 %d / %d 天", doy, total)
 
-	-- 居中末行（基于 CJK 感知的显示宽度）
 	local max_w = 0
 	for i = 1, 7 do
 		if lines[i] and #lines[i] > max_w then max_w = #lines[i] end
