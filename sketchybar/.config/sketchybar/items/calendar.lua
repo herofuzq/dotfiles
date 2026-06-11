@@ -41,6 +41,7 @@ local cal = sbar.add("item", "calendar", {
 		blur_radius = 30,
 		height = 22,
 	},
+	},
 	position = "right",
 	update_freq = 30,
 	padding_left = 2,
@@ -72,7 +73,7 @@ end)
 
 -- ========== Popup：完整月历 ==========
 
-local CAL_LINES = 8
+local CAL_LINES = 9
 local cal_items = {}
 for i = 1, CAL_LINES do
 	local item = sbar.add("item", "calendar.cal_" .. i, {
@@ -82,12 +83,12 @@ for i = 1, CAL_LINES do
 			string = "",
 			font = {
 				family = "Hack Nerd Font Mono",
-				style = fonts.font.style_map["Regular"],
+				style = fonts.font.style_map["Bold"],
 				size = 15.0,
 			},
 			color = colors.active.text,
-			padding_left = 16,
-			padding_right = 16,
+			padding_left = 10,
+			padding_right = 10,
 		},
 		background = { drawing = false },
 	})
@@ -103,28 +104,38 @@ for i = 1, CAL_LINES do
 end
 
 local function updatePopupContent()
-	local today = tonumber(os.date("%d"))
+	local t = os.date("*t")
+	local today = t.day
 	local f = io.popen("LC_ALL=en_US.UTF-8 cal")
 	if not f then return end
 	local lines = {}
 	for line in f:lines() do
-		local trimmed = line:gsub("%s+$", "")
-		lines[#lines + 1] = trimmed
+		lines[#lines + 1] = line:gsub("%s+$", "")
 	end
 	f:close()
 
+	-- 居中标题行（日期行中找最大宽度，不含末行统计）
 	local max_w = 0
-	for i = 2, CAL_LINES do
-		if #lines[i] > max_w then max_w = #lines[i] end
+	for i = 2, 8 do
+		if lines[i] and #lines[i] > max_w then max_w = #lines[i] end
 	end
 	local pad = math.floor((max_w - #lines[1]) / 2)
 	if pad > 0 then
 		lines[1] = string.rep(" ", pad) .. lines[1]
 	end
 
+	-- 计算今年第几天
+	local days_in_month = { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 }
+	local is_leap = (t.year % 4 == 0 and t.year % 100 ~= 0) or (t.year % 400 == 0)
+	if is_leap then days_in_month[2] = 29 end
+	local doy = today
+	for i = 1, t.month - 1 do doy = doy + days_in_month[i] end
+	local total = is_leap and 366 or 365
+	lines[9] = string.format("第 %d / %d 天", doy, total)
+
 	for i = 1, CAL_LINES do
 		local text = lines[i] or ""
-		if i >= 3 then
+		if i >= 3 and i <= 8 then
 			local ts = string.format("%2d", today)
 			text = " " .. text .. " "
 			text = text:gsub(" " .. ts .. " ", "[" .. today .. "]")
