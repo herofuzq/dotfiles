@@ -20,7 +20,6 @@ local cal = sbar.add("item", "calendar", {
 	},
 	popup = {
 		align = "right",
-		horizontal = "on",
 		background = {
 			color = colors.with_alpha(colors.active.bar_bg, 0.85),
 			corner_radius = 12, border_width = 2,
@@ -47,30 +46,21 @@ local function scheduleHide()
 	end)
 end
 
-cal:subscribe({ "forced", "routine", "system_woke" }, function()
-	local t = os.date("*t")
-	cal:set({ icon = string.format("%d月%d日", t.month, t.day), label = " " .. os.date("%H:%M") })
-end)
-
 -- ========== Popup：完整月历 ==========
--- 水平布局 + y_offset 垂直堆叠，文字放 icon（monospace 字体）
 
 local CAL_LINES = 8
 local cal_items = {}
 
 for i = 1, CAL_LINES do
-	local y = 56 - 16 * (i - 1)
 	local item = sbar.add("item", "calendar.cal_" .. i, {
 		position = "popup." .. cal.name,
-		width = 0,
-		y_offset = y,
-		icon = {
+		icon = { drawing = false },
+		label = {
 			string = "",
-			font = { family = "Hack Nerd Font Mono", style = fonts.font.style_map["Bold"], size = 12.0 },
+			font = { family = "Hack Nerd Font Mono", style = fonts.font.style_map["Bold"], size = 11.0 },
 			color = colors.active.text,
-			padding_left = 16, padding_right = 16,
+			padding_left = 6, padding_right = 6,
 		},
-		label = { drawing = false },
 		background = { drawing = false },
 	})
 	item:subscribe("mouse.entered", function() _exit_gen = _exit_gen + 1; _popup_hovering = true end)
@@ -129,25 +119,27 @@ local function updatePopupContent()
 	lines[8] = (pad > 0 and string.rep(" ", pad) or "") .. stat
 
 	for i = 1, CAL_LINES do
-		cal_items[i]:set({ icon = lines[i] or "" })
+		cal_items[i]:set({ label = lines[i] or "" })
 	end
 end
 
-cal:subscribe("mouse.entered", function()
-	_exit_gen = _exit_gen + 1
-	updatePopupContent()
-	cal:set({ popup = { drawing = true } })
-end)
-
-cal:subscribe("mouse.exited", function() scheduleHide() end)
-
-cal:subscribe("mouse.clicked", function()
-	_popup_pinned = not _popup_pinned
-	updatePopupContent()
-	cal:set({ popup = { drawing = "toggle" } })
-end)
-
-cal:subscribe("mouse.exited.global", function()
-	_exit_gen = _exit_gen + 1
-	if not _popup_pinned then cal:set({ popup = { drawing = false } }) end
+cal:subscribe({ "forced", "routine", "system_woke", "mouse.entered", "mouse.exited", "mouse.clicked", "mouse.exited.global" }, function(env)
+	local s = env.SENDER
+	if s == "forced" or s == "routine" or s == "system_woke" then
+		local t = os.date("*t")
+		cal:set({ icon = string.format("%d月%d日", t.month, t.day), label = " " .. os.date("%H:%M") })
+	elseif s == "mouse.entered" then
+		_exit_gen = _exit_gen + 1
+		updatePopupContent()
+		cal:set({ popup = { drawing = true } })
+	elseif s == "mouse.exited" then
+		scheduleHide()
+	elseif s == "mouse.clicked" then
+		_popup_pinned = not _popup_pinned
+		updatePopupContent()
+		cal:set({ popup = { drawing = "toggle" } })
+	elseif s == "mouse.exited.global" then
+		_exit_gen = _exit_gen + 1
+		if not _popup_pinned then cal:set({ popup = { drawing = false } }) end
+	end
 end)
