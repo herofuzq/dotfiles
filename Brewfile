@@ -8,6 +8,7 @@
 tap "felixkratz/formulae"
 tap "nikitabobko/tap"
 tap "laishulu/homebrew"
+tap "malpern/tap"
 tap "gromgit/fuse"
 tap "joelekstrom/repo"
 tap "vitorgalvao/tiny-scripts"
@@ -86,6 +87,7 @@ cask "tencent-lemon"      # 系统清理
 # Sketchybar 及依赖
 # =============================================================================
 brew "felixkratz/formulae/sketchybar" # 状态栏
+brew "malpern/tap/sketchybar-toggle"   # 与原生菜单栏协调显示/隐藏
 brew "laishulu/homebrew/macism"       # 输入法查询
 brew "nowplaying-cli"                 # 媒体信息查询
 cask "squirrel-app"                   # 鼠须管 (Rime 输入法)

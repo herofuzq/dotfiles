@@ -59,7 +59,7 @@ local function switchToExternal(retries)
 	retries = retries or RETRY_COUNT
 	local ext = findDevice(EXTERNAL_TRANSPORTS)
 	if ext then
-		doSwitch(ext, "🔊 → ")
+		doSwitch(ext, "♪ → ")
 		return
 	end
 	if retries > 0 then
@@ -70,7 +70,7 @@ local function switchToExternal(retries)
 			switchToExternal(retries - 1)
 		end)
 	else
-		hs.alert.show("⚠️ 未找到外接显示器音频设备", 1.5)
+		hs.alert.show("⚠ 未找到外接显示器音频设备", 1.5)
 		print("[AudioSwitch] 重试耗尽，未找到 HDMI/DisplayPort 音频设备")
 	end
 end
@@ -78,7 +78,7 @@ end
 local function switchToInternal()
 	local internal = findDevice(INTERNAL_TRANSPORTS)
 	if internal then
-		doSwitch(internal, "🔈 → ")
+		doSwitch(internal, "♪ → ")
 	end
 end
 
@@ -103,7 +103,7 @@ local function onScreenChange()
 	_screenCount = newCount
 
 	if newCount > 1 then
-		hs.alert.show("🖥️ 外接显示器 → 切换音频...", 1.0)
+				hs.alert.show("▣ 外接显示器 → 切换音频...", 1.0)
 		print("[AudioSwitch] 检测到外接显示器，" .. SWITCH_DELAY .. " 秒后切换音频...")
 		_pendingTimer = hs.timer.doAfter(SWITCH_DELAY, function()
 			_pendingTimer = nil
@@ -112,7 +112,7 @@ local function onScreenChange()
 	elseif not hasExternalAudio() then
 		-- 外接音频设备全部断开才切回内置（合盖不会误切）
 		-- 文案用"音频"而非"扬声器"，避免在 DP-only 外接显示器（有视频无音频）场景下误导用户以为显示器没接
-		hs.alert.show("🔈 切回内置音频", 1.0)
+		hs.alert.show("♪ 切回内置音频", 1.0)
 		print("[AudioSwitch] 无外接音频设备，切回内置扬声器")
 		switchToInternal()
 	end
@@ -126,7 +126,7 @@ _WakeWatcher = hs.caffeinate.watcher.new(function(eventType)
 		hs.timer.doAfter(SWITCH_DELAY, function()
 			if hasExternalAudio() then
 				print("[AudioSwitch] 唤醒后检测到外接显示器，切换音频")
-				hs.alert.show("🖥️ 外接显示器 → 切换音频...", 1.0)
+		hs.alert.show("▣ 外接显示器 → 切换音频...", 1.0)
 				switchToExternal()
 			end
 		end)

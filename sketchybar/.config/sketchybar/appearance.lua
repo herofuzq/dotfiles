@@ -247,7 +247,9 @@ end
 local function dynamic_color(base, get_color)
 	return setmetatable(base, {
 		__index = function(_, k)
-			if k == "color" then return get_color() end
+			if k == "color" then
+				return get_color()
+			end
 		end,
 	})
 end
@@ -258,7 +260,9 @@ M.styles = {
 			drawing = true,
 			corner_radius = 10,
 			border_width = 2,
-		}, function() return M.colors.active.bar_bg end),
+		}, function()
+			return M.colors.active.bar_bg
+		end),
 
 		icon = dynamic_color({
 			highlight_color = 0xffff4444, -- workspace 聚焦高亮色
@@ -269,7 +273,9 @@ M.styles = {
 			},
 			padding_left = 10,
 			padding_right = 2,
-		}, function() return M.colors.active.sep_opaque end),
+		}, function()
+			return M.colors.active.sep_opaque
+		end),
 
 		label = dynamic_color({
 			highlight_color = 0xffff4444,
@@ -277,65 +283,67 @@ M.styles = {
 			padding_left = 2,
 			padding_right = 10,
 			y_offset = 0,
-		}, function() return M.colors.active.sep_opaque end),
+		}, function()
+			return M.colors.active.sep_opaque
+		end),
 
 		blur_radius = 10,
 	},
 }
 
 function M.install_defaults()
-  sbar.default({
-	background = {
-		border_color = M.colors.active.bg3,
-		border_width = 0,
-		color = M.colors.active.bar_bg,
-		corner_radius = 9,
-		height = settings.height - 4,
-		image = {
-			corner_radius = 0,
-			border_color = M.colors.active.text,
-			border_width = 1,
-		},
-	},
-	icon = {
-		font = {
-			family = fonts.font_icon.text,
-			style = fonts.font_icon.style_map["Bold"],
-			size = fonts.font_icon.size,
-		},
-		color = M.colors.active.bg2_opaque,
-		highlight_color = M.colors.active.accent,
-		padding_left = 0,
-		padding_right = 0,
-	},
-	label = {
-		font = {
-			family = fonts.font.text,
-			style = fonts.font.style_map["Semibold"],
-			size = fonts.font.size,
-		},
-		color = M.colors.active.bg2_opaque,
-		padding_left = settings.default_padding,
-		padding_right = settings.default_padding,
-	},
-	popup = {
-		align = "center",
+	sbar.default({
 		background = {
+			border_color = M.colors.active.bg3,
 			border_width = 0,
-			corner_radius = 6,
 			color = M.colors.active.bar_bg,
-			shadow = { drawing = true },
+			corner_radius = 9,
+			height = settings.height - 8,
+			image = {
+				corner_radius = 0,
+				border_color = M.colors.active.text,
+				border_width = 1,
+			},
 		},
-		blur_radius = 50,
-		y_offset = 2,
-	},
-	padding_left = 0,
-	blur_radius = 0,
-	padding_right = 0,
-	scroll_texts = true,
-	shadow = "off",
-	updates = "on",
-  })
+		icon = {
+			font = {
+				family = fonts.font_icon.text,
+				style = fonts.font_icon.style_map["Bold"],
+				size = fonts.font_icon.size,
+			},
+			color = M.colors.active.bg2_opaque,
+			highlight_color = M.colors.active.accent,
+			padding_left = 0,
+			padding_right = 0,
+		},
+		label = {
+			font = {
+				family = fonts.font.text,
+				style = fonts.font.style_map["Semibold"],
+				size = fonts.font.size,
+			},
+			color = M.colors.active.bg2_opaque,
+			padding_left = settings.default_padding,
+			padding_right = settings.default_padding,
+		},
+		popup = {
+			align = "center",
+			background = {
+				border_width = 0,
+				corner_radius = 6,
+				color = M.colors.active.bar_bg,
+				shadow = { drawing = true },
+			},
+			blur_radius = 50,
+			y_offset = 2,
+		},
+		padding_left = 0,
+		blur_radius = 0,
+		padding_right = 0,
+		scroll_texts = true,
+		shadow = "off",
+		updates = "on",
+	})
 end
 
 return M

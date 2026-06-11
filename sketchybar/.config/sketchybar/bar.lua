@@ -17,6 +17,5 @@ sbar.bar({
 	topmost = "window",
 	position = "top",
 	shadow = "on",
-	y_offset = 2,
 	blur_radius = 10,
 })

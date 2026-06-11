@@ -9,9 +9,9 @@ appearance.init_colors(current_theme)
 -- 将所有初始化配置打包成一条消息发给 sketchybar，提高启动效率
 sbar.begin_config()
 appearance.install_defaults()
-require("bar")           -- 菜单栏本体尺寸/样式（此时 colors.bar.bg 已是正确主题色）
+require("bar") -- 菜单栏本体尺寸/样式（此时 colors.bar.bg 已是正确主题色）
 -- M.styles 中的 color 已通过元表动态读取 M.colors.active，无需手动同步
-require("items")         -- 加载所有状态栏条目
+require("items") -- 加载所有状态栏条目
 sbar.end_config()
 
 -- 通知 borders.lua 当前主题（深色系数），item 颜色已在 begin_config 内由 colors.active 正确设定
@@ -63,6 +63,10 @@ sbar.delay(STARTUP_DELAY, function()
 		end
 	end)
 end)
+
+-- 启动 sketchybar-toggle: 鼠标接近屏幕顶部时自动隐藏 SketchyBar，露出原生菜单栏
+-- pkill -x 防 reload 时残留僵尸进程
+sbar.exec("pkill -x sketchybar-toggle; sketchybar-toggle --trigger-zone 8 --menu-bar-height 50 --debounce 150 &")
 
 -- 启动事件循环（必须！否则所有回调函数不会执行）
 sbar.event_loop()
