@@ -11,7 +11,7 @@ local cal = sbar.add("item", "calendar", {
 	},
 	label = {
 		font = { family = fonts.font.text, style = fonts.font.style_map["Bold"], size = fonts.font.size },
-		padding_left = 0, padding_right = 20,
+		padding_left = 0, padding_right = 14,
 		color = colors.active.sep_opaque,
 	},
 	background = {
@@ -59,7 +59,7 @@ local cal_items = {}
 				string = string.rep(" ", 30),
 				font = { family = "Menlo", style = "Regular", size = 10.0 },
 				color = colors.active.text,
-				padding_left = 8, padding_right = 8,
+				padding_left = 8, padding_right = 100,
 			},
 			background = { drawing = false },
 		})
