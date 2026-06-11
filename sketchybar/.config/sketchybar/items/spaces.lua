@@ -6,6 +6,7 @@ local app_icons = require("helpers.app_icons")
 local borders = require("helpers.borders")
 local sbar = require("sketchybar")
 local fonts = require("fonts")
+local settings = require("settings")
 
 -- 始终显示的工作区（即使没有应用也会显示）
 -- 注：键名含 U+0332 组合下划线，对应 aerospace 工作区名称，请勿修改
@@ -537,6 +538,8 @@ sbar.exec(query_workspaces, function(workspaces_and_monitors)
 
 	-- 显示器变化时（插拔显示器）重新分配
 	root:subscribe("display_change", function()
+		local h = settings.detect_bar_height()
+		sbar.bar({ height = h })
 		updateWorkspaceMonitor()
 		updateWindows()
 	end)
