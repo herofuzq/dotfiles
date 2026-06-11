@@ -17,9 +17,27 @@ local function detect_bar_height()
 	return fallback
 end
 
+local function detect_dock_width()
+	local fallback = 55
+	local cfg = os.getenv("CONFIG_DIR")
+	if cfg then
+		local f = io.popen('"' .. cfg .. '/helpers/dock_width/bin/dock_width" 2>/dev/null')
+		if f then
+			local output = f:read("*a")
+			f:close()
+			local w, hidden = output:match("^(%d+)%s+(%d+)")
+			if w then
+				return tonumber(w), tonumber(hidden) or 0
+			end
+		end
+	end
+	return fallback, 0
+end
+
 return {
 	height = detect_bar_height(),
 	detect_bar_height = detect_bar_height,
+	detect_dock_width = detect_dock_width,
 	default_padding = 8,
 	item_padding = {
 		icon_label_item = {
