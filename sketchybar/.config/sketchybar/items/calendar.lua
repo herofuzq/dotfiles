@@ -58,7 +58,7 @@ local cal_items = {}
 				string = string.rep(" ", 28),
 				font = { family = "Hack Nerd Font Mono", style = fonts.font.style_map["Bold"], size = 11.0 },
 				color = colors.active.text,
-				padding_left = 6, padding_right = 6,
+				padding_left = 12, padding_right = 12,
 			},
 			label = { drawing = false },
 			background = { drawing = false },
