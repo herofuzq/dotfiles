@@ -59,7 +59,7 @@ local cal_items = {}
 				string = string.rep(" ", 30),
 				font = { family = "Menlo", style = "Regular", size = 10.0 },
 				color = colors.active.text,
-				padding_left = 8, padding_right = 35,
+				padding_left = 8, padding_right = 40,
 			},
 			background = { drawing = false },
 		})
