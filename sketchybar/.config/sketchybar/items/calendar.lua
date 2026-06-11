@@ -91,6 +91,7 @@ local function updatePopupContent()
 	local header = {}
 	for _, wd in ipairs(wdays) do header[#header + 1] = string.format(" %-2s ", wd) end
 	local lines = { table.concat(header):gsub("%s+$", "") }
+	local nlines = 1
 
 	-- 日期
 	local cells, col = {}, first_wday
@@ -98,16 +99,16 @@ local function updatePopupContent()
 		cells[#cells + 1] = (d == today) and string.format("[%2d]", d) or string.format(" %2d ", d)
 		if col % 7 == 0 or d == ndays then
 			local row = table.concat(cells)
-			if #lines == 1 then row = string.rep("    ", first_wday - 1) .. row end
-			table.insert(lines, row:gsub("%s+$", ""))
+			if nlines == 1 then row = string.rep("    ", first_wday - 1) .. row end
+			nlines = nlines + 1
+			lines[nlines] = row:gsub("%s+$", "")
 			cells, col = {}, 1
 		else
 			col = col + 1
 		end
 	end
-	while #lines < 7 do table.insert(lines, "") end
+	while nlines < 7 do nlines = nlines + 1; lines[nlines] = "" end
 
-	-- 第几天
 	local doy = today
 	for i = 1, month - 1 do doy = doy + dinm[i] end
 	local total = leap and 366 or 365
@@ -116,7 +117,8 @@ local function updatePopupContent()
 	local max_w = 0
 	for i = 1, 7 do if lines[i] and #lines[i] > max_w then max_w = #lines[i] end end
 	local pad = math.floor((max_w - display_width(stat)) / 2)
-	table.insert(lines, (pad > 0 and string.rep(" ", pad) or "") .. stat)
+	nlines = nlines + 1
+	lines[nlines] = (pad > 0 and string.rep(" ", pad) or "") .. stat
 
 	for i = 1, CAL_LINES do
 		cal_items[i]:set({ label = lines[i] or "" })
