@@ -91,18 +91,15 @@ local function updatePopupContent()
 	local lines = { table.concat(wdays, " ") }
 	local nlines = 1
 
-	-- 日期：2字符右对齐 + 单空格分隔，今天 [XX]
-	local cells, col = {}, first_wday
-	local off = string.rep("   ", first_wday - 1)
+	-- 日期：2字符右对齐 + 单空格分隔，今天 [XX]，空列补齐偏移
+	local cells = {}
+	for skip = 1, first_wday - 1 do cells[#cells + 1] = "   " end
 	for d = 1, ndays do
 		cells[#cells + 1] = (d == today) and string.format("[%d]", d) or string.format("%2d", d)
-		if col % 7 == 0 or d == ndays then
-			local row = off .. table.concat(cells, " ")
+		if #cells == 7 or d == ndays then
 			nlines = nlines + 1
-			lines[nlines] = row:gsub("%s+$", "")
-			cells, col, off = {}, 1, ""
-		else
-			col = col + 1
+			lines[nlines] = table.concat(cells, " "):gsub("%s+$", "")
+			cells = {}
 		end
 	end
 	while nlines < 7 do nlines = nlines + 1; lines[nlines] = "" end
