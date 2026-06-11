@@ -60,7 +60,7 @@ for i = 1, CAL_LINES do
 		position = "popup." .. cal.name,
 		icon = { drawing = false },
 		label = {
-			string = "",
+			string = string.rep(" ", 30),
 			font = { family = "Hack Nerd Font Mono", style = fonts.font.style_map["Bold"], size = 11.0 },
 			color = colors.active.text,
 			padding_left = 0, padding_right = 0,
