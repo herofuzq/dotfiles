@@ -21,14 +21,14 @@ local cal = sbar.add("item", "calendar", {
 			size = fonts.font.size,
 		},
 		padding_left = 0,
-		padding_right = 14, -- 右侧留白
+		padding_right = 14,
 		color = colors.active.sep_opaque,
 	},
 	background = {
 		color = colors.active.bar_bg,
 		corner_radius = 10,
 		border_width = 2,
-		border_color = colors.active.mauve, -- 初始值，borders.distribute() 随后覆盖
+		border_color = colors.active.mauve,
 	},
 	popup = {
 		align = "right",
@@ -71,8 +71,9 @@ cal:subscribe({ "forced", "routine", "system_woke" }, function()
 end)
 
 -- ========== Popup：完整月历 ==========
+-- 8 行：星期头 + 6 行日期 + 1 行统计（跳过 cal 的月份标题行）
 
-local CAL_LINES = 9
+local CAL_LINES = 8
 local cal_items = {}
 for i = 1, CAL_LINES do
 	local item = sbar.add("item", "calendar.cal_" .. i, {
@@ -83,11 +84,11 @@ for i = 1, CAL_LINES do
 			font = {
 				family = "Hack Nerd Font Mono",
 				style = fonts.font.style_map["Bold"],
-				size = 15.0,
+				size = 13.0,
 			},
 			color = colors.active.text,
-			padding_left = 6,
-			padding_right = 6,
+			padding_left = 4,
+			padding_right = 4,
 		},
 		background = { drawing = false },
 	})
@@ -102,19 +103,34 @@ for i = 1, CAL_LINES do
 	cal_items[i] = item
 end
 
+-- 计算字符串在等宽字体下的显示宽度（CJK 字符 = 2 列，ASCII = 1 列）
+local function display_width(s)
+	local w = 0
+	for _, cp in utf8.codes(s) do
+		if cp >= 0x2000 then w = w + 2 else w = w + 1 end
+	end
+	return w
+end
+
 local function updatePopupContent()
 	local t = os.date("*t")
 	local today = t.day
 	local f = io.popen("LC_ALL=en_US.UTF-8 cal")
 	if not f then return end
-	local lines = {}
+	local raw = {}
 	for line in f:lines() do
-		lines[#lines + 1] = line:gsub("%s+$", "")
+		raw[#raw + 1] = line:gsub("%s+$", "")
 	end
 	f:close()
 
-	-- 高亮今天（日期行 3~8）
-	for i = 3, 8 do
+	-- 跳过第 1 行（月份标题），取 2~8 行（星期 + 6 日期行）
+	local lines = {}
+	for i = 2, 8 do
+		lines[#lines + 1] = raw[i] or ""
+	end
+
+	-- 高亮今天（日期行 2~7，即 raw 的 3~8）
+	for i = 2, 7 do
 		if lines[i] then
 			local ts = string.format("%2d", today)
 			local text = " " .. lines[i] .. " "
@@ -123,22 +139,23 @@ local function updatePopupContent()
 		end
 	end
 
-	-- 今年第几天
-	local days_in_month = { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 }
-	local is_leap = (t.year % 4 == 0 and t.year % 100 ~= 0) or (t.year % 400 == 0)
-	if is_leap then days_in_month[2] = 29 end
+	-- 今年第几天（第 8 行）
+	local days = { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 }
+	local leap = (t.year % 4 == 0 and t.year % 100 ~= 0) or (t.year % 400 == 0)
+	if leap then days[2] = 29 end
 	local doy = today
-	for i = 1, t.month - 1 do doy = doy + days_in_month[i] end
-	local total = is_leap and 366 or 365
+	for i = 1, t.month - 1 do doy = doy + days[i] end
+	local total = leap and 366 or 365
 	local stat = string.format("第 %d / %d 天", doy, total)
 
-	-- 居中末行（相对日期行最大宽度）
+	-- 居中末行（基于 CJK 感知的显示宽度）
 	local max_w = 0
-	for i = 2, 8 do
+	for i = 1, 7 do
 		if lines[i] and #lines[i] > max_w then max_w = #lines[i] end
 	end
-	local pad = math.floor((max_w - #stat) / 2)
-	lines[9] = (pad > 0 and string.rep(" ", pad) or "") .. stat
+	local stat_w = display_width(stat)
+	local pad = math.floor((max_w - stat_w) / 2)
+	lines[8] = (pad > 0 and string.rep(" ", pad) or "") .. stat
 
 	for i = 1, CAL_LINES do
 		cal_items[i]:set({ label = lines[i] or "" })
