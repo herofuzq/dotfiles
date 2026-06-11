@@ -19,7 +19,7 @@ local cal = sbar.add("item", "calendar", {
 		border_color = colors.active.mauve,
 	},
 	popup = {
-		align = "left",
+		align = "right",
 		background = {
 			color = colors.with_alpha(colors.active.bar_bg, 0.85),
 			corner_radius = 12, border_width = 2,
@@ -61,7 +61,7 @@ for i = 1, CAL_LINES do
 		icon = { drawing = false },
 		label = {
 			string = "",
-			font = { family = "Hack Nerd Font Mono", style = fonts.font.style_map["Bold"], size = 12.0 },
+			font = { family = "Hack Nerd Font Mono", style = fonts.font.style_map["Bold"], size = 11.0 },
 			color = colors.active.text,
 			padding_left = 0, padding_right = 0,
 		},
