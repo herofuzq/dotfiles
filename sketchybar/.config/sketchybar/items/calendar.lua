@@ -39,7 +39,7 @@ local cal = sbar.add("item", "calendar", {
 			shadow = { drawing = false },
 		},
 		blur_radius = 30,
-		height = 18,
+		height = 22,
 	},
 	position = "right",
 	update_freq = 30,
@@ -83,7 +83,7 @@ for i = 1, CAL_LINES do
 			font = {
 				family = "Hack Nerd Font Mono",
 				style = fonts.font.style_map["Regular"],
-				size = 13.0,
+				size = 15.0,
 			},
 			color = colors.active.text,
 			padding_left = 16,
@@ -108,9 +108,19 @@ local function updatePopupContent()
 	if not f then return end
 	local lines = {}
 	for line in f:lines() do
-		lines[#lines + 1] = line
+		local trimmed = line:gsub("%s+$", "")
+		lines[#lines + 1] = trimmed
 	end
 	f:close()
+
+	local max_w = 0
+	for i = 2, CAL_LINES do
+		if #lines[i] > max_w then max_w = #lines[i] end
+	end
+	local pad = math.floor((max_w - #lines[1]) / 2)
+	if pad > 0 then
+		lines[1] = string.rep(" ", pad) .. lines[1]
+	end
 
 	for i = 1, CAL_LINES do
 		local text = lines[i] or ""
