@@ -51,22 +51,22 @@ end
 local CAL_LINES = 8
 local cal_items = {}
 
-for i = 1, CAL_LINES do
-	local item = sbar.add("item", "calendar.cal_" .. i, {
-		position = "popup." .. cal.name,
-		icon = { drawing = false },
-		label = {
-			string = string.rep(" ", 28),
-			font = { family = "Hack Nerd Font Mono", style = fonts.font.style_map["Bold"], size = 10.0 },
-			color = colors.active.text,
-			padding_left = 4, padding_right = 4,
-		},
-		background = { drawing = false },
-	})
-	item:subscribe("mouse.entered", function() _exit_gen = _exit_gen + 1; _popup_hovering = true end)
-	item:subscribe("mouse.exited", function() _popup_hovering = false; scheduleHide() end)
-	cal_items[i] = item
-end
+	for i = 1, CAL_LINES do
+		local item = sbar.add("item", "calendar.cal_" .. i, {
+			position = "popup." .. cal.name,
+			icon = {
+				string = string.rep(" ", 28),
+				font = { family = "Hack Nerd Font Mono", style = fonts.font.style_map["Bold"], size = 11.0 },
+				color = colors.active.text,
+				padding_left = 6, padding_right = 6,
+			},
+			label = { drawing = false },
+			background = { drawing = false },
+		})
+		item:subscribe("mouse.entered", function() _exit_gen = _exit_gen + 1; _popup_hovering = true end)
+		item:subscribe("mouse.exited", function() _popup_hovering = false; scheduleHide() end)
+		cal_items[i] = item
+	end
 
 local function display_width(s)
 	local w = 0
@@ -121,7 +121,7 @@ local function updatePopupContent()
 	lines[nlines] = (pad > 0 and string.rep(" ", pad) or "") .. stat
 
 	for i = 1, CAL_LINES do
-		cal_items[i]:set({ label = lines[i] or "" })
+		cal_items[i]:set({ icon = lines[i] or "" })
 	end
 end
 
