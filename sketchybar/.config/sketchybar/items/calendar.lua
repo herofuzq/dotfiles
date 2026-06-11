@@ -19,7 +19,7 @@ local cal = sbar.add("item", "calendar", {
 		border_color = colors.active.mauve,
 	},
 	popup = {
-		align = "center",
+		align = "right",
 		background = {
 			color = colors.with_alpha(colors.active.bar_bg, 0.85),
 			corner_radius = 12, border_width = 2,
@@ -55,10 +55,10 @@ local cal_items = {}
 		local item = sbar.add("item", "calendar.cal_" .. i, {
 			position = "popup." .. cal.name,
 			icon = {
-				string = string.rep(" ", 35),
-				font = { family = "Hack Nerd Font Mono", style = fonts.font.style_map["Bold"], size = 10.0 },
+				string = "",
+				font = { family = "Hack Nerd Font Mono", style = fonts.font.style_map["Bold"], size = 12.0 },
 				color = colors.active.text,
-				padding_left = 16, padding_right = 16,
+				padding_left = 8, padding_right = 8,
 			},
 			label = { drawing = false },
 			background = { drawing = false },
@@ -86,23 +86,21 @@ local function updatePopupContent()
 	if leap then dinm[2] = 29 end
 	local ndays = dinm[month]
 
-	-- 星期头
+	-- 星期头（紧凑）
 	local wdays = { "Su", "Mo", "Tu", "We", "Th", "Fr", "Sa" }
-	local header = {}
-	for _, wd in ipairs(wdays) do header[#header + 1] = string.format(" %-2s ", wd) end
-	local lines = { table.concat(header):gsub("%s+$", "") }
+	local lines = { table.concat(wdays, " ") }
 	local nlines = 1
 
-	-- 日期
+	-- 日期：2字符右对齐 + 单空格分隔，今天 [XX]
 	local cells, col = {}, first_wday
+	local off = string.rep("   ", first_wday - 1)
 	for d = 1, ndays do
-		cells[#cells + 1] = (d == today) and string.format("[%2d]", d) or string.format(" %2d ", d)
+		cells[#cells + 1] = (d == today) and string.format("[%d]", d) or string.format("%2d", d)
 		if col % 7 == 0 or d == ndays then
-			local row = table.concat(cells)
-			if nlines == 1 then row = string.rep("    ", first_wday - 1) .. row end
+			local row = off .. table.concat(cells, " ")
 			nlines = nlines + 1
 			lines[nlines] = row:gsub("%s+$", "")
-			cells, col = {}, 1
+			cells, col, off = {}, 1, ""
 		else
 			col = col + 1
 		end
