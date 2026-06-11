@@ -104,7 +104,6 @@ local function updatePopupContent()
 			cells = {}
 		end
 	end
-	while nlines < 7 do nlines = nlines + 1; lines[nlines] = "" end
 
 	local doy = today
 	for i = 1, month - 1 do doy = doy + dinm[i] end
@@ -112,13 +111,17 @@ local function updatePopupContent()
 	local stat = string.format("第 %d / %d 天", doy, total)
 
 	local max_w = 0
-	for i = 1, 7 do if lines[i] and #lines[i] > max_w then max_w = #lines[i] end end
+	for i = 1, nlines do if lines[i] and #lines[i] > max_w then max_w = #lines[i] end end
 	local pad = math.floor((max_w - display_width(stat)) / 2)
 	nlines = nlines + 1
 	lines[nlines] = (pad > 0 and string.rep(" ", pad) or "") .. stat
 
 	for i = 1, CAL_LINES do
-		cal_items[i]:set({ label = lines[i] or "" })
+		if i <= nlines and lines[i] ~= "" then
+			cal_items[i]:set({ drawing = true, label = lines[i] })
+		else
+			cal_items[i]:set({ drawing = false })
+		end
 	end
 end
 
