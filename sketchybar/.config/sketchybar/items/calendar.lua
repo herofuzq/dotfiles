@@ -20,6 +20,7 @@ local cal = sbar.add("item", "calendar", {
 	},
 	popup = {
 		align = "right",
+		horizontal = "on",
 		background = {
 			color = colors.with_alpha(colors.active.bar_bg, 0.85),
 			corner_radius = 12, border_width = 2,
@@ -52,19 +53,24 @@ cal:subscribe({ "forced", "routine", "system_woke" }, function()
 end)
 
 -- ========== Popup：完整月历 ==========
+-- 水平布局 + y_offset 垂直堆叠，文字放 icon（monospace 字体）
 
 local CAL_LINES = 8
 local cal_items = {}
+
 for i = 1, CAL_LINES do
+	local y = 56 - 16 * (i - 1)
 	local item = sbar.add("item", "calendar.cal_" .. i, {
 		position = "popup." .. cal.name,
-		icon = { drawing = false },
-		label = {
-			string = string.rep(" ", 30),
-			font = { family = "Hack Nerd Font Mono", style = fonts.font.style_map["Bold"], size = 11.0 },
+		width = 0,
+		y_offset = y,
+		icon = {
+			string = "",
+			font = { family = "Hack Nerd Font Mono", style = fonts.font.style_map["Bold"], size = 12.0 },
 			color = colors.active.text,
-			padding_left = 0, padding_right = 0,
+			padding_left = 16, padding_right = 16,
 		},
+		label = { drawing = false },
 		background = { drawing = false },
 	})
 	item:subscribe("mouse.entered", function() _exit_gen = _exit_gen + 1; _popup_hovering = true end)
@@ -90,15 +96,13 @@ local function updatePopupContent()
 	if leap then dinm[2] = 29 end
 	local ndays = dinm[month]
 
-	-- 星期头：4 字符等宽列，与日期对齐
+	-- 星期头
 	local wdays = { "Su", "Mo", "Tu", "We", "Th", "Fr", "Sa" }
 	local header = {}
-	for _, wd in ipairs(wdays) do
-		header[#header + 1] = string.format(" %-2s ", wd)
-	end
+	for _, wd in ipairs(wdays) do header[#header + 1] = string.format(" %-2s ", wd) end
 	local lines = { table.concat(header):gsub("%s+$", "") }
 
-	-- 日期渲染：每列 4 字符 " %2d " 或 "[%2d]"
+	-- 日期
 	local cells, col = {}, first_wday
 	for d = 1, ndays do
 		cells[#cells + 1] = (d == today) and string.format("[%2d]", d) or string.format(" %2d ", d)
@@ -113,7 +117,7 @@ local function updatePopupContent()
 	end
 	while #lines < 7 do lines[#lines + 1] = "" end
 
-	-- 今年第几天（末行居中）
+	-- 第几天
 	local doy = today
 	for i = 1, month - 1 do doy = doy + dinm[i] end
 	local total = leap and 366 or 365
@@ -125,7 +129,7 @@ local function updatePopupContent()
 	lines[8] = (pad > 0 and string.rep(" ", pad) or "") .. stat
 
 	for i = 1, CAL_LINES do
-		cal_items[i]:set({ label = lines[i] or "" })
+		cal_items[i]:set({ icon = lines[i] or "" })
 	end
 end
 
