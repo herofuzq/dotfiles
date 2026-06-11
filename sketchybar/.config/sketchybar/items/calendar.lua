@@ -46,6 +46,21 @@ local cal = sbar.add("item", "calendar", {
 	padding_right = 4,
 })
 
+local _popup_pinned = false
+local _popup_hovering = false
+local _exit_gen = 0
+
+local function scheduleHide()
+	if _popup_pinned then return end
+	_exit_gen = _exit_gen + 1
+	local gen = _exit_gen
+	sbar.delay(0.2, function()
+		if _exit_gen ~= gen then return end
+		if _popup_hovering or _popup_pinned then return end
+		cal:set({ popup = { drawing = false } })
+	end)
+end
+
 cal:subscribe({ "forced", "routine", "system_woke" }, function()
 	local t = os.date("*t")
 	cal:set({
@@ -61,7 +76,7 @@ local function is_leap(year)
 	return (year % 4 == 0 and year % 100 ~= 0) or (year % 400 == 0)
 end
 
-sbar.add("item", "calendar.doy", {
+local doy_item = sbar.add("item", "calendar.doy", {
 	position = "popup." .. cal.name,
 	icon = { drawing = false },
 	label = {
@@ -78,7 +93,7 @@ sbar.add("item", "calendar.doy", {
 	background = { drawing = false },
 })
 
-sbar.add("item", "calendar.remaining", {
+local rem_item = sbar.add("item", "calendar.remaining", {
 	position = "popup." .. cal.name,
 	icon = { drawing = false },
 	label = {
@@ -95,7 +110,18 @@ sbar.add("item", "calendar.remaining", {
 	background = { drawing = false },
 })
 
-cal:subscribe("mouse.clicked", function()
+for _, item in ipairs({ doy_item, rem_item }) do
+	item:subscribe("mouse.entered", function()
+		_exit_gen = _exit_gen + 1
+		_popup_hovering = true
+	end)
+	item:subscribe("mouse.exited", function()
+		_popup_hovering = false
+		scheduleHide()
+	end)
+end
+
+local function updatePopupContent()
 	local t = os.date("*t")
 	local days_in_month = { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 }
 	if is_leap(t.year) then
@@ -112,9 +138,27 @@ cal:subscribe("mouse.clicked", function()
 
 	sbar.set("calendar.doy", { label = string.format("今年第 %d 天", doy) })
 	sbar.set("calendar.remaining", { label = string.format("共 %d 天 · 剩余 %d 天", total, remaining) })
+end
+
+cal:subscribe("mouse.entered", function()
+	_exit_gen = _exit_gen + 1
+	updatePopupContent()
+	cal:set({ popup = { drawing = true } })
+end)
+
+cal:subscribe("mouse.exited", function()
+	scheduleHide()
+end)
+
+cal:subscribe("mouse.clicked", function()
+	_popup_pinned = not _popup_pinned
+	updatePopupContent()
 	cal:set({ popup = { drawing = "toggle" } })
 end)
 
 cal:subscribe("mouse.exited.global", function()
-	cal:set({ popup = { drawing = false } })
+	_exit_gen = _exit_gen + 1
+	if not _popup_pinned then
+		cal:set({ popup = { drawing = false } })
+	end
 end)
