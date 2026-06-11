@@ -99,13 +99,13 @@ local function updatePopupContent()
 		if col % 7 == 0 or d == ndays then
 			local row = table.concat(cells)
 			if #lines == 1 then row = string.rep("    ", first_wday - 1) .. row end
-			lines[#lines + 1] = row:gsub("%s+$", "")
+			table.insert(lines, row:gsub("%s+$", ""))
 			cells, col = {}, 1
 		else
 			col = col + 1
 		end
 	end
-	while #lines < 7 do lines[#lines + 1] = "" end
+	while #lines < 7 do table.insert(lines, "") end
 
 	-- 第几天
 	local doy = today
@@ -116,7 +116,7 @@ local function updatePopupContent()
 	local max_w = 0
 	for i = 1, 7 do if lines[i] and #lines[i] > max_w then max_w = #lines[i] end end
 	local pad = math.floor((max_w - display_width(stat)) / 2)
-	lines[8] = (pad > 0 and string.rep(" ", pad) or "") .. stat
+	table.insert(lines, (pad > 0 and string.rep(" ", pad) or "") .. stat)
 
 	for i = 1, CAL_LINES do
 		cal_items[i]:set({ label = lines[i] or "" })
