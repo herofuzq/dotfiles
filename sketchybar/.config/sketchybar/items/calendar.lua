@@ -26,7 +26,7 @@ local cal = sbar.add("item", "calendar", {
 			shadow = { drawing = false },
 		},
 		blur_radius = 30,
-		height = 28,
+		height = 30,
 	},
 	position = "right",
 	update_freq = 30,
@@ -57,9 +57,9 @@ local cal_items = {}
 			icon = { drawing = false },
 			label = {
 				string = string.rep(" ", 30),
-				font = { family = "Hack Nerd Font Mono", style = fonts.font.style_map["Bold"], size = 14.0 },
+				font = { family = "Hack Nerd Font Mono", style = fonts.font.style_map["Bold"], size = 15.0 },
 				color = colors.active.text,
-				padding_left = 28, padding_right = 40,
+				padding_left = 28, padding_right = 50,
 			},
 			background = { drawing = false },
 		})
