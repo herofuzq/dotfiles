@@ -9,15 +9,17 @@ local settings = require("settings")
 local border_width = 2      -- ← 边框粗细在这改，icon_padding 自动联动
 local icon_width = 6        -- ← SF Symbol Apple logo 在 13pt 下的实际宽度
 
-local dock_w, dock_hidden = settings.detect_dock_width()
-
-local icon_pad
-if dock_hidden == 1 then
-	icon_pad = 15            -- Dock 隐藏时的固定 fallback
-else
-	-- icon_padding = (dock 实际宽度 - 图标宽度 - 两侧边框) / 2
-	icon_pad = math.floor((dock_w - icon_width - 2 * border_width) / 2)
+local function compute_icon_pad()
+	local dock_w, dock_hidden = settings.detect_dock_width()
+	if dock_hidden == 1 then
+		return 15            -- Dock 隐藏时的固定 fallback
+	else
+		-- icon_padding = (dock 实际宽度 - 图标宽度 - 两侧边框) / 2
+		return math.floor((dock_w - icon_width - 2 * border_width) / 2)
+	end
 end
+
+local icon_pad = compute_icon_pad()
 
 local apple = sbar.add("item", "apple", {
 	padding_left = 5,
@@ -52,4 +54,9 @@ apple:subscribe("mouse.clicked", function()
 		end)
 	end)
 	sbar.exec("$CONFIG_DIR/helpers/menus/bin/menus -s 0")
+end)
+
+-- 显示器切换时重新检测 Dock 宽度，动态调整 icon padding
+apple:subscribe("display_change", function()
+	apple:set({ icon = { padding_left = compute_icon_pad(), padding_right = compute_icon_pad() } })
 end)
