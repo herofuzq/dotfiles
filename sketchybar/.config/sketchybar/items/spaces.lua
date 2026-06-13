@@ -1,5 +1,7 @@
--- ========== 工作区显示 ==========
--- 双模式：检测 aerospace 进程，有则 aerospace 模式，无则原生 macOS Space 模式（tangrid 等）
+-- ========== aerospace 工作区显示 ==========
+-- 双模式：USE_AEROSPACE = true 用 aerospace，false 用原生 macOS Space
+local USE_AEROSPACE = false
+-- 通过 aerospace CLI 查询窗口和屏幕信息，动态显示各工作区的应用图标
 -- 工作区边框由 borders.lua 动态分配，空工作区隐藏 label、icon 居中
 local appearance = require("appearance")
 local app_icons = require("helpers.app_icons")
@@ -8,25 +10,19 @@ local sbar = require("sketchybar")
 local fonts = require("fonts")
 local settings = require("settings")
 
--- 模式检测：aerospace 进程存在 → aerospace 模式
-local f = io.popen("pgrep -x aerospace 2>/dev/null")
-local USE_AEROSPACE = f and f:read("*a"):match("%d") ~= nil
-if f then f:close() end
-
 -- 始终显示的工作区（即使没有应用也会显示）
--- aerospace 模式：键名含 U+0332 组合下划线，对应 aerospace 工作区名称，请勿修改
--- 原生模式：索引 1-6 的桌面
-local always_show = USE_AEROSPACE and {
-	["1̲Main"] = true, ["2̲Sec"] = true, ["3̲Chat"] = true,
-	["4̲Work"] = true, ["5̲Term"] = true,
-} or { [1] = true, [2] = true, [3] = true, [4] = true, [5] = true, [6] = true }
-
--- 原生模式：硬编码 6 个桌面
-local NATIVE_WORKSPACES = { 1, 2, 3, 4, 5, 6 }
+-- 注：键名含 U+0332 组合下划线，对应 aerospace 工作区名称，请勿修改
+local always_show = {
+	["1̲Main"] = true,
+	["2̲Sec"] = true,
+	["3̲Chat"] = true,
+	["4̲Work"] = true,
+	["5̲Term"] = true,
+	-- ["6̲Play"] = true,  -- 6̲Play 不强制常显（仅在有窗口或被聚焦时显示）
+}
 -- aerospace 查询命令模板
-local query_workspaces = USE_AEROSPACE
-	and "aerospace list-workspaces --all --format '%{workspace}%{monitor-appkit-nsscreen-screens-id}' --json"
-	or nil
+local query_workspaces =
+	"aerospace list-workspaces --all --format '%{workspace}%{monitor-appkit-nsscreen-screens-id}' --json"
 
 -- 用于订阅事件的虚拟根条目（不显示）
 local root = sbar.add("item", "spaces.root", { drawing = false })
@@ -223,97 +219,59 @@ end
 local function togglePopup(ws_index, workspace_item, force_show, gen)
 	if not workspace_item then return end
 
-	if USE_AEROSPACE then
-		local cmd = "aerospace list-windows --workspace \""
-			.. ws_index
-			.. "\" --format '%{window-id}%{app-name}%{window-title}' --json"
+	local cmd = "aerospace list-windows --workspace \""
+		.. ws_index
+		.. "\" --format '%{window-id}%{app-name}%{window-title}' --json"
 
-		sbar.exec(cmd, function(windows)
-			if not windows or #windows == 0 then return end
-			_popup_windows[ws_index] = {}
-			for i, w in ipairs(windows) do
-				if i > MAX_POPUP_SLOTS then break end
-				local id = w["window-id"]
-				if not id then break end
-				_popup_windows[ws_index][i] = {
-					id = id,
-					app = w["app-name"] or "?",
-					title = (w["window-title"] and #w["window-title"] > 0 and w["window-title"]) or w["app-name"] or "Untitled",
-				}
-			end
-			renderPopup(ws_index, workspace_item, force_show, gen)
-		end)
-	else
-		-- 原生模式：从 Hammerspoon JSON 文件读取窗口数据
-		local f = io.open("/tmp/sketchybar_spaces.json", "r")
-		if not f then return end
-		local data = f:read("*a")
-		f:close()
-		local ok, parsed = pcall(sbar.json_parse, data)
-		if not ok then return end
+	sbar.exec(cmd, function(windows)
+		if not windows or #windows == 0 then
+			return
+		end
 
 		_popup_windows[ws_index] = {}
-		local count = 0
-		for _, s in ipairs(parsed.spaces or {}) do
-			local sid = s.mc_id or s.id
-			if tonumber(ws_index) == sid or ws_index == sid then
-				for _, w in ipairs(s.windows or {}) do
-					count = count + 1
-					if count > MAX_POPUP_SLOTS then break end
-					_popup_windows[ws_index][count] = {
-						id = w.id,
-						app = w.app or "?",
-						title = (w.title and #w.title > 0 and w.title) or w.app or "Untitled",
-					}
+		for i, w in ipairs(windows) do
+			if i > MAX_POPUP_SLOTS then break end
+			local id = w["window-id"]
+			if not id then break end
+			_popup_windows[ws_index][i] = {
+				id = id,
+				app = w["app-name"] or "?",
+				title = (w["window-title"] and #w["window-title"] > 0 and w["window-title"]) or w["app-name"] or "Untitled",
+			}
+		end
+
+		for _, ws in pairs(workspaces) do
+			if ws ~= workspace_item then
+				ws:set({ popup = { drawing = false } })
+			end
+		end
+
+		for i = 1, MAX_POPUP_SLOTS do
+			local item = _popup_items[ws_index] and _popup_items[ws_index][i]
+			local win = _popup_windows[ws_index] and _popup_windows[ws_index][i]
+			if item then
+				if win then
+					local icon = (app_icons[win.app] or app_icons["Default"])
+               item:set({
+                  drawing = true,
+                  icon = { string = icon, color = appearance.colors.active.sep_opaque },
+                  label = { string = win.title, color = appearance.colors.active.text },
+               })
+				else
+					item:set({ drawing = false })
 				end
-				break
 			end
 		end
-		renderPopup(ws_index, workspace_item, force_show, gen)
-	end
-end
 
-local function renderPopup(ws_index, workspace_item, force_show, gen)
-	for _, ws in pairs(workspaces) do
-		if ws ~= workspace_item then
-			ws:set({ popup = { drawing = false } })
-		end
-	end
+      if gen and _popup_gen[ws_index] ~= gen then return end
 
-	for i = 1, MAX_POPUP_SLOTS do
-		local item = _popup_items[ws_index] and _popup_items[ws_index][i]
-		local win = _popup_windows[ws_index] and _popup_windows[ws_index][i]
-		if item then
-			if win then
-				local icon = (app_icons[win.app] or app_icons["Default"])
-				item:set({
-					drawing = true,
-					icon = { string = icon, color = appearance.colors.active.sep_opaque },
-					label = { string = win.title, color = appearance.colors.active.text },
-				})
-			else
-				item:set({ drawing = false })
-			end
-		end
-	end
-
-	if gen and _popup_gen[ws_index] ~= gen then return end
-
-	local drawing = force_show and true or "toggle"
-	workspace_item:set({ popup = { drawing = drawing } })
+      local drawing = force_show and true or "toggle"
+      workspace_item:set({ popup = { drawing = drawing } })
+	end)
 end
 
 -- ========== 更新所有工作区 + 分配边框颜色 ==========
 local function updateWindows()
-	if not USE_AEROSPACE then
-		-- 原生模式：仅分发边框色
-		local visible_names = {}
-		for _, ws_idx in ipairs(workspace_order) do
-			visible_names[#visible_names + 1] = "workspace." .. ws_idx
-		end
-		borders.distribute(visible_names)
-		return
-	end
 	generation = generation + 1
 	withWindows(function(args)
 		-- 第一步：更新每个工作区的窗口内容
@@ -651,161 +609,165 @@ sbar.exec(query_workspaces, function(workspaces_and_monitors)
 end)
 end
 
--- ========== 原生 macOS Space 模式（tangrid 等）==========
-else
+if not USE_AEROSPACE then
+-- ══════════════════════════════════════════════════════════
+-- 原生 macOS Space 模式（tangrid 等）
+-- 桌面 1-6，读取 Hammerspoon space_bridge 的 JSON 数据
+-- ══════════════════════════════════════════════════════════
+local MAX_POPUP_SLOTS = 10
+local _n_workspaces = {}
+local _n_ws_order = {}
+local _n_popup_items = {}
+local _n_popup_windows = {}
+local _n_pinned = {}
+local _n_gen = {}
+local _n_hovering = {}
+local _n_exit_gen = {}
+local SPACE_COUNT = 6
+local KEY_CODES = { 18, 19, 20, 21, 23, 22 } -- Ctrl+1..6
 
-local function initNativeMode()
-	-- 创建桌面 1-6 的 space 条目（使用 sketchybar 原生 space 组件）
-	for i = 1, 6 do
-		local ws_name = tostring(i)
-		local style = appearance.styles.workspace
-		local bg = {
-			color = style.background.color,
-			drawing = style.background.drawing,
-			corner_radius = style.background.corner_radius,
-			border_width = style.background.border_width,
-			border_color = appearance.colors.active.mauve,
-		}
-
-		local workspace = sbar.add("item", "workspace." .. ws_name, {
-			background = bg,
-			drawing = false,
-			padding_left = 2, padding_right = 2,
-			icon = {
-				color = style.icon.color, highlight_color = style.icon.highlight_color,
-				font = style.icon.font,
-				padding_left = style.icon.padding_left, padding_right = style.icon.padding_right,
-				drawing = true, string = ws_name,
-			},
-			label = {
-				color = style.label.color, highlight_color = style.label.highlight_color,
-				font = style.label.font,
-				padding_left = style.label.padding_left, padding_right = style.label.padding_right,
-				y_offset = style.label.y_offset,
-				drawing = true,
-			},
-			popup = {
-				align = "left",
-				background = {
-					color = appearance.colors.with_alpha(appearance.colors.active.bar_bg, 0.85),
-					corner_radius = 12, border_width = 2,
-					shadow = { drawing = false },
-				},
-				blur_radius = 30,
-			},
-		})
-
-		workspaces[ws_name] = workspace
-		table.insert(workspace_order, ws_name)
-
-		-- 悬停/点击行为（复用 spaces 模式）
-		workspace:subscribe("mouse.entered", function()
-			local gen = (_popup_gen[ws_name] or 0) + 1
-			_popup_gen[ws_name] = gen
-			togglePopup(i, workspace, true, gen)
-		end)
-		workspace:subscribe("mouse.exited", function()
-			scheduleHide(ws_name, workspace)
-		end)
-		workspace:subscribe("mouse.exited.global", function()
-			_popup_exit_gen[ws_name] = (_popup_exit_gen[ws_name] or 0) + 1
-			_popup_gen[ws_name] = (_popup_gen[ws_name] or 0) + 1
-			if not _popup_pinned[ws_name] then
-				workspace:set({ popup = { drawing = false } })
+local function _n_readSpaceData()
+	local f = io.open("/tmp/sketchybar_spaces.json", "r")
+	if not f then return nil end
+	local data = f:read("*a")
+	f:close()
+	local focused = tonumber(data:match('"focused":%s*(%d+)'))
+	local spaces = {}
+	for mc_id, id_str in data:gmatch('"mc_id":%s*(%d+)[^}]*"id":%s*(%d+)') do
+		local sid = tonumber(id_str)
+		local wins = {}
+		local block = data:match('"mc_id":%s*' .. mc_id .. '[^%]]*%[(.-)%]')
+		if block then
+			for app, title in block:gmatch('"app":"([^"]-)"[^}]-"title":"([^"]-)"') do
+				wins[#wins + 1] = { app = app, title = title }
 			end
-		end)
-		workspace:subscribe("mouse.clicked", function()
-			-- 切换到对应桌面（AppleScript 模拟 Ctrl+数字）
-			local key_codes = { 18, 19, 20, 21, 23, 22 } -- 1-6 的 key code
-			os.execute("osascript -e 'tell application \"System Events\" to key code " .. key_codes[i] .. " using control down' &")
-			_popup_pinned[ws_name] = not _popup_pinned[ws_name]
-			togglePopup(i, workspace)
-		end)
-
-		-- popup 子项
-		_popup_items[ws_name] = {}
-		for j = 1, MAX_POPUP_SLOTS do
-			local popup_item = sbar.add("item", "workspace." .. ws_name .. ".popup." .. j, {
-				position = "popup.workspace." .. ws_name,
-				drawing = false,
-				icon = {
-					font = "sketchybar-app-font:Regular:14.0",
-					padding_left = 12, padding_right = 6,
-					color = appearance.colors.active.sep_opaque,
-				},
-				label = {
-					font = { family = fonts.font.text, style = fonts.font.style_map["Semibold"], size = fonts.font.size },
-					padding_left = 0, padding_right = 16,
-					max_chars = 50,
-					color = appearance.colors.active.text,
-				},
-				background = { drawing = false },
-			})
-			_popup_items[ws_name][j] = popup_item
-
-			popup_item:subscribe("mouse.entered", function()
-				_popup_exit_gen[ws_name] = (_popup_exit_gen[ws_name] or 0) + 1
-				_popup_hovering[ws_name] = true
-				popup_item:set({ icon = { color = 0xffff4444 }, label = { color = 0xffff4444 } })
-			end)
-			popup_item:subscribe("mouse.exited", function()
-				_popup_hovering[ws_name] = false
-				popup_item:set({ icon = { color = appearance.colors.active.sep_opaque }, label = { color = appearance.colors.active.text } })
-				scheduleHide(ws_name, workspace)
-			end)
-			popup_item:subscribe("mouse.clicked", function()
-				local win = _popup_windows[ws_name] and _popup_windows[ws_name][j]
-				if win then
-					os.execute("open -a '" .. win.app .. "' 2>/dev/null &")
-					workspace:set({ popup = { drawing = false } })
-				end
-			end)
 		end
+		spaces[tonumber(mc_id)] = { id = sid, windows = wins }
 	end
-
-	-- 订阅 Hammerspoon space_changed 事件
-	root:subscribe("space_changed", function()
-		local f = io.open("/tmp/sketchybar_spaces.json", "r")
-		if not f then return end
-		local data = f:read("*a")
-		f:close()
-		local ok, parsed = pcall(sbar.json_parse, data)
-		if not ok then return end
-		local focused = parsed.focused
-
-		for ws_idx, ws in pairs(workspaces) do
-			ws:set({ drawing = true })
-			local is_focused = false
-			for _, s in ipairs(parsed.spaces or {}) do
-				if tonumber(ws_idx) == (s.mc_id or s.id) then
-					is_focused = (s.id == focused)
-					-- 更新图标列表
-					local icon_line = ""
-					for _, w in ipairs(s.windows or {}) do
-						local icon = app_icons[w.app] or app_icons["Default"]
-						icon_line = icon_line .. icon
-					end
-					if #icon_line > 0 then
-						ws:set({ icon = { padding_left = 10, padding_right = 2 }, label = { drawing = true, string = icon_line } })
-					else
-						ws:set({ icon = { padding_left = 10, padding_right = 10 }, label = { drawing = false } })
-					end
-					break
-				end
-			end
-			ws:set({ icon = { highlight = is_focused }, label = { highlight = is_focused } })
-		end
-		updateWindows()
-	end)
-
-	-- 订阅 space_windows_change（原生事件，窗口变化时触发）
-	root:subscribe("space_windows_change", function()
-		updateWindows()
-	end)
-
-	updateWindows()
+	return { focused = focused, spaces = spaces }
 end
 
-initNativeMode()
+local function _n_scheduleHide(idx, ws)
+	_n_gen[idx] = (_n_gen[idx] or 0) + 1
+	if _n_pinned[idx] then return end
+	local gen = (_n_exit_gen[idx] or 0) + 1
+	_n_exit_gen[idx] = gen
+	sbar.delay(0.2, function()
+		if _n_exit_gen[idx] ~= gen then return end
+		if _n_hovering[idx] or _n_pinned[idx] then return end
+		ws:set({ popup = { drawing = false } })
+	end)
+end
 
-end  -- closes if USE_AEROSPACE then
+local function _n_showPopup(idx, ws)
+	local data = _n_readSpaceData()
+	if not data then return end
+	_n_popup_windows[idx] = {}
+	local count = 0
+	for mc_id, s in pairs(data.spaces or {}) do
+		if idx == mc_id then
+			for _, w in ipairs(s.windows or {}) do
+				count = count + 1
+				if count > MAX_POPUP_SLOTS then break end
+				_n_popup_windows[idx][count] = { app = w.app, title = w.title }
+			end
+			break
+		end
+	end
+	for _, w in pairs(_n_workspaces) do
+		if w ~= ws then w:set({ popup = { drawing = false } }) end
+	end
+	for i = 1, MAX_POPUP_SLOTS do
+		local item = _n_popup_items[idx] and _n_popup_items[idx][i]
+		local win = _n_popup_windows[idx] and _n_popup_windows[idx][i]
+		if item then
+			if win then
+				local icon = app_icons[win.app] or app_icons["Default"]
+				item:set({ drawing = true, icon = { string = icon, color = appearance.colors.active.sep_opaque }, label = { string = win.title, color = appearance.colors.active.text } })
+			else
+				item:set({ drawing = false })
+			end
+		end
+	end
+	ws:set({ popup = { drawing = true } })
+end
+
+for i = 1, SPACE_COUNT do
+	local ws_name = tostring(i)
+	local style = appearance.styles.workspace
+	local ws = sbar.add("item", "workspace." .. ws_name, {
+		background = { color = style.background.color, drawing = style.background.drawing, corner_radius = style.background.corner_radius, border_width = style.background.border_width, border_color = appearance.colors.active.mauve },
+		drawing = true, padding_left = 2, padding_right = 2,
+		icon = { color = style.icon.color, highlight_color = style.icon.highlight_color, font = style.icon.font,
+			padding_left = 10, padding_right = 10, drawing = true, string = ws_name },
+		label = { color = style.label.color, highlight_color = style.label.highlight_color, font = style.label.font,
+			padding_left = style.label.padding_left, padding_right = style.label.padding_right, y_offset = style.label.y_offset, drawing = false },
+		popup = { align = "left", background = { color = appearance.colors.with_alpha(appearance.colors.active.bar_bg, 0.85), corner_radius = 12, border_width = 2, shadow = { drawing = false } }, blur_radius = 30 },
+	})
+	_n_workspaces[ws_name] = ws
+	_n_ws_order[#_n_ws_order + 1] = ws_name
+
+	ws:subscribe("mouse.entered", function() _n_showPopup(i, ws) end)
+	ws:subscribe("mouse.exited", function() _n_scheduleHide(ws_name, ws) end)
+	ws:subscribe("mouse.exited.global", function()
+		_n_exit_gen[ws_name] = (_n_exit_gen[ws_name] or 0) + 1
+		if not _n_pinned[ws_name] then ws:set({ popup = { drawing = false } }) end
+	end)
+	ws:subscribe("mouse.clicked", function()
+		os.execute("osascript -e 'tell application \"System Events\" to key code " .. KEY_CODES[i] .. " using control down' &")
+		_n_pinned[ws_name] = not _n_pinned[ws_name]
+		_n_showPopup(i, ws)
+	end)
+
+	_n_popup_items[ws_name] = {}
+	for j = 1, MAX_POPUP_SLOTS do
+		local pi = sbar.add("item", "workspace." .. ws_name .. ".popup." .. j, {
+			position = "popup.workspace." .. ws_name, drawing = false,
+			icon = { font = "sketchybar-app-font:Regular:14.0", padding_left = 12, padding_right = 6, color = appearance.colors.active.sep_opaque },
+			label = { font = { family = fonts.font.text, style = fonts.font.style_map["Semibold"], size = fonts.font.size }, padding_left = 0, padding_right = 16, max_chars = 50, color = appearance.colors.active.text },
+			background = { drawing = false },
+		})
+		_n_popup_items[ws_name][j] = pi
+		pi:subscribe("mouse.entered", function()
+			_n_exit_gen[ws_name] = (_n_exit_gen[ws_name] or 0) + 1
+			_n_hovering[ws_name] = true
+			pi:set({ icon = { color = 0xffff4444 }, label = { color = 0xffff4444 } })
+		end)
+		pi:subscribe("mouse.exited", function()
+			_n_hovering[ws_name] = false
+			pi:set({ icon = { color = appearance.colors.active.sep_opaque }, label = { color = appearance.colors.active.text } })
+			_n_scheduleHide(ws_name, ws)
+		end)
+	end
+end
+
+-- 订阅 Hammerspoon space_changed → 更新高亮和图标
+root:subscribe("space_changed", function()
+	local data = _n_readSpaceData()
+	if not data then return end
+	for ws_idx, ws in pairs(_n_workspaces) do
+		local is_focused = false
+		local icons = ""
+		for mc_id, s in pairs(data.spaces or {}) do
+			if tonumber(ws_idx) == mc_id then
+				is_focused = (s.id == data.focused)
+				for _, w in ipairs(s.windows or {}) do
+					icons = icons .. (app_icons[w.app] or app_icons["Default"])
+				end
+				break
+			end
+		end
+		ws:set({ icon = { highlight = is_focused }, label = { highlight = is_focused } })
+		if #icons > 0 then
+			ws:set({ icon = { padding_left = 10, padding_right = 2 }, label = { drawing = true, string = icons } })
+		else
+			ws:set({ icon = { padding_left = 10, padding_right = 10 }, label = { drawing = false } })
+		end
+	end
+	local names = {}
+	for _, n in ipairs(_n_ws_order) do names[#names + 1] = "workspace." .. n end
+	borders.distribute(names)
+end)
+
+sbar.trigger("space_changed")
+end
