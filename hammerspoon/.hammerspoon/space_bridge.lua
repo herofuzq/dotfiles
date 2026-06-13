@@ -38,8 +38,19 @@ local function collectSpaceData()
 	hs.execute("/opt/homebrew/bin/sketchybar --trigger space_changed 2>/dev/null")
 end
 
--- 监听 Space 变化
-local watcher = hs.spaces.watcher.new(collectSpaceData)
+-- 监听 Space 变化 → 聚焦第一个窗口
+local watcher = hs.spaces.watcher.new(function()
+	local cur_id = hs.spaces.focusedSpace()
+	local all = hs.spaces.allSpaces()
+	for _, s in ipairs(all) do
+		if s:id() == cur_id then
+			local wins = s:windows()
+			if #wins > 0 then wins[1]:focus() end
+			break
+		end
+	end
+	collectSpaceData()
+end)
 watcher:start()
 
 -- 监听窗口变化
@@ -58,25 +69,3 @@ screenWatcher:start()
 hs.timer.doAfter(1, collectSpaceData)
 
 print("[space_bridge] macOS Space 监听已启动 → " .. DATA_FILE)
-
--- 轮询 sketchybar 的空间切换请求（带焦点）
-local SWITCH_FILE = "/tmp/sketchybar_space_switch"
-hs.timer.new(0.5, function()
-	local fh = io.open(SWITCH_FILE, "r")
-	if fh then
-		local mc_id = tonumber(fh:read("*a"))
-		fh:close()
-		os.remove(SWITCH_FILE)
-		if mc_id then
-			local all = hs.spaces.allSpaces()
-			for _, s in ipairs(all) do
-				if tonumber(s:getMissionControlID()) == mc_id then
-					local wins = s:windows()
-					if #wins > 0 then wins[1]:focus() end
-					hs.spaces.gotoSpace(s)
-					break
-				end
-			end
-		end
-	end
-end):start()
