@@ -57,17 +57,24 @@ local function collectSpaceData()
 	hs.execute("/opt/homebrew/bin/sketchybar --trigger space_changed 2>/dev/null")
 end
 
--- 切换空间时自动聚焦该桌面上次活跃窗口
+-- 切换空间时自动聚焦该桌面上次活跃窗口（跳过通知中心）
 hs.spaces.watcher.new(function()
 	hs.timer.doAfter(0.15, function()
 		local spaceID = hs.spaces.focusedSpace()
 		if not spaceID or spaceID == -1 then return end
 		local target = lastActiveWindows[spaceID]
 		if target and target:isVisible() then
-			target:focus()
-		else
-			for _, w in ipairs(hs.window.allWindows()) do
-				if w:isVisible() and w:screen() == hs.screen.mainScreen() then
+			local app = target:application()
+			if app and app:name() ~= "通知中心" then
+				target:focus()
+				collectSpaceData()
+				return
+			end
+		end
+		for _, w in ipairs(hs.window.allWindows()) do
+			if w:isVisible() and w:screen() == hs.screen.mainScreen() then
+				local app = w:application()
+				if app and app:name() ~= "通知中心" then
 					w:focus()
 					break
 				end
