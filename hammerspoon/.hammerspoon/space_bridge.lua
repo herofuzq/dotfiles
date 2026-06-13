@@ -18,22 +18,45 @@ hs.window.filter.default:subscribe(hs.window.filter.windowFocused, function(win)
 end)
 
 local function collectSpaceData()
-	local all = hs.spaces.allSpaces()
 	local cur_id = hs.spaces.focusedSpace()
-	local fdbg = io.open("/tmp/hs_spaces_debug.log", "w")
-	fdbg:write("allSpaces count: " .. #all .. ", focused: " .. tostring(cur_id) .. "\n")
-	local spaces = {}
-	for _, s in ipairs(all) do
-		local mc_id = tonumber(s:getMissionControlID()) or 0
-		fdbg:write("  space id=" .. s:id() .. " mc_id=" .. mc_id .. " windows=" .. #s:windows() .. "\n")
-		local wins = {}
-		for _, w in ipairs(s:windows()) do
-			local app = w:application()
-			wins[#wins + 1] = { id = w:id(), app = app and app:name() or "?", title = w:title() or "" }
+	-- hs.spaces.allSpaces() 在 macOS 26 Tahoe 返回空，改用手动分组
+	local spaces_map = {}
+	for _, w in ipairs(hs.window.allWindows()) do
+		local app = w:application()
+		if app and w:isStandard() then
+			local spaceIDs = w:spaces()
+			for _, sid in ipairs(spaceIDs or {}) do
+				if not spaces_map[sid] then spaces_map[sid] = { id = sid, windows = {} } end
+				spaces_map[sid].windows[#spaces_map[sid].windows + 1] = {
+					id = w:id(), app = app:name() or "?", title = w:title() or ""
+				}
+			end
 		end
-		spaces[#spaces + 1] = { id = s:id(), mc_id = mc_id, display = s:screen():name(), windows = wins }
 	end
-	fdbg:close()
+	-- 补充 mc_id：尝试从 allSpaces 获取，失败则用 ID 作为 mc_id
+	local all = hs.spaces.allSpaces()
+	for _, s in ipairs(all) do
+		local sid = s:id()
+		if spaces_map[sid] then
+			spaces_map[sid].mc_id = tonumber(s:getMissionControlID()) or sid
+		end
+	end
+	-- 转为数组
+	local spaces = {}
+	for _, s in pairs(spaces_map) do
+		s.mc_id = s.mc_id or s.id
+		s.display = hs.screen.mainScreen():name()
+		spaces[#spaces + 1] = s
+	end
+
+	local data = hs.json.encode({ focused = cur_id, spaces = spaces })
+	if data == last_data then return end
+	last_data = data
+	local f = io.open(DATA_FILE, "w")
+	if f then f:write(data); f:close() end
+	print("[space_bridge] updated " .. #spaces .. " spaces, focused=" .. tostring(cur_id))
+	hs.execute("/opt/homebrew/bin/sketchybar --trigger space_changed 2>/dev/null")
+end
 	local data = hs.json.encode({ focused = cur_id, spaces = spaces })
 	if data == last_data then return end
 	last_data = data

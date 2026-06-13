@@ -633,16 +633,18 @@ local function _n_readSpaceData()
 	f:close()
 	local focused = tonumber(data:match('"focused":%s*(%d+)'))
 	local spaces = {}
-	for mc_id, id_str in data:gmatch('"mc_id":%s*(%d+)[^}]*"id":%s*(%d+)') do
-		local sid = tonumber(id_str)
-		local wins = {}
-		local block = data:match('"mc_id":%s*' .. mc_id .. '[^%]]*%[(.-)%]')
-		if block then
+	-- 解析 spaces 数组：按数组顺序对应桌面 1, 2, 3...
+	local idx = 0
+	for block in data:gmatch('%[.-%]') do
+		for sid_str in block:gmatch('"id":%s*(%d+)') do
+			idx = idx + 1
+			local sid = tonumber(sid_str)
+			local wins = {}
 			for app, title in block:gmatch('"app":"([^"]-)"[^}]-"title":"([^"]-)"') do
 				wins[#wins + 1] = { app = app, title = title }
 			end
+			spaces[idx] = { id = sid, windows = wins }
 		end
-		spaces[tonumber(mc_id)] = { id = sid, windows = wins }
 	end
 	return { focused = focused, spaces = spaces }
 end
@@ -664,14 +666,12 @@ local function _n_showPopup(idx, ws)
 	if not data then return end
 	_n_popup_windows[idx] = {}
 	local count = 0
-	for mc_id, s in pairs(data.spaces or {}) do
-		if idx == mc_id then
-			for _, w in ipairs(s.windows or {}) do
-				count = count + 1
-				if count > MAX_POPUP_SLOTS then break end
-				_n_popup_windows[idx][count] = { app = w.app, title = w.title }
-			end
-			break
+	local s = data.spaces and data.spaces[idx]
+	if s then
+		for _, w in ipairs(s.windows or {}) do
+			count = count + 1
+			if count > MAX_POPUP_SLOTS then break end
+			_n_popup_windows[idx][count] = { app = w.app, title = w.title }
 		end
 	end
 	for _, w in pairs(_n_workspaces) do
@@ -782,8 +782,8 @@ root:subscribe("space_changed", function()
 	if not data then return end
 	for ws_idx, ws in pairs(_n_workspaces) do
 		local is_focused = false
-		for _, s in pairs(data.spaces or {}) do
-			if tonumber(ws_idx) == (s.mc_id or s.id) and s.id == data.focused then
+		for idx, s in ipairs(data.spaces or {}) do
+			if tonumber(ws_idx) == idx and s.id == data.focused then
 				is_focused = true
 				break
 			end
