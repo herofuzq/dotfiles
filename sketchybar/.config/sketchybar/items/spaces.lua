@@ -748,8 +748,10 @@ _n_root:subscribe("space_windows_change", function(env)
 	if not env.INFO or not env.INFO.apps then return end
 	local sid = env.INFO.space
 	local icons = ""
-	for app, _ in pairs(env.INFO.apps) do
-		icons = icons .. (app_icons[app] or app_icons["Default"])
+	for app, count in pairs(env.INFO.apps) do
+		for _ = 1, (count or 1) do
+			icons = icons .. (app_icons[app] or app_icons["Default"])
+		end
 	end
 	local ws = _n_workspaces[tostring(sid)]
 	if ws then
