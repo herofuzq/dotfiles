@@ -761,17 +761,20 @@ _n_root:subscribe("space_windows_change", function(env)
 			ws:set({ icon = { padding_left = 10, padding_right = 10 }, label = { drawing = false } })
 		end
 	end
-	-- 边框：收集有内容的 workspace
+	-- 边框：收集有内容的 workspace（延迟执行等所有 item 就绪）
 	local names = {}
 	for _, n in ipairs(_n_ws_order) do
-		local has_content = (tostring(sid) == n) or (_n_workspaces[n] and true)
-		if has_content then names[#names + 1] = "workspace." .. n end
+		if _n_workspaces[n] then names[#names + 1] = "workspace." .. n end
 	end
-	if #names > 0 then borders.distribute(names) end
+	if #names > 0 then
+		sbar.delay(0.1, function() borders.distribute(names) end)
+	end
 end)
 
--- 首次加载时触发边框分配
-borders.distribute({ "workspace.1", "workspace.2", "workspace.3", "workspace.4", "workspace.5", "workspace.6" })
+-- 首次加载时触发边框分配（延迟等 widget/calendar 就绪）
+sbar.delay(0.2, function()
+	borders.distribute({ "workspace.1", "workspace.2", "workspace.3", "workspace.4", "workspace.5", "workspace.6" })
+end)
 
 -- 订阅 Hammerspoon space_changed → 聚焦高亮 + popup 数据
 root:subscribe("space_changed", function()
