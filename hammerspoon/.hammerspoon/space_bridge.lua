@@ -20,9 +20,12 @@ end)
 local function collectSpaceData()
 	local all = hs.spaces.allSpaces()
 	local cur_id = hs.spaces.focusedSpace()
+	local fdbg = io.open("/tmp/hs_spaces_debug.log", "w")
+	fdbg:write("allSpaces count: " .. #all .. ", focused: " .. tostring(cur_id) .. "\n")
 	local spaces = {}
 	for _, s in ipairs(all) do
 		local mc_id = tonumber(s:getMissionControlID()) or 0
+		fdbg:write("  space id=" .. s:id() .. " mc_id=" .. mc_id .. " windows=" .. #s:windows() .. "\n")
 		local wins = {}
 		for _, w in ipairs(s:windows()) do
 			local app = w:application()
@@ -30,6 +33,7 @@ local function collectSpaceData()
 		end
 		spaces[#spaces + 1] = { id = s:id(), mc_id = mc_id, display = s:screen():name(), windows = wins }
 	end
+	fdbg:close()
 	local data = hs.json.encode({ focused = cur_id, spaces = spaces })
 	if data == last_data then return end
 	last_data = data
