@@ -54,14 +54,6 @@ local function collectSpaceData()
 	last_data = data
 	local f = io.open(DATA_FILE, "w")
 	if f then f:write(data); f:close() end
-	print("[space_bridge] updated " .. #spaces .. " spaces, focused=" .. tostring(cur_id))
-	hs.execute("/opt/homebrew/bin/sketchybar --trigger space_changed 2>/dev/null")
-end
-	local data = hs.json.encode({ focused = cur_id, spaces = spaces })
-	if data == last_data then return end
-	last_data = data
-	local f = io.open(DATA_FILE, "w")
-	if f then f:write(data); f:close() end
 	hs.execute("/opt/homebrew/bin/sketchybar --trigger space_changed 2>/dev/null")
 end
 
