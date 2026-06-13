@@ -646,6 +646,7 @@ sbar.exec(query_workspaces, function(workspaces_and_monitors)
 			})
 		end
 	end)
+end)
 end
 
 -- ========== 原生 macOS Space 模式（tangrid 等）==========
