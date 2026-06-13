@@ -59,3 +59,30 @@ screenWatcher:start()
 hs.timer.doAfter(1, collectSpaceData)
 
 print("[space_bridge] macOS Space 监听已启动 → " .. DATA_FILE)
+
+-- 监听 sketchybar 的空间切换请求（带焦点）
+local SWITCH_FILE = "/tmp/sketchybar_space_switch"
+local switchWatcher = hs.pathwatcher.new(os.tmpdir(), function(files)
+	for _, f in ipairs(files) do
+		if f == SWITCH_FILE then
+			local fh = io.open(f, "r")
+			if fh then
+				local mc_id = tonumber(fh:read("*a"))
+				fh:close()
+				os.remove(f)
+				if mc_id then
+					local all = hs.spaces.allSpaces()
+					for _, s in ipairs(all) do
+						if tonumber(s:getMissionControlID()) == mc_id then
+							local wins = s:windows()
+							if #wins > 0 then wins[1]:focus() end
+							hs.spaces.gotoSpace(s)
+							break
+						end
+					end
+				end
+			end
+		end
+	end
+end)
+switchWatcher:start()
