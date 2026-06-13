@@ -613,57 +613,16 @@ end
 if not USE_AEROSPACE then
 -- ══════════════════════════════════════════════════════════
 -- 原生 macOS Space 模式（tangrid 等）— sketchybar 自带 space 组件
+-- 高亮 + 图标走内置事件，popup 暂不启用
 -- ══════════════════════════════════════════════════════════
-local MAX_POPUP_SLOTS = 10
 local _n_workspaces = {}
 local _n_ws_order = {}
-local _n_popup_items = {}
-local _n_popup_windows = {}
-local _n_pinned = {}
 local SPACE_COUNT = 6
 local KEY_CODES = { 18, 19, 20, 21, 23, 22 }
-
--- popup：从 Hammerspoon JSON 读窗口标题
-local function _n_readPopupData()
-	local f = io.open("/tmp/sketchybar_spaces.json", "r")
-	if not f then return {} end
-	local data = f:read("*a")
-	f:close()
-	local wins = {}
-	for _, app, title in data:gmatch('"app":"([^"]-)","title":"([^"]*)"') do
-		if #wins < MAX_POPUP_SLOTS then
-			wins[#wins + 1] = { app = app, title = title }
-		end
-	end
-	return wins
-end
-
-local function _n_showPopup(idx, ws)
-	local wins = _n_readPopupData()
-	_n_popup_windows[idx] = wins
-	for _, w in pairs(_n_workspaces) do
-		if w ~= ws then w:set({ popup = { drawing = false } }) end
-	end
-	for i = 1, MAX_POPUP_SLOTS do
-		local item = _n_popup_items[idx] and _n_popup_items[idx][i]
-		local win = _n_popup_windows[idx] and _n_popup_windows[idx][i]
-		if item then
-			if win then
-				item:set({ drawing = true,
-					icon = { string = app_icons[win.app] or app_icons["Default"], color = appearance.colors.active.sep_opaque },
-					label = { string = win.title, color = appearance.colors.active.text } })
-			else
-				item:set({ drawing = false })
-			end
-		end
-	end
-	ws:set({ popup = { drawing = true } })
-end
 
 for i = 1, SPACE_COUNT do
 	local ws_name = tostring(i)
 	local style = appearance.styles.workspace
-	-- 使用 sketchybar 内置 space 组件：自带 space_change → $SELECTED 高亮
 	local ws = sbar.add("space", "workspace." .. ws_name, {
 		space = i,
 		background = { color = style.background.color, corner_radius = style.background.corner_radius,
@@ -674,46 +633,17 @@ for i = 1, SPACE_COUNT do
 		label = { color = style.label.color, highlight_color = style.label.highlight_color, font = style.label.font,
 			padding_left = style.label.padding_left, padding_right = style.label.padding_right,
 			y_offset = style.label.y_offset, drawing = false },
-		popup = { align = "left", background = { color = appearance.colors.with_alpha(appearance.colors.active.bar_bg, 0.85),
-			corner_radius = 12, border_width = 2, shadow = { drawing = false } }, blur_radius = 30 },
 	})
 	_n_workspaces[ws_name] = ws
 	_n_ws_order[#_n_ws_order + 1] = ws_name
 
-	-- 内置高亮
 	ws:subscribe("space_change", function(env)
 		local sel = env.SELECTED == "true"
 		ws:set({ icon = { highlight = sel }, label = { highlight = sel } })
 	end)
-
-	ws:subscribe("mouse.entered", function() _n_showPopup(i, ws) end)
-	ws:subscribe("mouse.exited.global", function()
-		if not _n_pinned[ws_name] then ws:set({ popup = { drawing = false } }) end
-	end)
 	ws:subscribe("mouse.clicked", function()
 		os.execute("osascript -e 'tell application \"System Events\" to key code " .. KEY_CODES[i] .. " using control down' &")
-		_n_pinned[ws_name] = not _n_pinned[ws_name]
-		_n_showPopup(i, ws)
 	end)
-
-	_n_popup_items[ws_name] = {}
-	for j = 1, MAX_POPUP_SLOTS do
-		local pi = sbar.add("item", "workspace." .. ws_name .. ".popup." .. j, {
-			position = "popup.workspace." .. ws_name, drawing = false,
-			icon = { font = "sketchybar-app-font:Regular:14.0", padding_left = 12, padding_right = 6,
-				color = appearance.colors.active.sep_opaque },
-			label = { font = { family = fonts.font.text, style = fonts.font.style_map["Semibold"], size = fonts.font.size },
-				padding_left = 0, padding_right = 16, max_chars = 50, color = appearance.colors.active.text },
-			background = { drawing = false },
-		})
-		_n_popup_items[ws_name][j] = pi
-		pi:subscribe("mouse.entered", function()
-			pi:set({ icon = { color = 0xffff4444 }, label = { color = 0xffff4444 } })
-		end)
-		pi:subscribe("mouse.exited", function()
-			pi:set({ icon = { color = appearance.colors.active.sep_opaque }, label = { color = appearance.colors.active.text } })
-		end)
-	end
 end
 
 -- 原生 space_windows_change → 应用图标
