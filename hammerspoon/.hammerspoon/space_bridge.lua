@@ -8,8 +8,7 @@ local last_data = ""
 
 local function collectSpaceData()
 	local all = hs.spaces.allSpaces()
-	local cur = hs.spaces.focusedSpace()
-	local cur_id = cur and cur:id() or 0
+	local cur_id = hs.spaces.focusedSpace()
 
 	local spaces = {}
 	for _, s in ipairs(all) do
@@ -62,7 +61,7 @@ print("[space_bridge] macOS Space 监听已启动 → " .. DATA_FILE)
 
 -- 监听 sketchybar 的空间切换请求（带焦点）
 local SWITCH_FILE = "/tmp/sketchybar_space_switch"
-local switchWatcher = hs.pathwatcher.new(os.tmpdir(), function(files)
+local switchWatcher = hs.pathwatcher.new("/tmp/", function(files)
 	for _, f in ipairs(files) do
 		if f == SWITCH_FILE then
 			local fh = io.open(f, "r")
