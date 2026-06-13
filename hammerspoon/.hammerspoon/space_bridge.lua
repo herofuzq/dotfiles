@@ -5,17 +5,6 @@
 
 local DATA_FILE = "/tmp/sketchybar_spaces.json"
 local last_data = ""
-local lastActiveWindows = {}
-
--- 跟踪窗口聚焦，缓存每桌面上次活跃窗口
-hs.window.filter.default:subscribe(hs.window.filter.windowFocused, function(win)
-	if win then
-		local spaceID = hs.spaces.focusedSpace()
-		if spaceID and spaceID ~= -1 then
-			lastActiveWindows[spaceID] = win
-		end
-	end
-end)
 
 local function collectSpaceData()
 	local cur_id = hs.spaces.focusedSpace()
@@ -57,23 +46,9 @@ local function collectSpaceData()
 	hs.execute("/opt/homebrew/bin/sketchybar --trigger space_changed 2>/dev/null")
 end
 
--- 切换空间时聚焦该桌面上次活跃窗口（跳过通知中心）
-local _lastSwitch = 0
+-- 监听 Space 变化 → 更新数据
 hs.spaces.watcher.new(function()
-	local now = hs.timer.secondsSinceEpoch()
-	if now - _lastSwitch < 1.0 then return end
-	_lastSwitch = now
-	collectSpaceData()
-	-- 自动聚焦暂时禁用，调试来回跳问题
---	hs.timer.doAfter(0.2, function()
---		local spaceID = hs.spaces.focusedSpace()
---		if not spaceID or spaceID == -1 then return end
---		local target = lastActiveWindows[spaceID]
---		if target and target:isVisible() then
---			local app = target:application()
---			if app and app:name() ~= "通知中心" then target:focus() end
---		end
---	end)
+	hs.timer.doAfter(0.2, collectSpaceData)
 end):start()
 
 -- 窗口变化 → 更新数据
