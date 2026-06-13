@@ -40,16 +40,22 @@ end
 
 -- 监听 Space 变化 → 聚焦第一个窗口
 local watcher = hs.spaces.watcher.new(function()
-	local cur_id = hs.spaces.focusedSpace()
-	local all = hs.spaces.allSpaces()
-	for _, s in ipairs(all) do
-		if s:id() == cur_id then
-			local wins = s:windows()
-			if #wins > 0 then wins[1]:focus() end
-			break
+	hs.timer.doAfter(0.3, function()
+		local cur_id = hs.spaces.focusedSpace()
+		local all = hs.spaces.allSpaces()
+		for _, s in ipairs(all) do
+			if s:id() == cur_id then
+				local wins = s:windows()
+				if #wins > 0 then
+					local app = wins[1]:application()
+					if app then app:activate() end
+					wins[1]:focus()
+				end
+				break
+			end
 		end
-	end
-	collectSpaceData()
+		collectSpaceData()
+	end)
 end)
 watcher:start()
 
