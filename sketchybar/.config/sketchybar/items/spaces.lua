@@ -741,33 +741,49 @@ for i = 1, SPACE_COUNT do
 	end
 end
 
--- 订阅 Hammerspoon space_changed → 更新高亮和图标
-root:subscribe("space_changed", function()
-	local data = _n_readSpaceData()
-	if not data then return end
-	for ws_idx, ws in pairs(_n_workspaces) do
-		local is_focused = false
-		local icons = ""
-		for mc_id, s in pairs(data.spaces or {}) do
-			if tonumber(ws_idx) == mc_id then
-				is_focused = (s.id == data.focused)
-				for _, w in ipairs(s.windows or {}) do
-					icons = icons .. (app_icons[w.app] or app_icons["Default"])
-				end
-				break
-			end
-		end
-		ws:set({ icon = { highlight = is_focused }, label = { highlight = is_focused } })
+-- 用 sketchybar 原生 space_windows_change 获取各桌面应用图标
+-- 同时订阅 space_changed（来自 Hammerspoon）获取 popup 窗口标题数据
+local _n_root = sbar.add("item", "spaces_native.root", { drawing = false })
+_n_root:subscribe("space_windows_change", function(env)
+	if not env.INFO or not env.INFO.apps then return end
+	local sid = env.INFO.space
+	local icons = ""
+	for app, _ in pairs(env.INFO.apps) do
+		icons = icons .. (app_icons[app] or app_icons["Default"])
+	end
+	local ws = _n_workspaces[tostring(sid)]
+	if ws then
 		if #icons > 0 then
 			ws:set({ icon = { padding_left = 10, padding_right = 2 }, label = { drawing = true, string = icons } })
 		else
 			ws:set({ icon = { padding_left = 10, padding_right = 10 }, label = { drawing = false } })
 		end
 	end
+	-- 边框：收集有内容的 workspace
 	local names = {}
-	for _, n in ipairs(_n_ws_order) do names[#names + 1] = "workspace." .. n end
-	borders.distribute(names)
+	for _, n in ipairs(_n_ws_order) do
+		local has_content = (tostring(sid) == n) or (_n_workspaces[n] and true)
+		if has_content then names[#names + 1] = "workspace." .. n end
+	end
+	if #names > 0 then borders.distribute(names) end
 end)
 
-sbar.trigger("space_changed")
+-- 首次加载时触发边框分配
+borders.distribute({ "workspace.1", "workspace.2", "workspace.3", "workspace.4", "workspace.5", "workspace.6" })
+
+-- 订阅 Hammerspoon space_changed → 聚焦高亮 + popup 数据
+root:subscribe("space_changed", function()
+	local data = _n_readSpaceData()
+	if not data then return end
+	for ws_idx, ws in pairs(_n_workspaces) do
+		local is_focused = false
+		for _, s in pairs(data.spaces or {}) do
+			if tonumber(ws_idx) == (s.mc_id or s.id) and s.id == data.focused then
+				is_focused = true
+				break
+			end
+		end
+		ws:set({ icon = { highlight = is_focused }, label = { highlight = is_focused } })
+	end
+end)
 end
