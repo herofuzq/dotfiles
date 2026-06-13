@@ -699,7 +699,7 @@ for i = 1, SPACE_COUNT do
 		background = { color = style.background.color, drawing = style.background.drawing, corner_radius = style.background.corner_radius, border_width = style.background.border_width, border_color = appearance.colors.active.mauve },
 		drawing = true, padding_left = 2, padding_right = 2,
 		icon = { color = style.icon.color, highlight_color = style.icon.highlight_color, font = style.icon.font,
-			padding_left = 10, padding_right = 10, drawing = true, string = ws_name },
+			padding_left = 10, padding_right = 10, drawing = true, string = ws_name .. ">" },
 		label = { color = style.label.color, highlight_color = style.label.highlight_color, font = style.label.font,
 			padding_left = style.label.padding_left, padding_right = style.label.padding_right, y_offset = style.label.y_offset, drawing = false },
 		popup = { align = "left", background = { color = appearance.colors.with_alpha(appearance.colors.active.bar_bg, 0.85), corner_radius = 12, border_width = 2, shadow = { drawing = false } }, blur_radius = 30 },
