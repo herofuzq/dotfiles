@@ -624,7 +624,6 @@ local _n_gen = {}
 local _n_hovering = {}
 local _n_exit_gen = {}
 local SPACE_COUNT = 6
-local KEY_CODES = { 18, 19, 20, 21, 23, 22 } -- Ctrl+1..6
 
 local function _n_readSpaceData()
 	local f = io.open("/tmp/sketchybar_spaces.json", "r")
@@ -714,7 +713,8 @@ for i = 1, SPACE_COUNT do
 		if not _n_pinned[ws_name] then ws:set({ popup = { drawing = false } }) end
 	end)
 	ws:subscribe("mouse.clicked", function()
-		os.execute("osascript -e 'tell application \"System Events\" to key code " .. KEY_CODES[i] .. " using control down' &")
+		local f = io.open("/tmp/sketchybar_space_switch", "w")
+		if f then f:write(tostring(i)); f:close() end
 		_n_pinned[ws_name] = not _n_pinned[ws_name]
 		_n_showPopup(i, ws)
 	end)
