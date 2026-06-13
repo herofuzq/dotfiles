@@ -29,6 +29,7 @@ const defaultArgs = {
   enable: true,
   ruleSet: 'all',
   regionSet: 'all',
+  interfaceName: '',
   excludeHighPercentage: true,
   globalRatioLimit: 2,
   skipIps: _skipIps,
@@ -40,7 +41,7 @@ const defaultArgs = {
   mode: 'default',
   ipv6: false,
   logLevel: 'error',
-  githubProxy: 'https://ghfast.top/',
+  githubProxy: '',
 }
 
 let args =
@@ -62,8 +63,9 @@ let {
   enable = args.enable || true,
   ruleSet = args.ruleSet || 'all', // 支持 'all' 或 'openai,youtube,ads' 这种格式
   regionSet = args.regionSet || 'all', // 匹配 regionDefinitions.name 前两个字母 (严格大小写)
+  interfaceName = args.interfaceName || '',
   excludeHighPercentage = !!args.excludeHighPercentage ||
-    false,
+  false,
   globalRatioLimit = args.globalRatioLimit || 2,
   skipIps = args.skipIps || _skipIps,
   defaultDNS = args.defaultDNS || _chinaIpDns,
@@ -74,7 +76,7 @@ let {
   mode = args.mode || '',
   ipv6 = args.ipv6 || false,
   logLevel = args.logLevel || 'error',
-  githubProxy = args.githubProxy || 'https://ghfast.top/',
+  githubProxy = args.githubProxy || '',
 } = args
 
 /**
@@ -115,10 +117,10 @@ if (['securest', 'secure', 'default', 'fast', 'fastest'].includes(mode)) {
 
 skipIps = stringToArray(skipIps)
 defaultDNS = stringToArray(defaultDNS)
-// 添加内网DNS作为兜底解析 ← 用户内网
+// 添加内网DNS作为兜底解析
 defaultDNS.push('10.223.0.145', '10.223.0.146')
 directDNS = stringToArray(directDNS)
-// 添加内网DNS（fake-ip-filter→direct-nameserver） ← 用户内网
+// 添加内网DNS（fake-ip-filter的域名用direct-nameserver解析）
 directDNS.push('10.223.0.145', '10.223.0.146')
 chinaDNS = stringToArray(chinaDNS)
 foreignDNS = stringToArray(foreignDNS)
@@ -170,6 +172,8 @@ if (ruleSet === 'all') {
 // 初始规则
 const rules = [
   'RULE-SET,applications,下载软件',
+  'PROCESS-NAME,WeChat,直连',
+  'PROCESS-NAME,DingTalk,直连',
   'PROCESS-NAME-REGEX,(?i).*Oray.*,直连',
   'PROCESS-NAME-REGEX,(?i).*Sunlogin.*,直连',
   'PROCESS-NAME-REGEX,(?i).*AweSun.*,直连',
@@ -200,79 +204,81 @@ const rules = [
   'DOMAIN-SUFFIX,nblink.cc,直连',
   'DOMAIN-SUFFIX,ionewu.com,直连',
   'DOMAIN-SUFFIX,vicp.net,直连',
-  // ===== 内网域名直连 ← 用户内网 =====
+  // ===== 内网域名直连 =====
   'DOMAIN-SUFFIX,chinaunicom.cn,直连',
   'DOMAIN-SUFFIX,10010.com,直连',
   'DOMAIN-SUFFIX,unicom.local,直连',
   'DOMAIN-SUFFIX,unicom.net.cn,直连',
   'IP-CIDR,134.224.242.16/32,直连',
+  'IP-CIDR,134.224.251.9/32,直连',
+  'IP-CIDR,134.224.2.162/32,直连',
 ]
 
 // 地区定义 (Icons 更新为 GitHub Raw)
 const allRegionDefinitions = [
   {
     name: 'HK香港',
-    regex: /港|🇭🇰|hk|hongkong|hong kong/i,
+    regex: /^(?!.*(家宽|游戏)).*(港|🇭🇰|hk|hongkong|hong kong).*$/i,
     icon: 'https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Hong_Kong.png',
   },
   {
     name: 'US美国',
-    regex: /(?!.*aus)(?=.*(美|🇺🇸|us(?!t)|usa|american|united states)).*/i,
+    regex: /^(?!.*(aus|美属|亚美尼亚|圣多美|家宽))(?=.*(美|🇺🇸|us(?!t)|usa|american|united states)).*$/i,
     icon: 'https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/United_States.png',
   },
   {
     name: 'JP日本',
-    regex: /日本|🇯🇵|jp|japan/i,
+    regex: /^(?!.*家宽).*(日本|🇯🇵|jp|japan).*$/i,
     icon: 'https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Japan.png',
   },
   {
     name: 'KR韩国',
-    regex: /韩|🇰🇷|kr|korea/i,
+    regex: /^(?!.*家宽).*(韩|🇰🇷|kr|korea).*$/i,
     icon: 'https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Korea.png',
   },
   {
     name: 'SG新加坡',
-    regex: /新加坡|🇸🇬|sg|singapore/i,
+    regex: /^(?!.*家宽).*(新加坡|🇸🇬|sg|singapore).*$/i,
     icon: 'https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Singapore.png',
   },
   {
     name: 'CN中国大陆',
-    regex: /中国|🇨🇳|cn|china/i,
+    regex: /^(?!.*家宽).*(中国|🇨🇳|cn|china).*$/i,
     icon: 'https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/China_Map.png',
   },
   {
     name: 'TW台湾省',
-    regex: /台湾|台灣|🇹🇼|tw|taiwan|tai wan/i,
+    regex: /^(?!.*家宽).*(台湾|台灣|🇹🇼|tw|taiwan|tai wan).*$/i,
     icon: 'https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/China.png',
   },
   {
     name: 'GB英国',
-    regex: /英|🇬🇧|uk|united kingdom|great britain/i,
+    regex: /^(?!.*家宽).*(英|🇬🇧|uk|united kingdom|great britain).*$/i,
     icon: 'https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/United_Kingdom.png',
   },
   {
     name: 'DE德国',
-    regex: /德国|🇩🇪|de|germany/i,
+    regex: /^(?!.*家宽).*(德国|🇩🇪|de|germany).*$/i,
     icon: 'https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Germany.png',
   },
   {
     name: 'MY马来西亚',
-    regex: /马来|🇲🇾|my|malaysia/i,
+    regex: /^(?!.*家宽).*(马来|🇲🇾|my|malaysia).*$/i,
     icon: 'https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Malaysia.png',
   },
   {
     name: 'TK土耳其',
-    regex: /土耳其|🇹🇷|tk|turkey/i,
+    regex: /^(?!.*家宽).*(土耳其|🇹🇷|tk|turkey).*$/i,
     icon: 'https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Turkey.png',
   },
   {
     name: 'CA加拿大',
-    regex: /加拿大|🇨🇦|ca|canada/i,
+    regex: /^(?!.*家宽).*(加拿大|🇨🇦|ca|canada).*$/i,
     icon: 'https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Canada.png',
   },
   {
     name: 'AU澳大利亚',
-    regex: /澳大利亚|🇦🇺|au|australia|sydney/i,
+    regex: /^(?!.*家宽).*(澳大利亚|🇦🇺|au|australia|sydney).*$/i,
     icon: 'https://raw.githubusercontent.com/Koolson/Qure/master/IconSet/Color/Australia.png',
   },
 ]
@@ -313,7 +319,7 @@ const dnsConfig = {
     'geosite:amazon',
     'geosite:category-bank-jp',
     // 'geosite:category-bank-cn@!cn',
-    // ===== 内网域名：不走 fake-ip，返回真实 IP ← 用户内网 =====
+    // ===== 内网域名：不走 fake-ip，返回真实 IP =====
     '+.chinaunicom.cn',
     '+.10010.com',
     '+.unicom.local',
@@ -331,10 +337,10 @@ const dnsConfig = {
   'nameserver-policy': {
     'geosite:private': 'system',
     'geosite:tld-cn,cn,steam@cn,category-games@cn,microsoft@cn,apple@cn,category-game-platforms-download@cn,category-public-tracker':
-    chinaDNS,
+      chinaDNS,
     'geosite:gfw,jetbrains-ai,category-ai-!cn,category-ai-chat-!cn': foreignDNS,
     // 'geosite:telegram': foreignDNS,
-    // ===== 内网域名（暂不生效，待客户端升级） ← 用户内网 =====
+    // ===== 内网域名（暂不生效，fake-ip-filter 走 direct-nameserver） =====
     // 'chinaunicom.cn': '10.223.0.145;10.223.0.146',
     // '10010.com': '10.223.0.145;10.223.0.146',
     // 'unicom.local': '10.223.0.145;10.223.0.146',
@@ -619,7 +625,12 @@ function main(config) {
   config['bind-address'] = '*'
   config['mode'] = 'rule'
   config['ipv6'] = !!ipv6
-  config['external-controller'] = '0.0.0.0:9090'
+  config['external-controller'] = '127.0.0.1:9090'
+  config['external-controller-cors'] = {
+    'allow-origins': ['*'],
+    'allow-private-network': true,
+  }
+  config['secret'] = 'YaNet'
   config['port'] = 7890
   config['socks-port'] = 7891
   config['mixed-port'] = 7892
@@ -641,6 +652,10 @@ function main(config) {
   config['geodata-loader'] = 'memconservative'
   config['geo-auto-update'] = true
   config['geo-update-interval'] = 24
+
+  if (interfaceName.length > 0) {
+    config['interface-name'] = interfaceName
+  }
 
   config['sniffer'] = {
     enable: true,
@@ -716,10 +731,10 @@ function main(config) {
   const regionGroups = {}
   regionDefinitions.forEach(
     (r) =>
-      (regionGroups[r.name] = {
-        ...r,
-        proxies: [],
-      })
+    (regionGroups[r.name] = {
+      ...r,
+      proxies: [],
+    })
   )
   const otherProxies = []
 
@@ -870,3 +885,4 @@ function main(config) {
 
   return config
 }
+

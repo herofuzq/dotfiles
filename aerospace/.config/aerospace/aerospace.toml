@@ -20,7 +20,7 @@ after-startup-command = [
 ]
 
 # Start AeroSpace at login
-start-at-login = true
+start-at-login = false
 
 # Notify sketchybar that it needs to rerender when changing workspace
 exec-on-workspace-change = [
