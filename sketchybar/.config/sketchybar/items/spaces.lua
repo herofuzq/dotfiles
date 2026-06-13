@@ -9,7 +9,9 @@ local fonts = require("fonts")
 local settings = require("settings")
 
 -- 模式检测：aerospace 进程存在 → aerospace 模式
-local USE_AEROSPACE = (os.execute("pgrep -x aerospace >/dev/null 2>&1") == 0)
+local f = io.popen("pgrep -x aerospace 2>/dev/null")
+local USE_AEROSPACE = f and f:read("*a"):match("%d") ~= nil
+if f then f:close() end
 
 -- 始终显示的工作区（即使没有应用也会显示）
 -- aerospace 模式：键名含 U+0332 组合下划线，对应 aerospace 工作区名称，请勿修改
