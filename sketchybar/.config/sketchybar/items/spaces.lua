@@ -609,10 +609,10 @@ sbar.exec(query_workspaces, function(workspaces_and_monitors)
 end)
 end
 
+
 if not USE_AEROSPACE then
 -- ══════════════════════════════════════════════════════════
--- 原生 macOS Space 模式（tangrid 等）
--- 桌面 1-6，读取 Hammerspoon space_bridge 的 JSON 数据
+-- 原生 macOS Space 模式（tangrid 等）— sketchybar 自带 space 组件
 -- ══════════════════════════════════════════════════════════
 local MAX_POPUP_SLOTS = 10
 local _n_workspaces = {}
@@ -620,60 +620,27 @@ local _n_ws_order = {}
 local _n_popup_items = {}
 local _n_popup_windows = {}
 local _n_pinned = {}
-local _n_gen = {}
-local _n_hovering = {}
-local _n_exit_gen = {}
 local SPACE_COUNT = 6
 local KEY_CODES = { 18, 19, 20, 21, 23, 22 }
 
-local function _n_readSpaceData()
+-- popup：从 Hammerspoon JSON 读窗口标题
+local function _n_readPopupData()
 	local f = io.open("/tmp/sketchybar_spaces.json", "r")
-	if not f then return nil end
+	if not f then return {} end
 	local data = f:read("*a")
 	f:close()
-	local focused = tonumber(data:match('"focused":%s*(%d+)'))
-	local spaces = {}
-	-- 解析 spaces 数组：按数组顺序对应桌面 1, 2, 3...
-	local idx = 0
-	for block in data:gmatch('%[.-%]') do
-		for sid_str in block:gmatch('"id":%s*(%d+)') do
-			idx = idx + 1
-			local sid = tonumber(sid_str)
-			local wins = {}
-			for app, title in block:gmatch('"app":"([^"]-)"[^}]-"title":"([^"]-)"') do
-				wins[#wins + 1] = { app = app, title = title }
-			end
-			spaces[idx] = { id = sid, windows = wins }
+	local wins = {}
+	for _, app, title in data:gmatch('"app":"([^"]-)","title":"([^"]*)"') do
+		if #wins < MAX_POPUP_SLOTS then
+			wins[#wins + 1] = { app = app, title = title }
 		end
 	end
-	return { focused = focused, spaces = spaces }
-end
-
-local function _n_scheduleHide(idx, ws)
-	_n_gen[idx] = (_n_gen[idx] or 0) + 1
-	if _n_pinned[idx] then return end
-	local gen = (_n_exit_gen[idx] or 0) + 1
-	_n_exit_gen[idx] = gen
-	sbar.delay(0.2, function()
-		if _n_exit_gen[idx] ~= gen then return end
-		if _n_hovering[idx] or _n_pinned[idx] then return end
-		ws:set({ popup = { drawing = false } })
-	end)
+	return wins
 end
 
 local function _n_showPopup(idx, ws)
-	local data = _n_readSpaceData()
-	if not data then return end
-	_n_popup_windows[idx] = {}
-	local count = 0
-	local s = data.spaces and data.spaces[idx]
-	if s then
-		for _, w in ipairs(s.windows or {}) do
-			count = count + 1
-			if count > MAX_POPUP_SLOTS then break end
-			_n_popup_windows[idx][count] = { app = w.app, title = w.title }
-		end
-	end
+	local wins = _n_readPopupData()
+	_n_popup_windows[idx] = wins
 	for _, w in pairs(_n_workspaces) do
 		if w ~= ws then w:set({ popup = { drawing = false } }) end
 	end
@@ -682,8 +649,9 @@ local function _n_showPopup(idx, ws)
 		local win = _n_popup_windows[idx] and _n_popup_windows[idx][i]
 		if item then
 			if win then
-				local icon = app_icons[win.app] or app_icons["Default"]
-				item:set({ drawing = true, icon = { string = icon, color = appearance.colors.active.sep_opaque }, label = { string = win.title, color = appearance.colors.active.text } })
+				item:set({ drawing = true,
+					icon = { string = app_icons[win.app] or app_icons["Default"], color = appearance.colors.active.sep_opaque },
+					label = { string = win.title, color = appearance.colors.active.text } })
 			else
 				item:set({ drawing = false })
 			end
@@ -695,22 +663,31 @@ end
 for i = 1, SPACE_COUNT do
 	local ws_name = tostring(i)
 	local style = appearance.styles.workspace
-	local ws = sbar.add("item", "workspace." .. ws_name, {
-		background = { color = style.background.color, drawing = style.background.drawing, corner_radius = style.background.corner_radius, border_width = style.background.border_width, border_color = appearance.colors.active.mauve },
+	-- 使用 sketchybar 内置 space 组件：自带 space_change → $SELECTED 高亮
+	local ws = sbar.add("space", "workspace." .. ws_name, {
+		space = i,
+		background = { color = style.background.color, corner_radius = style.background.corner_radius,
+			border_width = style.background.border_width, border_color = appearance.colors.active.mauve },
 		drawing = true, padding_left = 2, padding_right = 2,
 		icon = { color = style.icon.color, highlight_color = style.icon.highlight_color, font = style.icon.font,
-			padding_left = 10, padding_right = 10, drawing = true, string = ws_name .. ">" },
+			padding_left = 10, padding_right = 10, string = ws_name .. ">" },
 		label = { color = style.label.color, highlight_color = style.label.highlight_color, font = style.label.font,
-			padding_left = style.label.padding_left, padding_right = style.label.padding_right, y_offset = style.label.y_offset, drawing = false },
-		popup = { align = "left", background = { color = appearance.colors.with_alpha(appearance.colors.active.bar_bg, 0.85), corner_radius = 12, border_width = 2, shadow = { drawing = false } }, blur_radius = 30 },
+			padding_left = style.label.padding_left, padding_right = style.label.padding_right,
+			y_offset = style.label.y_offset, drawing = false },
+		popup = { align = "left", background = { color = appearance.colors.with_alpha(appearance.colors.active.bar_bg, 0.85),
+			corner_radius = 12, border_width = 2, shadow = { drawing = false } }, blur_radius = 30 },
 	})
 	_n_workspaces[ws_name] = ws
 	_n_ws_order[#_n_ws_order + 1] = ws_name
 
+	-- 内置高亮
+	ws:subscribe("space_change", function(env)
+		local sel = env.SELECTED == "true"
+		ws:set({ icon = { highlight = sel }, label = { highlight = sel } })
+	end)
+
 	ws:subscribe("mouse.entered", function() _n_showPopup(i, ws) end)
-	ws:subscribe("mouse.exited", function() _n_scheduleHide(ws_name, ws) end)
 	ws:subscribe("mouse.exited.global", function()
-		_n_exit_gen[ws_name] = (_n_exit_gen[ws_name] or 0) + 1
 		if not _n_pinned[ws_name] then ws:set({ popup = { drawing = false } }) end
 	end)
 	ws:subscribe("mouse.clicked", function()
@@ -723,35 +700,30 @@ for i = 1, SPACE_COUNT do
 	for j = 1, MAX_POPUP_SLOTS do
 		local pi = sbar.add("item", "workspace." .. ws_name .. ".popup." .. j, {
 			position = "popup.workspace." .. ws_name, drawing = false,
-			icon = { font = "sketchybar-app-font:Regular:14.0", padding_left = 12, padding_right = 6, color = appearance.colors.active.sep_opaque },
-			label = { font = { family = fonts.font.text, style = fonts.font.style_map["Semibold"], size = fonts.font.size }, padding_left = 0, padding_right = 16, max_chars = 50, color = appearance.colors.active.text },
+			icon = { font = "sketchybar-app-font:Regular:14.0", padding_left = 12, padding_right = 6,
+				color = appearance.colors.active.sep_opaque },
+			label = { font = { family = fonts.font.text, style = fonts.font.style_map["Semibold"], size = fonts.font.size },
+				padding_left = 0, padding_right = 16, max_chars = 50, color = appearance.colors.active.text },
 			background = { drawing = false },
 		})
 		_n_popup_items[ws_name][j] = pi
 		pi:subscribe("mouse.entered", function()
-			_n_exit_gen[ws_name] = (_n_exit_gen[ws_name] or 0) + 1
-			_n_hovering[ws_name] = true
 			pi:set({ icon = { color = 0xffff4444 }, label = { color = 0xffff4444 } })
 		end)
 		pi:subscribe("mouse.exited", function()
-			_n_hovering[ws_name] = false
 			pi:set({ icon = { color = appearance.colors.active.sep_opaque }, label = { color = appearance.colors.active.text } })
-			_n_scheduleHide(ws_name, ws)
 		end)
 	end
 end
 
--- 用 sketchybar 原生 space_windows_change 获取各桌面应用图标
--- 同时订阅 space_changed（来自 Hammerspoon）获取 popup 窗口标题数据
-local _n_root = sbar.add("item", "spaces_native.root", { drawing = false })
-_n_root:subscribe("space_windows_change", function(env)
+-- 原生 space_windows_change → 应用图标
+local _n_obs = sbar.add("item", { drawing = false, updates = true })
+_n_obs:subscribe("space_windows_change", function(env)
 	if not env.INFO or not env.INFO.apps then return end
 	local sid = env.INFO.space
 	local icons = ""
 	for app, count in pairs(env.INFO.apps) do
-		for _ = 1, (count or 1) do
-			icons = icons .. (app_icons[app] or app_icons["Default"])
-		end
+		for _ = 1, (count or 1) do icons = icons .. (app_icons[app] or app_icons["Default"]) end
 	end
 	local ws = _n_workspaces[tostring(sid)]
 	if ws then
@@ -761,34 +733,14 @@ _n_root:subscribe("space_windows_change", function(env)
 			ws:set({ icon = { padding_left = 10, padding_right = 10 }, label = { drawing = false } })
 		end
 	end
-	-- 边框：收集有内容的 workspace（延迟执行等所有 item 就绪）
-	local names = {}
-	for _, n in ipairs(_n_ws_order) do
-		if _n_workspaces[n] then names[#names + 1] = "workspace." .. n end
-	end
-	if #names > 0 then
-		sbar.delay(0.1, function() borders.distribute(names) end)
-	end
+	sbar.delay(0.1, function()
+		local names = {}
+		for _, n in ipairs(_n_ws_order) do names[#names + 1] = "workspace." .. n end
+		if #names > 0 then borders.distribute(names) end
+	end)
 end)
 
--- 首次加载时触发边框分配（延迟等 widget/calendar 就绪）
 sbar.delay(0.2, function()
 	borders.distribute({ "workspace.1", "workspace.2", "workspace.3", "workspace.4", "workspace.5", "workspace.6" })
-end)
-
--- 订阅 Hammerspoon space_changed → 聚焦高亮 + popup 数据
-root:subscribe("space_changed", function()
-	local data = _n_readSpaceData()
-	if not data then return end
-	for ws_idx, ws in pairs(_n_workspaces) do
-		local is_focused = false
-		for idx, s in ipairs(data.spaces or {}) do
-			if tonumber(ws_idx) == idx and s.id == data.focused then
-				is_focused = true
-				break
-			end
-		end
-		ws:set({ icon = { highlight = is_focused }, label = { highlight = is_focused } })
-	end
 end)
 end
