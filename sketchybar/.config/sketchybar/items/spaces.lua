@@ -626,7 +626,7 @@ for i = 1, SPACE_COUNT do
 	local ws = sbar.add("space", "workspace." .. ws_name, {
 		space = i,
 		background = { color = style.background.color, corner_radius = style.background.corner_radius,
-			border_width = 2 },
+			border_width = 2, border_color = 0xff585b70 },
 		drawing = true, padding_left = 2, padding_right = 2,
 		icon = { color = style.label.color, highlight_color = 0xfff38ba8, font = style.icon.font,
 			padding_left = 10, padding_right = 10, string = ws_name .. ">" },
