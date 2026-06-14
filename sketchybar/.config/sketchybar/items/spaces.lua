@@ -618,7 +618,6 @@ if not USE_AEROSPACE then
 local _n_workspaces = {}
 local _n_ws_order = {}
 local SPACE_COUNT = 6
-local KEY_CODES = { 18, 19, 20, 21, 23, 22 }
 
 for i = 1, SPACE_COUNT do
 	local ws_name = tostring(i)
@@ -642,7 +641,9 @@ for i = 1, SPACE_COUNT do
 		ws:set({ icon = { highlight = sel }, label = { highlight = sel } })
 	end)
 	ws:subscribe("mouse.clicked", function()
-		os.execute("osascript -e 'tell application \"System Events\" to key code " .. KEY_CODES[i] .. " using {command down, control down, option down}' &")
+		local f = io.open("/tmp/sketchybar_space_switch", "w")
+		if f then f:write(tostring(i)); f:close() end
+	end)
 	end)
 end
 
