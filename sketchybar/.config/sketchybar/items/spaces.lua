@@ -629,7 +629,7 @@ for i = 1, SPACE_COUNT do
 		space = i,
 		background = { color = 0xff313244, corner_radius = 10,
 			border_width = 2, border_color = 0xff585b70 },
-		drawing = true, padding_left = 2, padding_right = 2,
+		drawing = true, padding_left = 2, padding_right = 4,
 		icon = { color = style.label.color, highlight_color = 0xfff38ba8,
 			font = { family = style.icon.font.family, style = style.icon.font.style, size = 15.0 },
 			padding_left = 10, padding_right = 10, string = SPACE_ICONS[i] .. " >" },
