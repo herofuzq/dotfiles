@@ -6,7 +6,7 @@ local sbar = require("sketchybar")
 
 sbar.bar({
 	color = 0x33181a22,
-	border_width = 1,
+	border_width = 0,
 	border_color = 0x2ab0b8cc,
 	margin = 0,
 	corner_radius = 0,

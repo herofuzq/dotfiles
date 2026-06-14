@@ -357,7 +357,7 @@ const ruleProviderCommon = {
 const groupBaseOption = {
   interval: 300,
   timeout: 3000,
-  url: 'https://www.gstatic.com/generate_204',
+  url: 'https://cp.cloudflare.com/generate_204',
   lazy: true,
   'max-failed-times': 3,
   hidden: false,
@@ -639,7 +639,22 @@ function main(config) {
   config['external-ui'] = 'ui'
   config['external-ui-url'] =
     `${githubProxy}https://github.com/Zephyruso/zashboard/releases/latest/download/dist.zip`
-  config['dns'] = dnsConfig
+  // 保留订阅 DNS（自建 DoH、专线 nameserver-policy），叠加脚本 fake-ip 等
+  const subDns = config['dns'] || {};
+  config['dns'] = {
+    ...subDns,
+    ...dnsConfig,
+    // nameserver: 只用订阅的（避免脚本 DoH 抢答 NXDOMAIN 导致节点域名解析失败）
+    'nameserver': subDns['nameserver'] || dnsConfig['nameserver'] || [],
+    // fallback: 脚本的中国 DoH 作为备用
+    'fallback': dnsConfig['nameserver'] || [],
+    // nameserver-policy: 深度合并，订阅专线 DNS + 脚本 geosite 路由
+    'nameserver-policy': {
+      ...(subDns['nameserver-policy'] || {}),
+      ...(dnsConfig['nameserver-policy'] || {}),
+    },
+  };
+  delete config['dns']['proxy-server-nameserver'];
   config['profile'] = {
     'store-selected': true,
     'store-fake-ip': true,
@@ -658,6 +673,7 @@ function main(config) {
   }
 
   config['sniffer'] = {
+    ...(config['sniffer'] || {}),
     enable: true,
     'force-dns-mapping': true,
     'parse-pure-ip': false,
@@ -694,6 +710,7 @@ function main(config) {
     server: 'cn.ntp.org.cn',
   }
   config['tun'] = {
+    ...(config['tun'] || {}),
     enable: true,
     stack: 'mixed',
     device: 'utun1999',
@@ -772,8 +789,7 @@ function main(config) {
       generatedRegionGroups.push({
         ...groupBaseOption,
         name: r.name,
-        type: 'url-test',
-        tolerance: 50,
+        type: 'fallback',
         icon: r.icon,
         proxies: groupData.proxies,
       })
