@@ -620,6 +620,8 @@ local _n_ws_order = {}
 local SPACE_COUNT = 6
 local KEY_CODES = { 18, 19, 20, 21, 23, 22 }
 
+local SPACE_ICONS = { "󰼏", "󰼐", "󰼑", "󰼒", "󰼓", "󰼔" }
+
 for i = 1, SPACE_COUNT do
 	local ws_name = tostring(i)
 	local style = appearance.styles.workspace
@@ -629,7 +631,7 @@ for i = 1, SPACE_COUNT do
 			border_width = 2, border_color = 0xff585b70 },
 		drawing = true, padding_left = 2, padding_right = 2,
 		icon = { color = style.label.color, highlight_color = 0xfff38ba8, font = style.icon.font,
-			padding_left = 10, padding_right = 10, string = ws_name .. ">" },
+			padding_left = 10, padding_right = 10, string = SPACE_ICONS[i] },
 		label = { color = style.label.color, highlight_color = style.label.color, font = style.label.font,
 			padding_left = style.label.padding_left, padding_right = style.label.padding_right,
 			y_offset = style.label.y_offset, drawing = false },
