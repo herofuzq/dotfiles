@@ -644,7 +644,6 @@ for i = 1, SPACE_COUNT do
 		local f = io.open("/tmp/sketchybar_space_switch", "w")
 		if f then f:write(tostring(i)); f:close() end
 	end)
-	end)
 end
 
 -- 原生 space_windows_change → 应用图标
