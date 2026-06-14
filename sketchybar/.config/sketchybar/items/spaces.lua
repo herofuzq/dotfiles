@@ -663,11 +663,6 @@ _n_obs:subscribe("space_windows_change", function(env)
 			ws:set({ icon = { padding_left = 10, padding_right = 10 }, label = { drawing = false } })
 		end
 	end
-	sbar.delay(0.1, function()
-		local names = {}
-		for _, n in ipairs(_n_ws_order) do names[#names + 1] = "workspace." .. n end
-		if #names > 0 then borders.distribute(names) end
-	end)
 end)
 
 sbar.delay(0.2, function()
