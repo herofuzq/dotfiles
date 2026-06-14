@@ -6,16 +6,16 @@ local icons = require("icons")
 local colors = require("appearance").colors
 local settings = require("settings")
 
-local border_width = 0      -- 无背景无边框
-local icon_width = 10        -- ← SF Symbol Apple logo 在 13pt 下的实际宽度
+local border_width = 0 -- 无背景无边框
+local icon_width = 12 -- ← SF Symbol Apple logo 在 13pt 下的实际宽度
 
 local function compute_icon_pad()
 	local dock_w, dock_hidden = settings.detect_dock_width()
 	if dock_hidden == 1 then
-		return 15            -- Dock 隐藏时的固定 fallback
+		return 15 -- Dock 隐藏时的固定 fallback
 	else
 		-- icon_padding = (dock 实际宽度 - 图标宽度 - 两侧边框) / 2
-		return math.floor((dock_w - icon_width - 2 * border_width) / 2)
+		return math.floor((dock_w - icon_width - 2 * border_width) / 2) - 5
 	end
 end
 
