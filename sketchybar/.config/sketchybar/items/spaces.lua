@@ -636,14 +636,14 @@ for i = 1, SPACE_COUNT do
 	})
 	_n_workspaces[ws_name] = ws
 	_n_ws_order[#_n_ws_order + 1] = ws_name
-
 	ws:subscribe("space_change", function(env)
 		local sel = env.SELECTED == "true"
 		ws:set({
 			icon = { highlight = sel },
-			background = { border_color = sel and 0xffbac2de or 0xff585b70 },
+			background = { border_color = sel and 0xffffffff or 0xff585b70, border_width = sel and 1 or 2 },
 		})
 	end)
+
 	ws:subscribe("mouse.clicked", function()
 		os.execute("osascript -e 'tell application \"System Events\" to key code " .. KEY_CODES[i] .. " using {command down, control down, option down}' &")
 	end)
