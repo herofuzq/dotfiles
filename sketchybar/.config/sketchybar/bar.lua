@@ -5,7 +5,7 @@ local settings = require("settings")
 local sbar = require("sketchybar")
 
 sbar.bar({
-	color = 0x99000000,
+	color = 0xCC000000,
 	border_width = 0,
 	border_color = appearance.colors.bar.border,
 	margin = 0,
@@ -17,5 +17,5 @@ sbar.bar({
 	topmost = "window",
 	position = "top",
 	shadow = "off",
-	blur_radius = 10,
+	blur_radius = 50,
 })
