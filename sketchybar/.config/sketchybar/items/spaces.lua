@@ -628,7 +628,7 @@ for i = 1, SPACE_COUNT do
 		background = { color = style.background.color, corner_radius = style.background.corner_radius,
 			border_width = 2 },
 		drawing = true, padding_left = 2, padding_right = 2,
-		icon = { color = style.icon.color, highlight_color = style.icon.highlight_color, font = style.icon.font,
+		icon = { color = style.label.color, highlight_color = style.icon.highlight_color, font = style.icon.font,
 			padding_left = 10, padding_right = 10, string = ws_name .. ">" },
 		label = { color = style.label.color, highlight_color = style.label.highlight_color, font = style.label.font,
 			padding_left = style.label.padding_left, padding_right = style.label.padding_right,
