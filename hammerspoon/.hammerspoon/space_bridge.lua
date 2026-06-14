@@ -41,7 +41,22 @@ wf:subscribe(hs.window.filter.windowDestroyed, function() hs.timer.doAfter(0.3, 
 hs.screen.watcher.new(function() hs.timer.doAfter(0.5, collectSpaceData) end):start()
 hs.timer.doAfter(1, collectSpaceData)
 
--- 主动空间切换：发快捷键 + 延迟聚焦前台窗口
+-- 自动聚焦：任何方式切桌面后聚焦前台窗口（防重入）
+local _lastFocused = 0
+hs.spaces.watcher.new(function()
+	hs.timer.doAfter(0.3, function()
+		local sid = hs.spaces.focusedSpace()
+		if not sid or sid == -1 or sid == _lastFocused then return end
+		_lastFocused = sid
+		collectSpaceData()
+		local app = hs.application.frontmostApplication()
+		if app and app:name() ~= "通知中心" then app:activate() end
+	end)
+end):start()
+
+-- sketchybar 点击 → 发快捷键切换（自动聚焦由上面 watcher 处理）
+local SWITCH_FILE = "/tmp/sketchybar_space_switch"
+local keyCodes = { 18, 19, 20, 21, 23, 22 }
 hs.timer.new(0.3, function()
 	local fh = io.open(SWITCH_FILE, "r")
 	if not fh then return end
@@ -50,10 +65,6 @@ hs.timer.new(0.3, function()
 	os.remove(SWITCH_FILE)
 	if not mc_id or mc_id < 1 or mc_id > 6 then return end
 	hs.eventtap.keyStroke({"cmd", "ctrl", "alt"}, tostring(mc_id))
-	hs.timer.doAfter(0.4, function()
-		local app = hs.application.frontmostApplication()
-		if app and app:name() ~= "通知中心" then app:activate() end
-	end)
 end):start()
 
 print("[space_bridge] macOS Space 监听已启动 → " .. DATA_FILE)
