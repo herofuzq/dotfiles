@@ -636,7 +636,7 @@ for i = 1, SPACE_COUNT do
 		label = { color = style.label.color, highlight_color = style.label.color, font = style.label.font,
 			padding_left = style.label.padding_left, padding_right = style.label.padding_right,
 			y_offset = style.label.y_offset, drawing = false,
-			background = { drawing = true, color = 0xff585b70, corner_radius = 10 } },
+			background = { drawing = true, color = 0xff585b70, corner_radius = 10, height = 26 } },
 	})
 	_n_workspaces[ws_name] = ws
 	_n_ws_order[#_n_ws_order + 1] = ws_name
