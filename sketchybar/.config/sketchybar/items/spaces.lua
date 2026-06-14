@@ -630,7 +630,7 @@ for i = 1, SPACE_COUNT do
 		background = { color = style.background.color, corner_radius = style.background.corner_radius,
 			border_width = 2, border_color = 0xff585b70 },
 		drawing = true, padding_left = 2, padding_right = 2,
-		icon = { color = style.label.color, highlight_color = 0xffff4444,
+		icon = { color = style.label.color, highlight_color = 0xfff38ba8,
 			font = { family = style.icon.font.family, style = style.icon.font.style, size = 15.0 },
 			padding_left = 10, padding_right = 10, string = SPACE_ICONS[i] .. " >" },
 		label = { color = style.label.color, highlight_color = style.label.color, font = style.label.font,
@@ -643,7 +643,7 @@ for i = 1, SPACE_COUNT do
 		local sel = env.SELECTED == "true"
 		ws:set({
 			icon = { highlight = sel },
-			background = { border_color = sel and 0xffffffff or 0xff585b70, border_width = 2 },
+			background = { border_color = sel and 0xff7f849c or 0xff585b70, border_width = 2 },
 		})
 	end)
 
