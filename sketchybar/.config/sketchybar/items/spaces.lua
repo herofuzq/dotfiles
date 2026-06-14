@@ -627,15 +627,15 @@ for i = 1, SPACE_COUNT do
 	local style = appearance.styles.workspace
 	local ws = sbar.add("space", "workspace." .. ws_name, {
 		space = i,
-		background = { color = 0xff585b70, corner_radius = 10,
+		background = { color = 0x00000000, corner_radius = 10,
 			border_width = 2, border_color = 0xff585b70 },
 		drawing = true, padding_left = 2, padding_right = 2,
 		icon = { color = style.label.color, highlight_color = 0xfff38ba8,
 			font = { family = style.icon.font.family, style = style.icon.font.style, size = 15.0 },
 			padding_left = 10, padding_right = 10, string = SPACE_ICONS[i] .. " >" },
 		label = { color = style.label.color, highlight_color = style.label.color, font = style.label.font,
-			padding_left = style.label.padding_left, padding_right = style.label.padding_right,
-			y_offset = style.label.y_offset, drawing = false },
+			padding_left = 0, padding_right = 4, y_offset = 0, drawing = false,
+			background = { drawing = true, color = 0xff585b70, corner_radius = 8, padding_left = 4, padding_right = 4 } },
 	})
 	_n_workspaces[ws_name] = ws
 	_n_ws_order[#_n_ws_order + 1] = ws_name
