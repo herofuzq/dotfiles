@@ -49,7 +49,7 @@ local mode_item = sbar.add("item", "aerospace_mode", {
 		padding_right = 4,
 		color = appearance.colors.active.deep_blue,
 	},
-	background = { drawing = false },
+	background = { drawing = true, color = 0xff585b70, corner_radius = 9, height = 22 },
 	drawing = false,
 })
 
@@ -627,14 +627,14 @@ for i = 1, SPACE_COUNT do
 	local style = appearance.styles.workspace
 	local ws = sbar.add("space", "workspace." .. ws_name, {
 		space = i,
-		background = { color = 0x661e1e2e, corner_radius = 10,
+		background = { color = 0x00000000, corner_radius = 10,
 			border_width = 2, border_color = 0xff585b70 },
 		drawing = true, padding_left = 2, padding_right = 2,
 		icon = { color = style.label.color, highlight_color = 0xfff38ba8,
 			font = { family = style.icon.font.family, style = style.icon.font.style, size = 15.0 },
 			padding_left = 10, padding_right = 10, string = SPACE_ICONS[i] .. " >" },
 		label = { color = style.label.color, highlight_color = style.label.color, font = style.label.font,
-			padding_left = 2, padding_right = 0, y_offset = 0, drawing = false,
+			padding_left = 6, padding_right = 6, y_offset = 0, drawing = false,
 			background = { drawing = false } },
 	})
 	_n_workspaces[ws_name] = ws
