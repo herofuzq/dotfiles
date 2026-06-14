@@ -346,7 +346,7 @@ sbar.exec(query_workspaces, function(workspaces_and_monitors)
 			drawing = style.background.drawing,
 			corner_radius = style.background.corner_radius,
 			border_width = style.background.border_width,
-			border_color = appearance.colors.active.mauve, -- 初始色（与当前主题匹配，由 borders.distribute() 立即覆盖）
+			border_color = 0xff6c7086,
 		}
 
 		local workspace = sbar.add("item", "workspace." .. workspace_index, {

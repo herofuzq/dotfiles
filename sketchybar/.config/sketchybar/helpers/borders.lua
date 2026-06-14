@@ -194,8 +194,8 @@ function distribute(visible_workspace_names, fullscreen_set)
 		return set[((idx - 1) % #set) + 1]
 	end
 
-	-- apple（固定，索引 1）
-	sbar.set(apple_item, { background = { border_color = color_at(1) }, icon = { color = color_at(1) } })
+	-- apple（统一灰边框）
+	sbar.set(apple_item, { background = { border_color = 0xff6c7086 }, icon = { color = 0xff6c7086 } })
 
 	-- 工作区（统一浅灰边框）
 	for i, name in ipairs(visible_workspace_names) do
@@ -217,15 +217,15 @@ function distribute(visible_workspace_names, fullscreen_set)
 		})
 	end
 
-	-- 静态 widget（索引 n+2 ~ n+8）
+	-- 静态 widget（统一灰边框）
 	for i, name in ipairs(widget_order) do
-		sbar.set(name, { background = { border_color = color_at(1 + n + i) } })
+		sbar.set(name, { background = { border_color = 0xff6c7086 } })
 	end
 
-	-- calendar（固定，索引 n+9）
+	-- calendar（统一灰边框）
 	sbar.set(calendar_item, {
-		background = { border_color = color_at(n + 9) },
-		popup = { background = { border_color = color_at(n + 9) } },
+		background = { border_color = 0xff6c7086 },
+		popup = { background = { border_color = 0xff6c7086 } },
 	})
 end
 

@@ -20,7 +20,6 @@ local cal = sbar.add("item", "calendar", {
 		color = colors.active.bar_bg,
 		corner_radius = 10,
 		border_width = 2,
-		border_color = colors.active.mauve,
 	},
 	popup = {
 		align = "right",
