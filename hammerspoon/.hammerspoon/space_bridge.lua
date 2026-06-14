@@ -40,11 +40,12 @@ hs.spaces.watcher.new(function()
 		local sid = hs.spaces.focusedSpace()
 		if not sid or sid == -1 then return end
 		collectSpaceData()
-		if sid ~= _lastFocused then
-			_lastFocused = sid
-			local app = hs.application.frontmostApplication()
-			if app and app:name() ~= "通知中心" then app:activate() end
-		end
+		-- 自动聚焦暂时禁用
+--		if sid ~= _lastFocused then
+--			_lastFocused = sid
+--			local app = hs.application.frontmostApplication()
+--			if app and app:name() ~= "通知中心" then app:activate() end
+--		end
 	end)
 end):start()
 local wf = hs.window.filter.default
