@@ -632,7 +632,7 @@ for i = 1, SPACE_COUNT do
 		drawing = true, padding_left = 2, padding_right = 2,
 		icon = { color = style.label.color, highlight_color = 0xfff38ba8,
 			font = { family = style.icon.font.family, style = style.icon.font.style, size = 15.0 },
-			padding_left = 10, padding_right = 10, string = SPACE_ICONS[i] .. ">" },
+			padding_left = 10, padding_right = 10, string = SPACE_ICONS[i] .. " >" },
 		label = { color = style.label.color, highlight_color = style.label.color, font = style.label.font,
 			padding_left = style.label.padding_left, padding_right = style.label.padding_right,
 			y_offset = style.label.y_offset, drawing = false },
