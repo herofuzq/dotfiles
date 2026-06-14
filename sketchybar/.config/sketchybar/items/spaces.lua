@@ -640,7 +640,7 @@ for i = 1, SPACE_COUNT do
 		local sel = env.SELECTED == "true"
 		ws:set({
 			icon = { highlight = sel },
-			background = { border_color = sel and 0xffffffff or 0xff585b70, border_width = sel and 1 or 2 },
+			background = { border_color = sel and 0xffffffff or 0xff585b70, border_width = 2 },
 		})
 	end)
 
