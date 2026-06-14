@@ -49,7 +49,7 @@ local mode_item = sbar.add("item", "aerospace_mode", {
 		padding_right = 4,
 		color = appearance.colors.active.deep_blue,
 	},
-	background = { drawing = false },
+	background = { drawing = true, color = 0xff585b70, corner_radius = 9 },
 	drawing = false,
 })
 
@@ -444,7 +444,7 @@ sbar.exec(query_workspaces, function(workspaces_and_monitors)
 					max_chars = 50,
 					color = appearance.colors.active.text,
 				},
-				background = { drawing = true, color = 0xff585b70, corner_radius = 9 },
+				background = { drawing = false },
 			})
 			_popup_items[workspace_index][i] = popup_item
 
@@ -627,15 +627,15 @@ for i = 1, SPACE_COUNT do
 	local style = appearance.styles.workspace
 	local ws = sbar.add("space", "workspace." .. ws_name, {
 		space = i,
-		background = { color = 0xff585b70, corner_radius = 10,
+		background = { color = 0xff313244, corner_radius = 10,
 			border_width = 2, border_color = 0xff585b70 },
-		drawing = true, padding_left = 2, padding_right = 4,
+		drawing = true, padding_left = 2, padding_right = 2,
 		icon = { color = style.label.color, highlight_color = 0xfff38ba8,
 			font = { family = style.icon.font.family, style = style.icon.font.style, size = 15.0 },
-			padding_left = 10, padding_right = 0, string = SPACE_ICONS[i] .. " >", background = { drawing = true, color = 0xff313244, corner_radius = 9 } },
+			padding_left = 10, padding_right = 10, string = SPACE_ICONS[i] .. " >" },
 		label = { color = style.label.color, highlight_color = style.label.color, font = style.label.font,
-			padding_left = 0, padding_right = 12, y_offset = 0, drawing = false,
-			background = { drawing = true, color = 0xff585b70, corner_radius = 9 } },
+			padding_left = 6, padding_right = 12, y_offset = 0, drawing = false,
+			background = { drawing = false } },
 	})
 	_n_workspaces[ws_name] = ws
 	_n_ws_order[#_n_ws_order + 1] = ws_name
