@@ -642,7 +642,7 @@ for i = 1, SPACE_COUNT do
 		ws:set({ icon = { highlight = sel }, label = { highlight = sel } })
 	end)
 	ws:subscribe("mouse.clicked", function()
-		os.execute("osascript -e 'tell application \"System Events\" to key code " .. KEY_CODES[i] .. " using control down' &")
+		os.execute("osascript -e 'tell application \"System Events\" to key code " .. KEY_CODES[i] .. " using {command down, control down, option down}' &")
 	end)
 end
 
@@ -672,5 +672,17 @@ end)
 
 sbar.delay(0.2, function()
 	borders.distribute({ "workspace.1", "workspace.2", "workspace.3", "workspace.4", "workspace.5", "workspace.6" })
+end)
+
+-- 主题切换：更新所有 workspace 的背景色和图标色
+root:subscribe("theme_changed", function()
+	local style = appearance.styles.workspace
+	for _, ws in pairs(_n_workspaces) do
+		ws:set({
+			background = { color = style.background.color },
+			icon = { color = style.icon.color },
+			label = { color = style.label.color },
+		})
+	end
 end)
 end
