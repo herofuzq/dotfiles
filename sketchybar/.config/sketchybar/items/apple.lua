@@ -25,7 +25,7 @@ local apple = sbar.add("item", "apple", {
 	padding_left = 5,
 	padding_right = 5,
 	icon = {
-		font = { family = "Hack Nerd Font", style = "Bold", size = 15.0 },
+		font = { family = "Hack Nerd Font", style = "Bold", size = 18.0 },
 		padding_left = icon_pad,
 		padding_right = icon_pad,
 		string = icons.apple,
