@@ -194,8 +194,8 @@ function distribute(visible_workspace_names, fullscreen_set)
 		return set[((idx - 1) % #set) + 1]
 	end
 
-	-- apple（统一灰边框）
-	sbar.set(apple_item, { background = { border_color = 0xff6c7086 }, icon = { color = 0xff6c7086 } })
+	-- apple（无背景无边框，仅图标色）
+	sbar.set(apple_item, { icon = { color = 0xffa6e3a1 } })
 
 	-- 工作区（统一浅灰边框）
 	for i, name in ipairs(visible_workspace_names) do

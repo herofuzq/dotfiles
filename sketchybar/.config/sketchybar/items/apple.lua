@@ -6,7 +6,7 @@ local icons = require("icons")
 local colors = require("appearance").colors
 local settings = require("settings")
 
-local border_width = 2      -- ← 边框粗细在这改，icon_padding 自动联动
+local border_width = 0      -- 无背景无边框
 local icon_width = 6        -- ← SF Symbol Apple logo 在 13pt 下的实际宽度
 
 local function compute_icon_pad()
@@ -28,14 +28,10 @@ local apple = sbar.add("item", "apple", {
 		padding_left = icon_pad,
 		padding_right = icon_pad,
 		string = icons.apple,
-		color = colors.active.red,
+		color = 0xffa6e3a1,
 	},
 	label = { drawing = false },
-	background = {
-		color = colors.active.bar_bg,
-		corner_radius = 10,
-		border_width = border_width,
-	},
+	background = { drawing = false },
 })
 
 apple:subscribe("mouse.clicked", function()
