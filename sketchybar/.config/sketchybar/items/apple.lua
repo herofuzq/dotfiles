@@ -7,7 +7,7 @@ local colors = require("appearance").colors
 local settings = require("settings")
 
 local border_width = 0      -- 无背景无边框
-local icon_width = 6        -- ← SF Symbol Apple logo 在 13pt 下的实际宽度
+local icon_width = 10        -- ← SF Symbol Apple logo 在 13pt 下的实际宽度
 
 local function compute_icon_pad()
 	local dock_w, dock_hidden = settings.detect_dock_width()
@@ -25,6 +25,7 @@ local apple = sbar.add("item", "apple", {
 	padding_left = 5,
 	padding_right = 5,
 	icon = {
+		font = { family = "Hack Nerd Font", style = "Bold", size = 15.0 },
 		padding_left = icon_pad,
 		padding_right = icon_pad,
 		string = icons.apple,
