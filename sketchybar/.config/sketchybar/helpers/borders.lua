@@ -194,29 +194,27 @@ function distribute(visible_workspace_names, fullscreen_set)
 		return set[((idx - 1) % #set) + 1]
 	end
 
-	-- apple（无背景无边框，仅图标色）
-	sbar.set(apple_item, { icon = { color = 0xffa6e3a1 } })
+	-- apple
+	sbar.set(apple_item, { icon = { color = 0xff7bd88f } })
 
-	-- 工作区（边框颜色由 spaces.lua 的 space_change 控制高亮）
+	-- 工作区
 	for i, name in ipairs(visible_workspace_names) do
 		local is_fullscreen = fullscreen_set[i]
 		if is_fullscreen then
-			sbar.set(name, {
-				background = { border_color = 0xffff4444, border_width = 4 },
-				popup = { background = { border_color = 0xffff4444 } },
-			})
+			sbar.set(name, { background = { border_color = 0xfffc618d, border_width = 4 },
+				popup = { background = { border_color = 0xfffc618d } } })
 		end
 	end
 
-	-- 静态 widget（统一灰边框）
+	-- widget
 	for i, name in ipairs(widget_order) do
-		sbar.set(name, { background = { border_color = 0xff6c7086 } })
+		sbar.set(name, { background = { border_color = 0x2ab0b8cc } })
 	end
 
-	-- calendar（统一灰边框）
+	-- calendar
 	sbar.set(calendar_item, {
-		background = { border_color = 0xff6c7086 },
-		popup = { background = { border_color = 0xff6c7086 } },
+		background = { border_color = 0x2ab0b8cc },
+		popup = { background = { border_color = 0x2ab0b8cc } },
 	})
 end
 
