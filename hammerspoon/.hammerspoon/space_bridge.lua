@@ -34,25 +34,24 @@ local function collectSpaceData()
 	hs.execute("/opt/homebrew/bin/sketchybar --trigger space_changed 2>/dev/null")
 end
 
-hs.spaces.watcher.new(function() hs.timer.doAfter(0.2, collectSpaceData) end):start()
+local _lastFocused = 0
+hs.spaces.watcher.new(function()
+	hs.timer.doAfter(0.3, function()
+		local sid = hs.spaces.focusedSpace()
+		if not sid or sid == -1 then return end
+		collectSpaceData()
+		if sid ~= _lastFocused then
+			_lastFocused = sid
+			local app = hs.application.frontmostApplication()
+			if app and app:name() ~= "通知中心" then app:activate() end
+		end
+	end)
+end):start()
 local wf = hs.window.filter.default
 wf:subscribe(hs.window.filter.windowCreated, function() hs.timer.doAfter(0.3, collectSpaceData) end)
 wf:subscribe(hs.window.filter.windowDestroyed, function() hs.timer.doAfter(0.3, collectSpaceData) end)
 hs.screen.watcher.new(function() hs.timer.doAfter(0.5, collectSpaceData) end):start()
 hs.timer.doAfter(1, collectSpaceData)
-
--- 自动聚焦：任何方式切桌面后聚焦前台窗口（防重入）
-local _lastFocused = 0
-hs.spaces.watcher.new(function()
-	hs.timer.doAfter(0.3, function()
-		local sid = hs.spaces.focusedSpace()
-		if not sid or sid == -1 or sid == _lastFocused then return end
-		_lastFocused = sid
-		collectSpaceData()
-		local app = hs.application.frontmostApplication()
-		if app and app:name() ~= "通知中心" then app:activate() end
-	end)
-end):start()
 
 -- sketchybar 点击 → 发快捷键切换（自动聚焦由上面 watcher 处理）
 local SWITCH_FILE = "/tmp/sketchybar_space_switch"
