@@ -628,9 +628,9 @@ for i = 1, SPACE_COUNT do
 		background = { color = style.background.color, corner_radius = style.background.corner_radius,
 			border_width = 2 },
 		drawing = true, padding_left = 2, padding_right = 2,
-		icon = { color = style.label.color, highlight_color = style.icon.highlight_color, font = style.icon.font,
+		icon = { color = style.label.color, highlight_color = 0xffbac2de, font = style.icon.font,
 			padding_left = 10, padding_right = 10, string = ws_name .. ">" },
-		label = { color = style.label.color, highlight_color = style.label.highlight_color, font = style.label.font,
+		label = { color = style.label.color, highlight_color = style.label.color, font = style.label.font,
 			padding_left = style.label.padding_left, padding_right = style.label.padding_right,
 			y_offset = style.label.y_offset, drawing = false },
 	})
@@ -639,7 +639,7 @@ for i = 1, SPACE_COUNT do
 
 	ws:subscribe("space_change", function(env)
 		local sel = env.SELECTED == "true"
-		ws:set({ icon = { highlight = sel }, label = { highlight = sel } })
+		ws:set({ icon = { highlight = sel } })
 	end)
 	ws:subscribe("mouse.clicked", function()
 		os.execute("osascript -e 'tell application \"System Events\" to key code " .. KEY_CODES[i] .. " using {command down, control down, option down}' &")
