@@ -9,14 +9,13 @@ sbar.bar({
 	border_width = 0,
 	border_color = appearance.colors.bar.border,
 	margin = 0,
-	corner_radius = 0,
+	corner_radius = 10,
 	height = settings.height,
 	padding_right = 0,
 	padding_left = 0,
 	sticky = "on",
 	topmost = "window",
 	position = "top",
-	shadow = "on",
+	shadow = "off",
 	blur_radius = 10,
 })
-
