@@ -58,7 +58,7 @@ M.colors = {
 		bar_bg = 0xff313244,
 		bg2_opaque = 0xff313244,
 		bg3_opaque = 0xff45475a,
-		sep_opaque = 0xffa3aed2,
+		sep_opaque = 0xffcdd6f4,
 		accent_opaque = 0xffcba6f7,
 		deep_blue = 0xff74c7ec,
 
