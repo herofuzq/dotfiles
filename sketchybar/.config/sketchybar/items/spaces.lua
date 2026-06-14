@@ -49,7 +49,7 @@ local mode_item = sbar.add("item", "aerospace_mode", {
 		padding_right = 4,
 		color = appearance.colors.active.deep_blue,
 	},
-	background = { drawing = false },
+	background = { drawing = true, color = 0xff585b70, corner_radius = 9 },
 	drawing = false,
 })
 
