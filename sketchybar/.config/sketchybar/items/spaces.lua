@@ -639,7 +639,10 @@ for i = 1, SPACE_COUNT do
 
 	ws:subscribe("space_change", function(env)
 		local sel = env.SELECTED == "true"
-		ws:set({ icon = { highlight = sel } })
+		ws:set({
+			icon = { highlight = sel },
+			background = { border_color = sel and 0xffbac2de or 0xff585b70 },
+		})
 	end)
 	ws:subscribe("mouse.clicked", function()
 		os.execute("osascript -e 'tell application \"System Events\" to key code " .. KEY_CODES[i] .. " using {command down, control down, option down}' &")
