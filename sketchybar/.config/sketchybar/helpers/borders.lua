@@ -198,16 +198,17 @@ function distribute(visible_workspace_names, fullscreen_set)
 	sbar.set(apple_item, { icon = { color = 0xffa6e3a1 } })
 
 	-- 工作区
+	local BORDER_COLOR = 0xffbac2de
 	for i, name in ipairs(visible_workspace_names) do
 		local is_fullscreen = fullscreen_set[i]
 		sbar.set(name, {
 			background = {
-				border_color = is_fullscreen and 0xffff4444 or 0xff6c7086,
+				border_color = is_fullscreen and 0xffff4444 or BORDER_COLOR,
 				border_width = is_fullscreen and 4 or 2,
 			},
 			popup = {
 				background = {
-					border_color = is_fullscreen and 0xffff4444 or 0xff6c7086,
+					border_color = is_fullscreen and 0xffff4444 or BORDER_COLOR,
 				},
 			},
 		})

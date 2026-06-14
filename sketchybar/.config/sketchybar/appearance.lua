@@ -294,7 +294,7 @@ M.styles = {
 function M.install_defaults()
 	sbar.default({
 		background = {
-			border_color = 0xff6c7086,
+			border_color = 0xffbac2de,
 			border_width = 2,
 			color = M.colors.active.bar_bg,
 			corner_radius = 9,
