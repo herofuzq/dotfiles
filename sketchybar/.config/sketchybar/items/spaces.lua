@@ -632,9 +632,9 @@ for i = 1, SPACE_COUNT do
 		drawing = true, padding_left = 2, padding_right = 2,
 		icon = { color = style.label.color, highlight_color = 0xfffc618d,
 			font = { family = style.icon.font.family, style = style.icon.font.style, size = 15.0 },
-			padding_left = 10, padding_right = 10, string = SPACE_ICONS[i] .. " >" },
+			padding_left = 8, padding_right = 8, string = SPACE_ICONS[i] .. " >" },
 		label = { color = style.label.color, highlight_color = style.label.color, font = style.label.font,
-			padding_left = 6, padding_right = 6, y_offset = 0, drawing = false,
+			padding_left = 2, padding_right = 8, y_offset = 0, drawing = false,
 			background = { drawing = false } },
 	})
 	_n_workspaces[ws_name] = ws
