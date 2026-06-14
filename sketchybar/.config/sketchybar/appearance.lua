@@ -7,7 +7,7 @@ local M = {}
 
 M.colors = {
 	bar = {
-		bg = 0x000d0d13, -- 全透明（启动时由 init_colors() 根据系统外观覆盖为对应主题色）
+		bg = 0x600d0d13, -- 全透明（启动时由 init_colors() 根据系统外观覆盖为对应主题色）
 		border = 0xB33a3a45,
 	},
 

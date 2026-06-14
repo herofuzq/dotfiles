@@ -36,7 +36,7 @@ local cal = sbar.add("item", "calendar", {
 	position = "right",
 	update_freq = 30,
 	padding_left = 2,
-	padding_right = 4,
+	padding_right = 5,
 })
 
 local _popup_pinned, _popup_hovering, _exit_gen = false, false, 0
