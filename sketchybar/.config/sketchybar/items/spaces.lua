@@ -534,6 +534,7 @@ if USE_AEROSPACE then
 				ws:set({
 					icon = { highlight = is_focused },
 					background = { border_color = is_focused and 0x99fc618d or 0x1ab0b8cc, border_width = 2 },
+					popup = { background = { border_color = is_focused and 0x99fc618d or 0x1ab0b8cc } },
 				})
 				end
 			end
@@ -576,7 +577,7 @@ if USE_AEROSPACE then
 			if focused then
 				for ws_idx, ws in pairs(workspaces) do
 					local is_focused = (ws_idx == focused)
-					ws:set({ background = { border_color = is_focused and 0x99fc618d or 0x1ab0b8cc, border_width = is_focused and 2 or 2 } })
+					ws:set({ background = { border_color = is_focused and 0x99fc618d or 0x1ab0b8cc, border_width = is_focused and 2 or 2 }, popup = { background = { border_color = is_focused and 0x99fc618d or 0x1ab0b8cc } } })
 				end
 			end
 		end)
