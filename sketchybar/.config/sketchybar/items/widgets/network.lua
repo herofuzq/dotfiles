@@ -1,65 +1,27 @@
--- ========== 网络速度显示（↓下载 / ↑上传，上下堆叠）==========
+-- ========== 网络速度显示（↓下载 / ↑上传，bracket 堆叠）==========
 local sbar = require("sketchybar")
 local icons = require("icons")
 local fonts = require("fonts")
 local colors = require("appearance").colors
-local settings = require("settings")
 
 local MAX_DOWN = 110000
 local MAX_UP = 45000
 
--- ========== ↓ 下载 ==========
-local down = sbar.add("item", "widgets.network_down", {
-	position = "right",
-	update_freq = 2,
-	padding_left = 2,
-	padding_right = 2,
-	icon = {
-		string = icons.network_down,
-		font = {
-			family = fonts.font_icon.text,
-			style = fonts.font_icon.style_map["Bold"],
-			size = fonts.font_icon.size - 2,
-		},
-		padding_left = settings.item_padding.icon_label_item.icon.padding_left,
-		padding_right = 2,
-		color = colors.active.sapphire,
-	},
-	label = {
-		string = "—",
-		font = {
-			family = fonts.font.text,
-			style = fonts.font.style_map["Bold"],
-			size = fonts.font.size - 1,
-		},
-		padding_left = 0,
-		padding_right = settings.item_padding.icon_label_item.label.padding_right,
-		color = colors.active.sep_opaque,
-		y_offset = 5,
-	},
-	background = {
-		color = colors.active.bar_bg,
-		corner_radius = 10,
-		border_width = 2,
-		height = 14,
-		y_offset = -3,
-	},
-})
-
--- ========== ↑ 上传 ==========
+-- ========== ↑ 上传（上排，y_offset 偏下）==========
 local up = sbar.add("item", "widgets.network_up", {
 	position = "right",
 	update_freq = 2,
-	padding_left = 2,
-	padding_right = 2,
+	padding_left = 0,
+	padding_right = 0,
+	width = 0,
 	icon = {
 		string = icons.network_up,
 		font = {
 			family = fonts.font_icon.text,
 			style = fonts.font_icon.style_map["Bold"],
-			size = fonts.font_icon.size - 2,
+			size = 9.0,
 		},
-		padding_left = settings.item_padding.icon_label_item.icon.padding_left,
+		padding_left = 6,
 		padding_right = 2,
 		color = colors.active.sapphire,
 	},
@@ -68,19 +30,55 @@ local up = sbar.add("item", "widgets.network_up", {
 		font = {
 			family = fonts.font.text,
 			style = fonts.font.style_map["Bold"],
-			size = fonts.font.size - 1,
+			size = 9.0,
 		},
 		padding_left = 0,
-		padding_right = settings.item_padding.icon_label_item.label.padding_right,
+		padding_right = 6,
 		color = colors.active.sep_opaque,
-		y_offset = -5,
+		y_offset = 5,
 	},
+	background = { drawing = false },
+})
+
+-- ========== ↓ 下载（下排，y_offset 偏上）==========
+local down = sbar.add("item", "widgets.network_down", {
+	position = "right",
+	update_freq = 2,
+	padding_left = 0,
+	padding_right = 0,
+	width = 0,
+	icon = {
+		string = icons.network_down,
+		font = {
+			family = fonts.font_icon.text,
+			style = fonts.font_icon.style_map["Bold"],
+			size = 9.0,
+		},
+		padding_left = 6,
+		padding_right = 2,
+		color = colors.active.sapphire,
+	},
+	label = {
+		string = "—",
+		font = {
+			family = fonts.font.text,
+			style = fonts.font.style_map["Bold"],
+			size = 9.0,
+		},
+		padding_left = 0,
+		padding_right = 6,
+		color = colors.active.sep_opaque,
+		y_offset = -4,
+	},
+	background = { drawing = false },
+})
+
+-- bracket 包住两个 item，共享一个背景
+sbar.add("bracket", "widgets.network", { "widgets.network_up", "widgets.network_down" }, {
 	background = {
 		color = colors.active.bar_bg,
 		corner_radius = 10,
 		border_width = 2,
-		height = 14,
-		y_offset = 3,
 	},
 })
 
@@ -113,11 +111,10 @@ local function parse_and_update()
 		))
 
 		-- 更新 label
-		down:set({ label = format_speed(down_raw) })
 		up:set({ label = format_speed(up_raw) })
+		down:set({ label = format_speed(down_raw) })
 	end)
 end
 
-down:subscribe("routine", parse_and_update)
 up:subscribe("routine", parse_and_update)
 parse_and_update()
