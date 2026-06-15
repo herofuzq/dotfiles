@@ -61,7 +61,6 @@ local net = sbar.add("bracket", "widgets.network", { "widgets.network_up", "widg
 		color = colors.active.bar_bg,
 		corner_radius = 10,
 		border_width = 2,
-		height = 24,
 	},
 })
 
