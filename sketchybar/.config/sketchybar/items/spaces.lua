@@ -637,6 +637,15 @@ if USE_AEROSPACE then
 				})
 			end
 		end)
+		-- 在 spaces 后面创建 front_app（修正排序）
+		local fa = sbar.add("item", "front_app", {
+			display = "active", updates = true, position = "left",
+			padding_right = 2, padding_left = 2,
+			icon = { drawing = false },
+			label = { font = { family = fonts.font.text, style = fonts.font.style_map["Bold"], size = fonts.font.size }, padding_left = 8, padding_right = 8, align = "center", color = 0xfffab387 },
+			background = { drawing = false },
+		})
+		fa:subscribe("front_app_switched", function(env) fa:set({ label = { string = env.INFO } }) end)
 	end)
 end
 
@@ -695,8 +704,17 @@ if not USE_AEROSPACE then
 					.. KEY_CODES[i]
 					.. " using {command down, control down, option down}' &"
 			)
-		end)
-	end
+	end)
+
+	local fa = sbar.add("item", "front_app", {
+		display = "active", updates = true, position = "left",
+		padding_right = 2, padding_left = 2,
+		icon = { drawing = false },
+		label = { font = { family = fonts.font.text, style = fonts.font.style_map["Bold"], size = fonts.font.size }, padding_left = 8, padding_right = 8, align = "center", color = 0xfffab387 },
+		background = { drawing = false },
+	})
+	fa:subscribe("front_app_switched", function(env) fa:set({ label = { string = env.INFO } }) end)
+end
 
 	-- 原生 space_windows_change → 应用图标
 	local _n_obs = sbar.add("item", { drawing = false, updates = true })
