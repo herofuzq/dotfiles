@@ -34,7 +34,7 @@ function distribute(visible_workspace_names, fullscreen_set)
 				background = { border_color = colors.active.red, border_width = 4 },
 			})
 		else
-			sbar.set(name, { background = { border_width = 2 } })
+			sbar.set(name, { background = { border_width = 1 } })
 		end
 	end
 

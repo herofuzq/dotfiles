@@ -291,7 +291,7 @@ local function set_highlight(ws, is_focused)
 	ws:set({
 		icon = { highlight = is_focused },
 		label = { highlight = is_focused },
-		background = { border_color = is_focused and appearance.colors.active.red or appearance.colors.active.sep, border_width = 2 },
+		background = { border_color = is_focused and appearance.colors.active.red or appearance.colors.active.sep, border_width = 1 },
 		popup = { background = { border_color = is_focused and appearance.colors.active.red or appearance.colors.active.sep } },
 	})
 end
