@@ -33,7 +33,7 @@ local apple = sbar.add("item", "apple", {
 		padding_right = icon_pad_right,
 		string = icons.apple,
 		color = colors.active.green,
-		y_offset = 0,
+		y_offset = -1,
 	},
 	label = { drawing = false },
 	background = { drawing = false },
@@ -50,7 +50,7 @@ apple:subscribe("mouse.clicked", function()
 		sbar.animate("tanh", 0.15, function()
 			apple:set({
 				background = { shadow = { distance = 4 } },
-				y_offset = 0,
+				y_offset = -1,
 			})
 		end)
 	end)
