@@ -9,6 +9,7 @@ local MAX_UP = 45000
 
 -- ========== ↑ 上传（上排，y_offset 偏下）==========
 local up = sbar.add("item", "widgets.network_up", {
+	position = "right",
 	width = 0,
 	icon = { drawing = false },
 	label = {
@@ -16,14 +17,16 @@ local up = sbar.add("item", "widgets.network_up", {
 		font = { family = fonts.font.text, style = fonts.font.style_map["Bold"], size = 7.0 },
 		padding_left = 0,
 		padding_right = 6,
+		width = 36,
 		color = colors.active.sep_opaque,
-		y_offset = 2,
+		y_offset = 4,
 	},
 	background = { drawing = false },
 })
 
 -- ========== ↓ 下载（下排，y_offset 偏上）==========
 local down = sbar.add("item", "widgets.network_down", {
+	position = "right",
 	width = 0,
 	icon = { drawing = false },
 	label = {
@@ -31,8 +34,9 @@ local down = sbar.add("item", "widgets.network_down", {
 		font = { family = fonts.font.text, style = fonts.font.style_map["Bold"], size = 7.0 },
 		padding_left = 0,
 		padding_right = 6,
+		width = 36,
 		color = colors.active.sep_opaque,
-		y_offset = -1,
+		y_offset = -3,
 	},
 	background = { drawing = false },
 })
@@ -44,7 +48,7 @@ local net = sbar.add("bracket", "widgets.network", { "widgets.network_up", "widg
 	padding_left = 4,
 	padding_right = 4,
 	icon = {
-		string = icons.network_down,
+		string = icons.wifi,
 		font = { family = fonts.font_icon.text, style = fonts.font_icon.style_map["Bold"], size = 10.0 },
 		padding_left = 6,
 		padding_right = 2,

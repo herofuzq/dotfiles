@@ -17,6 +17,7 @@ local icons = {
 		clash = {
 			tun = "",
 		},
+		wifi = "",
 		network_down = "",
 		network_up = "",
 		input_method = {
