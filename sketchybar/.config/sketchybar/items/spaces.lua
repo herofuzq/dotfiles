@@ -577,7 +577,18 @@ if USE_AEROSPACE then
 		end)
 
 		-- 全屏切换时刷新边框
-		root:subscribe("aerospace_fullscreen_change", updateWindows)
+		root:subscribe("aerospace_fullscreen_change", function()
+		sbar.exec("aerospace list-workspaces --focused", function(focused)
+			focused = focused and focused:match("^%s*(.-)%s*$")
+			if focused then
+				for ws_idx, ws in pairs(workspaces) do
+					local is_focused = (ws_idx == focused)
+					ws:set({ background = { border_color = is_focused and 0x99fc618d or 0x1ab0b8cc, border_width = is_focused and 2 or 2 } })
+				end
+			end
+		end)
+		updateWindows()
+	end)
 
 		-- aerospace 模式切换时显示/隐藏模式图标
 		root:subscribe("aerospace_mode_change", function(_)
