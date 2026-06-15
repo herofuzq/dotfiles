@@ -16,11 +16,9 @@ sbar.bar({
 	sticky = "on",
 	topmost = "window",
 	position = "top",
-	shadow = {
-		drawing = "on",
-		color = 0xff1a1f28,
-		distance = 3,
-		angle = 35,
-	},
+	shadow = "on",
+	shadow_color = 0x801a1f28,
+	shadow_distance = 5,
+	shadow_angle = 90,
 	blur_radius = 60,
 })
