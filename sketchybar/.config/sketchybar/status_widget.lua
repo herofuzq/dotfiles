@@ -62,7 +62,10 @@ return function(opts)
 	end
 
 	local safe_id = opts.app_id:gsub("[^%w%.%-]", "") -- 过滤非法字符，防止 shell 注入
-	if safe_id == "" then return end -- app_id 无效，不创建查询
+	if safe_id == "" then
+		io.stderr:write("sketchybar: status_widget: invalid app_id after sanitization: " .. tostring(opts.app_id) .. "\n")
+		return
+	end
 
 	local function check_status()
 		sbar.exec("lsappinfo -all info -only StatusLabel " .. safe_id .. " | sed -n 's/.*\"label\"=\"\\([^\"]*\\)\".*/\\1/p'", update_display)

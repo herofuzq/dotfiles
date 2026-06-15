@@ -35,8 +35,9 @@ else
 fi
 
 # 系统代理状态: HTTP 或 HTTPS 任一开启即视为系统代理开启
+# (scutil --proxy 是本地查询，不会卡住，无需 timeout)
 SYS_STATE="off"
-if timeout 5 scutil --proxy 2>/dev/null | grep -qE 'HTTPEnable : 1|HTTPSEnable : 1'; then
+if scutil --proxy 2>/dev/null | grep -qE 'HTTPEnable : 1|HTTPSEnable : 1'; then
 	SYS_STATE="on"
 fi
 

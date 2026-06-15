@@ -18,9 +18,6 @@ M.colors = {
 		bg3 = 0x3345475a,
 		accent = 0x33cba6f7,
 		sep = 0x336c7086,
-		rosewater = 0xfff5e0dc,
-		flamingo = 0xfff2cdcd,
-		pink = 0xfff5c2e7,
 		mauve = 0xffcba6f7,
 		red = 0xfff38ba8,
 		maroon = 0xffeba0ac,
@@ -32,14 +29,6 @@ M.colors = {
 		sapphire = 0xff74c7ec,
 		blue = 0xff89b4fa,
 		lavender = 0xffb4befe,
-		purple_1 = 0xffc8b0f0,
-		purple_2 = 0xffc0a0f0,
-		purple_light = 0xffd0b0f8,
-		purple_mid = 0xffc8a0f0,
-		purple_warm = 0xffd090e0,
-		magenta = 0xffe080d0,
-		rose_pink = 0xfff090d0,
-		rose_deep = 0xfff070c0,
 		input_border = 0xffb4befe,
 		text = 0xffcdd6f4,
 		subtext1 = 0xffbac2de,
@@ -62,14 +51,6 @@ M.colors = {
 		deep_blue = 0xff74c7ec,
 
 		-- 所有边框颜色已迁移至 helpers/borders.lua 统一管理
-
-		-- 预留颜色（暂未使用，供后续扩展配色方案）
-		red_bright = 0xe0f38ba8,
-		blue_bright = 0xe089b4fa,
-		spotify_green = 0xff1db954,
-		default = 0x80ffffff,
-		transparent = 0x00000000,
-		orange = 0xfff39660,
 	},
 
 	catppuccin_latte = {
@@ -79,9 +60,6 @@ M.colors = {
 		bg3 = 0x33bcc0cc,
 		accent = 0x337286bd,
 		sep = 0x339ca0b0,
-		rosewater = 0xffdc8a78,
-		flamingo = 0xffdd7878,
-		pink = 0xffea76cb,
 		mauve = 0xff8839ef,
 		red = 0xffd20f39,
 		maroon = 0xffe64553,
@@ -93,14 +71,6 @@ M.colors = {
 		sapphire = 0xff209fb5,
 		blue = 0xff1e66f5,
 		lavender = 0xff7287fd,
-		purple_1 = 0xff8c6bb8,
-		purple_2 = 0xff8050b8,
-		purple_light = 0xffa080f0,
-		purple_mid = 0xff9070e0,
-		purple_warm = 0xffa070c0,
-		magenta = 0xffc060b0,
-		rose_pink = 0xffd070b0,
-		rose_deep = 0xffd05090,
 		input_border = 0xff7287fd,
 		text = 0xff4c4f69, -- 标准 Catppuccin Latte 正文色
 		subtext1 = 0xff5c5f77,
@@ -122,12 +92,7 @@ M.colors = {
 		sep_opaque = 0xff4c4f69, -- 正文色，保证浅色背景上 ~6:1 对比度
 		accent_opaque = 0xff7287fd,
 		deep_blue = 0xff1e66f5,
-		red_bright = 0xe0d20f39,
-		blue_bright = 0xe01e66f5,
-		spotify_green = 0xff1db954,
-		default = 0x80000000,
-		transparent = 0x00000000,
-		orange = 0xfffe640b,
+		-- latte 预留颜色已移除（简约风格）
 	},
 
 	with_alpha = function(color, alpha)
@@ -264,7 +229,7 @@ M.styles = {
 		end),
 
 		icon = dynamic_color({
-			highlight_color = 0x99fc618d,
+			highlight_color = M.colors.active.red,
 			font = {
 				family = fonts.font.text,
 				style = fonts.font.style_map["Bold"],

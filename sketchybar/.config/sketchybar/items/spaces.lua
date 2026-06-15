@@ -286,6 +286,16 @@ local function togglePopup(ws_index, workspace_item, force_show, gen)
 	end)
 end
 
+-- ========== 工作区高亮辅助 ==========
+local function set_highlight(ws, is_focused)
+	ws:set({
+		icon = { highlight = is_focused },
+		label = { highlight = is_focused },
+		background = { border_color = is_focused and appearance.colors.active.red or appearance.colors.active.bg2, border_width = 2 },
+		popup = { background = { border_color = is_focused and appearance.colors.active.red or appearance.colors.active.bg2 } },
+	})
+end
+
 -- ========== 更新所有工作区 + 分配边框颜色 ==========
 local function updateWindows()
 	generation = generation + 1
@@ -366,7 +376,7 @@ if USE_AEROSPACE then
 				drawing = style.background.drawing,
 				corner_radius = style.background.corner_radius,
 				border_width = style.background.border_width,
-				border_color = 0x1ab0b8cc,
+				border_color = appearance.colors.active.bg2,
 			}
 
 			local workspace = sbar.add("item", "workspace." .. workspace_index, {
@@ -396,10 +406,10 @@ if USE_AEROSPACE then
 				popup = {
 					align = "left",
 					background = {
-						color = 0xd0363537,
+						color = appearance.colors.active.bar_bg,
 						corner_radius = 10,
 						border_width = 2,
-						border_color = 0x2ab0b8cc,
+						border_color = appearance.colors.active.sep,
 						shadow = { drawing = false },
 					},
 					blur_radius = 30,
@@ -530,12 +540,7 @@ if USE_AEROSPACE then
 					_popup_hovering[k] = false
 				end
 				for ws_idx, ws in pairs(workspaces) do
-					local is_focused = (ws_idx == focused)
-					ws:set({
-						icon = { highlight = is_focused },
-						background = { border_color = is_focused and 0x99fc618d or 0x1ab0b8cc, border_width = 2 },
-						popup = { background = { border_color = is_focused and 0x99fc618d or 0x1ab0b8cc } },
-					})
+					set_highlight(ws, ws_idx == focused)
 				end
 			end
 			updateWindows()
@@ -576,15 +581,8 @@ if USE_AEROSPACE then
 				focused = focused and focused:match("^%s*(.-)%s*$")
 				if focused then
 					for ws_idx, ws in pairs(workspaces) do
-						local is_focused = (ws_idx == focused)
-						ws:set({
-							background = {
-								border_color = is_focused and 0x99fc618d or 0x1ab0b8cc,
-								border_width = is_focused and 2 or 2,
-							},
-							popup = { background = { border_color = is_focused and 0x99fc618d or 0x1ab0b8cc } },
-						})
-					end
+					set_highlight(ws, ws_idx == focused)
+				end
 				end
 			end)
 			updateWindows()
@@ -642,11 +640,7 @@ if USE_AEROSPACE then
 			end
 			focused_workspace = focused_workspace:match("^%s*(.-)%s*$")
 			if workspaces[focused_workspace] then
-				workspaces[focused_workspace]:set({
-					icon = { highlight = true },
-					label = { highlight = true },
-					background = { border_color = 0x99fc618d, border_width = 2 },
-				})
+				set_highlight(workspaces[focused_workspace], true)
 			end
 		end)
 		-- 在 spaces 后面创建 front_app（修正排序）
@@ -662,7 +656,7 @@ if USE_AEROSPACE then
 				padding_left = 8,
 				padding_right = 8,
 				align = "center",
-				color = 0xfffab387,
+				color = appearance.colors.active.peach,
 			},
 			background = { drawing = false },
 		})
@@ -735,18 +729,18 @@ if not USE_AEROSPACE then
 			padding_right = 2,
 			padding_left = 2,
 			icon = { drawing = false },
-			label = {
-				font = { family = fonts.font.text, style = fonts.font.style_map["Bold"], size = fonts.font.size },
-				padding_left = 8,
-				padding_right = 8,
-				align = "center",
-				color = 0xfffab387,
-			},
-			background = { drawing = false },
-		})
-		fa:subscribe("front_app_switched", function(env)
-			fa:set({ label = { string = env.INFO } })
-		end)
+		label = {
+			font = { family = fonts.font.text, style = fonts.font.style_map["Bold"], size = fonts.font.size },
+			padding_left = 8,
+			padding_right = 8,
+			align = "center",
+			color = appearance.colors.active.peach,
+		},
+		background = { drawing = false },
+	})
+	fa:subscribe("front_app_switched", function(env)
+		fa:set({ label = { string = env.INFO } })
+	end)
 	end
 
 	-- 原生 space_windows_change → 应用图标

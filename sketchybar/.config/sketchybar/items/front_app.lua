@@ -1,29 +1,3 @@
--- ========== 当前前台应用名 ==========
-local sbar = require("sketchybar")
-local fonts = require("fonts")
-local colors = require("appearance").colors
-
-local front_app = sbar.add("item", "front_app", {
-	display = "active",
-	updates = true,
-	position = "left",
-	padding_right = 2,
-	padding_left = 2,
-	icon = { drawing = false },
-	label = {
-		font = {
-			family = fonts.font.text,
-			style = fonts.font.style_map["Bold"],
-			size = fonts.font.size,
-		},
-		padding_left = 8,
-		padding_right = 8,
-		align = "center",
-		color = 0xfffab387,
-	},
-	background = { drawing = false },
-})
-
-front_app:subscribe("front_app_switched", function(env)
-	front_app:set({ label = { string = env.INFO } })
-end)
+-- ⚠️ 此文件已废弃，不再被加载。
+-- front_app 实际在 items/spaces.lua 中内联创建（aerospace / 原生 Space 两个分支均独立创建）。
+-- 保留此文件仅作历史记录，可安全删除。

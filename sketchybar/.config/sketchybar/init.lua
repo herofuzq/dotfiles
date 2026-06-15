@@ -16,41 +16,7 @@ sbar.end_config()
 -- 通知 borders.lua 当前主题（深色系数）
 require("helpers.borders").set_theme(current_theme)
 
--- 主题自动切换已禁用（固定深色）
---local last_theme = current_theme
---local theme_trigger = sbar.add("item", "theme_trigger", { drawing = false })
---theme_trigger:subscribe("system_appearance_changed", function()
---	local new_theme = appearance.detect_system_theme()
---	if new_theme ~= last_theme then
---		last_theme = new_theme
---		appearance.switch_theme(new_theme)
---	end
---end)
---local STARTUP_DELAY = 10
---sbar.delay(STARTUP_DELAY, function()
---	sbar.delay(3, function()
---		local check_theme = appearance.detect_system_theme()
---		if check_theme ~= last_theme then
---			last_theme = check_theme
---			appearance.switch_theme(check_theme)
---		end
---	end)
---	local theme_check = sbar.add("item", "theme_check", { drawing = false, update_freq = 120 })
---	theme_check:subscribe("routine", function()
---		local new_theme = appearance.detect_system_theme()
---		if new_theme ~= last_theme then
---			last_theme = new_theme
---			appearance.switch_theme(new_theme)
---		end
---	end)
---	theme_check:subscribe("system_woke", function()
---		local new_theme = appearance.detect_system_theme()
---		if new_theme ~= last_theme then
---			last_theme = new_theme
---			appearance.switch_theme(new_theme)
---		end
---	end)
---end)
+-- 主题自动切换已移除（固定深色主题）
 
 -- 启动 sketchybar-toggle: 鼠标接近屏幕顶部时自动隐藏 SketchyBar，露出原生菜单栏
 -- pkill -x 防 reload 时残留僵尸进程
