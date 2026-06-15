@@ -202,8 +202,8 @@ function distribute(visible_workspace_names, fullscreen_set)
 		local is_fullscreen = fullscreen_set[i]
 		if is_fullscreen then
 			sbar.set(name, {
-				background = { border_color = 0xfffc618d, border_width = 4 },
-				popup = { background = { border_color = 0xfffc618d } },
+				background = { border_color = 0xffff4444, border_width = 4 },
+				popup = { background = { border_color = 0xffff4444 } },
 			})
 		else
 			sbar.set(name, { background = { border_width = 2 } })
