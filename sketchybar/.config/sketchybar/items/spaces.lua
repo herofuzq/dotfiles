@@ -636,10 +636,11 @@ if USE_AEROSPACE then
 			end
 			focused_workspace = focused_workspace:match("^%s*(.-)%s*$")
 			if workspaces[focused_workspace] then
-				workspaces[focused_workspace]:set({
-					icon = { highlight = true },
-					label = { highlight = true },
-				})
+			workspaces[focused_workspace]:set({
+				icon = { highlight = true },
+				label = { highlight = true },
+				background = { border_color = 0x99fc618d, border_width = 2 },
+			})
 			end
 		end)
 		-- 在 spaces 后面创建 front_app（修正排序）
