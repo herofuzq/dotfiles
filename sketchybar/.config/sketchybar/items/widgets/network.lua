@@ -57,8 +57,12 @@ local function format_speed(raw)
 end
 
 network:subscribe("routine", function()
-	sbar.exec("ifstat -i en0 -b 0.1 1 2>/dev/null | tail -n1", function(result)
-		local down_raw, up_raw = (result or ""):match("^(%S+)%s+(%S+)")
+	sbar.exec("/opt/homebrew/bin/ifstat -i en0 -b 0.1 1 2>/dev/null", function(raw)
+		-- ifstat 输出3行：标题行 → 表头 → 数据行，取第3行
+		local lines = {}
+		for line in (raw or ""):gmatch("[^\n]+") do lines[#lines + 1] = line end
+		local data = lines[3] or ""
+		local down_raw, up_raw = data:match("%s*(%S+)%s+(%S+)")
 		local dn = tonumber((down_raw or "0"):match("^(%d+)")) or 0
 		local up_val = tonumber((up_raw or "0"):match("^(%d+)")) or 0
 
