@@ -86,14 +86,6 @@ for i = 1, CAL_LINES do
 	cal_items[i] = item
 end
 
-local function display_width(s)
-	local w = 0
-	for _, cp in utf8.codes(s) do
-		w = w + (cp >= 0x2000 and 2 or 1)
-	end
-	return w
-end
-
 local function updatePopupContent()
 	local t = os.date("*t")
 	local today, year, month = t.day, t.year, t.month
@@ -142,7 +134,7 @@ local function updatePopupContent()
 			max_w = #lines[i]
 		end
 	end
-	local pad = math.floor((max_w - display_width(stat)) / 2)
+	local pad = math.floor((max_w - #stat) / 2)
 	nlines = nlines + 1
 	lines[nlines] = (pad > 0 and string.rep(" ", pad) or "") .. stat
 
