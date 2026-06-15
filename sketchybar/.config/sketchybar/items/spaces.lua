@@ -629,6 +629,8 @@ if USE_AEROSPACE then
 				})
 			end
 		end)
+		-- 在 spaces 之后加载 front_app（确保显示顺序正确）
+		require("items.front_app")
 	end)
 end
 
