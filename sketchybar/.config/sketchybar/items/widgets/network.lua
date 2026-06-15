@@ -34,7 +34,7 @@ local down = sbar.add("item", "widgets.network_down", {
 		font = { family = fonts.font_icon.text, style = fonts.font_icon.style_map["Bold"], size = 13.0 },
 		drawing = true,
 		padding_left = 8,
-		padding_right = 2,
+		padding_right = 0,
 		color = colors.active.sapphire,
 	},
 	label = {
