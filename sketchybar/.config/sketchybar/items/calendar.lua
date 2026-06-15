@@ -70,8 +70,8 @@ for i = 1, CAL_LINES do
 			string = string.rep(" ", 30),
 			font = { family = "Hack Nerd Font Mono", style = fonts.font.style_map["Bold"], size = 15.0 },
 			color = colors.active.text,
-			padding_left = 42,
-			padding_right = 60,
+			padding_left = 20,
+			padding_right = 28,
 		},
 		background = { drawing = false },
 	})
