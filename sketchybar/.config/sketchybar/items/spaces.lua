@@ -530,11 +530,12 @@ if USE_AEROSPACE then
 				end
 				for ws_idx, ws in pairs(workspaces) do
 					local is_focused = (ws_idx == focused)
-					ws:set({
-						icon = { highlight = is_focused },
-						label = { highlight = is_focused },
-						popup = { drawing = false },
-					})
+				ws:set({
+					icon = { highlight = is_focused },
+					label = { highlight = is_focused },
+					popup = { drawing = false },
+					background = { border_color = is_focused and 0x99fc618d or 0x1ab0b8cc },
+				})
 				end
 			end
 			updateWindows()
