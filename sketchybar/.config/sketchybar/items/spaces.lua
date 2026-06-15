@@ -51,7 +51,6 @@ local mode_item = sbar.add("item", "aerospace_mode", {
 		padding_right = 4,
 		color = appearance.colors.active.deep_blue,
 	},
-	background = { drawing = true, color = 0xff585b70, corner_radius = 9 },
 	drawing = false,
 })
 
@@ -686,7 +685,7 @@ if not USE_AEROSPACE then
 				padding_right = 8,
 				y_offset = 0,
 				drawing = false,
-				background = { drawing = false },
+	background = { drawing = false, border_width = 0 },
 			},
 		})
 		_n_workspaces[ws_name] = ws
