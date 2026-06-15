@@ -43,6 +43,7 @@ local mode_item = sbar.add("item", "aerospace_mode", {
 	padding_left = 2,
 	padding_right = 2,
 	icon = { drawing = false },
+	background = { drawing = false },
 	label = {
 		string = "󰰣",
 		font = "Hack Nerd Font:Bold:28.0",
