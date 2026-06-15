@@ -27,13 +27,13 @@ local function detect_dock_width()
 		if f then
 			local output = f:read("*a")
 			f:close()
-			local w, hidden = output:match("^(%d+)%s+(%d+)")
+			local w, hidden, x = output:match("^(%d+)%s+(%d+)%s+(%-?%d+)")
 			if w then
-				return tonumber(w), tonumber(hidden) or 0
+				return tonumber(w), tonumber(hidden) or 0, tonumber(x) or 0
 			end
 		end
 	end
-	return fallback, 0
+	return fallback, 0, 0
 end
 
 return {

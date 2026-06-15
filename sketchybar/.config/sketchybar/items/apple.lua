@@ -10,24 +10,27 @@ local border_width = 0 -- 无背景无边框
 local icon_width = 10
 
 local function compute_icon_pad()
-	local dock_w, dock_hidden = settings.detect_dock_width()
+	local dock_w, dock_hidden, dock_x = settings.detect_dock_width()
 	if dock_hidden == 1 then
-		return 15 -- Dock 隐藏时的固定 fallback
+		return 15, 15 -- Dock 隐藏时的固定 fallback
 	else
-		-- icon_padding = (dock 实际宽度 - 图标宽度 - 两侧边框) / 2
-		return math.floor((dock_w - icon_width - 2 * border_width) / 2)
+		local pad = math.floor((dock_w - icon_width - 2 * border_width) / 2)
+		return pad, pad
 	end
 end
 
-local icon_pad = compute_icon_pad()
+local icon_pad_left, icon_pad_right = compute_icon_pad()
+
+-- item 左 padding = dock 的 X 坐标（对齐 dock 左边缘）
+local _, _, dock_x = settings.detect_dock_width()
 
 local apple = sbar.add("item", "apple", {
-	padding_left = 5,
+	padding_left = dock_x,
 	padding_right = 5,
 	icon = {
 		font = { family = "Hack Nerd Font", style = "Bold", size = 18.0 },
-		padding_left = icon_pad,
-		padding_right = icon_pad,
+		padding_left = icon_pad_left,
+		padding_right = icon_pad_right,
 		string = icons.apple,
 		color = 0xffa6e3a1,
 		y_offset = 0,
@@ -56,5 +59,7 @@ end)
 
 -- 显示器切换时重新检测 Dock 宽度，动态调整 icon padding
 apple:subscribe("display_change", function()
-	apple:set({ icon = { padding_left = compute_icon_pad(), padding_right = compute_icon_pad() } })
+	local pl, pr = compute_icon_pad()
+	local _, _, dx = settings.detect_dock_width()
+	apple:set({ padding_left = dx, icon = { padding_left = pl, padding_right = pr } })
 end)

@@ -4,7 +4,6 @@ let app = NSApplication.shared
 app.setActivationPolicy(.accessory)
 Thread.sleep(forTimeInterval: 0.1)
 
-// 检测 Dock 是否自动隐藏
 let task = Process()
 task.launchPath = "/usr/bin/defaults"
 task.arguments = ["read", "com.apple.dock", "autohide"]
@@ -15,8 +14,7 @@ task.waitUntilExit()
 let data = pipe.fileHandleForReading.readDataToEndOfFile()
 let autohide = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines) == "1"
 
-// 通过 Accessibility API 获取 Dock 实际渲染宽度
-func getDockVisualWidth() -> Int? {
+func getDockInfo() -> (width: Int, x: Int)? {
     guard let dockApp = NSRunningApplication.runningApplications(
         withBundleIdentifier: "com.apple.dock"
     ).first else { return nil }
@@ -30,19 +28,23 @@ func getDockVisualWidth() -> Int? {
           let firstChild = childrenArray.first else { return nil }
 
     var sizeValue: CFTypeRef?
-    let sizeErr = AXUIElementCopyAttributeValue(firstChild, kAXSizeAttribute as CFString, &sizeValue)
-    guard sizeErr == .success,
-          let axValue = sizeValue as! AXValue? else { return nil }
+    AXUIElementCopyAttributeValue(firstChild, kAXSizeAttribute as CFString, &sizeValue)
+    var posValue: CFTypeRef?
+    AXUIElementCopyAttributeValue(firstChild, kAXPositionAttribute as CFString, &posValue)
 
     var size = CGSize.zero
-    guard AXValueGetValue(axValue, .cgSize, &size) else { return nil }
-    return Int(size.width)
+    var pos = CGPoint.zero
+    guard let sv = sizeValue, AXValueGetValue(sv as! AXValue, .cgSize, &size) else { return nil }
+    if let pv = posValue { AXValueGetValue(pv as! AXValue, .cgPoint, &pos) }
+    return (Int(size.width), Int(pos.x))
 }
 
-let dockWidth = getDockVisualWidth() ?? Int(NSScreen.main!.visibleFrame.origin.x)
-
-// 输出格式: "<宽度> <隐藏标志>"
-// 宽度: Dock 实际渲染宽度 (AX API)，失败则 fallback 到 NSScreen
-// 标志: 0 = Dock 可见, 1 = Dock 隐藏（触发 icon_pad = 15 fallback）
-let hiddenFlag = autohide ? 1 : 0
-print("\(dockWidth) \(hiddenFlag)")
+if let info = getDockInfo() {
+    let hiddenFlag = autohide ? 1 : 0
+    // 格式: <width> <hidden> <x>
+    print("\(info.width) \(hiddenFlag) \(info.x)")
+} else {
+    let fallback = Int(NSScreen.main!.visibleFrame.origin.x)
+    let hiddenFlag = autohide ? 1 : 0
+    print("\(fallback) \(hiddenFlag) 0")
+}
