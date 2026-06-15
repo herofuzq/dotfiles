@@ -66,11 +66,12 @@ local net = sbar.add("bracket", "widgets.network", { "widgets.network_up", "widg
 })
 
 local function format_speed(raw)
-	if not raw then return "—" end
-	local n = tonumber((raw:match("^(%d+)")))
-	if not n or n == 0 then return "—" end
-	if n > 999 then return string.format("%.1fM", n / 1000) end
-	return tostring(n) .. "K"
+	local n = raw and tonumber((raw:match("^(%d+)"))) or 0
+	if n > 999 then
+		return string.format("%.1fM", n / 1000)
+	else
+		return string.format("%3dK", n)
+	end
 end
 
 net:subscribe("routine", function()
