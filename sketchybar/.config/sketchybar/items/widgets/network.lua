@@ -1,4 +1,4 @@
--- ========== 网络速度显示（↓下载 / ↑上传）==========
+-- ========== 网络速度显示（↓下载 / ↑上传，上下堆叠）==========
 local sbar = require("sketchybar")
 local icons = require("icons")
 local fonts = require("fonts")
@@ -8,7 +8,7 @@ local settings = require("settings")
 local MAX_DOWN = 110000
 local MAX_UP = 45000
 
--- ========== ↓ 下载速度 ==========
+-- ========== ↓ 下载 ==========
 local down = sbar.add("item", "widgets.network_down", {
 	position = "right",
 	update_freq = 2,
@@ -19,7 +19,7 @@ local down = sbar.add("item", "widgets.network_down", {
 		font = {
 			family = fonts.font_icon.text,
 			style = fonts.font_icon.style_map["Bold"],
-			size = fonts.font_icon.size,
+			size = fonts.font_icon.size - 2,
 		},
 		padding_left = settings.item_padding.icon_label_item.icon.padding_left,
 		padding_right = 2,
@@ -30,20 +30,23 @@ local down = sbar.add("item", "widgets.network_down", {
 		font = {
 			family = fonts.font.text,
 			style = fonts.font.style_map["Bold"],
-			size = fonts.font.size,
+			size = fonts.font.size - 1,
 		},
 		padding_left = 0,
 		padding_right = settings.item_padding.icon_label_item.label.padding_right,
 		color = colors.active.sep_opaque,
+		y_offset = 5,
 	},
 	background = {
 		color = colors.active.bar_bg,
 		corner_radius = 10,
 		border_width = 2,
+		height = 14,
+		y_offset = -3,
 	},
 })
 
--- ========== ↑ 上传速度 ==========
+-- ========== ↑ 上传 ==========
 local up = sbar.add("item", "widgets.network_up", {
 	position = "right",
 	update_freq = 2,
@@ -54,7 +57,7 @@ local up = sbar.add("item", "widgets.network_up", {
 		font = {
 			family = fonts.font_icon.text,
 			style = fonts.font_icon.style_map["Bold"],
-			size = fonts.font_icon.size,
+			size = fonts.font_icon.size - 2,
 		},
 		padding_left = settings.item_padding.icon_label_item.icon.padding_left,
 		padding_right = 2,
@@ -65,16 +68,19 @@ local up = sbar.add("item", "widgets.network_up", {
 		font = {
 			family = fonts.font.text,
 			style = fonts.font.style_map["Bold"],
-			size = fonts.font.size,
+			size = fonts.font.size - 1,
 		},
 		padding_left = 0,
 		padding_right = settings.item_padding.icon_label_item.label.padding_right,
 		color = colors.active.sep_opaque,
+		y_offset = -5,
 	},
 	background = {
 		color = colors.active.bar_bg,
 		corner_radius = 10,
 		border_width = 2,
+		height = 14,
+		y_offset = 3,
 	},
 })
 
@@ -107,8 +113,8 @@ local function parse_and_update()
 		))
 
 		-- 更新 label
-		down:set({ label = string.format("↓%s", format_speed(down_raw)) })
-		up:set({ label = string.format("↑%s", format_speed(up_raw)) })
+		down:set({ label = format_speed(down_raw) })
+		up:set({ label = format_speed(up_raw) })
 	end)
 end
 
