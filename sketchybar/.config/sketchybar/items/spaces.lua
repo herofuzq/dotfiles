@@ -395,9 +395,10 @@ if USE_AEROSPACE then
 				popup = {
 					align = "left",
 					background = {
-						color = appearance.colors.with_alpha(appearance.colors.active.bar_bg, 0.85),
-						corner_radius = 12,
+						color = 0xd0363537,
+						corner_radius = 10,
 						border_width = 2,
+						border_color = 0x2ab0b8cc,
 						shadow = { drawing = false },
 					},
 					blur_radius = 30,
@@ -678,7 +679,7 @@ if not USE_AEROSPACE then
 			local sel = env.SELECTED == "true"
 			ws:set({
 				icon = { highlight = sel },
-				background = { border_color = sel and 0x66fc618d or 0x2ab0b8cc, border_width = 2 },
+				background = { border_color = sel and 0x99fc618d or 0x1ab0b8cc, border_width = 2 },
 			})
 		end)
 
