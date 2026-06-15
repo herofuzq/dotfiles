@@ -61,7 +61,9 @@ sbar.add("bracket", "widgets.network", { "widgets.network_up", "widgets.network_
 local driver = sbar.add("item", "widgets.network_driver", {
 	position = "right",
 	update_freq = 2,
-	drawing = false,
+	icon = { drawing = false },
+	label = { drawing = false },
+	background = { drawing = false },
 })
 
 local function format_speed(raw)
