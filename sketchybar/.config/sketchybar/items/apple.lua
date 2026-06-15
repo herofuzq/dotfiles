@@ -33,7 +33,7 @@ local apple = sbar.add("item", "apple", {
 		padding_right = icon_pad_right,
 		string = icons.apple,
 		color = 0xffa6e3a1,
-		y_offset = -1,
+		y_offset = 1,
 	},
 	label = { drawing = false },
 	background = { drawing = false },
