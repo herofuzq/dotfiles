@@ -10,7 +10,7 @@ local MAX_UP = 45000
 -- ========== ↑ 上传（上排，y_offset 偏下）==========
 local up = sbar.add("item", "widgets.network_up", {
 	position = "right",
-	width = 0,
+	width = 140,
 	icon = { drawing = false },
 	label = {
 		string = "—",
