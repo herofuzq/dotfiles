@@ -17,7 +17,7 @@ local up = sbar.add("item", "widgets.network_up", {
 		padding_left = 0,
 		padding_right = 6,
 		color = colors.active.sep_opaque,
-		y_offset = 3,
+		y_offset = 2,
 	},
 	background = { drawing = false },
 })
@@ -32,7 +32,7 @@ local down = sbar.add("item", "widgets.network_down", {
 		padding_left = 0,
 		padding_right = 6,
 		color = colors.active.sep_opaque,
-		y_offset = -2,
+		y_offset = -1,
 	},
 	background = { drawing = false },
 })
