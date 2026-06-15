@@ -7,7 +7,7 @@ local colors = require("appearance").colors
 local settings = require("settings")
 
 local border_width = 0 -- 无背景无边框
-local icon_width = 10
+local icon_width = 15
 
 local function compute_icon_pad()
 	local dock_w, dock_hidden, dock_x = settings.detect_dock_width()
