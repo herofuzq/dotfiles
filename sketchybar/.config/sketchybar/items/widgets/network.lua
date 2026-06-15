@@ -51,7 +51,7 @@ local net = sbar.add("bracket", "widgets.network", { "widgets.network_up", "widg
 	position = "right",
 	update_freq = 2,
 	padding_left = 6,
-	padding_right = 12,
+	padding_right = 8,
 	icon = { drawing = false },
 	background = {
 		color = colors.active.bar_bg,
@@ -81,7 +81,7 @@ net:subscribe("routine", function()
 		sbar.exec(string.format("sketchybar -m --push widgets.network %.4f",
 			math.max(dn / MAX_DOWN, up_val / MAX_UP)))
 
-		up:set({ label = " ↑" .. format_speed(up_raw) })
-		down:set({ label = " ↓" .. format_speed(down_raw) })
+		up:set({ label = "↑" .. format_speed(up_raw) })
+		down:set({ label = "↓" .. format_speed(down_raw) })
 	end)
 end)
