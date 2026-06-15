@@ -15,7 +15,7 @@ local function compute_icon_pad()
 		return 15, 15
 	else
 		local pad = math.floor((dock_w - icon_width - 2 * border_width) / 2)
-		return pad + 1, pad - 1
+		return pad + 2, pad - 2
 	end
 end
 
