@@ -328,7 +328,7 @@ if.app-id = "com.blizzard.worldofwarcraft"
 run = 'layout floating'
 
 [[on-window-detected]]
-if.app-id = "om.bitwarden.desktop"
+if.app-id = "com.bitwarden.desktop"
 run = 'layout floating'
 
 [[on-window-detected]]
