@@ -1,64 +1,79 @@
--- ========== 网络速度显示（↓下载 / ↑上传）==========
+-- ========== 网络速度显示（↓下载 / ↑上传，上下堆叠）==========
 local sbar = require("sketchybar")
 local icons = require("icons")
 local fonts = require("fonts")
 local colors = require("appearance").colors
-local settings = require("settings")
 
 local MAX_DOWN = 110000
 local MAX_UP = 45000
 
-local network = sbar.add("item", "widgets.network", {
+-- ========== ↑ 上传（上排，y_offset 偏下）==========
+local up = sbar.add("item", "widgets.network_up", {
+	width = 0,
+	icon = { drawing = false },
+	label = {
+		string = "—",
+		font = { family = fonts.font.text, style = fonts.font.style_map["Bold"], size = 7.0 },
+		padding_left = 0,
+		padding_right = 6,
+		color = colors.active.sep_opaque,
+		y_offset = 5,
+	},
+	background = { drawing = false },
+})
+
+-- ========== ↓ 下载（下排，y_offset 偏上）==========
+local down = sbar.add("item", "widgets.network_down", {
+	width = 0,
+	icon = { drawing = false },
+	label = {
+		string = "—",
+		font = { family = fonts.font.text, style = fonts.font.style_map["Bold"], size = 7.0 },
+		padding_left = 0,
+		padding_right = 6,
+		color = colors.active.sep_opaque,
+		y_offset = -4,
+	},
+	background = { drawing = false },
+})
+
+-- bracket 容器：背景 + wifi 图标
+sbar.add("bracket", "widgets.network", { "widgets.network_up", "widgets.network_down" }, {
 	position = "right",
-	update_freq = 2,
-	padding_left = 2,
-	padding_right = 2,
+	padding_left = 4,
+	padding_right = 4,
 	icon = {
 		string = icons.network_down,
-		font = {
-			family = fonts.font_icon.text,
-			style = fonts.font_icon.style_map["Bold"],
-			size = fonts.font_icon.size,
-		},
-		padding_left = settings.item_padding.icon_label_item.icon.padding_left,
+		font = { family = fonts.font_icon.text, style = fonts.font_icon.style_map["Bold"], size = 10.0 },
+		padding_left = 6,
 		padding_right = 2,
 		color = colors.active.sapphire,
-	},
-	label = {
-		font = {
-			family = fonts.font.text,
-			style = fonts.font.style_map["Bold"],
-			size = fonts.font.size,
-		},
-		padding_left = 0,
-		padding_right = settings.item_padding.icon_label_item.label.padding_right,
-		color = colors.active.sep_opaque,
 	},
 	background = {
 		color = colors.active.bar_bg,
 		corner_radius = 10,
 		border_width = 2,
+		height = 24,
 	},
 })
 
+-- 不可见的驱动 item（仅用于触发 routine，不渲染不占空间）
+local driver = sbar.add("item", "widgets.network_driver", {
+	position = "right",
+	update_freq = 2,
+	drawing = false,
+})
+
 local function format_speed(raw)
-	if not raw then
-		return "—"
-	end
+	if not raw then return "—" end
 	local n = tonumber((raw:match("^(%d+)")))
-	if not n or n == 0 then
-		return "—"
-	end
-	if n > 999 then
-		return string.format("%.1fM", n / 1000)
-	else
-		return tostring(n) .. "K"
-	end
+	if not n or n == 0 then return "—" end
+	if n > 999 then return string.format("%.1fM", n / 1000) end
+	return tostring(n) .. "K"
 end
 
-network:subscribe("routine", function()
+driver:subscribe("routine", function()
 	sbar.exec("/opt/homebrew/bin/ifstat -i en0 -b 0.1 1 2>/dev/null", function(raw)
-		-- ifstat 输出3行：标题行 → 表头 → 数据行，取第3行
 		local lines = {}
 		for line in (raw or ""):gmatch("[^\n]+") do lines[#lines + 1] = line end
 		local data = lines[3] or ""
@@ -66,14 +81,10 @@ network:subscribe("routine", function()
 		local dn = tonumber((down_raw or "0"):match("^(%d+)")) or 0
 		local up_val = tonumber((up_raw or "0"):match("^(%d+)")) or 0
 
-		-- push 图形条数据
-		sbar.exec(string.format(
-			"sketchybar -m --push widgets.network %.4f",
-			math.max(dn / MAX_DOWN, up_val / MAX_UP)
-		))
+		sbar.exec(string.format("sketchybar -m --push widgets.network %.4f",
+			math.max(dn / MAX_DOWN, up_val / MAX_UP)))
 
-		network:set({
-			label = string.format("↓%s ↑%s", format_speed(down_raw), format_speed(up_raw)),
-		})
+		up:set({ label = format_speed(up_raw) })
+		down:set({ label = format_speed(down_raw) })
 	end)
 end)
