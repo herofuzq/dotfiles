@@ -6,7 +6,7 @@ local colors = require("appearance").colors
 local front_app = sbar.add("item", "front_app", {
 	display = "active",
 	updates = true,
-	position = "right",
+	position = "left",
 	padding_right = 2,
 	padding_left = 2,
 	icon = { drawing = false },
