@@ -264,7 +264,7 @@ M.styles = {
 		end),
 
 		icon = dynamic_color({
-			highlight_color = 0xffff4444, -- workspace 聚焦高亮色
+			highlight_color = 0x99fc618d,
 			font = {
 				family = fonts.font.text,
 				style = fonts.font.style_map["Bold"],
