@@ -21,8 +21,7 @@ end
 
 local icon_pad_left, icon_pad_right = compute_icon_pad()
 
--- item 左 padding = dock 的 X 坐标（对齐 dock 左边缘）
-local _, _, dock_x = settings.detect_dock_width()
+local dock_x = 5
 
 local apple = sbar.add("item", "apple", {
 	padding_left = dock_x,
@@ -58,7 +57,7 @@ apple:subscribe("mouse.clicked", function()
 end)
 
 -- 显示器切换时重新检测 Dock 宽度，动态调整 icon padding
-apple:subscribe("display_change", function()
+apple:subscribe({ "display_change", "system_woke" }, function()
 	local pl, pr = compute_icon_pad()
 	local _, _, dx = settings.detect_dock_width()
 	apple:set({ padding_left = dx, icon = { padding_left = pl, padding_right = pr } })
