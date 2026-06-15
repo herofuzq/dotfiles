@@ -51,7 +51,7 @@ local net = sbar.add("bracket", "widgets.network", { "widgets.network_up", "widg
 	position = "right",
 	update_freq = 2,
 	padding_left = 6,
-	padding_right = 10,
+	padding_right = 12,
 	icon = { drawing = false },
 	background = {
 		color = colors.active.bar_bg,
