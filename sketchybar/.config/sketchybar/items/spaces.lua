@@ -291,8 +291,8 @@ local function set_highlight(ws, is_focused)
 	ws:set({
 		icon = { highlight = is_focused },
 		label = { highlight = is_focused },
-		background = { border_color = is_focused and appearance.colors.active.red or appearance.colors.active.bg2, border_width = 2 },
-		popup = { background = { border_color = is_focused and appearance.colors.active.red or appearance.colors.active.bg2 } },
+		background = { border_color = is_focused and appearance.colors.active.red or appearance.colors.active.sep, border_width = 2 },
+		popup = { background = { border_color = is_focused and appearance.colors.active.red or appearance.colors.active.sep } },
 	})
 end
 
@@ -376,7 +376,7 @@ if USE_AEROSPACE then
 				drawing = style.background.drawing,
 				corner_radius = style.background.corner_radius,
 				border_width = style.background.border_width,
-				border_color = appearance.colors.active.bg2,
+				border_color = appearance.colors.active.sep,
 			}
 
 			local workspace = sbar.add("item", "workspace." .. workspace_index, {

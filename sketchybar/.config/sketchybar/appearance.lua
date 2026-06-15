@@ -18,6 +18,10 @@ M.colors = {
 		bg3 = 0x3345475a,
 		accent = 0x33cba6f7,
 		sep = 0x336c7086,
+		-- Catppuccin Mocha 标准色表（备用）
+		rosewater = 0xfff5e0dc,
+		flamingo = 0xfff2cdcd,
+		pink = 0xfff5c2e7,
 		mauve = 0xffcba6f7,
 		red = 0xfff38ba8,
 		maroon = 0xffeba0ac,
