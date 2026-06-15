@@ -366,7 +366,7 @@ if USE_AEROSPACE then
 				drawing = style.background.drawing,
 				corner_radius = style.background.corner_radius,
 				border_width = style.background.border_width,
-				border_color = 0xff6c7086,
+				border_color = 0x1ab0b8cc,
 			}
 
 			local workspace = sbar.add("item", "workspace." .. workspace_index, {
