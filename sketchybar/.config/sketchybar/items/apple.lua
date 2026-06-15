@@ -50,7 +50,7 @@ apple:subscribe("mouse.clicked", function()
 		sbar.animate("tanh", 0.15, function()
 			apple:set({
 				background = { shadow = { distance = 4 } },
-				y_offset = 2,
+				y_offset = 0,
 			})
 		end)
 	end)
