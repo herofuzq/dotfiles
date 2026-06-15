@@ -186,7 +186,11 @@ function M.apply_current_theme()
 		background = { color = M.colors.active.bar_bg },
 		label = { color = M.colors.active.sep_opaque },
 	})
-	sbar.set("widgets.network", {
+	sbar.set("widgets.network_down", {
+		background = { color = M.colors.active.bar_bg },
+		label = { color = M.colors.active.sep_opaque },
+	})
+	sbar.set("widgets.network_up", {
 		background = { color = M.colors.active.bar_bg },
 		label = { color = M.colors.active.sep_opaque },
 	})
