@@ -265,7 +265,7 @@ local function togglePopup(ws_index, workspace_item, force_show, gen)
 			if i == 1 then
 				-- 首行：工作区名称
 				if item then
-					item:set({ drawing = true, icon = { drawing = false }, label = { string = tostring(ws_index), color = appearance.colors.active.text, font = { family = fonts.font.text, style = fonts.font.style_map["Bold"], size = 16.0, align = "center" } } })
+					item:set({ drawing = true, icon = { drawing = false }, label = { string = tostring(ws_index), color = appearance.colors.active.text, font = { family = fonts.font.text, style = fonts.font.style_map["Bold"], size = 16.0 } }, align = "center" })
 				end
 			else
 				local win = _popup_windows[ws_index] and _popup_windows[ws_index][i - 1]
