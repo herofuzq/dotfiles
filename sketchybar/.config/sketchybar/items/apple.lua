@@ -21,8 +21,8 @@ end
 
 local icon_pad_left, icon_pad_right = compute_icon_pad()
 
--- item 左 padding = 固定 5px 偏移
-local dock_x = 5
+-- item 左 padding = dock 的 X 坐标（对齐 dock 左边缘）
+local _, _, dock_x = settings.detect_dock_width()
 
 local apple = sbar.add("item", "apple", {
 	padding_left = dock_x,
