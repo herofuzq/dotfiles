@@ -10,13 +10,13 @@ local MAX_UP = 45000
 -- ========== ↑ 上传（上排，y_offset 偏下）==========
 local up = sbar.add("item", "widgets.network_up", {
 	position = "right",
-	width = 140,
+	width = 0,
 	icon = { drawing = false },
 	label = {
 		string = "—",
 		font = { family = fonts.font.text, style = fonts.font.style_map["Bold"], size = 8.0 },
 		padding_left = 0,
-		padding_right = 7,
+		padding_right = 6,
 		color = colors.active.sep_opaque,
 		y_offset = 4,
 	},
@@ -39,7 +39,7 @@ local down = sbar.add("item", "widgets.network_down", {
 		string = "—",
 		font = { family = fonts.font.text, style = fonts.font.style_map["Bold"], size = 8.0 },
 		padding_left = 0,
-		padding_right = 7,
+		padding_right = 6,
 		color = colors.active.sep_opaque,
 		y_offset = -4,
 	},
@@ -51,7 +51,7 @@ local net = sbar.add("bracket", "widgets.network", { "widgets.network_up", "widg
 	position = "right",
 	update_freq = 2,
 	padding_left = 6,
-	padding_right = 22,
+	padding_right = 12,
 	icon = { drawing = false },
 	background = {
 		color = colors.active.bar_bg,
