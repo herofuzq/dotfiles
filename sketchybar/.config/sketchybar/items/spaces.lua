@@ -262,24 +262,17 @@ local function togglePopup(ws_index, workspace_item, force_show, gen)
 
 		for i = 1, MAX_POPUP_SLOTS do
 			local item = _popup_items[ws_index] and _popup_items[ws_index][i]
-			if i == 1 then
-				-- 首行：工作区名称
-				if item then
-					item:set({ drawing = true, icon = { drawing = false }, label = { string = tostring(ws_index), color = appearance.colors.active.text, font = { family = fonts.font.text, style = fonts.font.style_map["Bold"], size = 16.0 } } })
-				end
-			else
-				local win = _popup_windows[ws_index] and _popup_windows[ws_index][i - 1]
-				if item then
-					if win then
-						local icon = (app_icons[win.app] or app_icons["Default"])
-						item:set({
-							drawing = true,
-							icon = { string = icon, color = appearance.colors.active.sep_opaque },
-							label = { string = win.title, color = appearance.colors.active.text },
-						})
-					else
-						item:set({ drawing = false })
-					end
+			local win = _popup_windows[ws_index] and _popup_windows[ws_index][i]
+			if item then
+				if win then
+					local icon = (app_icons[win.app] or app_icons["Default"])
+					item:set({
+						drawing = true,
+						icon = { string = icon, color = appearance.colors.active.sep_opaque },
+						label = { string = win.title, color = appearance.colors.active.text },
+					})
+				else
+					item:set({ drawing = false })
 				end
 			end
 		end
