@@ -12,10 +12,10 @@ local icon_width = 15
 local function compute_icon_pad()
 	local dock_w, dock_hidden, dock_x = settings.detect_dock_width()
 	if dock_hidden == 1 then
-		return 15, 15 -- Dock 隐藏时的固定 fallback
+		return 15, 15
 	else
 		local pad = math.floor((dock_w - icon_width - 2 * border_width) / 2)
-		return pad, pad
+		return pad + 1, pad - 1
 	end
 end
 
