@@ -393,7 +393,7 @@ if USE_AEROSPACE then
 			},
 				label = { -- 显示应用图标字符串
 					color = style.label.color,
-					highlight_color = style.label.highlight_color,
+					highlight_color = style.label.color,
 					font = style.label.font,
 					padding_left = style.label.padding_left,
 					padding_right = style.label.padding_right,
