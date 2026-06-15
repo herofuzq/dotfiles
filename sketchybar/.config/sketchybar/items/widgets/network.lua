@@ -20,7 +20,7 @@ local up = sbar.add("item", "widgets.network_up", {
 		width = 40,
 		align = "right",
 		color = colors.active.sep_opaque,
-		y_offset = 4,
+		y_offset = 3,
 	},
 	background = { drawing = false },
 })
@@ -29,7 +29,14 @@ local up = sbar.add("item", "widgets.network_up", {
 local down = sbar.add("item", "widgets.network_down", {
 	position = "right",
 	width = 0,
-	icon = { drawing = false },
+	icon = {
+		string = "",
+		font = { family = fonts.font_icon.text, style = fonts.font_icon.style_map["Bold"], size = 13.0 },
+		drawing = true,
+		padding_left = 8,
+		padding_right = 4,
+		color = colors.active.sapphire,
+	},
 	label = {
 		string = "—",
 		font = { family = fonts.font.text, style = fonts.font.style_map["Bold"], size = 7.0 },
@@ -49,14 +56,7 @@ local net = sbar.add("bracket", "widgets.network", { "widgets.network_up", "widg
 	update_freq = 2,
 	padding_left = 6,
 	padding_right = 8,
-	icon = {
-		string = "",
-		font = { family = fonts.font_icon.text, style = fonts.font_icon.style_map["Bold"], size = 13.0 },
-		drawing = true,
-		padding_left = 8,
-		padding_right = 4,
-		color = colors.active.sapphire,
-	},
+	icon = { drawing = false },
 	background = {
 		color = colors.active.bar_bg,
 		corner_radius = 10,
