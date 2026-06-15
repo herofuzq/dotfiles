@@ -540,7 +540,7 @@ if USE_AEROSPACE then
 					local is_focused = (ws_idx == focused)
 				ws:set({
 					icon = { highlight = is_focused },
-					background = { border_color = is_focused and 0x99fc618d or 0x1ab0b8cc },
+					background = { border_color = is_focused and 0x99fc618d or 0x1ab0b8cc, border_width = 2 },
 				})
 				end
 			end
