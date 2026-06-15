@@ -13,6 +13,7 @@ local widget_order = {
 	"widgets.wechat",
 	"widgets.dingtalk",
 	"widgets.clash_tun",
+	"widgets.network",
 	"widgets.sys",
 }
 

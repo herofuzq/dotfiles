@@ -1,5 +1,6 @@
 -- ========== 加载所有右侧小组件（从右到左排列） ==========
 require("items.widgets.sys")           -- CPU 占用率
+require("items.widgets.network")       -- 网络速度
 require("items.widgets.clash_tun")     -- Clash TUN 代理状态
 require("items.widgets.dingtalk")      -- 钉钉消息数
 require("items.widgets.wechat")        -- 微信消息数
