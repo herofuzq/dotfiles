@@ -7,7 +7,7 @@ local colors = require("appearance").colors
 local settings = require("settings")
 
 local border_width = 0 -- 无背景无边框
-local icon_width = 14 -- ← SF Symbol Apple logo 在 13pt 下的实际宽度
+local icon_width = 16
 
 local function compute_icon_pad()
 	local dock_w, dock_hidden = settings.detect_dock_width()
