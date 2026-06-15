@@ -261,17 +261,24 @@ local function togglePopup(ws_index, workspace_item, force_show, gen)
 
 		for i = 1, MAX_POPUP_SLOTS do
 			local item = _popup_items[ws_index] and _popup_items[ws_index][i]
-			local win = _popup_windows[ws_index] and _popup_windows[ws_index][i]
-			if item then
-				if win then
-					local icon = (app_icons[win.app] or app_icons["Default"])
-					item:set({
-						drawing = true,
-						icon = { string = icon, color = appearance.colors.active.sep_opaque },
-						label = { string = win.title, color = appearance.colors.active.text },
-					})
-				else
-					item:set({ drawing = false })
+			if i == 1 then
+				-- 首行：工作区名称
+				if item then
+					item:set({ drawing = true, icon = { drawing = false }, label = { string = tostring(ws_index), color = appearance.colors.active.text, font = { family = fonts.font.text, style = fonts.font.style_map["Bold"], size = 14.0 } } })
+				end
+			else
+				local win = _popup_windows[ws_index] and _popup_windows[ws_index][i - 1]
+				if item then
+					if win then
+						local icon = (app_icons[win.app] or app_icons["Default"])
+						item:set({
+							drawing = true,
+							icon = { string = icon, color = appearance.colors.active.sep_opaque },
+							label = { string = win.title, color = appearance.colors.active.text },
+						})
+					else
+						item:set({ drawing = false })
+					end
 				end
 			end
 		end
@@ -374,15 +381,15 @@ if USE_AEROSPACE then
 				drawing = false, -- 初始隐藏，稍后由 updateWindow 决定显示/隐藏
 				padding_left = 2,
 				padding_right = 2,
-				icon = { -- 显示工作区名称（如 "3̲Chat", "5̲Term"）
-					color = style.icon.color,
-					highlight_color = style.icon.highlight_color,
-					font = style.icon.font,
-					padding_left = style.icon.padding_left,
-					padding_right = style.icon.padding_right,
-					drawing = true,
-					string = workspace_index,
-				},
+			icon = { -- 显示数字（如 "1>", "2>"），完整名在 popup 首行
+				color = style.icon.color,
+				highlight_color = style.icon.highlight_color,
+				font = style.icon.font,
+				padding_left = style.icon.padding_left,
+				padding_right = style.icon.padding_right,
+				drawing = true,
+				string = workspace_index:match("^(%d)") .. ">",
+			},
 				label = { -- 显示应用图标字符串
 					color = style.label.color,
 					highlight_color = style.label.highlight_color,
@@ -532,8 +539,6 @@ if USE_AEROSPACE then
 					local is_focused = (ws_idx == focused)
 				ws:set({
 					icon = { highlight = is_focused },
-					label = { highlight = is_focused },
-					popup = { drawing = false },
 					background = { border_color = is_focused and 0x99fc618d or 0x1ab0b8cc },
 				})
 				end
