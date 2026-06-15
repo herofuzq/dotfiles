@@ -38,8 +38,9 @@ local down = sbar.add("item", "widgets.network_down", {
 })
 
 -- bracket 容器：背景 + wifi 图标
-sbar.add("bracket", "widgets.network", { "widgets.network_up", "widgets.network_down" }, {
+local net = sbar.add("bracket", "widgets.network", { "widgets.network_up", "widgets.network_down" }, {
 	position = "right",
+	update_freq = 2,
 	padding_left = 4,
 	padding_right = 4,
 	icon = {
@@ -57,15 +58,6 @@ sbar.add("bracket", "widgets.network", { "widgets.network_up", "widgets.network_
 	},
 })
 
--- 不可见的驱动 item（仅用于触发 routine，不渲染不占空间）
-local driver = sbar.add("item", "widgets.network_driver", {
-	position = "right",
-	update_freq = 2,
-	icon = { drawing = false },
-	label = { drawing = false },
-	background = { drawing = false },
-})
-
 local function format_speed(raw)
 	if not raw then return "—" end
 	local n = tonumber((raw:match("^(%d+)")))
@@ -74,7 +66,7 @@ local function format_speed(raw)
 	return tostring(n) .. "K"
 end
 
-driver:subscribe("routine", function()
+net:subscribe("routine", function()
 	sbar.exec("/opt/homebrew/bin/ifstat -i en0 -b 0.1 1 2>/dev/null", function(raw)
 		local lines = {}
 		for line in (raw or ""):gmatch("[^\n]+") do lines[#lines + 1] = line end
