@@ -17,7 +17,8 @@ local up = sbar.add("item", "widgets.network_up", {
 		font = { family = fonts.font.text, style = fonts.font.style_map["Bold"], size = 7.0 },
 		padding_left = 0,
 		padding_right = 6,
-		width = 36,
+		width = 40,
+		align = "right",
 		color = colors.active.sep_opaque,
 		y_offset = 4,
 	},
@@ -34,7 +35,8 @@ local down = sbar.add("item", "widgets.network_down", {
 		font = { family = fonts.font.text, style = fonts.font.style_map["Bold"], size = 7.0 },
 		padding_left = 0,
 		padding_right = 6,
-		width = 36,
+		width = 40,
+		align = "right",
 		color = colors.active.sep_opaque,
 		y_offset = -3,
 	},
@@ -49,7 +51,8 @@ local net = sbar.add("bracket", "widgets.network", { "widgets.network_up", "widg
 	padding_right = 4,
 	icon = {
 		string = icons.wifi,
-		font = { family = fonts.font_icon.text, style = fonts.font_icon.style_map["Bold"], size = 10.0 },
+		font = { family = fonts.font_icon.text, style = fonts.font_icon.style_map["Bold"], size = 13.0 },
+		drawing = true,
 		padding_left = 6,
 		padding_right = 2,
 		color = colors.active.sapphire,
@@ -82,7 +85,7 @@ net:subscribe("routine", function()
 		sbar.exec(string.format("sketchybar -m --push widgets.network %.4f",
 			math.max(dn / MAX_DOWN, up_val / MAX_UP)))
 
-		up:set({ label = format_speed(up_raw) })
-		down:set({ label = format_speed(down_raw) })
+		up:set({ label = "↑" .. format_speed(up_raw) })
+		down:set({ label = "↓" .. format_speed(down_raw) })
 	end)
 end)
