@@ -9,6 +9,7 @@ local borders = require("helpers.borders")
 local sbar = require("sketchybar")
 local fonts = require("fonts")
 local settings = require("settings")
+local SPACE_ICONS = { "󰼏", "󰼐", "󰼑", "󰼒", "󰼓", "󰼔" }
 
 -- 始终显示的工作区（即使没有应用也会显示）
 -- 注：键名含 U+0332 组合下划线，对应 aerospace 工作区名称，请勿修改
@@ -388,7 +389,7 @@ if USE_AEROSPACE then
 				padding_left = style.icon.padding_left,
 				padding_right = style.icon.padding_right,
 				drawing = true,
-				string = workspace_index:match("^(%d)") .. ">",
+				string = (SPACE_ICONS[tonumber(workspace_index:match("^(%d)"))] or workspace_index) .. " >",
 			},
 				label = { -- 显示应用图标字符串
 					color = style.label.color,
@@ -649,7 +650,6 @@ if not USE_AEROSPACE then
 	local SPACE_COUNT = 6
 	local KEY_CODES = { 18, 19, 20, 21, 23, 22 }
 
-	local SPACE_ICONS = { "󰼏", "󰼐", "󰼑", "󰼒", "󰼓", "󰼔" }
 
 	for i = 1, SPACE_COUNT do
 		local ws_name = tostring(i)
