@@ -79,8 +79,8 @@ local function withWindows(f)
 		end
 	end
 
-	local get_windows = 
-"aerospace list-windows --monitor all --format '%{workspace}%{app-name}%{window-id}%{window-is-fullscreen}' --json"
+	local get_windows =
+		"aerospace list-windows --monitor all --format '%{workspace}%{app-name}%{window-id}%{window-is-fullscreen}' --json"
 	local query_visible_workspaces =
 		"aerospace list-workspaces --visible --monitor all --format '%{workspace}%{monitor-appkit-nsscreen-screens-id}' --json"
 	local get_focus_workspaces = "aerospace list-workspaces --focused"
@@ -375,15 +375,15 @@ if USE_AEROSPACE then
 				drawing = false, -- 初始隐藏，稍后由 updateWindow 决定显示/隐藏
 				padding_left = 2,
 				padding_right = 2,
-			icon = { -- 显示数字（如 "1>", "2>"），完整名在 popup 首行
-				color = style.icon.color,
-				highlight_color = style.icon.highlight_color,
-				font = style.icon.font,
-				padding_left = style.icon.padding_left,
-				padding_right = style.icon.padding_right,
-				drawing = true,
-				string = (SPACE_ICONS[tonumber(workspace_index:match("^(%d)"))] or workspace_index) .. " >",
-			},
+				icon = { -- 显示数字（如 "1>", "2>"），完整名在 popup 首行
+					color = style.icon.color,
+					highlight_color = style.icon.highlight_color,
+					font = style.icon.font,
+					padding_left = style.icon.padding_left,
+					padding_right = style.icon.padding_right,
+					drawing = true,
+					string = (SPACE_ICONS[tonumber(workspace_index:match("^(%d)"))] or workspace_index) .. " >",
+				},
 				label = { -- 显示应用图标字符串
 					color = style.label.color,
 					highlight_color = style.label.color,
@@ -465,7 +465,7 @@ if USE_AEROSPACE then
 						max_chars = 50,
 						color = appearance.colors.active.text,
 					},
-	background = { drawing = false, border_width = 0 },
+					background = { drawing = false, border_width = 0 },
 				})
 				_popup_items[workspace_index][i] = popup_item
 
@@ -496,21 +496,21 @@ if USE_AEROSPACE then
 			end
 		end
 
-	-- 装饰性文字（已禁用）
-	-- sbar.add("item", "i3", {
-	-- 	position = "left",
-	-- 	padding_left = 2,
-	-- 	padding_right = 2,
-	-- 	icon = {
-	-- 		string = "Powered by ",
-	-- 		font = "Hack Nerd Font:Bold:10.0",
-	-- 		padding_left = 6,
-	-- 		padding_right = 6,
-	-- 		color = 0xff74c7ec,
-	-- 	},
-	-- 	label = { drawing = false },
-	-- 	background = { drawing = false },
-	-- })
+		-- 装饰性文字（已禁用）
+		-- sbar.add("item", "i3", {
+		-- 	position = "left",
+		-- 	padding_left = 2,
+		-- 	padding_right = 2,
+		-- 	icon = {
+		-- 		string = "Powered by ",
+		-- 		font = "Hack Nerd Font:Bold:10.0",
+		-- 		padding_left = 6,
+		-- 		padding_right = 6,
+		-- 		color = 0xff74c7ec,
+		-- 	},
+		-- 	label = { drawing = false },
+		-- 	background = { drawing = false },
+		-- })
 
 		-- 首次加载
 		updateWindows()
@@ -531,11 +531,11 @@ if USE_AEROSPACE then
 				end
 				for ws_idx, ws in pairs(workspaces) do
 					local is_focused = (ws_idx == focused)
-				ws:set({
-					icon = { highlight = is_focused },
-					background = { border_color = is_focused and 0x99fc618d or 0x1ab0b8cc, border_width = 2 },
-					popup = { background = { border_color = is_focused and 0x99fc618d or 0x1ab0b8cc } },
-				})
+					ws:set({
+						icon = { highlight = is_focused },
+						background = { border_color = is_focused and 0x99fc618d or 0x1ab0b8cc, border_width = 2 },
+						popup = { background = { border_color = is_focused and 0x99fc618d or 0x1ab0b8cc } },
+					})
 				end
 			end
 			updateWindows()
@@ -572,17 +572,23 @@ if USE_AEROSPACE then
 
 		-- 全屏切换时刷新边框
 		root:subscribe("aerospace_fullscreen_change", function()
-		sbar.exec("aerospace list-workspaces --focused", function(focused)
-			focused = focused and focused:match("^%s*(.-)%s*$")
-			if focused then
-				for ws_idx, ws in pairs(workspaces) do
-					local is_focused = (ws_idx == focused)
-					ws:set({ background = { border_color = is_focused and 0x99fc618d or 0x1ab0b8cc, border_width = is_focused and 2 or 2 }, popup = { background = { border_color = is_focused and 0x99fc618d or 0x1ab0b8cc } } })
+			sbar.exec("aerospace list-workspaces --focused", function(focused)
+				focused = focused and focused:match("^%s*(.-)%s*$")
+				if focused then
+					for ws_idx, ws in pairs(workspaces) do
+						local is_focused = (ws_idx == focused)
+						ws:set({
+							background = {
+								border_color = is_focused and 0x99fc618d or 0x1ab0b8cc,
+								border_width = is_focused and 2 or 2,
+							},
+							popup = { background = { border_color = is_focused and 0x99fc618d or 0x1ab0b8cc } },
+						})
+					end
 				end
-			end
+			end)
+			updateWindows()
 		end)
-		updateWindows()
-	end)
 
 		-- aerospace 模式切换时显示/隐藏模式图标
 		root:subscribe("aerospace_mode_change", function(_)
@@ -620,8 +626,8 @@ if USE_AEROSPACE then
 					end
 				end
 			end
-		-- 更新 aerospace_mode 文字色
-		-- sbar.set("i3", { icon = { color = 0xff74c7ec } })
+			-- 更新 aerospace_mode 文字色
+			-- sbar.set("i3", { icon = { color = 0xff74c7ec } })
 			sbar.set("aerospace_mode", { label = { color = appearance.colors.active.deep_blue } })
 			-- 重新分发边框色（borders.lua 已通过 set_theme 知道当前主题）
 			updateWindows()
@@ -636,22 +642,33 @@ if USE_AEROSPACE then
 			end
 			focused_workspace = focused_workspace:match("^%s*(.-)%s*$")
 			if workspaces[focused_workspace] then
-			workspaces[focused_workspace]:set({
-				icon = { highlight = true },
-				label = { highlight = true },
-				background = { border_color = 0x99fc618d, border_width = 2 },
-			})
+				workspaces[focused_workspace]:set({
+					icon = { highlight = true },
+					label = { highlight = true },
+					background = { border_color = 0x99fc618d, border_width = 2 },
+				})
 			end
 		end)
 		-- 在 spaces 后面创建 front_app（修正排序）
 		local fa = sbar.add("item", "front_app", {
-			display = "active", updates = true, position = "left",
-			padding_right = 2, padding_left = 2,
+			display = "active",
+			updates = true,
+			position = "left",
+			padding_right = 2,
+			padding_left = 2,
 			icon = { drawing = false },
-			label = { font = { family = fonts.font.text, style = fonts.font.style_map["Bold"], size = fonts.font.size }, padding_left = 8, padding_right = 8, align = "center", color = 0xfffab387 },
+			label = {
+				font = { family = fonts.font.text, style = fonts.font.style_map["Bold"], size = fonts.font.size },
+				padding_left = 8,
+				padding_right = 8,
+				align = "center",
+				color = 0xfffab387,
+			},
 			background = { drawing = false },
 		})
-		fa:subscribe("front_app_switched", function(env) fa:set({ label = { string = env.INFO } }) end)
+		fa:subscribe("front_app_switched", function(env)
+			fa:set({ label = { string = env.INFO } })
+		end)
 	end)
 end
 
@@ -664,7 +681,6 @@ if not USE_AEROSPACE then
 	local _n_ws_order = {}
 	local SPACE_COUNT = 6
 	local KEY_CODES = { 18, 19, 20, 21, 23, 22 }
-
 
 	for i = 1, SPACE_COUNT do
 		local ws_name = tostring(i)
@@ -691,7 +707,7 @@ if not USE_AEROSPACE then
 				padding_right = 8,
 				y_offset = 0,
 				drawing = false,
-	background = { drawing = false, border_width = 0 },
+				background = { drawing = false, border_width = 0 },
 			},
 		})
 		_n_workspaces[ws_name] = ws
@@ -710,17 +726,28 @@ if not USE_AEROSPACE then
 					.. KEY_CODES[i]
 					.. " using {command down, control down, option down}' &"
 			)
-	end)
+		end)
 
-	local fa = sbar.add("item", "front_app", {
-		display = "active", updates = true, position = "left",
-		padding_right = 2, padding_left = 2,
-		icon = { drawing = false },
-		label = { font = { family = fonts.font.text, style = fonts.font.style_map["Bold"], size = fonts.font.size }, padding_left = 8, padding_right = 8, align = "center", color = 0xfffab387 },
-		background = { drawing = false },
-	})
-	fa:subscribe("front_app_switched", function(env) fa:set({ label = { string = env.INFO } }) end)
-end
+		local fa = sbar.add("item", "front_app", {
+			display = "active",
+			updates = true,
+			position = "left",
+			padding_right = 2,
+			padding_left = 2,
+			icon = { drawing = false },
+			label = {
+				font = { family = fonts.font.text, style = fonts.font.style_map["Bold"], size = fonts.font.size },
+				padding_left = 8,
+				padding_right = 8,
+				align = "center",
+				color = 0xfffab387,
+			},
+			background = { drawing = false },
+		})
+		fa:subscribe("front_app_switched", function(env)
+			fa:set({ label = { string = env.INFO } })
+		end)
+	end
 
 	-- 原生 space_windows_change → 应用图标
 	local _n_obs = sbar.add("item", { drawing = false, updates = true })
