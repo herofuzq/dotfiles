@@ -10,8 +10,10 @@ local MAX_UP = 45000
 -- ========== ↑ 上传（上排，y_offset 偏下）==========
 local up = sbar.add("item", "widgets.network_up", {
 	position = "right",
+	padding_left = 2,
+	padding_right = 2,
 	width = 0,
-	icon = { drawing = false },
+	icon = { drawing = false, padding_left = 8, padding_right = 0 },
 	label = {
 		string = "—",
 		font = { family = fonts.font.text, style = fonts.font.style_map["Bold"], size = 8.0 },
@@ -28,6 +30,9 @@ local up = sbar.add("item", "widgets.network_up", {
 -- ========== ↓ 下载（下排，y_offset 偏上）==========
 local down = sbar.add("item", "widgets.network_down", {
 	position = "right",
+	update_freq = 2,
+	padding_left = 2,
+	padding_right = 2,
 	width = 0,
 	icon = {
 		string = "",
@@ -54,13 +59,13 @@ local down = sbar.add("item", "widgets.network_down", {
 local net = sbar.add("bracket", "widgets.network", { "widgets.network_up", "widgets.network_down" }, {
 	position = "right",
 	update_freq = 2,
-	padding_left = 6,
-	padding_right = 8,
 	icon = { drawing = false },
 	background = {
 		color = colors.active.bar_bg,
 		corner_radius = 10,
 		border_width = 2,
+		padding_left = 2,
+		padding_right = 10,
 	},
 })
 
@@ -73,17 +78,16 @@ local function format_speed(raw)
 	end
 end
 
-net:subscribe("routine", function()
+down:subscribe("routine", function()
 	sbar.exec("/opt/homebrew/bin/ifstat -i en0 -b 0.1 1 2>/dev/null", function(raw)
 		local lines = {}
-		for line in (raw or ""):gmatch("[^\n]+") do lines[#lines + 1] = line end
+		for line in (raw or ""):gmatch("[^\n]+") do
+			lines[#lines + 1] = line
+		end
 		local data = lines[3] or ""
 		local down_raw, up_raw = data:match("%s*(%S+)%s+(%S+)")
 		local dn = tonumber((down_raw or "0"):match("^(%d+)")) or 0
 		local up_val = tonumber((up_raw or "0"):match("^(%d+)")) or 0
-
-		sbar.exec(string.format("sketchybar -m --push widgets.network %.4f",
-			math.max(dn / MAX_DOWN, up_val / MAX_UP)))
 
 		up:set({ label = "↑" .. format_speed(up_raw) })
 		down:set({ label = "↓" .. format_speed(down_raw) })

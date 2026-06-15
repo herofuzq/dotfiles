@@ -15,7 +15,10 @@ local function findFcitxRemote()
 	}
 	for _, p in ipairs(candidates) do
 		local f = io.open(p, "r")
-		if f then f:close(); return p end
+		if f then
+			f:close()
+			return p
+		end
 	end
 	return "/Library/Input Methods/Fcitx5.app/Contents/bin/fcitx5-remote"
 end
@@ -23,7 +26,7 @@ local FCITX_REMOTE = findFcitxRemote()
 
 local input_method = sbar.add("item", "widgets.input_method", {
 	position = "right",
-	padding_left = 2,
+	padding_left = 4,
 	padding_right = 2,
 	icon = {
 		font = {
