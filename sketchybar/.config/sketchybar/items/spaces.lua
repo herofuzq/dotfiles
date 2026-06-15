@@ -483,8 +483,8 @@ if USE_AEROSPACE then
 					_popup_exit_gen[workspace_index] = (_popup_exit_gen[workspace_index] or 0) + 1
 					_popup_hovering[workspace_index] = true
 					popup_item:set({
-						icon = { color = 0xffff4444 },
-						label = { color = 0xffff4444 },
+						icon = { color = appearance.colors.active.red },
+						label = { color = appearance.colors.active.red },
 					})
 				end)
 				popup_item:subscribe("mouse.exited", function()

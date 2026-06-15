@@ -246,7 +246,7 @@ M.styles = {
 		end),
 
 		label = dynamic_color({
-			highlight_color = 0xffff4444,
+			highlight_color = M.colors.active.red,
 			font = "sketchybar-app-font:Regular:14.0",
 			padding_left = 2,
 			padding_right = 10,
@@ -262,7 +262,7 @@ M.styles = {
 function M.install_defaults()
 	sbar.default({
 		background = {
-			border_color = 0xffbac2de,
+			border_color = M.colors.active.subtext1,
 			border_width = 2,
 			color = M.colors.active.bar_bg,
 			corner_radius = 9,
