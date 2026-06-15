@@ -473,7 +473,7 @@ if USE_AEROSPACE then
 						max_chars = 50,
 						color = appearance.colors.active.text,
 					},
-					background = { drawing = false },
+	background = { drawing = false, border_width = 0 },
 				})
 				_popup_items[workspace_index][i] = popup_item
 

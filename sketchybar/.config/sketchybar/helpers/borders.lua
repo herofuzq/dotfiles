@@ -200,10 +200,14 @@ function distribute(visible_workspace_names, fullscreen_set)
 	-- 工作区
 	for i, name in ipairs(visible_workspace_names) do
 		local is_fullscreen = fullscreen_set[i]
-		sbar.set(name, {
-			background = { border_color = is_fullscreen and 0xfffc618d or 0x1ab0b8cc, border_width = is_fullscreen and 4 or 2 },
-			popup = { background = { border_color = is_fullscreen and 0xfffc618d or 0x1ab0b8cc } },
-		})
+		if is_fullscreen then
+			sbar.set(name, {
+				background = { border_color = 0xfffc618d, border_width = 4 },
+				popup = { background = { border_color = 0xfffc618d } },
+			})
+		else
+			sbar.set(name, { background = { border_width = 2 } })
+		end
 	end
 
 	-- widget
