@@ -81,7 +81,7 @@ net:subscribe("routine", function()
 		sbar.exec(string.format("sketchybar -m --push widgets.network %.4f",
 			math.max(dn / MAX_DOWN, up_val / MAX_UP)))
 
-		up:set({ label = "↑" .. format_speed(up_raw) })
-		down:set({ label = "↓" .. format_speed(down_raw) })
+		up:set({ label = " ↑" .. format_speed(up_raw) })
+		down:set({ label = " ↓" .. format_speed(down_raw) })
 	end)
 end)
