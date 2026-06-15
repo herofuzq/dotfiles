@@ -9,3 +9,5 @@ require("audio") -- 外接显示器自动切换音频输出
 -- require("window_watcher") -- 窗口变化 → sketchybar 更新
 -- require("sketchybar_toggle") -- cmd+ctrl+opt+b 切换 sketchybar 显示/隐藏
 -- require("space_bridge") -- macOS Space 数据桥接（tangrid/原生模式）
+
+require("space") -- Hyper + Tab 返回上一个桌面
