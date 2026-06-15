@@ -83,26 +83,16 @@ on-mode-changed = ['exec-and-forget sketchybar --trigger aerospace_mode_change']
 #                 Monitor pattern is the same as for 'workspace-to-monitor-force-assignment'.
 #                 See:
 #                 https://nikitabobko.github.io/AeroSpace/guide#assign-workspaces-to-monitors
-# [gaps]
-#     inner.horizontal = 6
-#     inner.vertical =   6
-#     outer.left =       10
-#     ## outer.bottom =     46
-#     outer.bottom =     10
-#     ## outer.top =        6
-#     outer.top =        49
-#     outer.right =      10
-    
 [gaps]
 inner.horizontal = 5
 inner.vertical = 5
 outer.left = 5
 outer.bottom = 5
 outer.top = [
-  { monitor."Built-in Retina Display" = 2 },
-  { monitor."VG271U" = 34 },
-  { monitor."Mi Monitor" = 34 },
-  34,
+  { monitor."Built-in Retina Display" = 5 },
+  { monitor."VG271U" = 35 },
+  { monitor."Mi Monitor" = 35 },
+  35,
 ]
 outer.right = 5
 # 'main' binding mode declaration
@@ -335,6 +325,10 @@ run = ["move-node-to-workspace 6̲Play",
 
 [[on-window-detected]]
 if.app-id = "com.blizzard.worldofwarcraft"
+run = 'layout floating'
+
+[[on-window-detected]]
+if.app-id = "om.bitwarden.desktop"
 run = 'layout floating'
 
 [[on-window-detected]]
