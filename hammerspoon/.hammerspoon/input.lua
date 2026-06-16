@@ -52,7 +52,7 @@ local _toggled = 0
 -- ============================================================
 -- 空闲自动切换回英文
 -- ============================================================
-local IDLE_TIMEOUT = 10
+local IDLE_TIMEOUT = 5
 
 local function resetIdleTimer()
 	if _IdleTimer then
@@ -188,14 +188,17 @@ _InputTap = hs.eventtap.new({
 		hyper_used = true
 	end
 	if etype == hs.eventtap.event.types.keyDown then
-		-- 字母、数字、空格、标点、退格/删除 才重置空闲
-		local char = event:getCharacters()
-		local kc = event:getKeyCode()
-		if (char and char:match("^[a-zA-Z0-9 %p]$"))  -- 字母/数字/空格/标点
-			or kc == 51   -- Backspace (Delete)
-			or kc == 117  -- Forward Delete (fn+delete)
-		then
-			resetIdleTimer()
+		-- Hyper 组合键（如 Hyper+数字 切换工作区）不重置空闲
+		if not hyper_pressed then
+			-- 字母、数字、空格、标点、退格/删除 才重置空闲
+			local char = event:getCharacters()
+			local kc = event:getKeyCode()
+			if (char and char:match("^[a-zA-Z0-9 %p]$"))
+				or kc == 51   -- Backspace (Delete)
+				or kc == 117  -- Forward Delete (fn+delete)
+			then
+				resetIdleTimer()
+			end
 		end
 	end
 	return false
