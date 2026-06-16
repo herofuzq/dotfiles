@@ -6,7 +6,7 @@ require("items.widgets.battery") -- 电池电量
 require("items.widgets.clash_tun") -- Clash TUN 代理状态
 require("items.widgets.network") -- 网络速度
 
-sbar.set("widgets.clash_tun", { background = { drawing = false }, padding_left = 0, padding_right = 0 })
+sbar.set("widgets.clash_tun", { background = { drawing = false }, padding_left = 1, padding_right = 0 })
 sbar.set("widgets.network", { background = { drawing = false } })
 sbar.add("bracket", "widgets.system", {
 	"widgets.clash_tun",
