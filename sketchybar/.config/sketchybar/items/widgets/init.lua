@@ -22,6 +22,17 @@ sbar.add("item", "widgets.media_spacer", {
 
 require("items.widgets.dingtalk") -- 钉钉消息数
 require("items.widgets.wechat") -- 微信消息数
+sbar.set("widgets.dingtalk", { background = { drawing = false } })
+sbar.set("widgets.wechat", { background = { drawing = false } })
+sbar.add("bracket", "widgets.social", { "widgets.dingtalk", "widgets.wechat" }, {
+	position = "right",
+	background = {
+		color = require("appearance").colors.active.bar_bg,
+		corner_radius = 10,
+		border_width = 2,
+	},
+})
+
 require("items.widgets.battery") -- 电池电量
 require("items.widgets.input_method") -- 当前输入法
 require("items.widgets.media") -- 媒体控制

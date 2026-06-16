@@ -201,11 +201,7 @@ function M.apply_current_theme()
 		background = { color = M.colors.active.bar_bg },
 		label = { color = M.colors.active.sep_opaque },
 	})
-	-- dingtalk / wechat 通过 theme_changed 事件触发 refresh_colors() 更新颜色
-	sbar.set("widgets.dingtalk", {
-		background = { color = M.colors.active.bar_bg },
-	})
-	sbar.set("widgets.wechat", {
+	sbar.set("widgets.social", {
 		background = { color = M.colors.active.bar_bg },
 	})
 	sbar.set("widgets.media_label", {
