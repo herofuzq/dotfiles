@@ -68,7 +68,6 @@ local next_item = sbar.add("item", "widgets.media_next", {
 	},
 	label = { drawing = false },
 	background = { drawing = false },
-	click_script = MEDIA .. " next-track && sketchybar --trigger media_update",
 })
 
 -- ========== 播放 / 暂停 ==========
@@ -88,8 +87,22 @@ local play_pause = sbar.add("item", "widgets.media_play_pause", {
 	},
 	label = { drawing = false },
 	background = { drawing = false },
-	click_script = MEDIA .. " toggle-play-pause && sketchybar --trigger media_update",
 })
+
+-- 按钮按下立即切换图标，消除 shell click_script 的延迟
+next_item:subscribe("mouse.clicked", function()
+	sbar.exec(MEDIA .. " next-track", function()
+		sbar.trigger("media_update")
+	end)
+end)
+
+play_pause:subscribe("mouse.clicked", function()
+	local cur = play_pause:query().icon.value
+	play_pause:set({ icon = { string = (cur == ICON_PLAY) and ICON_PAUSE or ICON_PLAY } })
+	sbar.exec(MEDIA .. " toggle-play-pause", function()
+		sbar.trigger("media_update")
+	end)
+end)
 
 -- ========== 歌曲信息 ==========
 local label = sbar.add("item", "widgets.media_label", {
