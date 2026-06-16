@@ -115,7 +115,7 @@ local label = sbar.add("item", "widgets.media_label", {
 		color = colors.active.yellow,
 		padding_left = 2,
 		padding_right = 6,
-		max_chars = 12,
+		width = 80,
 		align = "left",
 	},
 	background = { drawing = false },
