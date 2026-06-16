@@ -2,7 +2,7 @@ return {
 	font = {
 		text = "JetBrains Maple Mono",
 		numbers = "JetBrains Maple Mono",
-		size = 13.0,
+		size = 12.0,
 		style_map = {
 			["Regular"] = "Regular",
 			["Semibold"] = "SemiBold",
@@ -14,7 +14,7 @@ return {
 	font_icon = {
 		text = "Hack Nerd Font",
 		numbers = "Hack Nerd Font",
-		size = 13.0,
+		size = 12.0,
 		style_map = {
 			["Regular"] = "Regular",
 			["Semibold"] = "Semibold",
