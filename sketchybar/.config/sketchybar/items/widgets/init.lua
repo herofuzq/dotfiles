@@ -29,7 +29,7 @@ sbar.add("bracket", "widgets.system", {
 -- 就是 network 的 pill。
 sbar.add("item", "widgets.media_spacer", {
 	position = "right",
-	width = 58,
+	width = 56,
 	padding_left = 0,
 	padding_right = 0,
 	background = { drawing = false },
