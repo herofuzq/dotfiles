@@ -17,24 +17,25 @@ local ICON_MUSIC = "\u{f001}"
 -- 无播放时 media-control get 输出 JSON null，回调拿到 nil
 local function refresh()
 	sbar.exec(MEDIA .. " get 2>/dev/null", function(info)
-		local title, artist, playing
+		local title, artist, album, playing
 		if info == nil then
-			title, artist, playing = "", "", false
+			title, artist, album, playing = "", "", "", false
 		else
 			title = info.title or ""
 			artist = info.artist or ""
+			album = info.album or ""
 			playing = info.playing or false
 		end
 
 		local display
-		if title == "" and artist == "" then
+		if title == "" and artist == "" and album == "" then
 			display = "未播放"
-		elseif artist == "" then
-			display = title
-		elseif title == "" then
-			display = artist
 		else
-			display = artist .. " - " .. title
+			local parts = {}
+			if title ~= "" then parts[#parts + 1] = title end
+			if artist ~= "" then parts[#parts + 1] = artist end
+			if album ~= "" then parts[#parts + 1] = album end
+			display = table.concat(parts, " - ")
 		end
 
 		sbar.set("widgets.media_label", { label = { string = display } })
@@ -110,6 +111,4 @@ local label = sbar.add("item", "widgets.media_label", {
 })
 
 label:subscribe("media_update", refresh)
-next_item:subscribe("media_update", refresh)
-play_pause:subscribe("media_update", refresh)
 label:subscribe("routine", refresh)
