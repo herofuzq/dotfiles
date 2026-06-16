@@ -29,7 +29,7 @@ sbar.add("bracket", "widgets.system", {
 -- 就是 network 的 pill。
 sbar.add("item", "widgets.media_spacer", {
 	position = "right",
-	width = 68,
+	width = 64,
 	padding_left = 0,
 	padding_right = 0,
 	background = { drawing = false },
@@ -40,19 +40,21 @@ require("items.widgets.wechat") -- 微信消息数
 sbar.set("widgets.dingtalk", {
 	background = { drawing = false },
 	padding_left = 0,
-	padding_right = 3,
+	padding_right = 4,
 	icon = {
-		padding_left = 0, padding_right = 2,
+		padding_left = 0,
+		padding_right = 2,
 		font = "sketchybar-app-font:Regular:13.0",
 	},
 	label = { padding_left = 2, padding_right = 2 },
 })
 sbar.set("widgets.wechat", {
 	background = { drawing = false },
-	padding_left = 3,
+	padding_left = 4,
 	padding_right = 0,
 	icon = {
-		padding_left = 2, padding_right = 2,
+		padding_left = 2,
+		padding_right = 2,
 		font = "sketchybar-app-font:Regular:13.0",
 	},
 	label = { padding_left = 2, padding_right = 2 },
