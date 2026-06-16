@@ -4,7 +4,7 @@
 local icons = {
 	sf_symbols = {
 		apple = "􀣺",
-		cpu = "􀫥",
+		cpu = "\u{F4BC}",
 
 		battery = {
 			_100 = "\u{F0079}",
@@ -15,7 +15,7 @@ local icons = {
 			charging = "\u{F0084}",
 		},
 		clash = {
-			tun = "",
+			tun = "\u{F0582}",
 		},
 		wifi = "\u{F05A9}",
 		network_down = "",

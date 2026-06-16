@@ -6,10 +6,10 @@ local sbar = require("sketchybar")
 
 sbar.bar({
 	color = appearance.colors.bar.bg,
-	border_width = 1,
+	border_width = 2,
 	border_color = appearance.colors.active.sep,
 	margin = 4,
-	corner_radius = 13,
+	corner_radius = 12,
 	height = settings.height,
 	padding_right = 0,
 	padding_left = 0,
