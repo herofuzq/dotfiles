@@ -91,23 +91,8 @@ local play_pause = sbar.add("item", "widgets.media_play_pause", {
 
 -- 按钮按下立即切换图标，消除 shell click_script 的延迟
 next_item:subscribe("mouse.clicked", function()
-	sbar.exec(MEDIA .. " next-track && " .. MEDIA .. " get", function(info)
-		if type(info) ~= "table" then return end
-		local title = info.title or ""
-		local artist = info.artist or ""
-		local album = info.album or ""
-		local playing = info.playing or false
-
-		local parts = {}
-		if title ~= "" then parts[#parts + 1] = title end
-		if artist ~= "" then parts[#parts + 1] = artist end
-		if album ~= "" then parts[#parts + 1] = album end
-		local display = #parts > 0 and table.concat(parts, " - ") or "未播放"
-
-		sbar.set("widgets.media_label", { label = { string = display } })
-		sbar.set("widgets.media_play_pause", {
-			icon = { string = playing and ICON_PAUSE or ICON_PLAY },
-		})
+	sbar.exec(MEDIA .. " next-track", function()
+		sbar.trigger("media_update")
 	end)
 end)
 
