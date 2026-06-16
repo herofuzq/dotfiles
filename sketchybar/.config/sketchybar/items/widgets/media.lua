@@ -1,4 +1,4 @@
--- ========== 媒体控制（歌名 + 上/暂停/下 按钮）==========
+-- ========== 媒体控制（歌名 + 下一首 + 播放/暂停 按钮）==========
 -- 布局完全照抄 network.lua：每个 item padding_left/right=2，
 -- bracket background.padding_left/right=2/10，让 bracket pill 的右边自然对齐。
 local sbar = require("sketchybar")
@@ -8,7 +8,6 @@ local colors = require("appearance").colors
 local MEDIA = "/opt/homebrew/bin/media-control"
 
 -- Nerd Font 媒体控制图标
-local ICON_PREV = "\u{f048}"
 local ICON_PLAY = "\u{f04b}"
 local ICON_PAUSE = "\u{f04c}"
 local ICON_NEXT = "\u{f051}"
@@ -45,40 +44,6 @@ local function refresh()
 	end)
 end
 
--- ========== 上一首 ==========
-local prev = sbar.add("item", "widgets.media_prev", {
-	position = "right",
-	padding_left = 2,
-	padding_right = 2,
-	icon = {
-		string = ICON_PREV,
-		font = { family = fonts.font_icon.text, style = fonts.font_icon.style_map["Bold"], size = 11.0 },
-		color = colors.active.sep_opaque,
-		padding_left = 4,
-		padding_right = 0,
-	},
-	label = { drawing = false },
-	background = { drawing = false },
-	click_script = MEDIA .. " previous-track && sketchybar --trigger media_update",
-})
-
--- ========== 播放 / 暂停 ==========
-local play_pause = sbar.add("item", "widgets.media_play_pause", {
-	position = "right",
-	padding_left = 2,
-	padding_right = 2,
-	icon = {
-		string = ICON_PLAY,
-		font = { family = fonts.font_icon.text, style = fonts.font_icon.style_map["Bold"], size = 12.0 },
-		color = colors.active.sep_opaque,
-		padding_left = 0,
-		padding_right = 0,
-	},
-	label = { drawing = false },
-	background = { drawing = false },
-	click_script = MEDIA .. " toggle-play-pause && sketchybar --trigger media_update",
-})
-
 -- ========== 下一首 ==========
 local next_item = sbar.add("item", "widgets.media_next", {
 	position = "right",
@@ -94,6 +59,23 @@ local next_item = sbar.add("item", "widgets.media_next", {
 	label = { drawing = false },
 	background = { drawing = false },
 	click_script = MEDIA .. " next-track && sketchybar --trigger media_update",
+})
+
+-- ========== 播放 / 暂停 ==========
+local play_pause = sbar.add("item", "widgets.media_play_pause", {
+	position = "right",
+	padding_left = 2,
+	padding_right = 2,
+	icon = {
+		string = ICON_PLAY,
+		font = { family = fonts.font_icon.text, style = fonts.font_icon.style_map["Bold"], size = 11.0 },
+		color = colors.active.sep_opaque,
+		padding_left = 4,
+		padding_right = 0,
+	},
+	label = { drawing = false },
+	background = { drawing = false },
+	click_script = MEDIA .. " toggle-play-pause && sketchybar --trigger media_update",
 })
 
 -- ========== 歌曲信息 ==========
@@ -130,9 +112,8 @@ local label = sbar.add("item", "widgets.media_label", {
 -- ========== bracket 容器：背景 + 圆角 + 边框 ==========
 sbar.add("bracket", "widgets.media", {
 	"widgets.media_label",
-	"widgets.media_prev",
-	"widgets.media_play_pause",
 	"widgets.media_next",
+	"widgets.media_play_pause",
 }, {
 	position = "right",
 	background = {
@@ -145,7 +126,6 @@ sbar.add("bracket", "widgets.media", {
 })
 
 label:subscribe("media_update", refresh)
-prev:subscribe("media_update", refresh)
-play_pause:subscribe("media_update", refresh)
 next_item:subscribe("media_update", refresh)
+play_pause:subscribe("media_update", refresh)
 label:subscribe("routine", refresh)
