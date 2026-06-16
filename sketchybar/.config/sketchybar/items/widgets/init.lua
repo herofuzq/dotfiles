@@ -6,6 +6,21 @@ require("items.widgets.battery") -- 电池电量
 require("items.widgets.clash_tun") -- Clash TUN 代理状态
 require("items.widgets.network") -- 网络速度
 
+sbar.set("widgets.clash_tun", { background = { drawing = false }, padding_left = 0, padding_right = 0 })
+sbar.set("widgets.network", { background = { drawing = false } })
+sbar.add("bracket", "widgets.system", {
+	"widgets.clash_tun",
+	"widgets.network_up",
+	"widgets.network_down",
+}, {
+	position = "right",
+	background = {
+		color = require("appearance").colors.active.bar_bg,
+		corner_radius = 10,
+		border_width = 2,
+	},
+})
+
 -- spacer：network 的上下行 item 用 y_offset 垂直堆叠（X 范围重合），
 -- 不预留水平空间。media 是水平 item，加在 network 之后会被算法放到
 -- bar 右边缘，覆盖 network 的 X 区域，造成两个 bracket pill 视觉重叠。
