@@ -50,7 +50,7 @@ sketchybar --reload       # 状态栏（helpers 自动编译）
 | 类别 | 典型软件 |
 |------|---------|
 | Terminal | ghostty, tmux, starship, zoxide, fzf, bat, fd, yazi |
-| Editor | neovide, lazygit |
+| Editor | neovide-app, lazygit |
 | macOS Tools | raycast, hammerspoon, karabiner-elements, aerospace, borders |
 | Desktop Apps | obsidian, typora, bitwarden, iina |
 | Fonts | hack-nerd-font, jetbrains-maple-mono-nf, sarasa-gothic, sketchybar-app-font |
@@ -87,6 +87,7 @@ brew bundle cleanup --file=Brewfile       # 清理未列出项
 |---------|---------|------|
 | `nvim` | `~/.config/nvim/` | Neovim 配置（lazy.nvim + LazyVim） |
 | `lazygit` | `~/.config/lazygit/config.yml` | Lazygit 配置 |
+| `npm` | `~/.npmrc` | npm 镜像源配置 |
 
 **新机器注意：**
 - 首次启动 Neovim 会自动安装所有插件
@@ -193,7 +194,9 @@ xcode-select --install
 cd ~ && git clone <your-dotfiles-repo> dotfiles
 
 # ▸ Stow 所有配置
-cd dotfiles && stow --no-folding $(ls -d */ | tr -d '/')
+cd dotfiles && stow --no-folding aerospace bash bat borders btop clash cmux fastfetch fcitx5 fd \
+     ghostty git hammerspoon karabiner kitty lazygit npm nvim \
+     sketchybar ssh starship tmux yazi zsh
 
 # ▸ 安装 Homebrew 软件
 brew bundle install --file=Brewfile
@@ -233,6 +236,7 @@ dotfiles/
 ├── git/                  # Git 全局配置
 ├── hammerspoon/          # macOS 自动化
 ├── karabiner/            # 键盘改键
+├── kitty/                # 终端模拟器
 ├── lazygit/              # Git TUI
 ├── npm/                  # npm 配置
 ├── nvim/                 # Neovim

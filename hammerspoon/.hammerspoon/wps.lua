@@ -27,14 +27,14 @@ local function createWPSTap()
 				if _FcitxInput.isChinese() then
 					_FcitxInput.switchToEnglishAsync()
 					_switched = true
-					hs.alert.show("⚠ ABC", 0.5)
+					hs.alert.show("⌨ 英文输入中", 0.5)
 				end
 			elseif _switched then
 				if etype == hs.eventtap.event.types.leftMouseDown then
 					if _recoverTimer then _recoverTimer:stop(); _recoverTimer = nil end
 					_FcitxInput.switchToChineseAsync()
 					_switched = false
-					hs.alert.show("⚠ 中文", 0.5)
+					hs.alert.show("⌨ 中文输入中", 0.5)
 				elseif etype == hs.eventtap.event.types.keyDown then
 					-- trailing-edge 防抖：每次 key 都重置定时器，0.3s 无输入才恢复中文
 					if _recoverTimer then _recoverTimer:stop() end
@@ -43,7 +43,7 @@ local function createWPSTap()
 						if _switched then
 							_FcitxInput.switchToChineseAsync()
 							_switched = false
-							hs.alert.show("⚠ 中文", 0.5)
+							hs.alert.show("⌨ 中文输入中", 0.5)
 						end
 					end)
 				end

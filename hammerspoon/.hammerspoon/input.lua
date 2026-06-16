@@ -49,14 +49,38 @@ local _zhState = ZH
 
 local _toggled = 0
 
+-- ============================================================
+-- 空闲自动切换回英文
+-- ============================================================
+local IDLE_TIMEOUT = 10
+
+local function resetIdleTimer()
+	if _IdleTimer then
+		_IdleTimer:stop()
+	end
+	_IdleTimer = hs.timer.doAfter(IDLE_TIMEOUT, function()
+		hs.task.new(FCITX, function(_, stdout)
+			local state = tonumber(stdout and stdout:match("(%d)"))
+			if state == 2 then
+				hs.execute("'" .. FCITX .. "' -s " .. IM_EN, true)
+				_zhState = EN
+				hs.alert.show("⏱ 英文输入中", 0.4)
+			elseif state == 1 then
+				_zhState = EN
+			end
+		end, {}):start()
+	end)
+end
+
 local function toggle()
 	_toggled = hs.timer.secondsSinceEpoch()
 
 	-- 如果当前输入源是 ABC（非 fcitx5），切到 fcitx5（macism 自带等待）
 	if not isUsingFcitx5() then
 		hs.execute(MACISM_BIN .. " " .. FCITX5_SRC .. " 150", true)
-		hs.alert.show("⌨ 中文", 0.4)
+		hs.alert.show("⌨ 中文输入中", 0.4)
 		_zhState = ZH
+		resetIdleTimer()
 		return
 	end
 
@@ -65,7 +89,10 @@ local function toggle()
 	hs.task.new(FCITX, function()
 		hs.task.new(FCITX, function(_, stdout)
 			_zhState = (tonumber(stdout and stdout:match("(%d)")) == 2) and ZH or EN
-			hs.alert.show(_zhState == ZH and "⌨ 中文" or "⌨ 英文", 0.4)
+			hs.alert.show(_zhState == ZH and "⌨ 中文输入中" or "⌨ 英文输入中", 0.4)
+			if _zhState == ZH then
+				resetIdleTimer()
+			end
 		end, {}):start()
 	end, { "-t" }):start()
 end
@@ -160,9 +187,23 @@ _InputTap = hs.eventtap.new({
 	elseif hyper_pressed then
 		hyper_used = true
 	end
+	if etype == hs.eventtap.event.types.keyDown then
+		-- 字母、数字、空格、标点、退格/删除 才重置空闲
+		local char = event:getCharacters()
+		local kc = event:getKeyCode()
+		if (char and char:match("^[a-zA-Z0-9 %p]$"))  -- 字母/数字/空格/标点
+			or kc == 51   -- Backspace (Delete)
+			or kc == 117  -- Forward Delete (fn+delete)
+		then
+			resetIdleTimer()
+		end
+	end
 	return false
 end)
 _InputTap:start()
+
+-- 启动空闲计时器
+resetIdleTimer()
 
 -- ============================================================
 -- 暴露接口给外部模块使用（如 wps.lua）
