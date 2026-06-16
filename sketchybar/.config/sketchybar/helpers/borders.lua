@@ -11,8 +11,7 @@ local widget_order = {
 	"widgets.input_method",
 	"widgets.battery",
 	"widgets.social",
-	"widgets.clash_tun",
-	"widgets.network",
+	"widgets.system",
 	"widgets.sys",
 }
 

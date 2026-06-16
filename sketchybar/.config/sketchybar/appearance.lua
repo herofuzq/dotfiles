@@ -186,12 +186,8 @@ function M.apply_current_theme()
 		background = { color = M.colors.active.bar_bg },
 		label = { color = M.colors.active.sep_opaque },
 	})
-	sbar.set("widgets.network", {
+	sbar.set("widgets.system", {
 		background = { color = M.colors.active.bar_bg },
-	})
-	sbar.set("widgets.clash_tun", {
-		background = { color = M.colors.active.bar_bg },
-		label = { color = M.colors.active.sep_opaque },
 	})
 	sbar.set("widgets.battery", {
 		background = { color = M.colors.active.bar_bg },
