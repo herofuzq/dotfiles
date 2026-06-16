@@ -14,8 +14,8 @@ local function compute_icon_pad()
 	if dock_hidden == 1 then
 		return 15, 15
 	else
-		local pad = math.floor((dock_w - icon_width - 2 * border_width) / 2)
-		return pad + 1, pad - 1
+		local pad = math.floor((dock_w - icon_width - 2 * border_width - 4) / 2)
+		return pad + 0, pad - 0
 	end
 end
 

@@ -10,7 +10,7 @@ config-version = 2
 # You can use it to add commands that run after AeroSpace startup.
 # Available commands : https://nikitabobko.github.io/AeroSpace/commands
 after-startup-command = [
-  # 'exec-and-forget borders active_color=0xffff9e64 inactive_color=0x00000000 width=2.0 hidpi=on',
+  'exec-and-forget borders active_color=0xffff9e64 inactive_color=0x00000000 width=4.0 hidpi=on',
   # 兜底设计：无论 sketchybar 是否已运行都能正确启动
   # - 已有实例 → 第 1 条发 reload 信号（向运行中的实例请求重载配置）
   # - 未启动   → 第 1 条无效（无实例接收），第 2 条冷启动 sketchybar

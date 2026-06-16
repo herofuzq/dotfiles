@@ -6,7 +6,7 @@ local colors = require("appearance").colors
 local cal = sbar.add("item", "calendar", {
 	icon = {
 		font = { family = fonts.font.text, style = fonts.font.style_map["Bold"], size = fonts.font.size },
-		padding_left = 8,
+		padding_left = 6,
 		padding_right = 2,
 		color = colors.active.sep_opaque,
 	},
@@ -17,9 +17,10 @@ local cal = sbar.add("item", "calendar", {
 		color = colors.active.sep_opaque,
 	},
 	background = {
-		color = colors.active.bar_bg,
-		corner_radius = 10,
-		border_width = 2,
+		-- color = colors.active.bar_bg,
+		-- corner_radius = 10,
+		-- border_width = 2,
+		drawing = false,
 	},
 	popup = {
 		align = "right",
