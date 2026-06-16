@@ -468,7 +468,7 @@ if USE_AEROSPACE then
 						font = {
 							family = fonts.font.text,
 							style = fonts.font.style_map["Semibold"],
-							size = fonts.font.size,
+							size = 13.0,
 						},
 						padding_left = 0,
 						padding_right = 16,

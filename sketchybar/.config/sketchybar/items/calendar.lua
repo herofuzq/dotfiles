@@ -5,13 +5,13 @@ local colors = require("appearance").colors
 
 local cal = sbar.add("item", "calendar", {
 	icon = {
-		font = { family = fonts.font.text, style = fonts.font.style_map["Bold"], size = fonts.font.size },
+		font = { family = fonts.font.text, style = fonts.font.style_map["Bold"], size = 13.0 },
 		padding_left = 6,
 		padding_right = 2,
 		color = colors.active.sep_opaque,
 	},
 	label = {
-		font = { family = fonts.font.text, style = fonts.font.style_map["Bold"], size = fonts.font.size },
+		font = { family = fonts.font.text, style = fonts.font.style_map["Bold"], size = 13.0 },
 		padding_left = 0,
 		padding_right = 14,
 		color = colors.active.sep_opaque,
