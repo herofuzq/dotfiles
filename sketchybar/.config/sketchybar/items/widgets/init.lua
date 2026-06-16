@@ -20,7 +20,6 @@ sbar.add("bracket", "widgets.system", {
 		border_width = 2,
 	},
 })
-
 -- spacer：network 的上下行 item 用 y_offset 垂直堆叠（X 范围重合），
 -- 不预留水平空间。media 是水平 item，加在 network 之后会被算法放到
 -- bar 右边缘，覆盖 network 的 X 区域，造成两个 bracket pill 视觉重叠。
@@ -30,7 +29,7 @@ sbar.add("bracket", "widgets.system", {
 -- 就是 network 的 pill。
 sbar.add("item", "widgets.media_spacer", {
 	position = "right",
-	width = 72,
+	width = 68,
 	padding_left = 0,
 	padding_right = 0,
 	background = { drawing = false },
@@ -42,14 +41,20 @@ sbar.set("widgets.dingtalk", {
 	background = { drawing = false },
 	padding_left = 0,
 	padding_right = 3,
-	icon = { padding_left = 0, padding_right = 2 },
+	icon = {
+		padding_left = 0, padding_right = 2,
+		font = "sketchybar-app-font:Regular:13.0",
+	},
 	label = { padding_left = 2, padding_right = 2 },
 })
 sbar.set("widgets.wechat", {
 	background = { drawing = false },
 	padding_left = 3,
 	padding_right = 0,
-	icon = { padding_left = 2, padding_right = 2 },
+	icon = {
+		padding_left = 2, padding_right = 2,
+		font = "sketchybar-app-font:Regular:13.0",
+	},
 	label = { padding_left = 2, padding_right = 2 },
 })
 sbar.add("bracket", "widgets.social", { "widgets.dingtalk", "widgets.wechat" }, {

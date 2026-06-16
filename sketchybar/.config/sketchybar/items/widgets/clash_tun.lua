@@ -8,7 +8,7 @@ local settings = require("settings")
 local clash_tun = sbar.add("item", "widgets.clash_tun", {
 	position = "right",
 	update_freq = 30,
-	padding_left = 4,
+	padding_left = 0,
 	padding_right = 2,
 	icon = {
 		font = {
@@ -16,7 +16,7 @@ local clash_tun = sbar.add("item", "widgets.clash_tun", {
 			style = fonts.font_icon.style_map["Bold"],
 			size = fonts.font_icon.size,
 		},
-		padding_left = settings.item_padding.icon_label_item.icon.padding_left,
+		padding_left = 2,
 		padding_right = 2,
 		color = colors.active.bg3_opaque,
 	},
