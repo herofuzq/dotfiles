@@ -22,8 +22,8 @@ sbar.add("item", "widgets.media_spacer", {
 
 require("items.widgets.dingtalk") -- 钉钉消息数
 require("items.widgets.wechat") -- 微信消息数
-sbar.set("widgets.dingtalk", { background = { drawing = false } })
-sbar.set("widgets.wechat", { background = { drawing = false } })
+sbar.set("widgets.dingtalk", { background = { drawing = false }, padding_left = 0, padding_right = 0 })
+sbar.set("widgets.wechat", { background = { drawing = false }, padding_left = 0, padding_right = 0 })
 sbar.add("bracket", "widgets.social", { "widgets.dingtalk", "widgets.wechat" }, {
 	position = "right",
 	background = {
