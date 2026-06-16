@@ -15,7 +15,10 @@ local ICON_MUSIC = "\u{f001}"
 
 -- sbar.exec 回调：JSON 输出自动解析成 Lua table（无需手动 parse）
 -- 无播放时 media-control get 输出 JSON null，回调拿到 nil
+local pending = false
+
 local function refresh()
+	if pending then return end
 	sbar.exec(MEDIA .. " get 2>/dev/null", function(info)
 		local title, artist, album, playing
 		if info == nil then
@@ -91,15 +94,19 @@ local play_pause = sbar.add("item", "widgets.media_play_pause", {
 
 -- 按钮按下立即切换图标，消除 shell click_script 的延迟
 next_item:subscribe("mouse.clicked", function()
+	pending = true
 	sbar.exec(MEDIA .. " next-track", function()
+		pending = false
 		sbar.trigger("media_update")
 	end)
 end)
 
 play_pause:subscribe("mouse.clicked", function()
+	pending = true
 	local cur = play_pause:query().icon.value
 	play_pause:set({ icon = { string = (cur == ICON_PLAY) and ICON_PAUSE or ICON_PLAY } })
 	sbar.exec(MEDIA .. " toggle-play-pause", function()
+		pending = false
 		sbar.trigger("media_update")
 	end)
 end)
