@@ -91,7 +91,6 @@ local play_pause = sbar.add("item", "widgets.media_play_pause", {
 
 -- 按钮按下立即切换图标，消除 shell click_script 的延迟
 next_item:subscribe("mouse.clicked", function()
-	sbar.set("widgets.media_label", { label = { string = "…" } })
 	sbar.exec(MEDIA .. " next-track && " .. MEDIA .. " get", function(info)
 		if type(info) ~= "table" then return end
 		local title = info.title or ""
