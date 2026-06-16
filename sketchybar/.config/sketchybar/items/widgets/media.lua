@@ -15,6 +15,8 @@ local ICON_MUSIC = "\u{f001}"
 
 -- sbar.exec 回调：JSON 输出自动解析成 Lua table（无需手动 parse）
 -- 无播放时 media-control get 输出 JSON null，回调拿到 nil
+local skip_icon = 0
+
 local function refresh()
 	sbar.exec(MEDIA .. " get 2>/dev/null", function(info)
 		local title, artist, album, playing
@@ -45,9 +47,13 @@ local function refresh()
 		end
 
 		sbar.set("widgets.media_label", { label = { string = display } })
-		sbar.set("widgets.media_play_pause", {
-			icon = { string = playing and ICON_PAUSE or ICON_PLAY },
-		})
+		if skip_icon > 0 then
+			skip_icon = skip_icon - 1
+		else
+			sbar.set("widgets.media_play_pause", {
+				icon = { string = playing and ICON_PAUSE or ICON_PLAY },
+			})
+		end
 	end)
 end
 
@@ -97,6 +103,7 @@ next_item:subscribe("mouse.clicked", function()
 end)
 
 play_pause:subscribe("mouse.clicked", function()
+	skip_icon = 1
 	local cur = play_pause:query().icon.value
 	play_pause:set({ icon = { string = (cur == ICON_PLAY) and ICON_PAUSE or ICON_PLAY } })
 	sbar.exec(MEDIA .. " toggle-play-pause")
