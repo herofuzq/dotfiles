@@ -5,10 +5,13 @@ local colors = require("appearance").colors
 local settings = require("settings")
 
 return function(opts)
-
 	local function resolve_color(key)
-		if key == nil then return colors.active.bg3_opaque end
-		if type(key) == "number" then return key end
+		if key == nil then
+			return colors.active.bg3_opaque
+		end
+		if type(key) == "number" then
+			return key
+		end
 		local c = colors.active[key]
 		if c == nil then
 			local n = tonumber(key)
@@ -57,25 +60,37 @@ return function(opts)
 		last_num = num
 		item:set({
 			icon = { color = num > 0 and resolve_color(opts.icon_color) or resolve_color(opts.icon_inactive_color) },
-			label = { string = label, color = num > 0 and resolve_color(opts.label_color) or resolve_color(opts.label_inactive_color) },
+			label = {
+				string = label,
+				color = num > 0 and resolve_color(opts.label_color) or resolve_color(opts.label_inactive_color),
+			},
 		})
 	end
 
 	local safe_id = opts.app_id:gsub("[^%w%.%-]", "") -- 过滤非法字符，防止 shell 注入
 	if safe_id == "" then
-		io.stderr:write("sketchybar: status_widget: invalid app_id after sanitization: " .. tostring(opts.app_id) .. "\n")
+		io.stderr:write(
+			"sketchybar: status_widget: invalid app_id after sanitization: " .. tostring(opts.app_id) .. "\n"
+		)
 		return
 	end
 
 	local function check_status()
-		sbar.exec("lsappinfo -all info -only StatusLabel " .. safe_id .. " | sed -n 's/.*\"label\"=\"\\([^\"]*\\)\".*/\\1/p'", update_display)
+		sbar.exec(
+			"lsappinfo -all info -only StatusLabel " .. safe_id .. ' | sed -n \'s/.*"label"="\\([^"]*\\)".*/\\1/p\'',
+			update_display
+		)
 	end
 
 	-- 主题切换时仅刷新颜色，不重查应用状态
 	local function refresh_colors()
 		item:set({
-			icon = { color = last_num > 0 and resolve_color(opts.icon_color) or resolve_color(opts.icon_inactive_color) },
-			label = { color = last_num > 0 and resolve_color(opts.label_color) or resolve_color(opts.label_inactive_color) },
+			icon = {
+				color = last_num > 0 and resolve_color(opts.icon_color) or resolve_color(opts.icon_inactive_color),
+			},
+			label = {
+				color = last_num > 0 and resolve_color(opts.label_color) or resolve_color(opts.label_inactive_color),
+			},
 		})
 	end
 

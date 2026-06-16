@@ -9,4 +9,6 @@ status_widget({
 	icon_inactive_color = "blue",
 	label_color = "peach",
 	label_inactive_color = "sep_opaque",
+	padding_left = 2,
+	padding_right = 2,
 })

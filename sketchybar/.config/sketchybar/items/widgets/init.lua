@@ -1,13 +1,9 @@
 -- ========== 加载所有右侧小组件（从右到左排列） ==========
 local sbar = require("sketchybar")
 
-require("items.widgets.sys")           -- CPU 占用率
-require("items.widgets.clash_tun")     -- Clash TUN 代理状态
-require("items.widgets.dingtalk")      -- 钉钉消息数
-require("items.widgets.wechat")        -- 微信消息数
-require("items.widgets.battery")       -- 电池电量
-require("items.widgets.input_method")  -- 当前输入法
-require("items.widgets.network")       -- 网络速度
+require("items.widgets.sys") -- CPU 占用率
+require("items.widgets.clash_tun") -- Clash TUN 代理状态
+require("items.widgets.network") -- 网络速度
 
 -- spacer：network 的上下行 item 用 y_offset 垂直堆叠（X 范围重合），
 -- 不预留水平空间。media 是水平 item，加在 network 之后会被算法放到
@@ -18,9 +14,14 @@ require("items.widgets.network")       -- 网络速度
 -- 就是 network 的 pill。
 sbar.add("item", "widgets.media_spacer", {
 	position = "right",
-	width = 68,
-	padding_left = 4,
+	width = 70,
+	padding_left = 0,
+	padding_right = 0,
 	background = { drawing = false },
 })
 
-require("items.widgets.media")         -- 媒体控制
+require("items.widgets.dingtalk") -- 钉钉消息数
+require("items.widgets.wechat") -- 微信消息数
+require("items.widgets.battery") -- 电池电量
+require("items.widgets.input_method") -- 当前输入法
+require("items.widgets.media") -- 媒体控制

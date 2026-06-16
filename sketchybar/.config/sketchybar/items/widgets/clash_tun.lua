@@ -5,11 +5,11 @@ local fonts = require("fonts")
 local colors = require("appearance").colors
 local settings = require("settings")
 
-	local clash_tun = sbar.add("item", "widgets.clash_tun", {
-		position = "right",
-		update_freq = 30,
-		padding_left = 2,
-		padding_right = 2,
+local clash_tun = sbar.add("item", "widgets.clash_tun", {
+	position = "right",
+	update_freq = 30,
+	padding_left = 4,
+	padding_right = 2,
 	icon = {
 		font = {
 			family = fonts.font_icon.text,
@@ -38,18 +38,34 @@ local settings = require("settings")
 })
 
 local function color_for(state)
-	if state == "all" then return colors.active.mauve end
-	if state == "tun" then return colors.active.green end
-	if state == "sys" then return colors.active.sapphire end
-	if state == "off" then return colors.active.red end
+	if state == "all" then
+		return colors.active.mauve
+	end
+	if state == "tun" then
+		return colors.active.green
+	end
+	if state == "sys" then
+		return colors.active.sapphire
+	end
+	if state == "off" then
+		return colors.active.red
+	end
 	return colors.active.bg3_opaque
 end
 
 local function label_for(state)
-	if state == "all" then return "ALL" end
-	if state == "tun" then return "TUN" end
-	if state == "sys" then return "SYS" end
-	if state == "off" then return "OFF" end
+	if state == "all" then
+		return "ALL"
+	end
+	if state == "tun" then
+		return "TUN"
+	end
+	if state == "sys" then
+		return "SYS"
+	end
+	if state == "off" then
+		return "OFF"
+	end
 	return "—"
 end
 
@@ -81,4 +97,3 @@ clash_tun:subscribe({ "routine", "system_woke" }, check_status)
 check_status()
 
 clash_tun:subscribe("theme_changed", refresh_colors)
-
