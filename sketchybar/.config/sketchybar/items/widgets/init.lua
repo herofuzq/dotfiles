@@ -14,25 +14,26 @@ require("items.widgets.network") -- 网络速度
 -- 就是 network 的 pill。
 sbar.add("item", "widgets.media_spacer", {
 	position = "right",
-	width = 70,
+	width = 72,
 	padding_left = 0,
 	padding_right = 0,
 	background = { drawing = false },
 })
-
 require("items.widgets.dingtalk") -- 钉钉消息数
 require("items.widgets.wechat") -- 微信消息数
 sbar.set("widgets.dingtalk", {
 	background = { drawing = false },
-	padding_left = 0, padding_right = 0,
-	icon = { padding_left = 4, padding_right = 2 },
-	label = { padding_left = 0, padding_right = 4 },
+	padding_left = 0,
+	padding_right = 3,
+	icon = { padding_left = 0, padding_right = 2 },
+	label = { padding_left = 2, padding_right = 2 },
 })
 sbar.set("widgets.wechat", {
 	background = { drawing = false },
-	padding_left = 0, padding_right = 0,
-	icon = { padding_left = 4, padding_right = 2 },
-	label = { padding_left = 0, padding_right = 4 },
+	padding_left = 3,
+	padding_right = 0,
+	icon = { padding_left = 2, padding_right = 2 },
+	label = { padding_left = 2, padding_right = 2 },
 })
 sbar.add("bracket", "widgets.social", { "widgets.dingtalk", "widgets.wechat" }, {
 	position = "right",
