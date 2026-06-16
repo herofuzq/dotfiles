@@ -32,9 +32,15 @@ local function refresh()
 			display = "未播放"
 		else
 			local parts = {}
-			if title ~= "" then parts[#parts + 1] = title end
-			if artist ~= "" then parts[#parts + 1] = artist end
-			if album ~= "" then parts[#parts + 1] = album end
+			if title ~= "" then
+				parts[#parts + 1] = title
+			end
+			if artist ~= "" then
+				parts[#parts + 1] = artist
+			end
+			if album ~= "" then
+				parts[#parts + 1] = album
+			end
 			display = table.concat(parts, " - ")
 		end
 
@@ -50,12 +56,15 @@ local next_item = sbar.add("item", "widgets.media_next", {
 	position = "right",
 	padding_left = 2,
 	padding_right = 2,
+	width = 28,
 	icon = {
 		string = ICON_NEXT,
-		font = { family = fonts.font_icon.text, style = fonts.font_icon.style_map["Bold"], size = 11.0 },
+		font = { family = fonts.font_icon.text, style = fonts.font_icon.style_map["Bold"], size = 14.0 },
 		color = colors.active.sep_opaque,
-		padding_left = 0,
+		padding_left = 4,
 		padding_right = 4,
+		width = 20,
+		align = "center",
 	},
 	label = { drawing = false },
 	background = { drawing = false },
@@ -67,12 +76,15 @@ local play_pause = sbar.add("item", "widgets.media_play_pause", {
 	position = "right",
 	padding_left = 2,
 	padding_right = 2,
+	width = 28,
 	icon = {
 		string = ICON_PLAY,
-		font = { family = fonts.font_icon.text, style = fonts.font_icon.style_map["Bold"], size = 11.0 },
+		font = { family = fonts.font_icon.text, style = fonts.font_icon.style_map["Bold"], size = 14.0 },
 		color = colors.active.sep_opaque,
 		padding_left = 4,
-		padding_right = 0,
+		padding_right = 4,
+		width = 20,
+		align = "center",
 	},
 	label = { drawing = false },
 	background = { drawing = false },
@@ -84,12 +96,12 @@ local label = sbar.add("item", "widgets.media_label", {
 	position = "right",
 	update_freq = 3,
 	padding_left = 2,
-	padding_right = 2,
+	padding_right = 0,
 	icon = {
 		string = ICON_MUSIC,
 		font = { family = fonts.font_icon.text, style = fonts.font_icon.style_map["Bold"], size = 11.0 },
 		color = colors.active.peach,
-		padding_left = 6,
+		padding_left = 2,
 		padding_right = 2,
 	},
 	label = {
@@ -101,7 +113,7 @@ local label = sbar.add("item", "widgets.media_label", {
 		},
 		color = colors.active.yellow,
 		padding_left = 2,
-		padding_right = 6,
+		padding_right = 0,
 		max_chars = 6,
 		truncation_count = 4,
 		scroll_texts = "on",
