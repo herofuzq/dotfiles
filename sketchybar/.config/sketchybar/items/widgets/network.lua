@@ -35,7 +35,7 @@ local down = sbar.add("item", "widgets.network_down", {
 	padding_right = 2,
 	width = 0,
 icon = {
-		string = "",
+		string = icons.wifi,
 		font = { family = fonts.font_icon.text, style = fonts.font_icon.style_map["Bold"], size = 13.0 },
 		drawing = true,
 		padding_left = 4,
