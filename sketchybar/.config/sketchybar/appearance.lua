@@ -129,7 +129,7 @@ end
 function M.init_colors(mode)
 	if mode == "dark" then
 		M.colors.active = M.colors.catppuccin_mocha
-		M.colors.bar.bg = 0x000d0d13 -- 全透明
+		M.colors.bar.bg = 0x66181a22
 		M.colors.bar.border = 0xB33a3a45
 	else
 		M.colors.active = M.colors.catppuccin_latte
