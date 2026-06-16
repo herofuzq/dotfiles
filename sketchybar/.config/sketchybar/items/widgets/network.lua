@@ -13,7 +13,7 @@ local up = sbar.add("item", "widgets.network_up", {
 	padding_left = 2,
 	padding_right = 2,
 	width = 0,
-	icon = { drawing = false, padding_left = 4, padding_right = 0 },
+	icon = { drawing = false, padding_left = 2, padding_right = 0 },
 	label = {
 		string = "—",
 		font = { family = fonts.font.text, style = fonts.font.style_map["Bold"], size = 8.0 },
@@ -38,7 +38,7 @@ icon = {
 		string = icons.wifi,
 		font = { family = fonts.font_icon.text, style = fonts.font_icon.style_map["Bold"], size = 13.0 },
 		drawing = true,
-		padding_left = 4,
+padding_left = 2,
 		padding_right = 0,
 		color = colors.active.sapphire,
 	},
