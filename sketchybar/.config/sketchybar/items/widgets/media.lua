@@ -98,31 +98,15 @@ local label = sbar.add("item", "widgets.media_label", {
 			style = fonts.font.style_map["Semibold"],
 			size = fonts.font.size,
 		},
-		color = colors.active.sep_opaque,
+		color = colors.active.yellow,
 		padding_left = 2,
 		padding_right = 6,
-		max_chars = 16,
-		truncation_count = 12,
+		max_chars = 6,
+		truncation_count = 4,
 		scroll_texts = "on",
 		align = "left",
 	},
 	background = { drawing = false },
-})
-
--- ========== bracket 容器：背景 + 圆角 + 边框 ==========
-sbar.add("bracket", "widgets.media", {
-	"widgets.media_label",
-	"widgets.media_next",
-	"widgets.media_play_pause",
-}, {
-	position = "right",
-	background = {
-		color = colors.active.bar_bg,
-		corner_radius = 10,
-		border_width = 2,
-		padding_left = 2,
-		padding_right = 10,
-	},
 })
 
 label:subscribe("media_update", refresh)
