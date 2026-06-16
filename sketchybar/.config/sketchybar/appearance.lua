@@ -208,6 +208,18 @@ function M.apply_current_theme()
 	sbar.set("widgets.wechat", {
 		background = { color = M.colors.active.bar_bg },
 	})
+	sbar.set("widgets.media_label", {
+		label = { color = M.colors.active.sep_opaque },
+	})
+	sbar.set("widgets.media_prev", {
+		icon = { color = M.colors.active.sep_opaque },
+	})
+	sbar.set("widgets.media_play_pause", {
+		icon = { color = M.colors.active.sep_opaque },
+	})
+	sbar.set("widgets.media_next", {
+		icon = { color = M.colors.active.sep_opaque },
+	})
 
 	-- 3. 通知工作区 items 更新背景色（spaces.lua / front_app.lua 订阅了 "theme_changed"）
 	sbar.exec("sketchybar --trigger theme_changed")

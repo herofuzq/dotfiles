@@ -14,6 +14,7 @@ local widget_order = {
 	"widgets.dingtalk",
 	"widgets.clash_tun",
 	"widgets.network",
+	"widgets.media",
 	"widgets.sys",
 }
 
