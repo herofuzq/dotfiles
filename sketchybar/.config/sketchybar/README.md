@@ -33,7 +33,7 @@ To customize the bar, you should edit the following files:
 These files control the overall look and feel of the bar.
 
 *   `settings.lua`: The primary file for customization. Here you can change the bar's height, corner radius, and default item/text padding.
-*   `appearance.lua`: Defines the base color palette and global default styles. Border colors are now managed by `helpers/borders.lua`.
+*   `appearance.lua`: Catppuccin color palette + semantic colors + global defaults. Switch theme by editing `M.active`.
 *   `fonts.lua`: All font definitions are located here. You can change font families, sizes, and styles.
 *   `icons.lua`: A central repository for all icons used across the bar.
 
@@ -48,7 +48,7 @@ These files control the overall look and feel of the bar.
 #### Advanced
 
 *   `helpers/`: This directory contains the source code for custom event providers. You generally won't need to touch these files unless you are adding a new, complex feature that requires an external helper.
-    *   `helpers/borders.lua`: Central border color manager. Pre-computed color sets for 5-9 visible workspaces. To change the border theme, edit only this file.
+    *   `helpers/borders.lua`: Workspace dynamic border manager (focus/fullscreen highlight). Each item manages its own static border color.
     *   `event_providers/input_method/`: A Swift daemon that listens for macOS input method switch notifications and triggers Sketchybar events. See [Input Method Widget](#input-method-widget) below.
 *   `sketchybarrc`: The main entry point. You should not need to edit this file.
 
@@ -162,7 +162,7 @@ The daemon binary is **compiled automatically** by `helpers/init.lua` on first s
 这些文件控制 bar 的整体外观。
 
 *   `settings.lua`：主要自定义文件。可修改 bar 高度、圆角半径、默认 item/文字内边距。
-*   `appearance.lua`：定义基础配色方案和全局默认样式。边框颜色由 `helpers/borders.lua` 统一管理。
+*   `appearance.lua`：Catppuccin 色板 + 语义化颜色 + 全局默认样式。编辑 `M.active` 切换主题。
 *   `fonts.lua`：所有字体定义。可修改字体族、大小和样式。
 *   `icons.lua`：所有图标的统一仓库。
 
@@ -177,7 +177,7 @@ The daemon binary is **compiled automatically** by `helpers/init.lua` on first s
 #### 高级
 
 *   `helpers/`：包含自定义事件提供者的源码。除非需要新增复杂功能，通常无需修改。
-    *   `helpers/borders.lua`：中央边框调色器，预置 5-9 个工作区的色值。更换边框主题只需修改此文件。
+    *   `helpers/borders.lua`：工作区动态边框管理（焦点/全屏高亮）。各 item 自行管理静态边框色。
     *   `event_providers/input_method/`：一个 Swift 守护进程，监听 macOS 输入法切换通知并触发 Sketchybar 事件。详见下方[输入法 Widget](#输入法-widget)。
 *   `sketchybarrc`：主入口文件，一般不需要编辑。
 
