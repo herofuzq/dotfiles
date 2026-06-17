@@ -314,21 +314,7 @@ end
 
 -- ========== 工作区高亮辅助 ==========
 local function set_highlight(ws, is_focused)
-	ws:set({
-		icon = { highlight = is_focused },
-		background = {
-			border_color = is_focused and appearance.colors.red or appearance.colors.border,
-			border_width = 1,
-			corner_radius = 10,
-		},
-		popup = {
-			background = {
-				border_color = is_focused and appearance.colors.red or appearance.colors.border,
-				border_width = 1,
-				corner_radius = 10,
-			},
-		},
-	})
+	ws:set({ icon = { highlight = is_focused } })
 end
 
 -- ========== 更新所有工作区 + 分配边框颜色 ==========
@@ -370,7 +356,7 @@ local function updateWindows()
 				fullscreen_idx[i] = true
 			end
 		end
-		borders.distribute(visible_names, fullscreen_idx)
+		borders.distribute(visible_names, fullscreen_idx, "workspace." .. (args.focused_workspace or ""))
 	end)
 end
 
@@ -543,14 +529,17 @@ sbar.exec(":", function()
 		ensure_front_app()
 		local focused = env.FOCUSED_WORKSPACE
 		if focused then
-			for k, _ in pairs(_popup_pinned) do
-				_popup_pinned[k] = false
-			end
-			for k, _ in pairs(_popup_hovering) do
-				_popup_hovering[k] = false
-			end
+			for k, _ in pairs(_popup_pinned) do _popup_pinned[k] = false end
+			for k, _ in pairs(_popup_hovering) do _popup_hovering[k] = false end
 			for ws_idx, ws in pairs(workspaces) do
 				set_highlight(ws, ws_idx == focused)
+			end
+			-- 即时设新焦点红色边框（不等 distribute），全屏时由 distribute 覆盖为 peach
+			if workspaces[focused] then
+				workspaces[focused]:set({ background = {
+					border_color = appearance.colors.red,
+					corner_radius = 10,
+				} })
 			end
 		end
 		updateWindows()
@@ -577,13 +566,16 @@ sbar.exec(":", function()
 		updateWindows()
 	end)
 
-	-- aerospace_fullscreen_change
+	-- aerospace_fullscreen_change（立即查全屏 ws 设 peach，updateWindows 做完整同步）
 	root:subscribe("aerospace_fullscreen_change", function()
-		sbar.exec("aerospace list-workspaces --focused", function(focused)
-			focused = focused and focused:match("^%s*(.-)%s*$")
-			if focused then
-				for ws_idx, ws in pairs(workspaces) do
-					set_highlight(ws, ws_idx == focused)
+		sbar.exec("aerospace list-windows --monitor all --format '%{workspace}%{window-is-fullscreen}' --json", function(data)
+			for _, w in ipairs(data or {}) do
+				if w["window-is-fullscreen"] then
+					sbar.set("workspace." .. w.workspace, { background = {
+						border_color = appearance.colors.peach,
+						border_width = 2,
+						corner_radius = 10,
+					} })
 				end
 			end
 		end)
@@ -631,8 +623,12 @@ sbar.exec(":", function()
 			return
 		end
 		focused_workspace = focused_workspace:match("^%s*(.-)%s*$")
-		if workspaces[focused_workspace] then
-			set_highlight(workspaces[focused_workspace], true)
-		end
+if workspaces[focused_workspace] then
+				set_highlight(workspaces[focused_workspace], true)
+				workspaces[focused_workspace]:set({ background = {
+					border_color = appearance.colors.red,
+					corner_radius = 10,
+				} })
+			end
 	end)
 end)
