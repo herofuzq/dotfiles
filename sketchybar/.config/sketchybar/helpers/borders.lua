@@ -1,5 +1,5 @@
--- ========== 工作区动态边框管理 ==========
--- 仅处理 spaces workspace 的焦点/全屏边框，静态 widget 边框由各自 item 文件自行设置
+-- ========== 全屏动态边框管理 ==========
+-- 仅处理 spaces workspace 的全屏边框，焦点/静态边框由各自路径管理
 local sbar = require("sketchybar")
 local colors = require("appearance").colors
 

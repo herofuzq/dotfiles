@@ -10,7 +10,7 @@ status_widget({
 	icon_color = "green",
 	icon_inactive_color = "green",
 	label_color = "green",
-	label_inactive_color = "sep_opaque",
+	label_inactive_color = "text",
 })
 
 -- ========== social bracket（dingtalk + wechat）==========

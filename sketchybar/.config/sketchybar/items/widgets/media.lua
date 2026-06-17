@@ -5,7 +5,14 @@ local sbar = require("sketchybar")
 local fonts = require("fonts")
 local colors = require("appearance").colors
 
-local MEDIA = "/opt/homebrew/bin/media-control"
+local function find_media()
+	for _, p in ipairs({ "/opt/homebrew/bin/media-control", "/usr/local/bin/media-control" }) do
+		local f = io.open(p, "r")
+		if f then f:close(); return p end
+	end
+	return "/opt/homebrew/bin/media-control"
+end
+local MEDIA = find_media()
 
 -- Nerd Font 媒体控制图标
 local ICON_PLAY = "\u{f04b}"

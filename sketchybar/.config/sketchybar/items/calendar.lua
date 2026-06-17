@@ -153,7 +153,7 @@ cal:subscribe(
 		local s = env.SENDER
 		if s == "forced" or s == "routine" or s == "system_woke" then
 			local t = os.date("*t")
-			cal:set({ icon = string.format("%d月%d日", t.month, t.day), label = " " .. os.date("%H:%M") })
+			cal:set({ icon = string.format("%d月%d日", t.month, t.day), label = string.format(" %02d:%02d", t.hour, t.min) })
 		elseif s == "mouse.entered" then
 			_exit_gen = _exit_gen + 1
 			updatePopupContent()

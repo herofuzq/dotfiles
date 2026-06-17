@@ -27,7 +27,7 @@ local up = sbar.add("item", "widgets.network_up", {
 -- ========== ↓ 下载（下排，y_offset 偏上）==========
 local down = sbar.add("item", "widgets.network_down", {
 	position = "right",
-	update_freq = 2,
+	update_freq = 3,
 	padding_left = 2,
 	padding_right = 2,
 	width = 0,
@@ -55,7 +55,7 @@ local down = sbar.add("item", "widgets.network_down", {
 -- bracket 容器：背景 + wifi 图标
 sbar.add("bracket", "widgets.network", { "widgets.network_up", "widgets.network_down" }, {
 	position = "right",
-	update_freq = 2,
+	update_freq = 3,
 	icon = { drawing = false },
 	padding_left = 4,
 	padding_right = 0,

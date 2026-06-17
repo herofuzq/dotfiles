@@ -8,5 +8,5 @@ status_widget({
 	icon_color = "blue",
 	icon_inactive_color = "blue",
 	label_color = "peach",
-	label_inactive_color = "sep_opaque",
+	label_inactive_color = "text",
 })
