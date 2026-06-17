@@ -24,7 +24,7 @@ sbar.add("bracket", "widgets.system", {
 -- 不预留水平空间。media 是水平 item，加在 network 之后会被算法放到
 -- bar 右边缘，覆盖 network 的 X 区域，造成两个 bracket pill 视觉重叠。
 -- spacer 必须：1) 放在 network 之后、media 之前；2) 宽度等于 network
--- bracket（68），让它和 network 完全重叠，强制 media 停在 spacer 左
+-- bracket（58），让它和 network 完全重叠，强制 media 停在 spacer 左
 -- 边缘外侧。spacer 自身 background.drawing=false 不画背景，视觉上
 -- 就是 network 的 pill。
 sbar.add("item", "widgets.media_spacer", {
