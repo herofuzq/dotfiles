@@ -34,6 +34,7 @@ local sys = sbar.add("item", "widgets.sys", {
 		padding_right = 8,
 		align = "right",
 		max_chars = 3,
+		width = 30,
 		color = colors.active.sep_opaque,
 	},
 	background = {
