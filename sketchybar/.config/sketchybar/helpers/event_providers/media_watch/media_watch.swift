@@ -26,7 +26,7 @@ func applyUpdate(title: String, artist: String, payload: [String: Any]) {
     let label = display.replacingOccurrences(of: "\"", with: "\\\"")
     let iconChar = playing ? "\u{f04c}" : "\u{f04b}"
     let t1 = Process(); t1.launchPath = sketchybar; t1.arguments = ["--set", "widgets.media_label", "label=\(label)"]; t1.standardOutput = FileHandle.nullDevice; t1.standardError = FileHandle.nullDevice; try? t1.run(); t1.waitUntilExit()
-    let t2 = Process(); t2.launchPath = sketchybar; t2.arguments = ["--set", "widgets.media_play_pause", "icon=\(iconChar)"]; t2.standardOutput = FileHandle.nullDevice; t2.standardError = FileHandle.nullDevice; try? t2.run(); t2.waitUntilExit()
+    let t2 = Process(); t2.launchPath = sketchybar; t2.arguments = ["--set", "widgets.media_play_pause", "icon=\(iconChar)"]; t2.standardOutput = FileHandle.nullDevice; t2.standardError = FileHandle.nullDevice; try? t2.run() // don't wait, fire and forget
 }
 
 func updateIfChanged() {
@@ -72,9 +72,13 @@ pipe.fileHandleForReading.readabilityHandler = { handle in
               let payload = json["payload"] as? [String: Any] else { continue }
         let title = payload["title"] as? String ?? ""
         let artist = payload["artist"] as? String ?? ""
-        guard !title.isEmpty || !artist.isEmpty else { continue }
-        guard title != lastTitle || artist != lastArtist else { continue }
-        lastTitle = title; lastArtist = artist
+        let playing = payload["playing"] as? Bool ?? lastPlaying
+        if title.isEmpty && artist.isEmpty {
+            if playing != lastPlaying { lastPlaying = playing; applyUpdate(title: lastTitle, artist: lastArtist, payload: payload) }
+            continue
+        }
+        guard title != lastTitle || artist != lastArtist || playing != lastPlaying else { continue }
+        lastTitle = title; lastArtist = artist; lastPlaying = playing
         applyUpdate(title: title, artist: artist, payload: payload)
     }
 }
