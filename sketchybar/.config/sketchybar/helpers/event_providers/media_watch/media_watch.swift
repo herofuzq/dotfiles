@@ -59,12 +59,6 @@ try? task.run()
 // Initial check
 updateIfChanged()
 
-// Poll every 3s as safety net for auto-skip not detected by stream
-let timer = DispatchSource.makeTimerSource()
-timer.schedule(deadline: .now() + 3, repeating: 3)
-timer.setEventHandler { updateIfChanged() }
-timer.resume()
-
 var buffer = ""
 pipe.fileHandleForReading.readabilityHandler = { handle in
     guard let chunk = String(data: handle.availableData, encoding: .utf8), !chunk.isEmpty else { return }
@@ -75,4 +69,4 @@ pipe.fileHandleForReading.readabilityHandler = { handle in
     }
 }
 
-RunLoop.main.run()
+dispatchMain()
