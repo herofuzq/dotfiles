@@ -4,9 +4,6 @@ local icons = require("icons")
 local fonts = require("fonts")
 local colors = require("appearance").colors
 
-local MAX_DOWN = 110000
-local MAX_UP = 45000
-
 -- ========== ↑ 上传（上排，y_offset 偏下）==========
 local up = sbar.add("item", "widgets.network_up", {
 	position = "right",
@@ -56,7 +53,7 @@ local down = sbar.add("item", "widgets.network_down", {
 })
 
 -- bracket 容器：背景 + wifi 图标
-local net = sbar.add("bracket", "widgets.network", { "widgets.network_up", "widgets.network_down" }, {
+sbar.add("bracket", "widgets.network", { "widgets.network_up", "widgets.network_down" }, {
 	position = "right",
 	update_freq = 2,
 	icon = { drawing = false },

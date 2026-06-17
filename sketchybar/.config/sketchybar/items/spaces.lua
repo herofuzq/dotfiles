@@ -506,21 +506,6 @@ if USE_AEROSPACE then
 			end
 		end
 
-		-- 装饰性文字（已禁用）
-		-- sbar.add("item", "i3", {
-		-- 	position = "left",
-		-- 	padding_left = 2,
-		-- 	padding_right = 2,
-		-- 	icon = {
-		-- 		string = "Powered by ",
-		-- 		font = "Hack Nerd Font:Bold:10.0",
-		-- 		padding_left = 6,
-		-- 		padding_right = 6,
-		-- 		color = 0xff74c7ec,
-		-- 	},
-		-- 	label = { drawing = false },
-		-- 	background = { drawing = false },
-		-- })
 
 		-- 首次加载
 		updateWindows()
@@ -625,7 +610,6 @@ if USE_AEROSPACE then
 				end
 			end
 			-- 更新 aerospace_mode 文字色
-			-- sbar.set("i3", { icon = { color = 0xff74c7ec } })
 			sbar.set("aerospace_mode", { label = { color = appearance.colors.active.deep_blue } })
 			-- 重新分发边框色（borders.lua 已通过 set_theme 知道当前主题）
 			updateWindows()
@@ -672,7 +656,6 @@ if not USE_AEROSPACE then
 	-- 高亮 + 图标走内置事件，popup 暂不启用
 	-- ══════════════════════════════════════════════════════════
 	local _n_workspaces = {}
-	local _n_ws_order = {}
 	local SPACE_COUNT = 6
 	local KEY_CODES = { 18, 19, 20, 21, 23, 22 }
 
@@ -705,7 +688,6 @@ if not USE_AEROSPACE then
 			},
 		})
 		_n_workspaces[ws_name] = ws
-		_n_ws_order[#_n_ws_order + 1] = ws_name
 		ws:subscribe("space_change", function(env)
 			local sel = env.SELECTED == "true"
 			ws:set({

@@ -1,3 +1,0 @@
--- ⚠️ 此文件已废弃，不再被加载。
--- front_app 实际在 items/spaces.lua 中内联创建（aerospace / 原生 Space 两个分支均独立创建）。
--- 保留此文件仅作历史记录，可安全删除。

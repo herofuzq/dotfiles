@@ -18,8 +18,6 @@ local icons = {
 			tun = "\u{F0582}",
 		},
 		wifi = "\u{F16BB}",
-		network_down = "",
-		network_up = "",
 		input_method = {
 			keyboard = "",
 		},
