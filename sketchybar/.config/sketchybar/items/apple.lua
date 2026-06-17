@@ -28,6 +28,7 @@ local apple = sbar.add("item", "apple", {
 	padding_left = dock_x,
 	padding_right = 5,
 	icon = {
+		string = icons.apple,
 		font = {
 			family = fonts.font_icon.text,
 			style = fonts.font_icon.style_map["Bold"],
@@ -35,7 +36,6 @@ local apple = sbar.add("item", "apple", {
 		},
 		padding_left = icon_pad_left,
 		padding_right = icon_pad_right,
-		string = icons.apple,
 		color = colors.green,
 		y_offset = 1,
 	},

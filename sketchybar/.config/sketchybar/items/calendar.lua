@@ -5,6 +5,10 @@ local appearance = require("appearance")
 local colors = appearance.colors
 
 local cal = sbar.add("item", "calendar", {
+	position = "right",
+	update_freq = 30,
+	padding_left = 2,
+	padding_right = 5,
 	icon = {
 		font = { family = fonts.font.text, style = fonts.font.style_map["Bold"], size = 13.0 },
 		padding_left = 2,
@@ -32,10 +36,6 @@ local cal = sbar.add("item", "calendar", {
 		blur_radius = 30,
 		height = 30,
 	},
-	position = "right",
-	update_freq = 30,
-	padding_left = 2,
-	padding_right = 5,
 })
 
 local _popup_pinned, _popup_hovering, _exit_gen = false, false, 0
