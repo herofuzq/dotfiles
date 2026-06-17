@@ -24,30 +24,9 @@ local ICON_MUSIC = "\u{f001}"
 -- 无播放时 media-control get 输出 JSON null，回调拿到 nil
 local skip_icon = 0
 
-local function _refresh_once()
+local function refresh()
 	sbar.exec(MEDIA .. " get 2>/dev/null", function(info)
-		local title, artist, album, playing
-		if info == nil then
-			title, artist, album, playing = "", "", "", false
-		else
-			title = info.title or ""
-			artist = info.artist or ""
-			album = info.album or ""
-			playing = info.playing or false
-		end
-
-		local display
-		if title == "" and artist == "" and album == "" then
-			display = "未播放"
-		else
-			local parts = {}
-			if title ~= "" then parts[#parts + 1] = title end
-			if artist ~= "" then parts[#parts + 1] = artist end
-			if album ~= "" then parts[#parts + 1] = album end
-			display = table.concat(parts, " - ")
-		end
-
-		sbar.set("widgets.media_label", { label = { string = display } })
+		local playing = info and info.playing or false
 		if skip_icon > 0 then
 			skip_icon = skip_icon - 1
 		else
@@ -56,10 +35,6 @@ local function _refresh_once()
 			})
 		end
 	end)
-end
-
-local function refresh()
-	_refresh_once()
 end
 
 -- ========== 下一首 ==========
