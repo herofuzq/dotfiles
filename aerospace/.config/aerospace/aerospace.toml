@@ -15,8 +15,8 @@ after-startup-command = [
   # - 已有实例 → 第 1 条发 reload 信号（向运行中的实例请求重载配置）
   # - 未启动   → 第 1 条无效（无实例接收），第 2 条冷启动 sketchybar
   # - 同时存在 → 第 2 条因 Mach 端口被占优雅退出，无副作用
-  'exec-and-forget sketchybar --reload',
-  'exec-and-forget sketchybar',
+  # 'exec-and-forget sketchybar --reload',
+  # 'exec-and-forget sketchybar',
 ]
 
 # Start AeroSpace at login

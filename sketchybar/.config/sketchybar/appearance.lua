@@ -273,7 +273,7 @@ function M.install_defaults()
 			border_width = 2,
 			color = M.colors.active.bar_bg,
 			corner_radius = 9,
-			height = settings.height - 4,
+			height = settings.height - 6,
 			image = {
 				corner_radius = 0,
 				border_color = M.colors.active.text,
