@@ -3,6 +3,7 @@
 -- 如需调整边框粗细，改下面的 border_width 即可，icon padding 会自动重算
 local sbar = require("sketchybar")
 local icons = require("icons")
+local fonts = require("fonts")
 local colors = require("appearance").colors
 local settings = require("settings")
 
@@ -27,7 +28,11 @@ local apple = sbar.add("item", "apple", {
 	padding_left = dock_x,
 	padding_right = 5,
 	icon = {
-		font = { family = "Hack Nerd Font", style = "Bold", size = 18.0 },
+		font = {
+			family = fonts.font_icon.text,
+			style = fonts.font_icon.style_map["Bold"],
+			size = 18.0,
+		},
 		padding_left = icon_pad_left,
 		padding_right = icon_pad_right,
 		string = icons.apple,
