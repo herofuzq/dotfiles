@@ -13,9 +13,7 @@ let mediaControl = waitPath("media-control", candidates: ["/opt/homebrew/bin/med
 
 var lastTitle = "", lastArtist = "", lastPlaying = false
 
-func applyUpdate(title: String, artist: String, payload: [String: Any]) {
-    let album = payload["album"] as? String ?? ""
-    let playing = payload["playing"] as? Bool ?? false
+func applyUpdate(title: String, artist: String, album: String, playing: Bool) {
     let iconChar = playing ? "\u{f04c}" : "\u{f04b}"
     let display: String = {
         if title.isEmpty && artist.isEmpty && album.isEmpty { return "未播放" }
@@ -46,7 +44,8 @@ func updateIfChanged() {
     let playing = json["playing"] as? Bool ?? false
     guard title != lastTitle || artist != lastArtist || playing != lastPlaying else { return }
     lastTitle = title; lastArtist = artist; lastPlaying = playing
-    applyUpdate(title: title, artist: artist, payload: json)
+    let album = json["album"] as? String ?? ""
+    applyUpdate(title: title, artist: artist, album: album, playing: playing)
 }
 
 let task = Process()
@@ -73,12 +72,13 @@ pipe.fileHandleForReading.readabilityHandler = { handle in
         let artist = payload["artist"] as? String ?? ""
         let playing = payload["playing"] as? Bool ?? lastPlaying
         if title.isEmpty && artist.isEmpty {
-            if playing != lastPlaying { lastPlaying = playing; applyUpdate(title: lastTitle, artist: lastArtist, payload: payload) }
+            if playing != lastPlaying { lastPlaying = playing; applyUpdate(title: lastTitle, artist: lastArtist, album: "", playing: playing) }
             continue
         }
         guard title != lastTitle || artist != lastArtist || playing != lastPlaying else { continue }
         lastTitle = title; lastArtist = artist; lastPlaying = playing
-        applyUpdate(title: title, artist: artist, payload: payload)
+        let album = payload["album"] as? String ?? ""
+        applyUpdate(title: title, artist: artist, album: album, playing: playing)
     }
 }
 
