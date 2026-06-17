@@ -78,18 +78,15 @@ local A = {
 }
 
 -- ========== ④ 构建实际颜色表（含 alpha）==========
--- 输出值与原 colors.active.xxx 完全一致
 local function build_colors(P)
 	return {
-		-- 背景/前景（含 alpha，与原 bar_bg/bg2_opaque/sep/accent 值完全相同）
 		pill_bg = M.with_alpha(P.surface0, A.pill), -- surface0 @ 0.667
-		pill_fg = P.text, -- text
-		bar_bg = M.with_alpha(P.crust, A.bar_bg), -- crust @ 0.8
-		bar_border = P.surface1, -- surface1
-		dim = M.with_alpha(P.surface0, A.pill), -- surface0 @ 0.667
-		border = M.with_alpha(P.overlay0, A.border), -- 原 sep: 0x336c7086
-		highlight = M.with_alpha(P.mauve, A.border), -- 原 accent: 0x33cba6f7
-		-- 标准色直接透传（原值就是 opaque）
+		pill_fg = P.text,
+		bar_bg = M.with_alpha(P.crust, A.bar_bg),
+		bar_border = P.surface1,
+		dim = M.with_alpha(P.surface0, A.pill),
+		border = M.with_alpha(P.overlay0, A.border),
+		highlight = M.with_alpha(P.mauve, A.border),
 		mauve = P.mauve,
 		red = P.red,
 		green = P.green,

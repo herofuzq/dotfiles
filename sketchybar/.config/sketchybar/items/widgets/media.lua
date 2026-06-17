@@ -23,7 +23,7 @@ local ICON_MUSIC = "\u{f001}"
 local skip_icon = 0
 
 local function refresh()
-	sbar.exec(MEDIA .. " get 2>/dev/null", function(info)
+	sbar.exec('"' .. MEDIA .. '" get 2>/dev/null', function(info)
 		local playing = info and info.playing or false
 		if skip_icon > 0 then
 			skip_icon = skip_icon - 1
@@ -75,16 +75,17 @@ local play_pause = sbar.add("item", "widgets.media_play_pause", {
 
 -- 按钮按下立即切换图标，消除 shell click_script 的延迟
 next_item:subscribe("mouse.clicked", function()
-	sbar.exec(MEDIA .. " next-track", function()
+	sbar.exec('"' .. MEDIA .. '" next-track', function()
 		sbar.trigger("media_update")
 	end)
 end)
 
 play_pause:subscribe("mouse.clicked", function()
 	skip_icon = 1
-	local cur = play_pause:query().icon.value
+	local q = play_pause:query()
+	local cur = q and q.icon and q.icon.value or ICON_PLAY
 	play_pause:set({ icon = { string = (cur == ICON_PLAY) and ICON_PAUSE or ICON_PLAY } })
-	sbar.exec(MEDIA .. " toggle-play-pause")
+	sbar.exec('"' .. MEDIA .. '" toggle-play-pause')
 end)
 
 -- ========== 歌曲信息 ==========
@@ -119,7 +120,7 @@ local label = sbar.add("item", "widgets.media_label", {
 label:subscribe("media_update", refresh)
 
 -- 初始查询：reload 后首次显示（不恢复轮询）
-sbar.exec(MEDIA .. " get 2>/dev/null", function(info)
+sbar.exec('"' .. MEDIA .. '" get 2>/dev/null', function(info)
 	if info then
 		local title = info.title or ""
 		local artist = info.artist or ""

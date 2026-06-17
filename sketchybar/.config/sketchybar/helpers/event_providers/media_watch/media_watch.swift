@@ -1,31 +1,31 @@
 import Foundation
 
-func findPath(_ name: String, candidates: [String]) -> String {
-    for p in candidates where FileManager.default.isExecutableFile(atPath: p) { return p }
-    fputs("error: \(name) not found\n", stderr)
-    exit(1)
+// 循环等待依赖就绪，避免 launchd 无限重启
+func waitPath(_ name: String, candidates: [String]) -> String {
+    while true {
+        for p in candidates where FileManager.default.isExecutableFile(atPath: p) { return p }
+        fputs("media_watch: \(name) not found, retrying in 5s\n", stderr)
+        sleep(5)
+    }
 }
-let sketchybar = findPath("sketchybar", candidates: ["/opt/homebrew/bin/sketchybar", "/usr/local/bin/sketchybar"])
-let mediaControl = findPath("media-control", candidates: ["/opt/homebrew/bin/media-control", "/usr/local/bin/media-control"])
+let sketchybar = waitPath("sketchybar", candidates: ["/opt/homebrew/bin/sketchybar", "/usr/local/bin/sketchybar"])
+let mediaControl = waitPath("media-control", candidates: ["/opt/homebrew/bin/media-control", "/usr/local/bin/media-control"])
 
 var lastTitle = "", lastArtist = "", lastPlaying = false
 
 func applyUpdate(title: String, artist: String, payload: [String: Any]) {
     let album = payload["album"] as? String ?? ""
     let playing = payload["playing"] as? Bool ?? false
-    var display = ""
-    if title.isEmpty && artist.isEmpty && album.isEmpty {
-        display = "未播放"
-    } else {
+    let iconChar = playing ? "\u{f04c}" : "\u{f04b}"
+    let display: String = {
+        if title.isEmpty && artist.isEmpty && album.isEmpty { return "未播放" }
         var parts = [String]()
         if !title.isEmpty { parts.append(title) }
         if !artist.isEmpty { parts.append(artist) }
         if !album.isEmpty { parts.append(album) }
-        display = parts.joined(separator: " - ")
-    }
-    let label = display.replacingOccurrences(of: "\"", with: "\\\"")
-    let iconChar = playing ? "\u{f04c}" : "\u{f04b}"
-    let t1 = Process(); t1.launchPath = sketchybar; t1.arguments = ["--set", "widgets.media_label", "label=\(label)"]; t1.standardOutput = FileHandle.nullDevice; t1.standardError = FileHandle.nullDevice; try? t1.run(); t1.waitUntilExit()
+        return parts.joined(separator: " - ")
+    }()
+    let t1 = Process(); t1.launchPath = sketchybar; t1.arguments = ["--set", "widgets.media_label", "label=\(display)"]; t1.standardOutput = FileHandle.nullDevice; t1.standardError = FileHandle.nullDevice; try? t1.run(); t1.waitUntilExit()
     let t2 = Process(); t2.launchPath = sketchybar; t2.arguments = ["--set", "widgets.media_play_pause", "icon=\(iconChar)"]; t2.standardOutput = FileHandle.nullDevice; t2.standardError = FileHandle.nullDevice; try? t2.run() // don't wait, fire and forget
 }
 
@@ -43,7 +43,6 @@ func updateIfChanged() {
           let json = try? JSONSerialization.jsonObject(with: str.data(using: .utf8)!) as? [String: Any] else { return }
     let title = json["title"] as? String ?? ""
     let artist = json["artist"] as? String ?? ""
-    let album = json["album"] as? String ?? ""
     let playing = json["playing"] as? Bool ?? false
     guard title != lastTitle || artist != lastArtist || playing != lastPlaying else { return }
     lastTitle = title; lastArtist = artist; lastPlaying = playing
