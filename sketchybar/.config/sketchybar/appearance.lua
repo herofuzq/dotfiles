@@ -7,8 +7,7 @@ local M = {}
 
 M.colors = {
 	bar = {
-		bg = 0x600d0d13, -- 全透明（启动时由 init_colors() 根据系统外观覆盖为对应主题色）
-		border = 0xB33a3a45,
+		bg = 0x66181a22, -- 默认值（与 init_colors("dark") 同步）
 	},
 
 	catppuccin_mocha = {
@@ -50,6 +49,7 @@ M.colors = {
 		black = 0xff11111b,
 		bar_bg = 0xaa363537,
 		bg2_opaque = 0xaa363537,
+		bg3_opaque = 0xff45475a,
 		sep_opaque = 0xfff7f1ff,
 		accent_opaque = 0xffcba6f7,
 		deep_blue = 0xff74c7ec,
@@ -176,12 +176,6 @@ function M.apply_current_theme()
 			background = { color = M.colors.with_alpha(M.colors.active.bar_bg, 0.85) },
 		},
 	})
-	sbar.set("calendar.doy", {
-		label = { color = M.colors.active.text },
-	})
-	sbar.set("calendar.remaining", {
-		label = { color = M.colors.active.subtext0 },
-	})
 	sbar.set("widgets.sys", {
 		background = { color = M.colors.active.bar_bg },
 		label = { color = M.colors.active.sep_opaque },
@@ -202,9 +196,6 @@ function M.apply_current_theme()
 	})
 	sbar.set("widgets.media_label", {
 		label = { color = M.colors.active.sep_opaque },
-	})
-	sbar.set("widgets.media_prev", {
-		icon = { color = M.colors.active.sep_opaque },
 	})
 	sbar.set("widgets.media_play_pause", {
 		icon = { color = M.colors.active.sep_opaque },
