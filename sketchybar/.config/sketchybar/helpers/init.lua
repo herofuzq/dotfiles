@@ -18,8 +18,11 @@ if cfg and not (
 	and file_exists(cfg .. "/helpers/bar_height/bin/bar_height")
 	and file_exists(cfg .. "/helpers/dock_width/bin/dock_width")
 ) then
-	local ok = os.execute("cd \"" .. cfg .. "/helpers\" && make 2>&1")
-	if ok ~= 0 and ok ~= true then
-		io.stderr:write("sketchybar: helper compile failed (exit " .. tostring(ok) .. ")\n")
+	local log_path = "/tmp/sketchybar_make.log"
+	local f = io.popen("cd \"" .. cfg .. "/helpers\" && make 2>&1 > " .. log_path .. "; echo $?")
+	local exit_code = (f:read("*a") or ""):match("(%d+)") or "0"
+	f:close()
+	if tonumber(exit_code) ~= 0 then
+		io.stderr:write("sketchybar: helper compile failed (exit " .. exit_code .. "), see " .. log_path .. "\n")
 	end
 end
