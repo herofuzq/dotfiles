@@ -52,7 +52,7 @@ local _toggled = 0
 -- ============================================================
 -- 空闲自动切换回英文
 -- ============================================================
-local IDLE_TIMEOUT = 5
+local IDLE_TIMEOUT = 10
 
 local function resetIdleTimer()
 	if _IdleTimer then
