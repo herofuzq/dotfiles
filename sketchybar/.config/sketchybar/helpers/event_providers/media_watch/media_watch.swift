@@ -12,7 +12,26 @@ var lastTitle = ""
 var lastArtist = ""
 let lock = NSLock()
 
-func updateDisplay(title: String, artist: String, album: String, playing: Bool) {
+func updateIfChanged() {
+    let p = Process()
+    p.launchPath = mediaControl
+    p.arguments = ["get"]
+    let out = Pipe()
+    p.standardOutput = out
+    p.standardError = FileHandle.nullDevice
+    try? p.run()
+    p.waitUntilExit()
+    guard let data = try? out.fileHandleForReading.readToEnd(),
+          let str = String(data: data, encoding: .utf8),
+          let json = try? JSONSerialization.jsonObject(with: str.data(using: .utf8)!) as? [String: Any] else { return }
+    let title = json["title"] as? String ?? ""
+    let artist = json["artist"] as? String ?? ""
+    let album = json["album"] as? String ?? ""
+    lock.lock()
+    let changed = title != lastTitle || artist != lastArtist
+    if changed { lastTitle = title; lastArtist = artist }
+    lock.unlock()
+    guard changed else { return }
     var display = ""
     if title.isEmpty && artist.isEmpty && album.isEmpty {
         display = "未播放"
@@ -24,43 +43,11 @@ func updateDisplay(title: String, artist: String, album: String, playing: Bool) 
         display = parts.joined(separator: " - ")
     }
     let label = display.replacingOccurrences(of: "\"", with: "\\\"")
-    let t = Process()
-    t.launchPath = sketchybar
-    t.arguments = ["--set", "widgets.media_label", "label=\(label)"]
-    t.standardOutput = FileHandle.nullDevice
-    t.standardError = FileHandle.nullDevice
-    try? t.run()
-    t.waitUntilExit()
-    // Also trigger event for Lua to update play/pause icon
-    let e = Process()
-    e.launchPath = sketchybar
-    e.arguments = ["--trigger", "media_update"]
-    e.standardOutput = FileHandle.nullDevice
-    e.standardError = FileHandle.nullDevice
-    try? e.run()
-    e.waitUntilExit()
+    let t = Process(); t.launchPath = sketchybar; t.arguments = ["--set", "widgets.media_label", "label=\(label)"]; t.standardOutput = FileHandle.nullDevice; t.standardError = FileHandle.nullDevice; try? t.run(); t.waitUntilExit()
+    let e = Process(); e.launchPath = sketchybar; e.arguments = ["--trigger", "media_update"]; e.standardOutput = FileHandle.nullDevice; e.standardError = FileHandle.nullDevice; try? e.run(); e.waitUntilExit()
 }
 
-func processLine(_ line: String) {
-    guard let data = line.data(using: .utf8),
-          let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-          let payload = json["payload"] as? [String: Any] else { return }
-    let title = payload["title"] as? String ?? ""
-    let artist = payload["artist"] as? String ?? ""
-    let album = payload["album"] as? String ?? ""
-    let playing = payload["playing"] as? Bool ?? false
-    lock.lock()
-    let changed = title != lastTitle || artist != lastArtist
-    if changed {
-        lastTitle = title
-        lastArtist = artist
-    }
-    lock.unlock()
-    if changed || playing {
-        updateDisplay(title: title, artist: artist, album: album, playing: playing)
-    }
-}
-
+// Stream listener: trigger check on any change
 let task = Process()
 task.launchPath = mediaControl
 task.arguments = ["stream"]
@@ -69,28 +56,23 @@ task.standardOutput = pipe
 task.standardError = FileHandle.nullDevice
 try? task.run()
 
-// Initial: get now playing
-let initProc = Process()
-initProc.launchPath = mediaControl
-initProc.arguments = ["get"]
-let initPipe = Pipe()
-initProc.standardOutput = initPipe
-try? initProc.run()
-initProc.waitUntilExit()
-if let initData = try? initPipe.fileHandleForReading.readToEnd(),
-   let initStr = String(data: initData, encoding: .utf8) {
-    processLine(initStr)
-}
+// Initial check
+updateIfChanged()
+
+// Poll every 3s as safety net for auto-skip not detected by stream
+let timer = DispatchSource.makeTimerSource()
+timer.schedule(deadline: .now() + 3, repeating: 3)
+timer.setEventHandler { updateIfChanged() }
+timer.resume()
 
 var buffer = ""
 pipe.fileHandleForReading.readabilityHandler = { handle in
     guard let chunk = String(data: handle.availableData, encoding: .utf8), !chunk.isEmpty else { return }
     buffer += chunk
     while let newline = buffer.firstIndex(of: "\n") {
-        let line = String(buffer[..<newline])
         buffer.removeSubrange(buffer.startIndex...newline)
-        processLine(line)
+        updateIfChanged()
     }
 }
 
-task.waitUntilExit()
+RunLoop.main.run()
