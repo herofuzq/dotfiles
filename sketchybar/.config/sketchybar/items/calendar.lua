@@ -68,7 +68,7 @@ for i = 1, CAL_LINES do
 		icon = { drawing = false },
 		label = {
 			string = string.rep(" ", 30),
-			font = { family = "Hack Nerd Font Mono", style = fonts.font.style_map["Bold"], size = 15.0 },
+			font = { family = fonts.font.text, style = fonts.font.style_map["Bold"], size = 15.0 },
 			color = colors.text,
 			padding_left = 38,
 			padding_right = 60,

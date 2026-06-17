@@ -48,8 +48,9 @@ These files control the overall look and feel of the bar.
 #### Advanced
 
 *   `helpers/`: This directory contains the source code for custom event providers. You generally won't need to touch these files unless you are adding a new, complex feature that requires an external helper.
-    *   `helpers/borders.lua`: Workspace dynamic border manager (focus/fullscreen highlight). Each item manages its own static border color.
-    *   `event_providers/input_method/`: A Swift daemon that listens for macOS input method switch notifications and triggers Sketchybar events. See [Input Method Widget](#input-method-widget) below.
+    *   `helpers/borders.lua`: Fullscreen workspace border manager. Each item manages its own static border color.
+    *   `event_providers/input_method/`: Swift daemon that listens for macOS input method switch notifications.
+    *   `event_providers/media_watch/`: Swift daemon that monitors media playback changes and updates the media widget in real-time.
 *   `sketchybarrc`: The main entry point. You should not need to edit this file.
 
 ### Setup on a New Machine
@@ -70,13 +71,13 @@ These files control the overall look and feel of the bar.
    xcode-select --install
    ```
 
-4. **Register launchd services** (input method & theme watching daemons):
-   ```bash
-   ln -s ~/.config/sketchybar/helpers/event_providers/input_method/com.fuzhuoqun.input_method_watch.plist ~/Library/LaunchAgents/
-   ln -s ~/.config/sketchybar/helpers/event_providers/theme/com.fuzhuoqun.theme_watch.plist ~/Library/LaunchAgents/
-   launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.fuzhuoqun.input_method_watch.plist
-   launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.fuzhuoqun.theme_watch.plist
-   ```
+4. **Register launchd services** (input method & media watching daemons):
+    ```bash
+    ln -s ~/.config/sketchybar/helpers/event_providers/input_method/com.fuzhuoqun.input_method_watch.plist ~/Library/LaunchAgents/
+    ln -s ~/.config/sketchybar/helpers/event_providers/media_watch/com.fuzhuoqun.media_watch.plist ~/Library/LaunchAgents/
+    launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.fuzhuoqun.input_method_watch.plist
+    launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.fuzhuoqun.media_watch.plist
+    ```
 
 5. **Reload Sketchybar** — helpers are compiled automatically on first run:
    ```bash
@@ -151,7 +152,7 @@ The daemon binary is **compiled automatically** by `helpers/init.lua` on first s
 
 5.  **事件循环**：全部加载完成后启动事件循环（`sbar.event_loop()`），监听系统事件（输入法切换、前台应用切换、aerospace 工作区变化等）并实时更新对应 item。
 
-6.  **Helpers**：`helpers/` 目录包含自定义 C / Swift 程序，为 Sketchybar 原生不支持的功能提供事件，如 CPU 负载、输入法切换、主题切换。首次运行时通过统一的 `make` 链自动编译（`helpers/Makefile` → `event_providers/Makefile` → 各 provider 的 `Makefile`）。
+6.  **Helpers**：`helpers/` 目录包含自定义 C / Swift 程序，为 Sketchybar 原生不支持的功能提供事件，如 CPU 负载、输入法切换、媒体播放监听。首次运行时通过统一的 `make` 链自动编译（`helpers/Makefile` → `event_providers/Makefile` → 各 provider 的 `Makefile`）。
 
 ### 文件结构与自定义
 
@@ -177,8 +178,9 @@ The daemon binary is **compiled automatically** by `helpers/init.lua` on first s
 #### 高级
 
 *   `helpers/`：包含自定义事件提供者的源码。除非需要新增复杂功能，通常无需修改。
-    *   `helpers/borders.lua`：工作区动态边框管理（焦点/全屏高亮）。各 item 自行管理静态边框色。
-    *   `event_providers/input_method/`：一个 Swift 守护进程，监听 macOS 输入法切换通知并触发 Sketchybar 事件。详见下方[输入法 Widget](#输入法-widget)。
+    *   `helpers/borders.lua`：全屏 workspace 边框管理。各 item 自行管理静态边框色。
+     *   `event_providers/input_method/`：Swift 守护进程，监听 macOS 输入法切换并触发事件。
+     *   `event_providers/media_watch/`：Swift 守护进程，监听媒体播放变化实时更新歌名和播放状态。
 *   `sketchybarrc`：主入口文件，一般不需要编辑。
 
 ### 新机器部署
@@ -199,13 +201,13 @@ The daemon binary is **compiled automatically** by `helpers/init.lua` on first s
    xcode-select --install
    ```
 
-4. **注册 launchd 服务**（输入法 & 主题监听守护进程）：
-   ```bash
-   ln -s ~/.config/sketchybar/helpers/event_providers/input_method/com.fuzhuoqun.input_method_watch.plist ~/Library/LaunchAgents/
-   ln -s ~/.config/sketchybar/helpers/event_providers/theme/com.fuzhuoqun.theme_watch.plist ~/Library/LaunchAgents/
-   launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.fuzhuoqun.input_method_watch.plist
-   launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.fuzhuoqun.theme_watch.plist
-   ```
+4. **注册 launchd 服务**（输入法 & 媒体监听守护进程）：
+    ```bash
+    ln -s ~/.config/sketchybar/helpers/event_providers/input_method/com.fuzhuoqun.input_method_watch.plist ~/Library/LaunchAgents/
+    ln -s ~/.config/sketchybar/helpers/event_providers/media_watch/com.fuzhuoqun.media_watch.plist ~/Library/LaunchAgents/
+    launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.fuzhuoqun.input_method_watch.plist
+    launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.fuzhuoqun.media_watch.plist
+    ```
 
 5. **重载 Sketchybar** — helpers 首次运行自动编译：
    ```bash

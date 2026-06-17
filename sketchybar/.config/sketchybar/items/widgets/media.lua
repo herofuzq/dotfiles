@@ -1,6 +1,4 @@
 -- ========== 媒体控制（歌名 + 下一首 + 播放/暂停 按钮）==========
--- 布局完全照抄 network.lua：每个 item padding_left/right=2，
--- bracket background.padding_left/right=2/10，让 bracket pill 的右边自然对齐。
 local sbar = require("sketchybar")
 local fonts = require("fonts")
 local colors = require("appearance").colors
