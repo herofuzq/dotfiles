@@ -65,4 +65,4 @@ pipe.fileHandleForReading.readabilityHandler = { handle in
     }
 }
 
-while RunLoop.current.run(mode: .default, before: Date.distantFuture) {}
+CFRunLoopRun()
