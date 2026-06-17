@@ -75,13 +75,37 @@ local function format_speed(raw)
 	end
 end
 
-down:subscribe("routine", function()
-	sbar.exec("/opt/homebrew/bin/ifstat -i en0 -b 0.1 1 2>/dev/null", function(raw)
-		local lines = {}
-		for line in (raw or ""):gmatch("[^\n]+") do
-			lines[#lines + 1] = line
+-- 自动检测 ifstat 二进制路径（Apple Silicon / Intel Homebrew）
+local function find_ifstat()
+	for _, p in ipairs({ "/opt/homebrew/bin/ifstat", "/usr/local/bin/ifstat" }) do
+		local f = io.open(p, "r")
+		if f then
+			f:close()
+			return p
 		end
-		local data = lines[3] or ""
+	end
+	return "/opt/homebrew/bin/ifstat"
+end
+
+-- 自动检测当前活跃网络接口（系统默认路由所在的接口）
+local function find_active_iface()
+	local f = io.popen("route -n get default 2>/dev/null | awk '/interface:/{print $2; exit}'")
+	local iface = f:read("*l")
+	f:close()
+	return (iface and #iface > 0) and iface or "en0"
+end
+
+local IFSTAT = find_ifstat()
+
+down:subscribe("routine", function()
+	sbar.exec(IFSTAT .. " -i " .. find_active_iface() .. " -b 0.1 1 2>/dev/null", function(raw)
+		-- ifstat 输出 N 行 header + 1 行数据，取最后非空行避免依赖 header 行数
+		local data = ""
+		for line in (raw or ""):gmatch("[^\n]+") do
+			if #line > 0 and not line:match("^%s*$") then
+				data = line
+			end
+		end
 		local down_raw, up_raw = data:match("%s*(%S+)%s+(%S+)")
 		local dn = tonumber((down_raw or "0"):match("^(%d+)")) or 0
 		local up_val = tonumber((up_raw or "0"):match("^(%d+)")) or 0
