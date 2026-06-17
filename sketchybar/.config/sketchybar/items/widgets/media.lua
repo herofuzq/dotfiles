@@ -58,10 +58,8 @@ local function _refresh_once()
 	end)
 end
 
--- 延迟重试，防止 MediaRemote 更新滞后
 local function refresh()
 	_refresh_once()
-	sbar.delay(0.3, _refresh_once)
 end
 
 -- ========== 下一首 ==========

@@ -12,7 +12,7 @@ var lastTrigger = Date.distantPast
 
 func trigger() {
     let now = Date()
-    guard now.timeIntervalSince(lastTrigger) > 0.5 else { return }
+    guard now.timeIntervalSince(lastTrigger) > 1.0 else { return }
     lastTrigger = now
 
     let t = Process()
