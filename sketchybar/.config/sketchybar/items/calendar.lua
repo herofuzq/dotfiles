@@ -1,20 +1,21 @@
 -- ========== 日期时间显示 ==========
 local sbar = require("sketchybar")
 local fonts = require("fonts")
-local colors = require("appearance").colors
+local appearance = require("appearance")
+local colors = appearance.colors
 
 local cal = sbar.add("item", "calendar", {
 	icon = {
 		font = { family = fonts.font.text, style = fonts.font.style_map["Bold"], size = 13.0 },
 		padding_left = 2,
 		padding_right = 2,
-		color = colors.active.sep_opaque,
+		color = colors.pill_fg,
 	},
 	label = {
 		font = { family = fonts.font.text, style = fonts.font.style_map["Bold"], size = 13.0 },
 		padding_left = 0,
 		padding_right = 14,
-		color = colors.active.sep_opaque,
+		color = colors.pill_fg,
 	},
 	background = {
 		drawing = false,
@@ -22,9 +23,10 @@ local cal = sbar.add("item", "calendar", {
 	popup = {
 		align = "right",
 		background = {
-			color = colors.with_alpha(colors.active.bar_bg, 0.85),
+			color = appearance.with_alpha(colors.pill_bg, 0.85),
 			corner_radius = 12,
 			border_width = 2,
+			border_color = colors.border,
 			shadow = { drawing = false },
 		},
 		blur_radius = 30,
@@ -67,7 +69,7 @@ for i = 1, CAL_LINES do
 		label = {
 			string = string.rep(" ", 30),
 			font = { family = "Hack Nerd Font Mono", style = fonts.font.style_map["Bold"], size = 15.0 },
-			color = colors.active.text,
+			color = colors.text,
 			padding_left = 38,
 			padding_right = 60,
 		},

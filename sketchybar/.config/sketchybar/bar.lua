@@ -5,9 +5,9 @@ local settings = require("settings")
 local sbar = require("sketchybar")
 
 sbar.bar({
-	color = appearance.colors.bar.bg,
+	color = appearance.colors.bar_bg,
 	border_width = 2,
-	border_color = appearance.colors.active.sep,
+	border_color = appearance.colors.border,
 	margin = 4,
 	corner_radius = 12,
 	height = settings.height,

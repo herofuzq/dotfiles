@@ -53,7 +53,7 @@ local mode_item = sbar.add("item", "aerospace_mode", {
 		},
 		padding_left = 4,
 		padding_right = 4,
-		color = appearance.colors.active.deep_blue,
+		color = appearance.colors.sapphire,
 	},
 	drawing = false,
 })
@@ -76,7 +76,7 @@ local function ensure_front_app()
 			padding_left = 8,
 			padding_right = 8,
 			align = "center",
-			color = appearance.colors.active.peach,
+			color = appearance.colors.peach,
 		},
 		background = { drawing = false },
 	})
@@ -299,8 +299,8 @@ local function togglePopup(ws_index, workspace_item, force_show, gen)
 					local icon = (app_icons[win.app] or app_icons["Default"])
 					item:set({
 						drawing = true,
-						icon = { string = icon, color = appearance.colors.active.sep_opaque },
-						label = { string = win.title, color = appearance.colors.active.text },
+						icon = { string = icon, color = appearance.colors.pill_fg },
+						label = { string = win.title, color = appearance.colors.text },
 					})
 				else
 					item:set({ drawing = false })
@@ -322,8 +322,8 @@ local function set_highlight(ws, is_focused)
 	ws:set({
 		icon = { highlight = is_focused },
 		label = { highlight = is_focused },
-		background = { border_color = is_focused and appearance.colors.active.red or appearance.colors.active.sep, border_width = 1 },
-		popup = { background = { border_color = is_focused and appearance.colors.active.red or appearance.colors.active.sep, border_width = 1 } },
+		background = { border_color = is_focused and appearance.colors.red or appearance.colors.border, border_width = 1, corner_radius = 10 },
+		popup = { background = { border_color = is_focused and appearance.colors.red or appearance.colors.border, border_width = 1, corner_radius = 10 } },
 	})
 end
 
@@ -399,48 +399,48 @@ if USE_AEROSPACE then
 		end
 		for _, entry in ipairs(workspaces_and_monitors) do
 			local workspace_index = entry.workspace
-			local style = appearance.styles.workspace -- 引用 appearance 中的样式模板
-
-			-- 初始边框色（稍后会被 borders.distribute() 覆盖）
-			local bg = {
-				color = style.background.color,
-				drawing = style.background.drawing,
-				corner_radius = style.background.corner_radius,
-				border_width = style.background.border_width,
-				border_color = appearance.colors.active.sep,
-			}
 
 			local workspace = sbar.add("item", "workspace." .. workspace_index, {
-				background = bg,
+				background = {
+					color = appearance.colors.pill_bg,
+					drawing = true,
+					corner_radius = 10,
+					border_width = 2,
+					border_color = appearance.colors.border,
+				},
 
 				drawing = false, -- 初始隐藏，稍后由 updateWindow 决定显示/隐藏
 				padding_left = 2,
 				padding_right = 2,
 				icon = { -- 显示数字（如 "1>", "2>"），完整名在 popup 首行
-					color = style.icon.color,
-					highlight_color = style.icon.highlight_color,
-					font = style.icon.font,
-					padding_left = style.icon.padding_left,
-					padding_right = style.icon.padding_right,
+					color = appearance.colors.pill_fg,
+					highlight_color = appearance.colors.red,
+					font = {
+						family = fonts.font.text,
+						style = fonts.font.style_map["Bold"],
+						size = fonts.font.size,
+					},
+					padding_left = 10,
+					padding_right = 2,
 					drawing = true,
 					string = (SPACE_ICONS[tonumber(workspace_index:match("^(%d)"))] or workspace_index) .. " >",
 				},
 				label = { -- 显示应用图标字符串
-					color = style.label.color,
-					highlight_color = style.label.color,
-					font = style.label.font,
-					padding_left = style.label.padding_left,
-					padding_right = style.label.padding_right,
-					y_offset = style.label.y_offset,
+					color = appearance.colors.pill_fg,
+					highlight_color = appearance.colors.red,
+					font = "sketchybar-app-font:Regular:14.0",
+					padding_left = 2,
+					padding_right = 10,
+					y_offset = 0,
 					drawing = true,
 				},
 				popup = {
 					align = "left",
 					background = {
-						color = appearance.colors.active.bar_bg,
+						color = appearance.colors.pill_bg,
 						corner_radius = 10,
 						border_width = 2,
-						border_color = appearance.colors.active.sep,
+						border_color = appearance.colors.border,
 						shadow = { drawing = false },
 					},
 					blur_radius = 30,
@@ -493,7 +493,7 @@ if USE_AEROSPACE then
 						font = "sketchybar-app-font:Regular:14.0",
 						padding_left = 12,
 						padding_right = 6,
-						color = appearance.colors.active.sep_opaque,
+						color = appearance.colors.pill_fg,
 					},
 					label = {
 						font = {
@@ -504,7 +504,7 @@ if USE_AEROSPACE then
 						padding_left = 0,
 						padding_right = 16,
 						max_chars = 50,
-						color = appearance.colors.active.text,
+						color = appearance.colors.text,
 					},
 					background = { drawing = false, border_width = 0 },
 				})
@@ -514,15 +514,15 @@ if USE_AEROSPACE then
 					_popup_exit_gen[workspace_index] = (_popup_exit_gen[workspace_index] or 0) + 1
 					_popup_hovering[workspace_index] = true
 					popup_item:set({
-						icon = { color = appearance.colors.active.red },
-						label = { color = appearance.colors.active.red },
+						icon = { color = appearance.colors.red },
+						label = { color = appearance.colors.red },
 					})
 				end)
 				popup_item:subscribe("mouse.exited", function()
 					_popup_hovering[workspace_index] = false
 					popup_item:set({
-						icon = { color = appearance.colors.active.sep_opaque },
-						label = { color = appearance.colors.active.text },
+						icon = { color = appearance.colors.pill_fg },
+						label = { color = appearance.colors.text },
 					})
 					scheduleHide(workspace_index, workspace)
 				end)
@@ -619,12 +619,12 @@ if USE_AEROSPACE then
 				local ws = workspaces[ws_idx]
 				if ws then
 					ws:set({
-						background = { color = appearance.colors.active.bar_bg },
-						icon = { color = appearance.styles.workspace.icon.color },
-						label = { color = appearance.styles.workspace.label.color },
+						background = { color = appearance.colors.pill_bg },
+						icon = { color = appearance.colors.pill_fg },
+						label = { color = appearance.colors.pill_fg },
 						popup = {
 							background = {
-								color = appearance.colors.with_alpha(appearance.colors.active.bar_bg, 0.85),
+								color = appearance.with_alpha(appearance.colors.pill_bg, 0.85),
 							},
 						},
 					})
@@ -635,15 +635,15 @@ if USE_AEROSPACE then
 				for i, item in ipairs(items) do
 					if item then
 						item:set({
-							icon = { color = appearance.colors.active.sep_opaque },
-							label = { color = appearance.colors.active.text },
+							icon = { color = appearance.colors.pill_fg },
+							label = { color = appearance.colors.text },
 						})
 					end
 				end
 			end
 			-- 更新 aerospace_mode 文字色
-			sbar.set("aerospace_mode", { label = { color = appearance.colors.active.deep_blue } })
-			-- 重新分发边框色（borders.lua 已通过 set_theme 知道当前主题）
+			sbar.set("aerospace_mode", { label = { color = appearance.colors.sapphire } })
+			-- 重新分发边框色
 			updateWindows()
 		end)
 
@@ -673,7 +673,6 @@ if not USE_AEROSPACE then
 
 	for i = 1, SPACE_COUNT do
 		local ws_name = tostring(i)
-		local style = appearance.styles.workspace
 		local ws = sbar.add("space", "workspace." .. ws_name, {
 			space = i,
 			background = { color = 0xff313244, corner_radius = 10, border_width = 2, border_color = 0xff585b70 },
@@ -681,17 +680,17 @@ if not USE_AEROSPACE then
 			padding_left = 2,
 			padding_right = 2,
 			icon = {
-				color = style.label.color,
+				color = appearance.colors.pill_fg,
 				highlight_color = 0xfffc618d,
-				font = { family = style.icon.font.family, style = style.icon.font.style, size = 15.0 },
+				font = { family = fonts.font.text, style = fonts.font.style_map["Bold"], size = 15.0 },
 				padding_left = 8,
 				padding_right = 8,
 				string = SPACE_ICONS[i] .. " >",
 			},
 			label = {
-				color = style.label.color,
-				highlight_color = style.label.color,
-				font = style.label.font,
+				color = appearance.colors.pill_fg,
+				highlight_color = appearance.colors.pill_fg,
+				font = "sketchybar-app-font:Regular:14.0",
 				padding_left = 2,
 				padding_right = 8,
 				y_offset = 0,
@@ -748,12 +747,11 @@ if not USE_AEROSPACE then
 
 	-- 主题切换：更新所有 workspace 的背景色和图标色
 	root:subscribe("theme_changed", function()
-		local style = appearance.styles.workspace
 		for _, ws in pairs(_n_workspaces) do
 			ws:set({
-				background = { color = style.background.color },
-				icon = { color = style.icon.color },
-				label = { color = style.label.color },
+				background = { color = appearance.colors.pill_bg },
+				icon = { color = appearance.colors.pill_fg },
+				label = { color = appearance.colors.pill_fg },
 			})
 		end
 	end)

@@ -21,7 +21,7 @@ local sys = sbar.add("item", "widgets.sys", {
 		},
 		padding_left = settings.item_padding.icon_label_item.icon.padding_left,
 		padding_right = 0,
-		color = colors.active.accent_opaque,
+		color = colors.mauve,
 	},
 	label = {
 		string = "0%",
@@ -35,22 +35,23 @@ local sys = sbar.add("item", "widgets.sys", {
 		align = "right",
 		max_chars = 3,
 		width = 30,
-		color = colors.active.sep_opaque,
+		color = colors.pill_fg,
 	},
 	background = {
-		color = colors.active.bar_bg,
+		color = colors.pill_bg,
 		corner_radius = 10,
 		border_width = 2,
+		border_color = colors.border,
 	},
 })
 
 sys:subscribe("cpu_update", function(env)
 	local cpu_load = tonumber(env.total_load) or 0
 	local cpu_str = string.format("%d%%", cpu_load > 99 and 99 or cpu_load)
-	local cpu_color = cpu_load > 70 and colors.active.red
-		or (cpu_load > 40 and colors.active.peach or colors.active.green)
+	local cpu_color = cpu_load > 70 and colors.red
+		or (cpu_load > 40 and colors.peach or colors.green)
 	sys:set({
 		icon = { color = cpu_color },
-		label = { string = cpu_str, color = colors.active.sep_opaque },
+		label = { string = cpu_str, color = colors.pill_fg },
 	})
 end)

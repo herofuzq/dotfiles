@@ -1,273 +1,104 @@
--- ========== 外观：配色方案 + 全局默认样式 ==========
-local settings = require("settings")
-local sbar = require("sketchybar")
-local fonts = require("fonts")
-
+-- ========== 外观：Catppuccin 色板 + 语义化颜色 ==========
+-- 切换主题：改 M.active → sketchybar --reload
 local M = {}
 
-M.colors = {
-	bar = {
-		bg = 0x66181a22, -- 默认值（与 init_colors("dark") 同步）
+-- ========== ① 色板（纯色值，无 alpha）==========
+local palette = {
+	mocha = {
+		rosewater = 0xfff5e0dc, flamingo  = 0xfff2cdcd, pink     = 0xfff5c2e7,
+		mauve     = 0xffcba6f7, red      = 0xfff38ba8, maroon   = 0xffeba0ac,
+		peach     = 0xfffab387, yellow   = 0xfff9e2af, green    = 0xffa6e3a1,
+		teal      = 0xff94e2d5, sky      = 0xff89dceb, sapphire = 0xff74c7ec,
+		blue      = 0xff89b4fa, lavender = 0xffb4befe,
+		text      = 0xffcdd6f4, subtext1 = 0xffbac2de, subtext0 = 0xffa6adc8,
+		overlay2  = 0xff9399b2, overlay1 = 0xff7f849c, overlay0 = 0xff6c7086,
+		surface2  = 0xff585b70, surface1 = 0xff45475a, surface0 = 0xff313244,
+		base      = 0xff1e1e2e, mantle   = 0xff181825, crust    = 0xff11111b,
+		-- 自定义 opaque 色值
+		pill_bg     = 0xff363537,
+		pill_fg     = 0xfff7f1ff,
+		bar_bg      = 0xff181a22,
+		bar_border  = 0xff3a3a45,
 	},
-
-	catppuccin_mocha = {
-		bg0 = 0x661e1e2e,
-		bg1 = 0x66181825,
-		bg2 = 0x33313244,
-		bg3 = 0x3345475a,
-		accent = 0x33cba6f7,
-		sep = 0x336c7086,
-		-- Catppuccin Mocha 标准色表（备用）
-		rosewater = 0xfff5e0dc,
-		flamingo = 0xfff2cdcd,
-		pink = 0xfff5c2e7,
-		mauve = 0xffcba6f7,
-		red = 0xfff38ba8,
-		maroon = 0xffeba0ac,
-		peach = 0xfffab387,
-		yellow = 0xfff9e2af,
-		green = 0xffa6e3a1,
-		teal = 0xff94e2d5,
-		sky = 0xff89dceb,
-		sapphire = 0xff74c7ec,
-		blue = 0xff89b4fa,
-		lavender = 0xffb4befe,
-		input_border = 0xffb4befe,
-		text = 0xffcdd6f4,
-		subtext1 = 0xffbac2de,
-		subtext0 = 0xffa6adc8,
-		overlay2 = 0xff9399b2,
-		overlay1 = 0xff7f849c,
-		overlay0 = 0xff6c7086,
-		surface2 = 0xff585b70,
-		surface1 = 0xff45475a,
-		surface0 = 0xff313244,
-		base = 0x661e1e2e,
-		mantle = 0x66181825,
-		crust = 0x6611111b,
-		white = 0xffcdd6f4,
-		black = 0xff11111b,
-		bar_bg = 0xaa363537,
-		bg2_opaque = 0xaa363537,
-		bg3_opaque = 0xff45475a,
-		sep_opaque = 0xfff7f1ff,
-		accent_opaque = 0xffcba6f7,
-		deep_blue = 0xff74c7ec,
-
-		-- 所有边框颜色已迁移至 helpers/borders.lua 统一管理
-	},
-
-	catppuccin_latte = {
-		bg0 = 0x66eff1f5,
-		bg1 = 0x66e6e9ef,
-		bg2 = 0x33ccd0da,
-		bg3 = 0x33bcc0cc,
-		accent = 0x337286bd,
-		sep = 0x339ca0b0,
-		mauve = 0xff8839ef,
-		red = 0xffd20f39,
-		maroon = 0xffe64553,
-		peach = 0xfffe640b,
-		yellow = 0xffdf8e1d,
-		green = 0xff40a02b,
-		teal = 0xff179299,
-		sky = 0xff04a5e5,
-		sapphire = 0xff209fb5,
-		blue = 0xff1e66f5,
-		lavender = 0xff7287fd,
-		input_border = 0xff7287fd,
-		text = 0xff4c4f69, -- 标准 Catppuccin Latte 正文色
-		subtext1 = 0xff5c5f77,
-		subtext0 = 0xff6c6f85, -- 标准 Latte 次要文字
-		overlay2 = 0xff7c7f93,
-		overlay1 = 0xff8c8fa1,
-		overlay0 = 0xff9ca0b0,
-		surface2 = 0xffacb0be,
-		surface1 = 0xffbcc0cc,
-		surface0 = 0xffccd0da,
-		base = 0x66eff1f5,
-		mantle = 0x66e6e9ef,
-		crust = 0x66dce0e8,
-		white = 0xff4c4f69,
-		black = 0xffdce0e8,
-		bar_bg = 0xffdce0e8, -- 标准 Latte crust（暖白卡片背景）
-		bg2_opaque = 0xffccd0da,
-		bg3_opaque = 0xffbcc0cc,
-		sep_opaque = 0xff4c4f69, -- 正文色，保证浅色背景上 ~6:1 对比度
-		accent_opaque = 0xff7287fd,
-		deep_blue = 0xff1e66f5,
-		-- latte 预留颜色已移除（简约风格）
-	},
-
-	with_alpha = function(color, alpha)
-		if alpha > 1.0 or alpha < 0.0 then
-			return color
-		end
-		return (color & 0x00ffffff) | (math.floor(alpha * 255.0) * 0x1000000)
-	end,
-}
-
-M.colors.active = M.colors.catppuccin_mocha
-
--- ========== 主题检测与切换 ==========
-
--- 检测当前系统外观：返回 "dark" 或 "light"
-function M.detect_system_theme()
-	local success, result = pcall(function()
-		local f = io.popen("defaults read -g AppleInterfaceStyle 2>/dev/null")
-		local style = f:read("*l")
-		f:close()
-		return style
-	end)
-	if success and result == "Dark" then
-		return "dark"
-	end
-	return "light"
-end
-
--- 仅设置 bar/active 颜色值，不触发 apply（供 init.lua 在 begin_config 前使用）
-function M.init_colors(mode)
-	if mode == "dark" then
-		M.colors.active = M.colors.catppuccin_mocha
-		M.colors.bar.bg = 0x66181a22
-		M.colors.bar.border = 0xB33a3a45
-	else
-		M.colors.active = M.colors.catppuccin_latte
-		M.colors.bar.bg = 0x00E3E3E3 -- 全透明
-		M.colors.bar.border = 0xB3bcc0cc
-	end
-end
-
--- 切换主题并应用所有颜色更新（init_colors + apply_current_theme）
-function M.switch_theme(mode)
-	M.init_colors(mode)
-	M.apply_current_theme()
-end
-
--- 将当前主题（M.colors.active）应用到 bar 和所有 item
--- 依赖：M.colors.active 必须已被 init_colors() 设置过（init.lua 调用顺序保证）
-function M.apply_current_theme()
-	-- 0. 通知 borders.lua 当前主题（影响 distribute 的深色系数）
-	local mode = (M.colors.active == M.colors.catppuccin_mocha) and "dark" or "light"
-	require("helpers.borders").set_theme(mode)
-
-	-- 1. Bar 背景（已由 begin_config 内 bar.lua 设好初始色，此处再调确保生效）
-	sbar.bar({
-		color = M.colors.bar.bg,
-		border_color = M.colors.bar.border,
-	})
-
-	-- 2. 更新所有已知 item 的颜色
-	--    (M.styles 中的 color 已通过元表动态读取 M.colors.active，无需手动同步)
-	sbar.set("apple", {
-		background = { color = M.colors.active.bar_bg },
-		icon = { color = M.colors.active.red },
-	})
-	sbar.set("front_app", {
-		background = { color = M.colors.active.bar_bg },
-		label = { color = M.colors.active.sep_opaque },
-	})
-	-- i3 / aerospace_mode 在 spaces.lua 异步回调中创建，由 theme_changed 事件更新
-	sbar.set("calendar", {
-		background = { color = M.colors.active.bar_bg },
-		icon = { color = M.colors.active.sep_opaque },
-		label = { color = M.colors.active.sep_opaque },
-		popup = {
-			background = { color = M.colors.with_alpha(M.colors.active.bar_bg, 0.85) },
-		},
-	})
-	sbar.set("widgets.sys", {
-		background = { color = M.colors.active.bar_bg },
-		label = { color = M.colors.active.sep_opaque },
-	})
-	sbar.set("widgets.system", {
-		background = { color = M.colors.active.bar_bg },
-	})
-	sbar.set("widgets.battery", {
-		background = { color = M.colors.active.bar_bg },
-		label = { color = M.colors.active.sep_opaque },
-	})
-	sbar.set("widgets.input_method", {
-		background = { color = M.colors.active.bar_bg },
-		label = { color = M.colors.active.sep_opaque },
-	})
-	sbar.set("widgets.social", {
-		background = { color = M.colors.active.bar_bg },
-	})
-	sbar.set("widgets.media_label", {
-		label = { color = M.colors.active.sep_opaque },
-	})
-	sbar.set("widgets.media_play_pause", {
-		icon = { color = M.colors.active.sep_opaque },
-	})
-	sbar.set("widgets.media_next", {
-		icon = { color = M.colors.active.sep_opaque },
-	})
-
-	-- 3. 通知工作区 items 更新背景色（spaces.lua / front_app.lua 订阅了 "theme_changed"）
-	sbar.exec("sketchybar --trigger theme_changed")
-end
-
--- color 字段通过 __index 元表动态读取 M.colors.active，
--- 主题切换时自动更新，无需手动覆盖。
-local function dynamic_color(base, get_color)
-	return setmetatable(base, {
-		__index = function(_, k)
-			if k == "color" then
-				return get_color()
-			end
-		end,
-	})
-end
-
-M.styles = {
-	workspace = {
-		background = dynamic_color({
-			drawing = true,
-			corner_radius = 10,
-			border_width = 2,
-		}, function()
-			return M.colors.active.bar_bg
-		end),
-
-		icon = dynamic_color({
-			highlight_color = M.colors.active.red,
-			font = {
-				family = fonts.font.text,
-				style = fonts.font.style_map["Bold"],
-				size = fonts.font.size,
-			},
-			padding_left = 10,
-			padding_right = 2,
-		}, function()
-			return M.colors.active.sep_opaque
-		end),
-
-		label = dynamic_color({
-			highlight_color = M.colors.active.red,
-			font = "sketchybar-app-font:Regular:14.0",
-			padding_left = 2,
-			padding_right = 10,
-			y_offset = 0,
-		}, function()
-			return M.colors.active.sep_opaque
-		end),
-
-		blur_radius = 10,
+	latte = {
+		rosewater = 0xffdc8a78, flamingo  = 0xffdd7878, pink     = 0xffea76cb,
+		mauve     = 0xff8839ef, red       = 0xffd20f39, maroon   = 0xffe64553,
+		peach     = 0xfffe640b, yellow    = 0xffdf8e1d, green    = 0xff40a02b,
+		teal      = 0xff179299, sky       = 0xff04a5e5, sapphire = 0xff209fb5,
+		blue      = 0xff1e66f5, lavender  = 0xff7287fd,
+		text      = 0xff4c4f69, subtext1  = 0xff5c5f77, subtext0 = 0xff6c6f85,
+		overlay2  = 0xff7c7f93, overlay1  = 0xff8c8fa1, overlay0 = 0xff9ca0b0,
+		surface2  = 0xffacb0be, surface1  = 0xffbcc0cc, surface0 = 0xffccd0da,
+		base      = 0xffeff1f5, mantle    = 0xffe6e9ef, crust    = 0xffdce0e8,
+		-- 自定义 opaque 色值（latte 适配，后续可调）
+		pill_bg     = 0xffdce0e8,
+		pill_fg     = 0xff4c4f69,
+		bar_bg      = 0xffe3e3e3,
+		bar_border  = 0xffbcc0cc,
 	},
 }
 
+-- ========== ② 工具函数（需在 build_colors 之前定义）==========
+function M.with_alpha(color, alpha)
+	if alpha > 1.0 or alpha < 0.0 then return color end
+	return (color & 0x00ffffff) | (math.floor(alpha * 255) * 0x1000000)
+end
+
+-- ========== ③ alpha 常量 ==========
+local A = {
+	bar_bg  = 0.4,   -- bar 本体透明度
+	pill    = 0.667, -- pill 背景 (0xaa/255)
+	border  = 0.2,   -- 边框 / 高亮 (0x33/255)
+}
+
+-- ========== ④ 构建实际颜色表（含 alpha）==========
+-- 输出值与原 colors.active.xxx 完全一致
+local function build_colors(P)
+	return {
+		-- 背景/前景（含 alpha，与原 bar_bg/bg2_opaque/sep/accent 值完全相同）
+		pill_bg   = M.with_alpha(P.pill_bg, A.pill),     -- 原 bar_bg: 0xaa363537
+		pill_fg   = P.pill_fg,                            -- 原 sep_opaque: 0xfff7f1ff
+		bar_bg    = M.with_alpha(P.bar_bg, A.bar_bg),     -- 原 bar.bg: 0x66181a22
+		bar_border= P.bar_border,                         -- 原 bar.border: 0xff3a3a45
+		dim       = M.with_alpha(P.pill_bg, A.pill),     -- 原 bg2_opaque: 0xaa363537
+		border    = M.with_alpha(P.overlay0, A.border),   -- 原 sep: 0x336c7086
+		highlight = M.with_alpha(P.mauve, A.border),      -- 原 accent: 0x33cba6f7
+		-- 标准色直接透传（原值就是 opaque）
+		mauve     = P.mauve,
+		red       = P.red,
+		green     = P.green,
+		peach     = P.peach,
+		yellow    = P.yellow,
+		sapphire  = P.sapphire,
+		blue      = P.blue,
+		text      = P.text,
+		subtext1  = P.subtext1,
+		surface1  = P.surface1,
+		overlay0  = P.overlay0,
+	}
+end
+
+-- ========== ⑤ 切换 ==========
+M.active = "mocha"
+M.colors = build_colors(palette[M.active])
+
+-- ========== ⑥ 全局默认样式 ==========
 function M.install_defaults()
+	local C = M.colors
+	local settings = require("settings")
+	local fonts = require("fonts")
+	local sbar = require("sketchybar")
+
 	sbar.default({
 		background = {
-			border_color = M.colors.active.subtext1,
+			border_color = C.subtext1,
 			border_width = 2,
-			color = M.colors.active.bar_bg,
+			color = C.pill_bg,
 			corner_radius = 9,
 			height = settings.height - 6,
 			image = {
 				corner_radius = 0,
-				border_color = M.colors.active.text,
+				border_color = C.text,
 				border_width = 1,
 			},
 		},
@@ -277,8 +108,8 @@ function M.install_defaults()
 				style = fonts.font_icon.style_map["Bold"],
 				size = fonts.font_icon.size,
 			},
-			color = M.colors.active.bg2_opaque,
-			highlight_color = M.colors.active.accent,
+			color = C.dim,
+			highlight_color = C.highlight,
 			padding_left = 0,
 			padding_right = 0,
 		},
@@ -288,7 +119,7 @@ function M.install_defaults()
 				style = fonts.font.style_map["Semibold"],
 				size = fonts.font.size,
 			},
-			color = M.colors.active.bg2_opaque,
+			color = C.dim,
 			padding_left = settings.default_padding,
 			padding_right = settings.default_padding,
 		},
@@ -297,7 +128,7 @@ function M.install_defaults()
 			background = {
 				border_width = 0,
 				corner_radius = 6,
-				color = M.colors.active.bar_bg,
+				color = C.pill_bg,
 				shadow = { drawing = true },
 			},
 			blur_radius = 50,

@@ -66,7 +66,7 @@ local next_item = sbar.add("item", "widgets.media_next", {
 	icon = {
 		string = ICON_NEXT,
 		font = { family = fonts.font_icon.text, style = fonts.font_icon.style_map["Bold"], size = 14.0 },
-		color = colors.active.sep_opaque,
+		color = colors.pill_fg,
 		padding_left = 2,
 		padding_right = 2,
 		width = 12,
@@ -85,7 +85,7 @@ local play_pause = sbar.add("item", "widgets.media_play_pause", {
 	icon = {
 		string = ICON_PLAY,
 		font = { family = fonts.font_icon.text, style = fonts.font_icon.style_map["Bold"], size = 14.0 },
-		color = colors.active.sep_opaque,
+		color = colors.pill_fg,
 		padding_left = 2,
 		padding_right = 2,
 		width = 12,
@@ -119,7 +119,7 @@ local label = sbar.add("item", "widgets.media_label", {
 	icon = {
 		string = ICON_MUSIC,
 		font = { family = fonts.font_icon.text, style = fonts.font_icon.style_map["Bold"], size = 11.0 },
-		color = colors.active.peach,
+		color = colors.peach,
 		padding_left = 6,
 		padding_right = 2,
 	},
@@ -130,7 +130,7 @@ local label = sbar.add("item", "widgets.media_label", {
 			style = fonts.font.style_map["Semibold"],
 			size = fonts.font.size,
 		},
-		color = colors.active.yellow,
+		color = colors.yellow,
 		padding_left = 2,
 		padding_right = 6,
 		max_chars = 8,

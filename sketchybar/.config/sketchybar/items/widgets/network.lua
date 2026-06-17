@@ -18,7 +18,7 @@ local up = sbar.add("item", "widgets.network_up", {
 		padding_right = 0,
 		width = 33,
 		align = "right",
-		color = colors.active.sep_opaque,
+		color = colors.pill_fg,
 		y_offset = 4,
 	},
 	background = { drawing = false },
@@ -37,7 +37,7 @@ local down = sbar.add("item", "widgets.network_down", {
 		drawing = true,
 		padding_left = 4,
 		padding_right = 0,
-		color = colors.active.sapphire,
+		color = colors.sapphire,
 	},
 	label = {
 		string = "—",
@@ -46,7 +46,7 @@ local down = sbar.add("item", "widgets.network_down", {
 		padding_right = 0,
 		width = 33,
 		align = "right",
-		color = colors.active.sep_opaque,
+		color = colors.pill_fg,
 		y_offset = -4,
 	},
 	background = { drawing = false },
@@ -60,9 +60,10 @@ sbar.add("bracket", "widgets.network", { "widgets.network_up", "widgets.network_
 	padding_left = 4,
 	padding_right = 0,
 	background = {
-		color = colors.active.bar_bg,
+		color = colors.pill_bg,
 		corner_radius = 10,
 		border_width = 2,
+		border_color = colors.border,
 	},
 })
 

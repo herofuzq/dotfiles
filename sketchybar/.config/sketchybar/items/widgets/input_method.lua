@@ -36,7 +36,7 @@ local input_method = sbar.add("item", "widgets.input_method", {
 		},
 		padding_left = settings.item_padding.icon_label_item.icon.padding_left,
 		padding_right = 2,
-		color = colors.active.deep_blue,
+		color = colors.sapphire,
 	},
 	label = {
 		font = {
@@ -46,39 +46,40 @@ local input_method = sbar.add("item", "widgets.input_method", {
 		},
 		padding_left = 0,
 		padding_right = settings.item_padding.icon_label_item.label.padding_right,
-		color = colors.active.sep_opaque,
+		color = colors.pill_fg,
 	},
 	background = {
-		color = colors.active.bar_bg,
+		color = colors.pill_bg,
 		corner_radius = 10,
 		border_width = 2,
+		border_color = colors.border,
 	},
 })
 
 local function update_display(im_id, fcitx_mode)
 	if im_id == "com.apple.keylayout.ABC" then
 		input_method:set({
-			icon = { string = icons.input_method.keyboard, color = colors.active.blue },
-			label = { string = "A", color = colors.active.sep_opaque },
+			icon = { string = icons.input_method.keyboard, color = colors.blue },
+			label = { string = "A", color = colors.pill_fg },
 		})
 	elseif im_id == "org.fcitx.inputmethod.Fcitx5.zhHans" then
 		if fcitx_mode == "2" then -- fcitx5-remote: 0=关闭, 1=不活跃, 2=中文
 			input_method:set({
-				icon = { string = icons.input_method.keyboard, color = colors.active.mauve },
-				label = { string = "CH", color = colors.active.sep_opaque },
+				icon = { string = icons.input_method.keyboard, color = colors.mauve },
+				label = { string = "CH", color = colors.pill_fg },
 			})
 		else
 			-- fcitx 英文模式
 			input_method:set({
-				icon = { string = icons.input_method.keyboard, color = colors.active.mauve },
-				label = { string = "EN", color = colors.active.sep_opaque },
+				icon = { string = icons.input_method.keyboard, color = colors.mauve },
+				label = { string = "EN", color = colors.pill_fg },
 			})
 		end
 	else
 		-- 未知输入法（macism 失败时 im_id 可能为 nil，加防护避免崩溃）
 		input_method:set({
-			icon = { string = icons.input_method.keyboard, color = colors.active.bg3_opaque },
-			label = { string = (im_id and im_id:match("[^.]+$")) or "?", color = colors.active.sep_opaque },
+			icon = { string = icons.input_method.keyboard, color = colors.surface1 },
+			label = { string = (im_id and im_id:match("[^.]+$")) or "?", color = colors.pill_fg },
 		})
 	end
 end

@@ -17,7 +17,7 @@ local battery = sbar.add("item", "widgets.battery", {
 		},
 		padding_left = 8,
 		padding_right = 2,
-		color = colors.active.sep_opaque,
+		color = colors.pill_fg,
 	},
 	label = {
 		font = {
@@ -27,12 +27,13 @@ local battery = sbar.add("item", "widgets.battery", {
 		},
 		padding_left = 0,
 		padding_right = 8,
-		color = colors.active.sep_opaque,
+		color = colors.pill_fg,
 	},
 	background = {
-		color = colors.active.bar_bg,
+		color = colors.pill_bg,
 		corner_radius = 10,
 		border_width = 2,
+		border_color = colors.border,
 	},
 })
 
@@ -48,7 +49,7 @@ local function update_battery()
 			label = string.format("%02d%%", charge_num)
 		end
 
-		local color = colors.active.green
+		local color = colors.green
 		local ac_found = batt_info:find("AC Power")
 
 		if ac_found then
@@ -62,10 +63,10 @@ local function update_battery()
 				icon = icons.battery._50
 			elseif found and charge_num > 20 then
 				icon = icons.battery._25
-				color = colors.active.peach
+				color = colors.peach
 			else
 				icon = icons.battery._0
-				color = colors.active.red
+				color = colors.red
 			end
 		end
 

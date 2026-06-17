@@ -15,9 +15,10 @@ sbar.add("bracket", "widgets.system", {
 }, {
 	position = "right",
 	background = {
-		color = require("appearance").colors.active.bar_bg,
+		color = require("appearance").colors.pill_bg,
 		corner_radius = 10,
 		border_width = 2,
+		border_color = require("appearance").colors.border,
 	},
 })
 -- spacer：network 的上下行 item 用 y_offset 垂直堆叠（X 范围重合），
@@ -62,9 +63,10 @@ sbar.set("widgets.wechat", {
 sbar.add("bracket", "widgets.social", { "widgets.dingtalk", "widgets.wechat" }, {
 	position = "right",
 	background = {
-		color = require("appearance").colors.active.bar_bg,
+		color = require("appearance").colors.pill_bg,
 		corner_radius = 10,
 		border_width = 2,
+		border_color = require("appearance").colors.border,
 	},
 })
 

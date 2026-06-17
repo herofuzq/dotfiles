@@ -18,7 +18,7 @@ local clash_tun = sbar.add("item", "widgets.clash_tun", {
 		},
 		padding_left = 2,
 		padding_right = 2,
-		color = colors.active.bg3_opaque,
+		color = colors.surface1,
 	},
 	label = {
 		font = {
@@ -28,29 +28,30 @@ local clash_tun = sbar.add("item", "widgets.clash_tun", {
 		},
 		padding_left = 0,
 		padding_right = settings.item_padding.icon_label_item.label.padding_right,
-		color = colors.active.sep_opaque,
+		color = colors.pill_fg,
 	},
 	background = {
-		color = colors.active.bar_bg,
+		color = colors.pill_bg,
 		corner_radius = 10,
 		border_width = 2,
+		border_color = colors.border,
 	},
 })
 
 local function color_for(state)
 	if state == "all" then
-		return colors.active.mauve
+		return colors.mauve
 	end
 	if state == "tun" then
-		return colors.active.green
+		return colors.green
 	end
 	if state == "sys" then
-		return colors.active.sapphire
+		return colors.sapphire
 	end
 	if state == "off" then
-		return colors.active.red
+		return colors.red
 	end
-	return colors.active.bg3_opaque
+	return colors.surface1
 end
 
 local function label_for(state)
@@ -72,7 +73,7 @@ end
 local function update_display(state)
 	clash_tun:set({
 		icon = { string = icons.clash.tun, color = color_for(state) },
-		label = { string = label_for(state), color = colors.active.sep_opaque },
+		label = { string = label_for(state), color = colors.pill_fg },
 	})
 end
 
@@ -89,7 +90,7 @@ end
 local function refresh_colors()
 	clash_tun:set({
 		icon = { color = color_for(last_state) },
-		label = { color = colors.active.sep_opaque },
+		label = { color = colors.pill_fg },
 	})
 end
 

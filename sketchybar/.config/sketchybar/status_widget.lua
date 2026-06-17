@@ -7,15 +7,15 @@ local settings = require("settings")
 return function(opts)
 	local function resolve_color(key)
 		if key == nil then
-			return colors.active.bg3_opaque
+			return colors.surface1
 		end
 		if type(key) == "number" then
 			return key
 		end
-		local c = colors.active[key]
+		local c = colors[key]
 		if c == nil then
 			local n = tonumber(key)
-			return n or colors.active.sep_opaque
+			return n or colors.pill_fg
 		end
 		return c
 	end
@@ -44,9 +44,9 @@ return function(opts)
 			color = resolve_color(opts.label_inactive_color),
 		},
 		background = {
-			color = colors.active.bar_bg,
+			color = colors.pill_bg,
 			corner_radius = 10,
-			border_color = opts.border_color or colors.active.bg3_opaque,
+			border_color = opts.border_color or colors.surface1,
 			border_width = 2,
 		},
 	})
