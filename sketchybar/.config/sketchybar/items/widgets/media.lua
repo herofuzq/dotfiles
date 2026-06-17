@@ -24,7 +24,7 @@ local ICON_MUSIC = "\u{f001}"
 -- 无播放时 media-control get 输出 JSON null，回调拿到 nil
 local skip_icon = 0
 
-local function refresh()
+local function _refresh_once()
 	sbar.exec(MEDIA .. " get 2>/dev/null", function(info)
 		local title, artist, album, playing
 		if info == nil then
@@ -41,15 +41,9 @@ local function refresh()
 			display = "未播放"
 		else
 			local parts = {}
-			if title ~= "" then
-				parts[#parts + 1] = title
-			end
-			if artist ~= "" then
-				parts[#parts + 1] = artist
-			end
-			if album ~= "" then
-				parts[#parts + 1] = album
-			end
+			if title ~= "" then parts[#parts + 1] = title end
+			if artist ~= "" then parts[#parts + 1] = artist end
+			if album ~= "" then parts[#parts + 1] = album end
 			display = table.concat(parts, " - ")
 		end
 
@@ -62,6 +56,12 @@ local function refresh()
 			})
 		end
 	end)
+end
+
+-- 延迟重试，防止 MediaRemote 更新滞后
+local function refresh()
+	_refresh_once()
+	sbar.delay(0.3, _refresh_once)
 end
 
 -- ========== 下一首 ==========
@@ -119,7 +119,6 @@ end)
 -- ========== 歌曲信息 ==========
 local label = sbar.add("item", "widgets.media_label", {
 	position = "right",
-	update_freq = 3,
 	scroll_texts = "on",
 	padding_left = 2,
 	padding_right = 2,
@@ -147,4 +146,4 @@ local label = sbar.add("item", "widgets.media_label", {
 })
 
 label:subscribe("media_update", refresh)
-label:subscribe("routine", refresh)
+refresh()

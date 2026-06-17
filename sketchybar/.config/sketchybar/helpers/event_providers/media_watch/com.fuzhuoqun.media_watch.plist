@@ -3,12 +3,12 @@
 <plist version="1.0">
 <dict>
     <key>Label</key>
-    <string>com.fuzhuoqun.theme_watch</string>
+    <string>com.fuzhuoqun.media_watch</string>
     <key>ProgramArguments</key>
     <array>
         <string>/bin/sh</string>
         <string>-c</string>
-        <string>exec $HOME/.config/sketchybar/helpers/event_providers/theme/bin/theme_watch</string>
+        <string>exec $HOME/.config/sketchybar/helpers/event_providers/media_watch/bin/media_watch</string>
     </array>
     <key>RunAtLoad</key>
     <true/>

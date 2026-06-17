@@ -13,10 +13,11 @@ local cfg = os.getenv("CONFIG_DIR")
 if cfg and not (
 	file_exists(cfg .. "/helpers/event_providers/cpu_load/bin/cpu_load")
 	and file_exists(cfg .. "/helpers/event_providers/input_method/bin/input_method_watch")
-	and file_exists(cfg .. "/helpers/event_providers/theme/bin/theme_watch")
+	
 	and file_exists(cfg .. "/helpers/menus/bin/menus")
 	and file_exists(cfg .. "/helpers/bar_height/bin/bar_height")
 	and file_exists(cfg .. "/helpers/dock_width/bin/dock_width")
+	and file_exists(cfg .. "/helpers/event_providers/media_watch/bin/media_watch")
 ) then
 	local log_path = "/tmp/sketchybar_make.log"
 	local f = io.popen("cd \"" .. cfg .. "/helpers\" && make 2>&1 > " .. log_path .. "; echo $?")
