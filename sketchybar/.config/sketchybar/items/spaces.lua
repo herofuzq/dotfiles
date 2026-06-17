@@ -570,8 +570,8 @@ if USE_AEROSPACE then
 				focused = focused and focused:match("^%s*(.-)%s*$")
 				if focused then
 					for ws_idx, ws in pairs(workspaces) do
-					set_highlight(ws, ws_idx == focused)
-				end
+						set_highlight(ws, ws_idx == focused)
+					end
 				end
 			end)
 			updateWindows()
