@@ -88,18 +88,10 @@ local function find_ifstat()
 	return "/opt/homebrew/bin/ifstat"
 end
 
--- 自动检测当前活跃网络接口（系统默认路由所在的接口）
-local function find_active_iface()
-	local f = io.popen("route -n get default 2>/dev/null | awk '/interface:/{print $2; exit}'")
-	local iface = f:read("*l")
-	f:close()
-	return (iface and #iface > 0) and iface or "en0"
-end
-
 local IFSTAT = find_ifstat()
 
 down:subscribe("routine", function()
-	sbar.exec(IFSTAT .. " -i " .. find_active_iface() .. " -b 0.1 1 2>/dev/null", function(raw)
+	sbar.exec(IFSTAT .. " -i en0 -b 0.1 1 2>/dev/null", function(raw)
 		-- ifstat 输出 N 行 header + 1 行数据，取最后非空行避免依赖 header 行数
 		local data = ""
 		for line in (raw or ""):gmatch("[^\n]+") do
@@ -115,3 +107,29 @@ down:subscribe("routine", function()
 		down:set({ label = "↓" .. format_speed(down_raw) })
 	end)
 end)
+
+-- ========== system bracket（clash_tun + network）==========
+sbar.set("widgets.clash_tun", { background = { drawing = false }, padding_left = 1, padding_right = 0 })
+sbar.set("widgets.network", { background = { drawing = false } })
+sbar.add("bracket", "widgets.system", {
+	"widgets.clash_tun",
+	"widgets.network_up",
+	"widgets.network_down",
+}, {
+	position = "right",
+	background = {
+		color = colors.pill_bg,
+		corner_radius = 10,
+		border_width = 2,
+		border_color = colors.border,
+	},
+})
+
+-- spacer：防止后续 media 水平 item 覆盖 network bracket
+sbar.add("item", "widgets.media_spacer", {
+	position = "right",
+	width = 58,
+	padding_left = 0,
+	padding_right = 0,
+	background = { drawing = false },
+})

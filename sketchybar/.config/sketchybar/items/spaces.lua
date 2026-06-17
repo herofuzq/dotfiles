@@ -468,6 +468,9 @@ if USE_AEROSPACE then
 		end
 	end
 
+	-- front_app 在 begin_config 中直接创建（不依赖 aerospace 回调）
+	ensure_front_app()
+
 	-- 事件订阅 + 初始化（在 end_config 后延迟执行）
 	sbar.exec(":", function()
 		for _, ws in ipairs(workspace_order) do
@@ -606,9 +609,8 @@ if USE_AEROSPACE then
 			updateWindows()
 		end)
 
-		-- 初始 front_app + focus
+		-- 初始 focus
 		sbar.exec("aerospace list-workspaces --focused", function(focused_workspace)
-			ensure_front_app()
 			if not focused_workspace then return end
 			focused_workspace = focused_workspace:match("^%s*(.-)%s*$")
 			if workspaces[focused_workspace] then
