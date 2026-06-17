@@ -6,52 +6,39 @@
 
 ## English
 
-This is a highly modular and customizable Sketchybar configuration written primarily in Lua. It leverages Sketchybar's Lua plugin to create a dynamic and event-driven bar.
+This is a highly modular and event-driven Sketchybar configuration written in Lua with Swift helpers.
 
 ### How It Works
 
-The configuration is loaded in the following sequence:
+1.  **`sketchybarrc`** → hands over to `init.lua`
+2.  **`init.lua`** → loads appearance, bar, items in batch (`begin_config`)
+3.  **`bar.lua`** → bar geometry, blur, colors
+4.  **`items/`** → apple logo, aerospace spaces, calendar, widgets
+5.  **`sbar.event_loop()`** → listens for system events (aerospace, input method, media, etc.)
+6.  **`helpers/`** → Swift daemons for CPU load, input method, media playback. Auto-compiled via `make`.
 
-1.  **Entry Point (`sketchybarrc`)**: When Sketchybar starts, it executes the `sketchybarrc` file. This script is the main entry point for the entire configuration.
-
-2.  **Lua Initialization (`init.lua`)**: `sketchybarrc` immediately hands over control to the main `init.lua` script. This script is the orchestrator for the entire setup. It loads all other configuration files in a specific order.
-
-3.  **Core Configuration**: `init.lua` first loads the core bar settings (`bar.lua`) and then a set of default properties (`settings.lua`, `appearance.lua`, etc.) that apply to all items.
-
-4.  **Items and Widgets**: After the core setup, it loads all the individual bar items from the `items/` directory. Each file in this directory (e.g., `apple.lua`, `spaces.lua`, `calendar.lua`) corresponds to a specific element on the bar.
-
-5.  **Event Loop**: Once the entire configuration is loaded, an event loop (`sbar.event_loop()`) is started. This loop listens for system events (like input method changes, front application switches, or aerospace workspace changes) and updates the corresponding bar items in real-time.
-
-6.  **Helpers**: The `helpers/` directory contains custom C and Swift programs that act as event providers for things not natively supported by Sketchybar, such as CPU load, input method changes, and theme switching. These are compiled automatically on first run via the unified `make` chain (`helpers/Makefile` → `event_providers/Makefile` → each provider's `Makefile`).
-
-### File Structure & Customization
-
-To customize the bar, you should edit the following files:
+### File Structure
 
 #### Main Settings
 
-These files control the overall look and feel of the bar.
+*   `settings.lua`: Bar height, padding defaults.
+*   `appearance.lua`: Catppuccin color palette + semantic colors + global defaults. Switch theme via `M.active`.
+*   `fonts.lua`: All font definitions.
+*   `icons.lua`: Central icon repository.
 
-*   `settings.lua`: The primary file for customization. Here you can change the bar's height, corner radius, and default item/text padding.
-*   `appearance.lua`: Catppuccin color palette + semantic colors + global defaults. Switch theme by editing `M.active`.
-*   `fonts.lua`: All font definitions are located here. You can change font families, sizes, and styles.
-*   `icons.lua`: A central repository for all icons used across the bar.
+#### Bar & Items
 
-#### Bar Layout and Items
-
-*   `bar.lua`: Configures the main properties of the bar itself, such as its position, blur, and background color.
-*   `items/`: This directory contains the configuration for every item and widget on the bar.
-    *   To **remove an item**, comment out its `require` statement in `items/init.lua`.
-    *   To **add a new item**, create a new `.lua` file in this directory and `require` it in `items/init.lua`.
-    *   To **change the position of items**, you can reorder the `require` statements in `items/init.lua` or change the `position` property within the item's file itself.
+*   `bar.lua`: Bar position, blur, background.
+*   `items/`: All bar elements.
+    *   Comment out a `require` in `items/init.lua` to remove an item.
+    *   Reorder `require` calls to change item order.
 
 #### Advanced
 
-*   `helpers/`: This directory contains the source code for custom event providers. You generally won't need to touch these files unless you are adding a new, complex feature that requires an external helper.
-    *   `helpers/borders.lua`: Fullscreen workspace border manager. Each item manages its own static border color.
-    *   `event_providers/input_method/`: Swift daemon that listens for macOS input method switch notifications.
-    *   `event_providers/media_watch/`: Swift daemon that monitors media playback changes and updates the media widget in real-time.
-*   `sketchybarrc`: The main entry point. You should not need to edit this file.
+*   `helpers/borders.lua`: Fullscreen workspace border manager. Static borders handled per-item.
+*   `event_providers/input_method/`: Swift daemon — macOS input method change notifications.
+*   `event_providers/media_watch/`: Swift daemon — monitors media playback via `media-control stream`, updates label + play/pause icon in real-time (no polling).
+*   `sketchybarrc`: Entry point. Do not edit.
 
 ### Setup on a New Machine
 
@@ -61,127 +48,94 @@ These files control the overall look and feel of the bar.
    cd ~/dotfiles && stow --no-folding sketchybar
    ```
 
-2. **Install all Homebrew dependencies** (includes sketchybar, aerospace, fonts, and more):
+2. **Install Homebrew dependencies:**
    ```bash
    brew bundle install --file=~/dotfiles/Brewfile
    ```
 
-3. **Install Xcode Command Line Tools** (required for compiling helpers):
+3. **Install Xcode Command Line Tools:**
    ```bash
    xcode-select --install
    ```
 
-4. **Register launchd services** (input method & media watching daemons):
-    ```bash
-    ln -s ~/.config/sketchybar/helpers/event_providers/input_method/com.fuzhuoqun.input_method_watch.plist ~/Library/LaunchAgents/
-    ln -s ~/.config/sketchybar/helpers/event_providers/media_watch/com.fuzhuoqun.media_watch.plist ~/Library/LaunchAgents/
-    launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.fuzhuoqun.input_method_watch.plist
-    launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.fuzhuoqun.media_watch.plist
-    ```
+4. **Register launchd services:**
+   ```bash
+   ln -s ~/.config/sketchybar/helpers/event_providers/input_method/com.fuzhuoqun.input_method_watch.plist ~/Library/LaunchAgents/
+   ln -s ~/.config/sketchybar/helpers/event_providers/media_watch/com.fuzhuoqun.media_watch.plist ~/Library/LaunchAgents/
+   launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.fuzhuoqun.input_method_watch.plist
+   launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.fuzhuoqun.media_watch.plist
+   ```
 
-5. **Reload Sketchybar** — helpers are compiled automatically on first run:
+5. **Reload Sketchybar** (helpers auto-compile on first run):
    ```bash
    sketchybar --reload
    ```
 
-6. **Install optional extras:**
-   - **Clash Verge Rev** (for TUN status widget): Download from [clash-verge-rev/releases](https://github.com/clash-verge-rev/clash-verge-rev/releases)
-   - **fcitx5** (Chinese input method): `brew install --cask fcitx5`
+6. **Optional extras:**
+   - **Clash Verge Rev** (TUN status): [releases](https://github.com/clash-verge-rev/clash-verge-rev/releases)
+   - **fcitx5** (Chinese input): `brew install --cask fcitx5`
+   - **media-control** (media widget): `brew install media-control`
 
 ### Input Method Widget
 
-The input method widget displays the current macOS input source on the bar and updates in real-time. It supports three states:
+Displays current macOS input source. The Swift daemon listens for `com.apple.Carbon.TISNotifySelectedKeyboardInputSourceChanged`.
 
 | Input Source | Display |
 |-------------|---------|
-| `com.apple.keylayout.ABC` | `⌨ ABC` |
-| fcitx5 (Chinese mode) | `⌨ 中州韵(ZH)` |
-| fcitx5 (English mode) | `⌨ 中州韵(EN)` |
+| `com.apple.keylayout.ABC` | `A` |
+| fcitx5 Chinese | `CH` |
+| fcitx5 English | `EN` |
+| Unknown | `?` |
 
-#### How It Works
+### Media Widget
 
-The widget uses a **Swift daemon** that listens for the macOS system notification `com.apple.Carbon.TISNotifySelectedKeyboardInputSourceChanged`. When the input method changes, the daemon triggers `sketchybar --trigger input_method_change`. The Lua callback queries `macism` to get the input source, and for fcitx5, additionally queries `fcitx5-remote` to determine Chinese/English mode.
+Event-driven (no polling). The `media_watch` Swift daemon wraps `media-control stream` and directly sets label + play/pause icon when song or playback state changes.
 
-#### Files Involved
+- **Song info**: title, artist, album displayed on hover-able pill
+- **Controls**: play/pause, next track
+- **Init**: Lua queries `media-control get` once on reload for initial display
 
-| File | Purpose |
-|------|---------|
-| `helpers/event_providers/input_method/input_method_watch.swift` | Swift daemon source |
-| `helpers/event_providers/input_method/bin/input_method_watch` | Compiled daemon binary |
-| `helpers/event_providers/input_method/com.fuzhuoqun.input_method_watch.plist` | LaunchAgent plist (auto-start + keep-alive) |
-| `items/widgets/input_method.lua` | Widget Lua configuration |
+### Battery Widget
 
-#### Setup on a New Machine
-
-The daemon binary is **compiled automatically** by `helpers/init.lua` on first sketchybar reload — no manual `swiftc` needed.
-
-1. **Install the LaunchAgent** (auto-start at login, auto-restart on crash):
-   ```bash
-   ln -s ~/.config/sketchybar/helpers/event_providers/input_method/com.fuzhuoqun.input_method_watch.plist ~/Library/LaunchAgents/
-   launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.fuzhuoqun.input_method_watch.plist
-   ```
-
-2. **Reload Sketchybar:**
-   ```bash
-   sketchybar --reload
-   ```
-
-#### Customization
-
-*   **Input method display names**: Edit the `update_display` function in `items/widgets/input_method.lua` to change labels and colors for each state.
-*   **fcitx5 binary path**: If fcitx5 is installed in a custom location, update the `FCITX_REMOTE` variable in `items/widgets/input_method.lua`.
-*   **Daemon binary path**: If you installed Sketchybar via a different method, update the `launchPath` in `input_method_watch.swift` and the `ProgramArguments` in the plist.
+Hover the pill to see a popup with battery percentage and estimated time remaining. Data sourced from `ioreg -rn AppleSmartBattery`.
 
 ---
 
 ## 中文
 
-这是一套高度模块化、可定制化的 Sketchybar 配置，主要使用 Lua 编写，通过 Sketchybar 的 Lua 插件实现动态事件驱动的状态栏。
+高度模块化、事件驱动的 Sketchybar 配置，Lua + Swift 守护进程。
 
 ### 工作流程
 
-配置按以下顺序加载：
+1.  **`sketchybarrc`** → 入口，转交 `init.lua`
+2.  **`init.lua`** → 批量加载 appearance、bar、items
+3.  **`bar.lua`** → bar 几何、模糊、颜色
+4.  **`items/`** → apple logo、aerospace 工作区、日历、widgets
+5.  **`sbar.event_loop()`** → 监听 aerospace、输入法、媒体等系统事件
+6.  **`helpers/`** → Swift 守护进程（CPU、输入法、媒体），`make` 自动编译
 
-1.  **入口文件（`sketchybarrc`）**：Sketchybar 启动时执行 `sketchybarrc`，作为整个配置的入口。
-
-2.  **Lua 初始化（`init.lua`）**：`sketchybarrc` 立即将控制权交给 `init.lua`，由它按顺序加载所有配置文件。
-
-3.  **核心配置**：`init.lua` 先加载 bar 主体设置（`bar.lua`），再加载应用于所有 item 的默认属性（`settings.lua`、`appearance.lua` 等）。
-
-4.  **Item 与 Widget**：接着加载 `items/` 目录下所有 bar 元素。每个文件（如 `apple.lua`、`spaces.lua`、`calendar.lua`）对应 bar 上的一个组件。
-
-5.  **事件循环**：全部加载完成后启动事件循环（`sbar.event_loop()`），监听系统事件（输入法切换、前台应用切换、aerospace 工作区变化等）并实时更新对应 item。
-
-6.  **Helpers**：`helpers/` 目录包含自定义 C / Swift 程序，为 Sketchybar 原生不支持的功能提供事件，如 CPU 负载、输入法切换、媒体播放监听。首次运行时通过统一的 `make` 链自动编译（`helpers/Makefile` → `event_providers/Makefile` → 各 provider 的 `Makefile`）。
-
-### 文件结构与自定义
-
-如需自定义 bar，编辑以下文件：
+### 文件结构
 
 #### 主要设置
 
-这些文件控制 bar 的整体外观。
+*   `settings.lua`: Bar 高度、默认边距。
+*   `appearance.lua`: Catppuccin 色板 + 语义化颜色 + 全局默认样式。编辑 `M.active` 切换主题。
+*   `fonts.lua`: 字体定义。
+*   `icons.lua`: 图标仓库。
 
-*   `settings.lua`：主要自定义文件。可修改 bar 高度、圆角半径、默认 item/文字内边距。
-*   `appearance.lua`：Catppuccin 色板 + 语义化颜色 + 全局默认样式。编辑 `M.active` 切换主题。
-*   `fonts.lua`：所有字体定义。可修改字体族、大小和样式。
-*   `icons.lua`：所有图标的统一仓库。
+#### Bar 与 Item
 
-#### Bar 布局与 Item
-
-*   `bar.lua`：配置 bar 本身的属性，如位置、模糊效果、背景色。
-*   `items/`：包含 bar 上所有 item 和 widget 的配置。
-    *   要**删除一个 item**，在 `items/init.lua` 中注释掉对应的 `require`。
-    *   要**添加一个 item**，在此目录创建新的 `.lua` 文件并在 `items/init.lua` 中 `require`。
-    *   要**调整 item 顺序**，在 `items/init.lua` 中调整 `require` 顺序，或修改 item 自身的 `position` 属性。
+*   `bar.lua`: Bar 位置、模糊、背景。
+*   `items/`: 所有 bar 元素。
+    *   在 `items/init.lua` 中注释 `require` 可移除 item。
+    *   调整 `require` 顺序可改变 item 排列。
 
 #### 高级
 
-*   `helpers/`：包含自定义事件提供者的源码。除非需要新增复杂功能，通常无需修改。
-    *   `helpers/borders.lua`：全屏 workspace 边框管理。各 item 自行管理静态边框色。
-     *   `event_providers/input_method/`：Swift 守护进程，监听 macOS 输入法切换并触发事件。
-     *   `event_providers/media_watch/`：Swift 守护进程，监听媒体播放变化实时更新歌名和播放状态。
-*   `sketchybarrc`：主入口文件，一般不需要编辑。
+*   `helpers/borders.lua`: 全屏 workspace 边框管理。静态边框由各 item 自行管理。
+*   `event_providers/input_method/`: Swift 守护进程 — macOS 输入法切换。
+*   `event_providers/media_watch/`: Swift 守护进程 — 监听媒体播放，直接更新歌名和播放/暂停图标（零轮询）。
+*   `sketchybarrc`: 入口文件，无需编辑。
 
 ### 新机器部署
 
@@ -191,73 +145,53 @@ The daemon binary is **compiled automatically** by `helpers/init.lua` on first s
    cd ~/dotfiles && stow --no-folding sketchybar
    ```
 
-2. **安装所有 Homebrew 依赖**（包含 sketchybar、aerospace、字体等）：
+2. **安装 Homebrew 依赖：**
    ```bash
    brew bundle install --file=~/dotfiles/Brewfile
    ```
 
-3. **安装 Xcode Command Line Tools**（编译 helpers 需要）：
+3. **安装 Xcode Command Line Tools：**
    ```bash
    xcode-select --install
    ```
 
-4. **注册 launchd 服务**（输入法 & 媒体监听守护进程）：
-    ```bash
-    ln -s ~/.config/sketchybar/helpers/event_providers/input_method/com.fuzhuoqun.input_method_watch.plist ~/Library/LaunchAgents/
-    ln -s ~/.config/sketchybar/helpers/event_providers/media_watch/com.fuzhuoqun.media_watch.plist ~/Library/LaunchAgents/
-    launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.fuzhuoqun.input_method_watch.plist
-    launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.fuzhuoqun.media_watch.plist
-    ```
+4. **注册 launchd 服务：**
+   ```bash
+   ln -s ~/.config/sketchybar/helpers/event_providers/input_method/com.fuzhuoqun.input_method_watch.plist ~/Library/LaunchAgents/
+   ln -s ~/.config/sketchybar/helpers/event_providers/media_watch/com.fuzhuoqun.media_watch.plist ~/Library/LaunchAgents/
+   launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.fuzhuoqun.input_method_watch.plist
+   launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.fuzhuoqun.media_watch.plist
+   ```
 
-5. **重载 Sketchybar** — helpers 首次运行自动编译：
+5. **重载 Sketchybar**（helpers 首次运行自动编译）：
    ```bash
    sketchybar --reload
    ```
 
-6. **安装可选组件：**
-   - **Clash Verge Rev**（TUN 状态 widget 需要）：从 [clash-verge-rev/releases](https://github.com/clash-verge-rev/clash-verge-rev/releases) 下载
+6. **可选安装：**
+   - **Clash Verge Rev**（TUN 状态）：[releases](https://github.com/clash-verge-rev/clash-verge-rev/releases)
    - **fcitx5**（中文输入法）：`brew install --cask fcitx5`
+   - **media-control**（媒体 widget）：`brew install media-control`
 
 ### 输入法 Widget
 
-输入法 widget 在 bar 上实时显示当前 macOS 输入法状态，支持三种显示：
+显示当前输入法。Swift 守护进程监听 `com.apple.Carbon.TISNotifySelectedKeyboardInputSourceChanged`。
 
-| 输入源 | 显示 |
+| 输入法 | 显示 |
 |--------|------|
-| `com.apple.keylayout.ABC` | `⌨ ABC` |
-| fcitx5 中文模式 | `⌨ 中州韵(ZH)` |
-| fcitx5 英文模式 | `⌨ 中州韵(EN)` |
+| `com.apple.keylayout.ABC` | `A` |
+| fcitx5 中文 | `CH` |
+| fcitx5 英文 | `EN` |
+| 未知 | `?` |
 
-#### 工作原理
+### 媒体 Widget
 
-采用 **Swift 守护进程**监听 macOS 系统通知 `com.apple.Carbon.TISNotifySelectedKeyboardInputSourceChanged`。输入法切换时触发 `sketchybar --trigger input_method_change`，Lua 回调调用 `macism` 获取输入源，对 fcitx5 额外调用 `fcitx5-remote` 判定中/英文模式。
+事件驱动（零轮询）。`media_watch` 守护进程包装 `media-control stream`，歌曲或播放状态变化时直接更新歌名和播放/暂停图标。
 
-#### 相关文件
+- **歌曲信息**：悬停 pill 显示歌名、歌手、专辑
+- **控制**：播放/暂停、下一首
+- **初始化**：reload 时 Lua 主动查一次显示
 
-| 文件 | 用途 |
-|------|------|
-| `helpers/event_providers/input_method/input_method_watch.swift` | Swift 守护进程源码 |
-| `helpers/event_providers/input_method/bin/input_method_watch` | 编译后的二进制 |
-| `helpers/event_providers/input_method/com.fuzhuoqun.input_method_watch.plist` | LaunchAgent plist（开机自启 + 保活） |
-| `items/widgets/input_method.lua` | Widget Lua 配置 |
+### 电池 Widget
 
-#### 新机器部署步骤
-
-守护进程由 `helpers/init.lua` **在首次 reload 时自动编译**，无需手动执行 `swiftc`。
-
-1. **安装 LaunchAgent**（开机自启，崩溃自动重启）：
-   ```bash
-   ln -s ~/.config/sketchybar/helpers/event_providers/input_method/com.fuzhuoqun.input_method_watch.plist ~/Library/LaunchAgents/
-   launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.fuzhuoqun.input_method_watch.plist
-   ```
-
-2. **重载 Sketchybar：**
-   ```bash
-   sketchybar --reload
-   ```
-
-#### 自定义
-
-*   **输入法显示名称**：编辑 `items/widgets/input_method.lua` 中的 `update_display` 函数，修改各状态标签和颜色。
-*   **fcitx5 路径**：如果 fcitx5 安装在非默认路径，更新 `items/widgets/input_method.lua` 中的 `FCITX_REMOTE` 变量。
-*   **守护进程路径**：如果 Sketchybar 安装路径不同，需同步更新 `input_method_watch.swift` 中的 `launchPath` 和 plist 中的 `ProgramArguments`。
+悬停弹出剩余电量百分比和预估剩余时间。数据来源 `ioreg -rn AppleSmartBattery`。
