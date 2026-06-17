@@ -58,6 +58,33 @@ local mode_item = sbar.add("item", "aerospace_mode", {
 	drawing = false,
 })
 
+-- front_app 按需创建：aerospace 模式由 aerospace_workspace_change 事件触发，
+-- native 模式在 for 循环结束后立即创建。提取为函数同时修复原生分支里
+-- for 循环内重复创建 6 次的 bug（原 fa 变量每次都被覆盖）。
+local front_app = nil
+local function ensure_front_app()
+	if front_app then return end
+	front_app = sbar.add("item", "front_app", {
+		display = "active",
+		updates = true,
+		position = "left",
+		padding_right = 2,
+		padding_left = 2,
+		icon = { drawing = false },
+		label = {
+			font = { family = fonts.font.text, style = fonts.font.style_map["Bold"], size = fonts.font.size },
+			padding_left = 8,
+			padding_right = 8,
+			align = "center",
+			color = appearance.colors.active.peach,
+		},
+		background = { drawing = false },
+	})
+	front_app:subscribe("front_app_switched", function(env)
+		front_app:set({ label = { string = env.INFO } })
+	end)
+end
+
 -- ========== 窗口信息收集函数 ==========
 -- 调用多个 aerospace 命令，收集窗口列表、可见工作区、聚焦工作区
 -- 最终调用回调函数 f(args)
@@ -520,6 +547,7 @@ if USE_AEROSPACE then
 		-- 工作区切换时立即更新高亮（用 env 变量，0ms 延迟） + 异步更新窗口内容
 		-- 这替代了 6a39153 移除的 per-workspace subscription
 		root:subscribe("aerospace_workspace_change", function(env)
+			ensure_front_app()
 			local focused = env.FOCUSED_WORKSPACE
 			if focused then
 				for k, _ in pairs(_popup_pinned) do
@@ -631,26 +659,6 @@ if USE_AEROSPACE then
 				set_highlight(workspaces[focused_workspace], true)
 			end
 		end)
-		-- 在 spaces 后面创建 front_app（修正排序）
-		local fa = sbar.add("item", "front_app", {
-			display = "active",
-			updates = true,
-			position = "left",
-			padding_right = 2,
-			padding_left = 2,
-			icon = { drawing = false },
-			label = {
-				font = { family = fonts.font.text, style = fonts.font.style_map["Bold"], size = fonts.font.size },
-				padding_left = 8,
-				padding_right = 8,
-				align = "center",
-				color = appearance.colors.active.peach,
-			},
-			background = { drawing = false },
-		})
-		fa:subscribe("front_app_switched", function(env)
-			fa:set({ label = { string = env.INFO } })
-		end)
 	end)
 end
 
@@ -708,27 +716,9 @@ if not USE_AEROSPACE then
 			)
 		end)
 
-		local fa = sbar.add("item", "front_app", {
-			display = "active",
-			updates = true,
-			position = "left",
-			padding_right = 2,
-			padding_left = 2,
-			icon = { drawing = false },
-		label = {
-			font = { family = fonts.font.text, style = fonts.font.style_map["Bold"], size = fonts.font.size },
-			padding_left = 8,
-			padding_right = 8,
-			align = "center",
-			color = appearance.colors.active.peach,
-		},
-		background = { drawing = false },
-	})
-	fa:subscribe("front_app_switched", function(env)
-		fa:set({ label = { string = env.INFO } })
-	end)
 	end
 
+	ensure_front_app()
 	-- 原生 space_windows_change → 应用图标
 	local _n_obs = sbar.add("item", { drawing = false, updates = true })
 	_n_obs:subscribe("space_windows_change", function(env)
