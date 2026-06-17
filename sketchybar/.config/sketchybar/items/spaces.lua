@@ -17,7 +17,7 @@ local always_show = {
 	["3̲Chat"] = true,
 	["4̲Work"] = true,
 	["5̲Term"] = true,
-	-- ["6̲Play"] = true,  -- 6̲Play 不强制常显（仅在有窗口或被聚焦时显示）
+	["6̲Play"] = true,
 }
 -- aerospace 查询命令模板
 local query_workspaces =
@@ -56,12 +56,12 @@ local mode_item = sbar.add("item", "aerospace_mode", {
 	drawing = false,
 })
 
--- front_app 按需创建：aerospace 模式由 aerospace_workspace_change 事件触发，
--- native 模式在 for 循环结束后立即创建。提取为函数同时修复原生分支里
--- for 循环内重复创建 6 次的 bug（原 fa 变量每次都被覆盖）。
+-- front_app 按需创建，避免重复
 local front_app = nil
 local function ensure_front_app()
-	if front_app then return end
+	if front_app then
+		return
+	end
 	front_app = sbar.add("item", "front_app", {
 		display = "active",
 		updates = true,
@@ -83,9 +83,7 @@ local function ensure_front_app()
 	end)
 end
 
--- ========== 窗口信息收集函数 ==========
--- 调用多个 aerospace 命令，收集窗口列表、可见工作区、聚焦工作区
--- 最终调用回调函数 f(args)
+-- ========== 窗口信息收集 ==========
 local generation = 0
 
 local function withWindows(f)
@@ -164,8 +162,7 @@ local function withWindows(f)
 	end)
 end
 
--- ========== 更新单个工作区的显示 ==========
--- 决定显示应用图标 / 隐藏
+-- ========== 更新单个工作区 ==========
 local function updateWindow(workspace_index, args)
 	local open_windows = args.open_windows[workspace_index]
 	local focused_workspace = args.focused_workspace
@@ -319,9 +316,18 @@ end
 local function set_highlight(ws, is_focused)
 	ws:set({
 		icon = { highlight = is_focused },
-		label = { highlight = is_focused },
-		background = { border_color = is_focused and appearance.colors.red or appearance.colors.border, border_width = 1, corner_radius = 10 },
-		popup = { background = { border_color = is_focused and appearance.colors.red or appearance.colors.border, border_width = 1, corner_radius = 10 } },
+		background = {
+			border_color = is_focused and appearance.colors.red or appearance.colors.border,
+			border_width = 1,
+			corner_radius = 10,
+		},
+		popup = {
+			background = {
+				border_color = is_focused and appearance.colors.red or appearance.colors.border,
+				border_width = 1,
+				corner_radius = 10,
+			},
+		},
 	})
 end
 
@@ -390,228 +396,243 @@ local function updateWorkspaceMonitor()
 end
 
 -- ========== 初始化：同步查询 + begin_config 批量创建 workspace（性能优化）==========
-	-- 同步查询 workspace 列表（在 begin_config 内，纳入批量处理）
-	local f = io.popen(query_workspaces .. " 2>/dev/null")
-	local raw = f and f:read("*a") or ""
-	if f then f:close() end
+-- 同步查询 workspace 列表（在 begin_config 内，纳入批量处理）
+local f = io.popen(query_workspaces .. " 2>/dev/null")
+local raw = f and f:read("*a") or ""
+if f then
+	f:close()
+end
 
-	for ws in raw:gmatch('"workspace"%s*:%s*"([^"]+)"') do
-		local workspace = sbar.add("item", "workspace." .. ws, {
+for ws in raw:gmatch('"workspace"%s*:%s*"([^"]+)"') do
+	local workspace = sbar.add("item", "workspace." .. ws, {
+		background = {
+			color = appearance.colors.pill_bg,
+			drawing = true,
+			corner_radius = 10,
+			border_width = 2,
+			border_color = appearance.colors.border,
+		},
+		drawing = false,
+		padding_left = 2,
+		padding_right = 2,
+		icon = {
+			color = appearance.colors.pill_fg,
+			highlight_color = appearance.colors.red,
+			font = { family = fonts.font.text, style = fonts.font.style_map["Bold"], size = fonts.font.size },
+			padding_left = 10,
+			padding_right = 2,
+			drawing = true,
+			string = (SPACE_ICONS[tonumber(ws:match("^(%d)"))] or ws) .. " >",
+		},
+		label = {
+			color = appearance.colors.pill_fg,
+			highlight_color = appearance.colors.red,
+			font = "sketchybar-app-font:Regular:14.0",
+			padding_left = 2,
+			padding_right = 10,
+			y_offset = 0,
+			drawing = true,
+		},
+		popup = {
+			align = "left",
 			background = {
 				color = appearance.colors.pill_bg,
-				drawing = true,
 				corner_radius = 10,
 				border_width = 2,
 				border_color = appearance.colors.border,
+				shadow = { drawing = false },
 			},
+			blur_radius = 30,
+		},
+	})
+
+	workspaces[ws] = workspace
+	table.insert(workspace_order, ws)
+
+	_popup_items[ws] = {}
+	for i = 1, MAX_POPUP_SLOTS do
+		local popup_item = sbar.add("item", "workspace." .. ws .. ".popup." .. i, {
+			position = "popup.workspace." .. ws,
 			drawing = false,
-			padding_left = 2,
-			padding_right = 2,
 			icon = {
+				font = "sketchybar-app-font:Regular:14.0",
+				padding_left = 12,
+				padding_right = 6,
 				color = appearance.colors.pill_fg,
-				highlight_color = appearance.colors.red,
-				font = { family = fonts.font.text, style = fonts.font.style_map["Bold"], size = fonts.font.size },
-				padding_left = 10,
-				padding_right = 2,
-				drawing = true,
-				string = (SPACE_ICONS[tonumber(ws:match("^(%d)"))] or ws) .. " >",
 			},
 			label = {
-				color = appearance.colors.pill_fg,
-				highlight_color = appearance.colors.red,
-				font = "sketchybar-app-font:Regular:14.0",
-				padding_left = 2,
-				padding_right = 10,
-				y_offset = 0,
-				drawing = true,
+				font = { family = fonts.font.text, style = fonts.font.style_map["Semibold"], size = 13.0 },
+				padding_left = 0,
+				padding_right = 16,
+				max_chars = 50,
+				color = appearance.colors.text,
 			},
-			popup = {
-				align = "left",
-				background = {
-					color = appearance.colors.pill_bg,
-					corner_radius = 10,
-					border_width = 2,
-					border_color = appearance.colors.border,
-					shadow = { drawing = false },
-				},
-				blur_radius = 30,
-			},
+			background = { drawing = false, border_width = 0 },
 		})
-
-		workspaces[ws] = workspace
-		table.insert(workspace_order, ws)
-
-		_popup_items[ws] = {}
-		for i = 1, MAX_POPUP_SLOTS do
-			local popup_item = sbar.add("item", "workspace." .. ws .. ".popup." .. i, {
-				position = "popup.workspace." .. ws,
-				drawing = false,
-				icon = {
-					font = "sketchybar-app-font:Regular:14.0",
-					padding_left = 12,
-					padding_right = 6,
-					color = appearance.colors.pill_fg,
-				},
-				label = {
-					font = { family = fonts.font.text, style = fonts.font.style_map["Semibold"], size = 13.0 },
-					padding_left = 0,
-					padding_right = 16,
-					max_chars = 50,
-					color = appearance.colors.text,
-				},
-				background = { drawing = false, border_width = 0 },
-			})
-			_popup_items[ws][i] = popup_item
-		end
+		_popup_items[ws][i] = popup_item
 	end
+end
 
-	-- front_app 在 begin_config 中直接创建（不依赖 aerospace 回调）
-	ensure_front_app()
+-- front_app 在 begin_config 中直接创建（不依赖 aerospace 回调）
+ensure_front_app()
 
-	-- 事件订阅 + 初始化（在 end_config 后延迟执行）
-	sbar.exec(":", function()
-		for _, ws in ipairs(workspace_order) do
-			local w = workspaces[ws]
+-- 事件订阅 + 初始化（在 end_config 后延迟执行）
+sbar.exec(":", function()
+	for _, ws in ipairs(workspace_order) do
+		local w = workspaces[ws]
 
-			w:subscribe("mouse.entered", function()
-				_popup_exit_gen[ws] = (_popup_exit_gen[ws] or 0) + 1
-				local gen = (_popup_gen[ws] or 0) + 1
-				_popup_gen[ws] = gen
-				togglePopup(ws, w, true, gen)
+		w:subscribe("mouse.entered", function()
+			_popup_exit_gen[ws] = (_popup_exit_gen[ws] or 0) + 1
+			local gen = (_popup_gen[ws] or 0) + 1
+			_popup_gen[ws] = gen
+			togglePopup(ws, w, true, gen)
+		end)
+		w:subscribe("mouse.exited", function()
+			scheduleHide(ws, w)
+		end)
+		w:subscribe("mouse.exited.global", function()
+			_popup_exit_gen[ws] = (_popup_exit_gen[ws] or 0) + 1
+			_popup_gen[ws] = (_popup_gen[ws] or 0) + 1
+			if not _popup_pinned[ws] then
+				w:set({ popup = { drawing = false } })
+			end
+		end)
+		w:subscribe("mouse.clicked", function()
+			sbar.exec("aerospace list-workspaces --focused", function(focused)
+				focused = focused and focused:match("^%s*(.-)%s*$")
+				if focused == ws then
+					_popup_pinned[ws] = not _popup_pinned[ws]
+					togglePopup(ws, w)
+				else
+					for k, _ in pairs(_popup_pinned) do
+						_popup_pinned[k] = false
+					end
+					sbar.exec('aerospace workspace "' .. ws .. '"')
+				end
 			end)
-			w:subscribe("mouse.exited", function()
+		end)
+
+		for i = 1, MAX_POPUP_SLOTS do
+			local pi = _popup_items[ws][i]
+			pi:subscribe("mouse.entered", function()
+				_popup_exit_gen[ws] = (_popup_exit_gen[ws] or 0) + 1
+				_popup_hovering[ws] = true
+				pi:set({ icon = { color = appearance.colors.red }, label = { color = appearance.colors.red } })
+			end)
+			pi:subscribe("mouse.exited", function()
+				_popup_hovering[ws] = false
+				pi:set({ icon = { color = appearance.colors.pill_fg }, label = { color = appearance.colors.text } })
 				scheduleHide(ws, w)
 			end)
-			w:subscribe("mouse.exited.global", function()
-				_popup_exit_gen[ws] = (_popup_exit_gen[ws] or 0) + 1
-				_popup_gen[ws] = (_popup_gen[ws] or 0) + 1
-				if not _popup_pinned[ws] then
+			pi:subscribe("mouse.clicked", function()
+				local win = _popup_windows[ws] and _popup_windows[ws][i]
+				if win then
+					sbar.exec("aerospace focus --window-id " .. win.id)
 					w:set({ popup = { drawing = false } })
 				end
 			end)
-			w:subscribe("mouse.clicked", function()
-				sbar.exec("aerospace list-workspaces --focused", function(focused)
-					focused = focused and focused:match("^%s*(.-)%s*$")
-					if focused == ws then
-						_popup_pinned[ws] = not _popup_pinned[ws]
-						togglePopup(ws, w)
-					else
-						for k, _ in pairs(_popup_pinned) do _popup_pinned[k] = false end
-						sbar.exec('aerospace workspace "' .. ws .. '"')
-					end
-				end)
-			end)
+		end
+	end
 
-			for i = 1, MAX_POPUP_SLOTS do
-				local pi = _popup_items[ws][i]
-				pi:subscribe("mouse.entered", function()
-					_popup_exit_gen[ws] = (_popup_exit_gen[ws] or 0) + 1
-					_popup_hovering[ws] = true
-					pi:set({ icon = { color = appearance.colors.red }, label = { color = appearance.colors.red } })
-				end)
-				pi:subscribe("mouse.exited", function()
-					_popup_hovering[ws] = false
-					pi:set({ icon = { color = appearance.colors.pill_fg }, label = { color = appearance.colors.text } })
-					scheduleHide(ws, w)
-				end)
-				pi:subscribe("mouse.clicked", function()
-					local win = _popup_windows[ws] and _popup_windows[ws][i]
-					if win then
-						sbar.exec("aerospace focus --window-id " .. win.id)
-						w:set({ popup = { drawing = false } })
-					end
-				end)
+	-- 首次加载
+	updateWindows()
+	updateWorkspaceMonitor()
+
+	-- aerospace_workspace_change
+	root:subscribe("aerospace_workspace_change", function(env)
+		ensure_front_app()
+		local focused = env.FOCUSED_WORKSPACE
+		if focused then
+			for k, _ in pairs(_popup_pinned) do
+				_popup_pinned[k] = false
+			end
+			for k, _ in pairs(_popup_hovering) do
+				_popup_hovering[k] = false
+			end
+			for ws_idx, ws in pairs(workspaces) do
+				set_highlight(ws, ws_idx == focused)
 			end
 		end
-
-		-- 首次加载
 		updateWindows()
-		updateWorkspaceMonitor()
+	end)
 
-		-- aerospace_workspace_change
-		root:subscribe("aerospace_workspace_change", function(env)
-			ensure_front_app()
-			local focused = env.FOCUSED_WORKSPACE
+	-- space_windows_change（300ms 防抖）
+	local _space_change_gen = 0
+	root:subscribe("space_windows_change", function()
+		local my_gen = _space_change_gen + 1
+		_space_change_gen = my_gen
+		sbar.delay(0.3, function()
+			if _space_change_gen ~= my_gen then
+				return
+			end
+			updateWindows()
+		end)
+	end)
+
+	-- display_change
+	root:subscribe("display_change", function()
+		local h = settings.detect_bar_height()
+		sbar.bar({ height = h })
+		updateWorkspaceMonitor()
+		updateWindows()
+	end)
+
+	-- aerospace_fullscreen_change
+	root:subscribe("aerospace_fullscreen_change", function()
+		sbar.exec("aerospace list-workspaces --focused", function(focused)
+			focused = focused and focused:match("^%s*(.-)%s*$")
 			if focused then
-				for k, _ in pairs(_popup_pinned) do _popup_pinned[k] = false end
-				for k, _ in pairs(_popup_hovering) do _popup_hovering[k] = false end
 				for ws_idx, ws in pairs(workspaces) do
 					set_highlight(ws, ws_idx == focused)
 				end
 			end
-			updateWindows()
 		end)
+		updateWindows()
+	end)
 
-		-- space_windows_change（300ms 防抖）
-		local _space_change_gen = 0
-		root:subscribe("space_windows_change", function()
-			local my_gen = _space_change_gen + 1
-			_space_change_gen = my_gen
-			sbar.delay(0.3, function()
-				if _space_change_gen ~= my_gen then return end
-				updateWindows()
-			end)
+	-- aerospace_mode_change
+	root:subscribe("aerospace_mode_change", function(_)
+		sbar.exec("aerospace list-modes --current", function(result)
+			local is_service = (result or ""):match("service") ~= nil
+			mode_item:set({ drawing = is_service })
 		end)
+	end)
 
-		-- display_change
-		root:subscribe("display_change", function()
-			local h = settings.detect_bar_height()
-			sbar.bar({ height = h })
-			updateWorkspaceMonitor()
-			updateWindows()
-		end)
-
-		-- aerospace_fullscreen_change
-		root:subscribe("aerospace_fullscreen_change", function()
-			sbar.exec("aerospace list-workspaces --focused", function(focused)
-				focused = focused and focused:match("^%s*(.-)%s*$")
-				if focused then
-					for ws_idx, ws in pairs(workspaces) do
-						set_highlight(ws, ws_idx == focused)
-					end
-				end
-			end)
-			updateWindows()
-		end)
-
-		-- aerospace_mode_change
-		root:subscribe("aerospace_mode_change", function(_)
-			sbar.exec("aerospace list-modes --current", function(result)
-				local is_service = (result or ""):match("service") ~= nil
-				mode_item:set({ drawing = is_service })
-			end)
-		end)
-
-		-- theme_changed
-		root:subscribe("theme_changed", function()
-			for _, ws_idx in ipairs(workspace_order) do
-				local ws = workspaces[ws_idx]
-				if ws then
-					ws:set({
-						background = { color = appearance.colors.pill_bg },
+	-- theme_changed
+	root:subscribe("theme_changed", function()
+		for _, ws_idx in ipairs(workspace_order) do
+			local ws = workspaces[ws_idx]
+			if ws then
+				ws:set({
+					background = { color = appearance.colors.pill_bg },
+					icon = { color = appearance.colors.pill_fg },
+					label = { color = appearance.colors.pill_fg },
+					popup = { background = { color = appearance.with_alpha(appearance.colors.pill_bg, 0.85) } },
+				})
+			end
+		end
+		for _, items in pairs(_popup_items) do
+			for _, item in ipairs(items) do
+				if item then
+					item:set({
 						icon = { color = appearance.colors.pill_fg },
-						label = { color = appearance.colors.pill_fg },
-						popup = { background = { color = appearance.with_alpha(appearance.colors.pill_bg, 0.85) } },
+						label = { color = appearance.colors.text },
 					})
 				end
 			end
-			for _, items in pairs(_popup_items) do
-				for _, item in ipairs(items) do
-					if item then
-						item:set({ icon = { color = appearance.colors.pill_fg }, label = { color = appearance.colors.text } })
-					end
-				end
-			end
-			sbar.set("aerospace_mode", { label = { color = appearance.colors.sapphire } })
-			updateWindows()
-		end)
-
-		-- 初始 focus
-		sbar.exec("aerospace list-workspaces --focused", function(focused_workspace)
-			if not focused_workspace then return end
-			focused_workspace = focused_workspace:match("^%s*(.-)%s*$")
-			if workspaces[focused_workspace] then
-				set_highlight(workspaces[focused_workspace], true)
-			end
-		end)
+		end
+		sbar.set("aerospace_mode", { label = { color = appearance.colors.sapphire } })
+		updateWindows()
 	end)
+
+	-- 初始 focus
+	sbar.exec("aerospace list-workspaces --focused", function(focused_workspace)
+		if not focused_workspace then
+			return
+		end
+		focused_workspace = focused_workspace:match("^%s*(.-)%s*$")
+		if workspaces[focused_workspace] then
+			set_highlight(workspaces[focused_workspace], true)
+		end
+	end)
+end)
