@@ -649,8 +649,9 @@ if USE_AEROSPACE then
 
 		-- （已移除 front_app_switched 兜底订阅，理由见 space_windows_change 注释）
 
-		-- 查询初始聚焦的工作区，标记为高亮
+		-- 查询初始聚焦的工作区，标记为高亮，同时创建 front_app
 		sbar.exec("aerospace list-workspaces --focused", function(focused_workspace)
+			ensure_front_app()
 			if not focused_workspace then
 				return
 			end
