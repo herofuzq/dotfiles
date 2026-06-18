@@ -30,3 +30,6 @@
 # Temporary files
 *.tmp
 *.temp
+
+# Runtime-managed plugins
+tmux/.config/tmux/plugins/

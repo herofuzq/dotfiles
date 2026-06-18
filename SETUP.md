@@ -162,7 +162,7 @@ brew bundle cleanup --file=Brewfile       # 清理未列出项
 | 服务 | 功能 | 注册命令 |
 |------|------|---------|
 | `com.fuzhuoqun.input_method_watch` | 监听输入法切换 → `sketchybar --trigger input_method_change` | 见下方 |
-| `com.fuzhuoqun.theme_watch` | 监听深色/浅色模式切换 → `sketchybar --trigger system_appearance_changed` | 见下方 |
+| `com.fuzhuoqun.media_watch` | 监听媒体播放状态 → 实时更新 Sketchybar 媒体组件 | 见下方 |
 
 **注册步骤：**
 
@@ -170,12 +170,12 @@ brew bundle cleanup --file=Brewfile       # 清理未列出项
 # 软链 plist 到 LaunchAgents 目录
 ln -s ~/.config/sketchybar/helpers/event_providers/input_method/com.fuzhuoqun.input_method_watch.plist \
       ~/Library/LaunchAgents/
-ln -s ~/.config/sketchybar/helpers/event_providers/theme/com.fuzhuoqun.theme_watch.plist \
+ln -s ~/.config/sketchybar/helpers/event_providers/media_watch/com.fuzhuoqun.media_watch.plist \
       ~/Library/LaunchAgents/
 
 # 加载服务
 launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.fuzhuoqun.input_method_watch.plist
-launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.fuzhuoqun.theme_watch.plist
+launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.fuzhuoqun.media_watch.plist
 ```
 
 二进制由 `sketchybar --reload` 时自动编译（通过 `helpers/init.lua` + `make`）。
@@ -203,9 +203,9 @@ brew bundle install --file=Brewfile
 
 # ▸ 注册 launchd 服务
 ln -s ~/.config/sketchybar/helpers/event_providers/input_method/com.fuzhuoqun.input_method_watch.plist ~/Library/LaunchAgents/
-ln -s ~/.config/sketchybar/helpers/event_providers/theme/com.fuzhuoqun.theme_watch.plist ~/Library/LaunchAgents/
+ln -s ~/.config/sketchybar/helpers/event_providers/media_watch/com.fuzhuoqun.media_watch.plist ~/Library/LaunchAgents/
 launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.fuzhuoqun.input_method_watch.plist
-launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.fuzhuoqun.theme_watch.plist
+launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.fuzhuoqun.media_watch.plist
 
 # ▸ 初始化 Zim（Zsh 插件管理）
 curl -fsSL https://raw.githubusercontent.com/zimfw/install/master/install.zsh | zsh

@@ -215,16 +215,6 @@ _FcitxInput = {
 	isChinese = function()
 		return isUsingFcitx5() and _zhState == ZH
 	end,
-	-- @deprecated 同步阻塞，eventtap 回调中应使用 switchToEnglishAsync
-	switchToEnglish = function()
-		hs.execute("'" .. FCITX .. "' -s " .. IM_EN, true)
-		_zhState = EN
-	end,
-	-- @deprecated 同步阻塞，eventtap 回调中应使用 switchToChineseAsync
-	switchToChinese = function()
-		hs.execute("'" .. FCITX .. "' -s " .. IM_ZH, true)
-		_zhState = ZH
-	end,
 	-- 异步版本：用 hs.task 避免阻塞 eventtap 回调，减少右键延迟
 	switchToEnglishAsync = function()
 		hs.task.new(FCITX, nil, { "-s", IM_EN }):start()
