@@ -11,6 +11,7 @@ func waitPath(_ name: String, candidates: [String]) -> String {
 let sketchybar = waitPath("sketchybar", candidates: ["/opt/homebrew/bin/sketchybar", "/usr/local/bin/sketchybar"])
 let mediaControl = waitPath("media-control", candidates: ["/opt/homebrew/bin/media-control", "/usr/local/bin/media-control"])
 
+let stateQueue = DispatchQueue(label: "com.fuzhuoqun.media_watch.state")
 var lastTitle = "", lastArtist = "", lastAlbum = "", lastPlaying = false
 
 func applyUpdate(title: String, artist: String, album: String, playing: Bool) {
@@ -68,30 +69,34 @@ task.arguments = ["stream", "--no-diff", "--no-artwork", "--debounce=100"]
 let pipe = Pipe()
 task.standardOutput = pipe
 task.standardError = FileHandle.nullDevice
-try? task.run()
+task.terminationHandler = { _ in exit(0) }
+guard (try? task.run()) != nil else { exit(1) }
 
 updateFromCurrentState()
 
 var buffer = ""
 pipe.fileHandleForReading.readabilityHandler = { handle in
-    guard let chunk = String(data: handle.availableData, encoding: .utf8), !chunk.isEmpty else { return }
-    buffer += chunk
-    while let newline = buffer.firstIndex(of: "\n") {
-        let line = String(buffer[...newline].dropLast())
-        buffer.removeSubrange(buffer.startIndex...newline)
-        guard let data = line.data(using: .utf8),
-              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let payloadObject = json["payload"] else { continue }
-        if payloadObject is NSNull {
-            updateState(title: "", artist: "", album: "", playing: false)
-            continue
+    let data = handle.availableData
+    guard !data.isEmpty, let chunk = String(data: data, encoding: .utf8) else { exit(0) }
+    stateQueue.async {
+        buffer += chunk
+        while let newline = buffer.firstIndex(of: "\n") {
+            let line = String(buffer[...newline].dropLast())
+            buffer.removeSubrange(buffer.startIndex...newline)
+            guard let data = line.data(using: .utf8),
+                  let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                  let payloadObject = json["payload"] else { continue }
+            if payloadObject is NSNull {
+                updateState(title: "", artist: "", album: "", playing: false)
+                continue
+            }
+            guard let payload = payloadObject as? [String: Any] else { continue }
+            let title = payload["title"] as? String ?? ""
+            let artist = payload["artist"] as? String ?? ""
+            let album = payload["album"] as? String ?? ""
+            let playing = payload["playing"] as? Bool ?? false
+            updateState(title: title, artist: artist, album: album, playing: playing)
         }
-        guard let payload = payloadObject as? [String: Any] else { continue }
-        let title = payload["title"] as? String ?? ""
-        let artist = payload["artist"] as? String ?? ""
-        let album = payload["album"] as? String ?? ""
-        let playing = payload["playing"] as? Bool ?? false
-        updateState(title: title, artist: artist, album: album, playing: playing)
     }
 }
 

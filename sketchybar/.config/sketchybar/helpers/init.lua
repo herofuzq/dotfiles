@@ -82,8 +82,11 @@ if cfg and needs_make(cfg) then
 		.. shell_quote(log_path)
 		.. " 2>&1; printf '\\n%s' \"$?\""
 	local f = io.popen(cmd)
-	local exit_code = (f:read("*a") or ""):match("(%d+)%s*$") or "0"
-	f:close()
+	local exit_code = "1"
+	if f then
+		exit_code = (f:read("*a") or ""):match("(%d+)%s*$") or "1"
+		f:close()
+	end
 	if tonumber(exit_code) ~= 0 then
 		io.stderr:write("sketchybar: helper compile failed (exit " .. exit_code .. "), see " .. log_path .. "\n")
 	else

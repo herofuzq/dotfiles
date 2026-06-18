@@ -77,12 +77,18 @@ local function scheduleHide()
 	end)
 end
 
-local function updateBattInfo()
+	local function updateBattInfo()
 	sbar.exec("ioreg -rn AppleSmartBattery", function(raw)
 		local ext = raw and raw:match('"ExternalConnected"%s*=%s*%w+') or ""
 		local ac = ext:find("Yes") ~= nil
-		local cur = tonumber((raw or ""):match('"CurrentCapacity"%s*=%s*(%d+)')) or 0
-		local max_cap = tonumber((raw or ""):match('"MaxCapacity"%s*=%s*(%d+)')) or 1
+		local cur_raw = (raw or ""):match('"CurrentCapacity"%s*=%s*(%d+)')
+		local max_raw = (raw or ""):match('"MaxCapacity"%s*=%s*(%d+)')
+		if not cur_raw or not max_raw then
+			batt_info:set({ label = "电池信息不可用" })
+			return
+		end
+		local cur = tonumber(cur_raw) or 0
+		local max_cap = tonumber(max_raw) or 1
 		local min_left = tonumber((raw or ""):match('"AvgTimeToEmpty"%s*=%s*(%d+)'))
 		local pct = math.floor(cur * 100 / max_cap + 0.5)
 		local status = ac and "⚡ 电源" or "🔋 电池"
@@ -123,10 +129,19 @@ batt_info:subscribe("mouse.exited", function()
 end)
 
 -- ========== 电池状态更新 ==========
-local function update_battery()
+	local function update_battery()
 	sbar.exec("ioreg -rn AppleSmartBattery", function(raw)
-		local cur = tonumber((raw or ""):match('"CurrentCapacity"%s*=%s*(%d+)')) or 0
-		local max_cap = tonumber((raw or ""):match('"MaxCapacity"%s*=%s*(%d+)')) or 1
+		local cur_raw = (raw or ""):match('"CurrentCapacity"%s*=%s*(%d+)')
+		local max_raw = (raw or ""):match('"MaxCapacity"%s*=%s*(%d+)')
+		if not cur_raw or not max_raw then
+			battery:set({
+				icon = { string = icons.battery._0, color = colors.surface1 },
+				label = { string = "—" },
+			})
+			return
+		end
+		local cur = tonumber(cur_raw) or 0
+		local max_cap = tonumber(max_raw) or 1
 		local ext = raw and raw:match('"ExternalConnected"%s*=%s*%w+') or ""
 		local chg = raw and raw:match('"IsCharging"%s*=%s*%w+') or ""
 		local ac = ext:find("Yes") ~= nil

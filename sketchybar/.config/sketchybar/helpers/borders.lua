@@ -3,7 +3,7 @@
 local sbar = require("sketchybar")
 local colors = require("appearance").colors
 
-function distribute(visible_workspace_names, fullscreen_set, focused_name)
+local function distribute(visible_workspace_names, fullscreen_set, focused_name)
 	fullscreen_set = fullscreen_set or {}
 
 	for i, name in ipairs(visible_workspace_names) do

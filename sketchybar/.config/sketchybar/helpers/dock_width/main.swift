@@ -50,7 +50,6 @@ if let info = getDockInfo() {
     // 格式: <width> <hidden> <x>
     print("\(info.width) \(hiddenFlag) \(info.x)")
 } else {
-	let fallback = Int(NSScreen.main?.visibleFrame.origin.x ?? 0)
 	let hiddenFlag = autohide ? 1 : 0
-	print("\(fallback) \(hiddenFlag) 0")
+	print("55 \(hiddenFlag) 0")
 }

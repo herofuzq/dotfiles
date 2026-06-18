@@ -85,7 +85,7 @@ local function find_ifstat()
 			return p
 		end
 	end
-	return "/opt/homebrew/bin/ifstat"
+	return nil
 end
 
 local IFSTAT = find_ifstat()
@@ -105,6 +105,12 @@ end
 local NET_IFACE = detect_network_interface()
 
 down:subscribe("routine", function()
+	NET_IFACE = detect_network_interface()
+	if not IFSTAT then
+		up:set({ label = "↑  —" })
+		down:set({ label = "↓  —" })
+		return
+	end
 	sbar.exec('"' .. IFSTAT .. '" -i ' .. NET_IFACE .. " -b 0.1 1 2>/dev/null", function(raw)
 		-- ifstat 输出 N 行 header + 1 行数据，取最后非空行避免依赖 header 行数
 		local data = ""
@@ -114,8 +120,11 @@ down:subscribe("routine", function()
 			end
 		end
 		local down_raw, up_raw = data:match("%s*(%S+)%s+(%S+)")
-		local dn = tonumber((down_raw or "0"):match("^(%d+)")) or 0
-		local up_val = tonumber((up_raw or "0"):match("^(%d+)")) or 0
+		if not down_raw or not up_raw then
+			up:set({ label = "↑  —" })
+			down:set({ label = "↓  —" })
+			return
+		end
 
 		up:set({ label = "↑" .. format_speed(up_raw) })
 		down:set({ label = "↓" .. format_speed(down_raw) })

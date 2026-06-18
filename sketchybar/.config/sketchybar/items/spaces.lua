@@ -393,7 +393,26 @@ if f then
 	f:close()
 end
 
+local initial_workspaces = {}
+local seen_initial_workspaces = {}
 for ws in raw:gmatch('"workspace"%s*:%s*"([^"]+)"') do
+	if not seen_initial_workspaces[ws] then
+		seen_initial_workspaces[ws] = true
+		initial_workspaces[#initial_workspaces + 1] = ws
+	end
+end
+
+if #initial_workspaces == 0 then
+	for ws, _ in pairs(always_show) do
+		initial_workspaces[#initial_workspaces + 1] = ws
+	end
+end
+
+table.sort(initial_workspaces, function(a, b)
+	return (tonumber(a:match("^(%d+)")) or 999) < (tonumber(b:match("^(%d+)")) or 999)
+end)
+
+for _, ws in ipairs(initial_workspaces) do
 	local workspace = sbar.add("item", "workspace." .. ws, {
 		background = {
 			color = appearance.colors.pill_bg,
