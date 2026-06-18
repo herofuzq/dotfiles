@@ -83,7 +83,6 @@ local function build_colors(P)
 		pill_bg = M.with_alpha(P.surface0, A.pill), -- surface0 @ 0.667
 		pill_fg = P.text,
 		bar_bg = M.with_alpha(P.crust, A.bar_bg),
-		bar_border = P.surface1,
 		dim = M.with_alpha(P.surface0, A.pill),
 		border = M.with_alpha(P.overlay0, A.border),
 		highlight = M.with_alpha(P.mauve, A.border),

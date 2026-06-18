@@ -10,13 +10,12 @@ local settings = require("settings")
 sbar.exec(table.concat({
 	'pidfile="${TMPDIR:-/tmp}/sketchybar_cpu_load.pid"',
 	'cpu_bin="$CONFIG_DIR/helpers/event_providers/cpu_load/bin/cpu_load"',
-	'if [ -f "$pidfile" ]; then',
 	'old="$(cat "$pidfile" 2>/dev/null)"',
 	'case "$old" in ""|*[!0-9]*) old="" ;; esac',
-	'if [ -n "$old" ] && ps -p "$old" -o comm= 2>/dev/null | grep -qx cpu_load; then kill "$old" 2>/dev/null; fi',
-	'else',
-	'pkill -f "$cpu_bin cpu_update" 2>/dev/null',
-	"fi",
+	'if [ -n "$old" ]; then kill "$old" 2>/dev/null; fi',
+	'ps -axo pid=,args= | awk -v bin="$cpu_bin" \'index($0, bin " cpu_update") { print $1 }\' | while read -r pid; do',
+	'[ "$pid" != "$$" ] && kill "$pid" 2>/dev/null',
+	"done",
 	'"$cpu_bin" cpu_update 2.0 &',
 	'echo $! > "$pidfile"',
 }, "\n"))

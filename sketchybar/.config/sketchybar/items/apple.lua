@@ -11,7 +11,7 @@ local border_width = 0 -- 无背景无边框
 local icon_width = 15
 
 local function compute_icon_pad(force)
-	local dock_w, dock_hidden, dock_x = settings.detect_dock_width(force)
+	local dock_w, dock_hidden = settings.detect_dock_width(force)
 	if dock_hidden == 1 then
 		return 15, 15
 	else

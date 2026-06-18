@@ -32,7 +32,7 @@ local root = sbar.add("item", "spaces.root", { drawing = false })
 local workspaces = {} -- 工作区名 → 条目对象的映射
 local workspace_order = {} -- 工作区创建顺序（保持显示顺序一致）
 local MAX_POPUP_SLOTS = 8
-local _popup_items = {} -- { [ws_name] = { item1, ..., item10 } }
+local _popup_items = {} -- { [ws_name] = { item1, ..., item8 } }
 local _popup_windows = {} -- { [ws_name] = { {id, app, title}, ... } }
 local _popup_pinned = {} -- { [ws_name] = true/false } 记录点击固定状态，固定后鼠标离开不隐藏
 local _popup_gen = {} -- { [ws_name] = gen } 防止 hover 异步回调覆盖 mouse.exited.global 的隐藏
@@ -256,7 +256,19 @@ local function togglePopup(ws_index, workspace_item, force_show, gen)
 		.. " --format '%{window-id}%{app-name}%{window-title}' --json"
 
 	sbar.exec(cmd, function(windows)
+		if gen and _popup_gen[ws_index] ~= gen then
+			return
+		end
+
 		if not windows or #windows == 0 then
+			_popup_windows[ws_index] = {}
+			for i = 1, MAX_POPUP_SLOTS do
+				local item = _popup_items[ws_index] and _popup_items[ws_index][i]
+				if item then
+					item:set({ drawing = false })
+				end
+			end
+			workspace_item:set({ popup = { drawing = false } })
 			return
 		end
 
@@ -299,10 +311,6 @@ local function togglePopup(ws_index, workspace_item, force_show, gen)
 					item:set({ drawing = false })
 				end
 			end
-		end
-
-		if gen and _popup_gen[ws_index] ~= gen then
-			return
 		end
 
 		local drawing = force_show and true or "toggle"
@@ -643,12 +651,12 @@ sbar.exec(":", function()
 			return
 		end
 		focused_workspace = focused_workspace:match("^%s*(.-)%s*$")
-if workspaces[focused_workspace] then
-				set_highlight(workspaces[focused_workspace], true)
-				workspaces[focused_workspace]:set({ background = {
-					border_color = appearance.colors.red,
-					corner_radius = 10,
-				} })
-			end
+		if workspaces[focused_workspace] then
+			set_highlight(workspaces[focused_workspace], true)
+			workspaces[focused_workspace]:set({ background = {
+				border_color = appearance.colors.red,
+				corner_radius = 10,
+			} })
+		end
 	end)
 end)

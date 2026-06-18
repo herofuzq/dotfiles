@@ -102,16 +102,14 @@ local function detect_network_interface()
 	return "en0"
 end
 
-local NET_IFACE = detect_network_interface()
-
 down:subscribe("routine", function()
-	NET_IFACE = detect_network_interface()
+	local net_iface = detect_network_interface()
 	if not IFSTAT then
 		up:set({ label = "↑  —" })
 		down:set({ label = "↓  —" })
 		return
 	end
-	sbar.exec('"' .. IFSTAT .. '" -i ' .. NET_IFACE .. " -b 0.1 1 2>/dev/null", function(raw)
+	sbar.exec('"' .. IFSTAT .. '" -i ' .. net_iface .. " -b 0.1 1 2>/dev/null", function(raw)
 		-- ifstat 输出 N 行 header + 1 行数据，取最后非空行避免依赖 header 行数
 		local data = ""
 		for line in (raw or ""):gmatch("[^\n]+") do
