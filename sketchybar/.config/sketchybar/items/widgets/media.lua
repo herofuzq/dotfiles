@@ -22,6 +22,23 @@ local ICON_MUSIC = "\u{f001}"
 -- 无播放时 media-control get 输出 JSON null，回调拿到 nil
 local skip_icon = 0
 
+local function update_label(info)
+	local title = (info and info.title) or ""
+	local artist = (info and info.artist) or ""
+	local album = (info and info.album) or ""
+	local display
+	if title == "" and artist == "" and album == "" then
+		display = "未播放"
+	else
+		local parts = {}
+		if title ~= "" then parts[#parts + 1] = title end
+		if artist ~= "" then parts[#parts + 1] = artist end
+		if album ~= "" then parts[#parts + 1] = album end
+		display = table.concat(parts, " - ")
+	end
+	sbar.set("widgets.media_label", { label = { string = display } })
+end
+
 local function refresh()
 	sbar.exec('"' .. MEDIA .. '" get 2>/dev/null', function(info)
 		local playing = info and info.playing or false
@@ -121,22 +138,7 @@ label:subscribe("media_update", refresh)
 
 -- 初始查询：reload 后首次显示（不恢复轮询）
 sbar.exec('"' .. MEDIA .. '" get 2>/dev/null', function(info)
-	if info then
-		local title = info.title or ""
-		local artist = info.artist or ""
-		local album = info.album or ""
-		local display
-		if title == "" and artist == "" and album == "" then
-			display = "未播放"
-		else
-			local parts = {}
-			if title ~= "" then parts[#parts + 1] = title end
-			if artist ~= "" then parts[#parts + 1] = artist end
-			if album ~= "" then parts[#parts + 1] = album end
-			display = table.concat(parts, " - ")
-		end
-		sbar.set("widgets.media_label", { label = { string = display } })
-	end
+	update_label(info)
 	local playing = info and info.playing or false
 	if playing then
 		sbar.set("widgets.media_play_pause", { icon = { string = ICON_PAUSE } })

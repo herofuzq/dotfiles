@@ -12,6 +12,7 @@ let sketchybar = waitPath("sketchybar", candidates: ["/opt/homebrew/bin/sketchyb
 let mediaControl = waitPath("media-control", candidates: ["/opt/homebrew/bin/media-control", "/usr/local/bin/media-control"])
 
 var lastTitle = "", lastArtist = "", lastPlaying = false
+var resetWorkItem: DispatchWorkItem?
 
 func applyUpdate(title: String, artist: String, album: String, playing: Bool) {
     let iconChar = playing ? "\u{f04c}" : "\u{f04b}"
@@ -72,9 +73,21 @@ pipe.fileHandleForReading.readabilityHandler = { handle in
         let artist = payload["artist"] as? String ?? ""
         let playing = payload["playing"] as? Bool ?? lastPlaying
         if title.isEmpty && artist.isEmpty {
-            if playing != lastPlaying { lastPlaying = playing; applyUpdate(title: lastTitle, artist: lastArtist, album: "", playing: playing) }
+            if playing != lastPlaying || !lastTitle.isEmpty || !lastArtist.isEmpty {
+                resetWorkItem?.cancel()
+                let capturedPlaying = playing
+                let workItem = DispatchWorkItem {
+                    lastPlaying = capturedPlaying
+                    lastTitle = ""
+                    lastArtist = ""
+                    applyUpdate(title: "", artist: "", album: "", playing: capturedPlaying)
+                }
+                resetWorkItem = workItem
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5, execute: workItem)
+            }
             continue
         }
+        resetWorkItem?.cancel()
         guard title != lastTitle || artist != lastArtist || playing != lastPlaying else { continue }
         lastTitle = title; lastArtist = artist; lastPlaying = playing
         let album = payload["album"] as? String ?? ""
