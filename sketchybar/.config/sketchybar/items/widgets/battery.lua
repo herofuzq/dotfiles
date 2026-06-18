@@ -163,3 +163,4 @@ end
 
 battery:subscribe({ "routine", "power_source_change", "system_woke" }, update_battery)
 battery:subscribe("theme_changed", update_battery)
+update_battery()

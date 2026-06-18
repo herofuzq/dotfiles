@@ -1,5 +1,5 @@
-bin/menus: menus.c | bin
+bin/menus: menus.c makefile | bin
 	clang -std=c99 -O3 -F/System/Library/PrivateFrameworks/ -framework Carbon -framework SkyLight $< -o $@
 
 bin:
-	mkdir bin
+	mkdir -p bin

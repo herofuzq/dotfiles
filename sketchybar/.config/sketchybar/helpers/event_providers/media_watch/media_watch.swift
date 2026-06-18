@@ -11,8 +11,7 @@ func waitPath(_ name: String, candidates: [String]) -> String {
 let sketchybar = waitPath("sketchybar", candidates: ["/opt/homebrew/bin/sketchybar", "/usr/local/bin/sketchybar"])
 let mediaControl = waitPath("media-control", candidates: ["/opt/homebrew/bin/media-control", "/usr/local/bin/media-control"])
 
-var lastTitle = "", lastArtist = "", lastPlaying = false
-var resetWorkItem: DispatchWorkItem?
+var lastTitle = "", lastArtist = "", lastAlbum = "", lastPlaying = false
 
 func applyUpdate(title: String, artist: String, album: String, playing: Bool) {
     let iconChar = playing ? "\u{f04c}" : "\u{f04b}"
@@ -24,40 +23,54 @@ func applyUpdate(title: String, artist: String, album: String, playing: Bool) {
         if !album.isEmpty { parts.append(album) }
         return parts.joined(separator: " - ")
     }()
-    let t1 = Process(); t1.launchPath = sketchybar; t1.arguments = ["--set", "widgets.media_label", "label=\(display)"]; t1.standardOutput = FileHandle.nullDevice; t1.standardError = FileHandle.nullDevice; try? t1.run(); t1.waitUntilExit()
+    let t1 = Process(); t1.launchPath = sketchybar; t1.arguments = ["--set", "widgets.media_label", "label=\(display)"]; t1.standardOutput = FileHandle.nullDevice; t1.standardError = FileHandle.nullDevice
+    if (try? t1.run()) != nil { t1.waitUntilExit() }
     let t2 = Process(); t2.launchPath = sketchybar; t2.arguments = ["--set", "widgets.media_play_pause", "icon=\(iconChar)"]; t2.standardOutput = FileHandle.nullDevice; t2.standardError = FileHandle.nullDevice; try? t2.run() // don't wait, fire and forget
 }
 
-func updateIfChanged() {
+func updateState(title: String, artist: String, album: String, playing: Bool) {
+    guard title != lastTitle || artist != lastArtist || album != lastAlbum || playing != lastPlaying else {
+        return
+    }
+    lastTitle = title
+    lastArtist = artist
+    lastAlbum = album
+    lastPlaying = playing
+    applyUpdate(title: title, artist: artist, album: album, playing: playing)
+}
+
+func updateFromCurrentState() {
     let p = Process()
     p.launchPath = mediaControl
     p.arguments = ["get"]
     let out = Pipe()
     p.standardOutput = out
     p.standardError = FileHandle.nullDevice
-    try? p.run()
+    guard (try? p.run()) != nil else { return }
     p.waitUntilExit()
     guard let data = try? out.fileHandleForReading.readToEnd(),
-          let str = String(data: data, encoding: .utf8),
-          let json = try? JSONSerialization.jsonObject(with: str.data(using: .utf8)!) as? [String: Any] else { return }
+          let object = try? JSONSerialization.jsonObject(with: data) else { return }
+    if object is NSNull {
+        updateState(title: "", artist: "", album: "", playing: false)
+        return
+    }
+    guard let json = object as? [String: Any] else { return }
     let title = json["title"] as? String ?? ""
     let artist = json["artist"] as? String ?? ""
-    let playing = json["playing"] as? Bool ?? false
-    guard title != lastTitle || artist != lastArtist || playing != lastPlaying else { return }
-    lastTitle = title; lastArtist = artist; lastPlaying = playing
     let album = json["album"] as? String ?? ""
-    applyUpdate(title: title, artist: artist, album: album, playing: playing)
+    let playing = json["playing"] as? Bool ?? false
+    updateState(title: title, artist: artist, album: album, playing: playing)
 }
 
 let task = Process()
 task.launchPath = mediaControl
-task.arguments = ["stream"]
+task.arguments = ["stream", "--no-diff", "--no-artwork", "--debounce=100"]
 let pipe = Pipe()
 task.standardOutput = pipe
 task.standardError = FileHandle.nullDevice
 try? task.run()
 
-updateIfChanged()
+updateFromCurrentState()
 
 var buffer = ""
 pipe.fileHandleForReading.readabilityHandler = { handle in
@@ -68,30 +81,17 @@ pipe.fileHandleForReading.readabilityHandler = { handle in
         buffer.removeSubrange(buffer.startIndex...newline)
         guard let data = line.data(using: .utf8),
               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let payload = json["payload"] as? [String: Any] else { continue }
-        let title = payload["title"] as? String ?? ""
-        let artist = payload["artist"] as? String ?? ""
-        let playing = payload["playing"] as? Bool ?? lastPlaying
-        if title.isEmpty && artist.isEmpty {
-            if playing != lastPlaying || !lastTitle.isEmpty || !lastArtist.isEmpty {
-                resetWorkItem?.cancel()
-                let capturedPlaying = playing
-                let workItem = DispatchWorkItem {
-                    lastPlaying = capturedPlaying
-                    lastTitle = ""
-                    lastArtist = ""
-                    applyUpdate(title: "", artist: "", album: "", playing: capturedPlaying)
-                }
-                resetWorkItem = workItem
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5, execute: workItem)
-            }
+              let payloadObject = json["payload"] else { continue }
+        if payloadObject is NSNull {
+            updateState(title: "", artist: "", album: "", playing: false)
             continue
         }
-        resetWorkItem?.cancel()
-        guard title != lastTitle || artist != lastArtist || playing != lastPlaying else { continue }
-        lastTitle = title; lastArtist = artist; lastPlaying = playing
+        guard let payload = payloadObject as? [String: Any] else { continue }
+        let title = payload["title"] as? String ?? ""
+        let artist = payload["artist"] as? String ?? ""
         let album = payload["album"] as? String ?? ""
-        applyUpdate(title: title, artist: artist, album: album, playing: playing)
+        let playing = payload["playing"] as? Bool ?? false
+        updateState(title: title, artist: artist, album: album, playing: playing)
     }
 }
 

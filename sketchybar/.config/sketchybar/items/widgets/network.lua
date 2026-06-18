@@ -90,8 +90,22 @@ end
 
 local IFSTAT = find_ifstat()
 
+local function detect_network_interface()
+	local f = io.popen("route get default 2>/dev/null | awk '/interface:/{print $2; exit}'")
+	local iface = f and (f:read("*a") or ""):match("^%s*(.-)%s*$") or nil
+	if f then
+		f:close()
+	end
+	if iface and iface:match("^[%w%._-]+$") then
+		return iface
+	end
+	return "en0"
+end
+
+local NET_IFACE = detect_network_interface()
+
 down:subscribe("routine", function()
-	sbar.exec(IFSTAT .. " -i en0 -b 0.1 1 2>/dev/null", function(raw)
+	sbar.exec('"' .. IFSTAT .. '" -i ' .. NET_IFACE .. " -b 0.1 1 2>/dev/null", function(raw)
 		-- ifstat 输出 N 行 header + 1 行数据，取最后非空行避免依赖 header 行数
 		local data = ""
 		for line in (raw or ""):gmatch("[^\n]+") do

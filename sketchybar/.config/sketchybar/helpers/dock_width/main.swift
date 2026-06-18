@@ -9,8 +9,10 @@ task.launchPath = "/usr/bin/defaults"
 task.arguments = ["read", "com.apple.dock", "autohide"]
 let pipe = Pipe()
 task.standardOutput = pipe
-task.launch()
-task.waitUntilExit()
+task.standardError = FileHandle.nullDevice
+if (try? task.run()) != nil {
+	task.waitUntilExit()
+}
 let data = pipe.fileHandleForReading.readDataToEndOfFile()
 let autohide = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines) == "1"
 
@@ -32,11 +34,15 @@ func getDockInfo() -> (width: Int, x: Int)? {
     var posValue: CFTypeRef?
     AXUIElementCopyAttributeValue(firstChild, kAXPositionAttribute as CFString, &posValue)
 
-    var size = CGSize.zero
-    var pos = CGPoint.zero
-    guard let sv = sizeValue, AXValueGetValue(sv as! AXValue, .cgSize, &size) else { return nil }
-    if let pv = posValue { AXValueGetValue(pv as! AXValue, .cgPoint, &pos) }
-    return (Int(size.width), Int(pos.x))
+	var size = CGSize.zero
+	var pos = CGPoint.zero
+	guard let sv = sizeValue,
+	      CFGetTypeID(sv) == AXValueGetTypeID(),
+	      AXValueGetValue((sv as! AXValue), .cgSize, &size) else { return nil }
+	if let pv = posValue, CFGetTypeID(pv) == AXValueGetTypeID() {
+		AXValueGetValue((pv as! AXValue), .cgPoint, &pos)
+	}
+	return (Int(size.width), Int(pos.x))
 }
 
 if let info = getDockInfo() {
@@ -44,7 +50,7 @@ if let info = getDockInfo() {
     // 格式: <width> <hidden> <x>
     print("\(info.width) \(hiddenFlag) \(info.x)")
 } else {
-    let fallback = Int(NSScreen.main!.visibleFrame.origin.x)
-    let hiddenFlag = autohide ? 1 : 0
-    print("\(fallback) \(hiddenFlag) 0")
+	let fallback = Int(NSScreen.main?.visibleFrame.origin.x ?? 0)
+	let hiddenFlag = autohide ? 1 : 0
+	print("\(fallback) \(hiddenFlag) 0")
 }

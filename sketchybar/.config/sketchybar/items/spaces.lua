@@ -9,6 +9,10 @@ local fonts = require("fonts")
 local settings = require("settings")
 local SPACE_ICONS = { "󰼏", "󰼐", "󰼑", "󰼒", "󰼓", "󰼔" }
 
+local function shell_quote(value)
+	return "'" .. tostring(value):gsub("'", "'\\''") .. "'"
+end
+
 -- 始终显示的工作区（即使没有应用也会显示）
 -- 注：键名含 U+0332 组合下划线，对应 aerospace 工作区名称，请勿修改
 local always_show = {
@@ -253,9 +257,9 @@ local function togglePopup(ws_index, workspace_item, force_show, gen)
 		return
 	end
 
-	local cmd = 'aerospace list-windows --workspace "'
-		.. ws_index
-		.. "\" --format '%{window-id}%{app-name}%{window-title}' --json"
+	local cmd = "aerospace list-windows --workspace "
+		.. shell_quote(ws_index)
+		.. " --format '%{window-id}%{app-name}%{window-title}' --json"
 
 	sbar.exec(cmd, function(windows)
 		if not windows or #windows == 0 then
@@ -493,7 +497,7 @@ sbar.exec(":", function()
 					for k, _ in pairs(_popup_pinned) do
 						_popup_pinned[k] = false
 					end
-					sbar.exec('aerospace workspace "' .. ws .. '"')
+					sbar.exec("aerospace workspace " .. shell_quote(ws))
 				end
 			end)
 		end)
@@ -513,7 +517,10 @@ sbar.exec(":", function()
 			pi:subscribe("mouse.clicked", function()
 				local win = _popup_windows[ws] and _popup_windows[ws][i]
 				if win then
-					sbar.exec("aerospace focus --window-id " .. win.id)
+					local win_id = tostring(win.id):match("^%d+$")
+					if win_id then
+						sbar.exec("aerospace focus --window-id " .. win_id)
+					end
 					w:set({ popup = { drawing = false } })
 				end
 			end)
@@ -560,7 +567,7 @@ sbar.exec(":", function()
 
 	-- display_change
 	root:subscribe("display_change", function()
-		local h = settings.detect_bar_height()
+		local h = settings.detect_bar_height(true)
 		sbar.bar({ height = h })
 		updateWorkspaceMonitor()
 		updateWindows()

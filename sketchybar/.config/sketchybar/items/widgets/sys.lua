@@ -6,7 +6,20 @@ local colors = require("appearance").colors
 local settings = require("settings")
 
 -- 启动 CPU 监控后台进程，每 2 秒通过事件推送 CPU 数据
-sbar.exec("killall cpu_load 2>/dev/null; $CONFIG_DIR/helpers/event_providers/cpu_load/bin/cpu_load cpu_update 2.0")
+-- 使用 pidfile 避免 reload 时误杀其他同名进程
+sbar.exec(table.concat({
+	'pidfile="${TMPDIR:-/tmp}/sketchybar_cpu_load.pid"',
+	'cpu_bin="$CONFIG_DIR/helpers/event_providers/cpu_load/bin/cpu_load"',
+	'if [ -f "$pidfile" ]; then',
+	'old="$(cat "$pidfile" 2>/dev/null)"',
+	'case "$old" in ""|*[!0-9]*) old="" ;; esac',
+	'if [ -n "$old" ] && ps -p "$old" -o comm= 2>/dev/null | grep -qx cpu_load; then kill "$old" 2>/dev/null; fi',
+	'else',
+	'pkill -f "$cpu_bin cpu_update" 2>/dev/null',
+	"fi",
+	'"$cpu_bin" cpu_update 2.0 &',
+	'echo $! > "$pidfile"',
+}, "\n"))
 
 local sys = sbar.add("item", "widgets.sys", {
 	position = "right",

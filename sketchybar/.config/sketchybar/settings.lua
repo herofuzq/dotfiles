@@ -1,6 +1,33 @@
 -- 全局设置：高度、默认边距等
-local function detect_bar_height()
+local BAR_HEIGHT_CACHE = "/tmp/sketchybar_bar_height.cache"
+
+local function read_cache(path)
+	local f = io.open(path, "r")
+	if not f then
+		return nil
+	end
+	local value = f:read("*a")
+	f:close()
+	return value
+end
+
+local function write_cache(path, value)
+	local f = io.open(path, "w")
+	if not f then
+		return
+	end
+	f:write(value)
+	f:close()
+end
+
+local function detect_bar_height(force)
 	local fallback = 30
+	if not force then
+		local cached = tonumber(read_cache(BAR_HEIGHT_CACHE))
+		if cached and cached > 0 then
+			return cached
+		end
+	end
 	local cfg = os.getenv("CONFIG_DIR")
 	if cfg then
 		local f = io.popen('"' .. cfg .. '/helpers/bar_height/bin/bar_height" 2>/dev/null')
@@ -11,11 +38,13 @@ local function detect_bar_height()
 			if h then
 				h = tonumber(h)
 				if h > 0 then
+					write_cache(BAR_HEIGHT_CACHE, tostring(h))
 					return h
 				end
 			end
 		end
 	end
+	write_cache(BAR_HEIGHT_CACHE, tostring(fallback))
 	return fallback
 end
 
