@@ -66,6 +66,46 @@ local batt_info = sbar.add("item", "widgets.battery.info", {
 
 local _popup_pinned, _popup_hovering, _exit_gen = false, false, 0
 
+local UINT64_SIGNED_MAX = "9223372036854775807"
+local UINT64_MODULUS = "18446744073709551616"
+
+local function subtract_decimal(left, right)
+	local result, borrow = {}, 0
+	local offset = #left - #right
+	for i = #left, 1, -1 do
+		local right_index = i - offset
+		local digit = tonumber(left:sub(i, i)) - borrow
+		if right_index > 0 then
+			digit = digit - tonumber(right:sub(right_index, right_index))
+		end
+		if digit < 0 then
+			digit = digit + 10
+			borrow = 1
+		else
+			borrow = 0
+		end
+		table.insert(result, 1, tostring(digit))
+	end
+	local normalized = table.concat(result):gsub("^0+", "")
+	return normalized ~= "" and normalized or "0"
+end
+
+-- ioreg renders negative battery telemetry as wrapped uint64 values.
+local function parse_signed_integer(value)
+	if not value then
+		return nil
+	end
+	if value:sub(1, 1) == "-" then
+		return tonumber(value)
+	end
+	if #value > #UINT64_SIGNED_MAX
+		or (#value == #UINT64_SIGNED_MAX and value > UINT64_SIGNED_MAX)
+	then
+		return -tonumber(subtract_decimal(UINT64_MODULUS, value))
+	end
+	return tonumber(value)
+end
+
 local function scheduleHide()
 	if _popup_pinned then
 		return
@@ -93,7 +133,7 @@ local function parse_battery(raw)
 	end
 
 	local function number_field(key)
-		return tonumber(raw:match('"' .. key .. '"%s*=%s*(-?%d+)'))
+		return parse_signed_integer(raw:match('"' .. key .. '"%s*=%s*(-?%d+)'))
 	end
 
 	local ext = raw:match('"ExternalConnected"%s*=%s*%w+') or ""
@@ -121,6 +161,9 @@ local function parse_battery(raw)
 		current_watts = math.abs(battery_power) / 1000
 	elseif amperage and voltage and amperage ~= 0 and voltage > 0 then
 		current_watts = math.abs(amperage * voltage) / 1000000
+	end
+	if current_watts and current_watts > 500 then
+		current_watts = nil
 	end
 
 	return {
