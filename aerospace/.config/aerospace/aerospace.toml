@@ -237,6 +237,10 @@ if.app-id = "org.te4.T-Engine"
 run = 'layout floating'
 
 [[on-window-detected]]
+if.app-id = "com.openai.chat"
+run = 'layout floating'
+
+[[on-window-detected]]
 if.app-id = "com.enlink.EnUES"
 run = 'layout floating'
 

@@ -72,7 +72,7 @@ end
 
 -- ========== ③ alpha 常量 ==========
 local A = {
-	bar_bg = 0.6, -- bar 本体透明度
+	bar_bg = 0.3, -- bar 本体透明度
 	pill = 0.667, -- pill 背景 (0xaa/255)
 	border = 0.2, -- 边框 / 高亮 (0x33/255)
 }
