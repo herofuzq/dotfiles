@@ -57,8 +57,9 @@ local function detect_dock_width()
 			local output = f:read("*a")
 			f:close()
 			local w, hidden, x = output:match("^(%d+)%s+(%d+)%s+(%-?%d+)")
-			if w and tonumber(w) and tonumber(w) > 0 then
-				return tonumber(w), tonumber(hidden) or 0, tonumber(x) or 0
+			local width = tonumber(w)
+			if width and width > 0 then
+				return width, tonumber(hidden) or 0, tonumber(x) or 0
 			end
 		end
 	end

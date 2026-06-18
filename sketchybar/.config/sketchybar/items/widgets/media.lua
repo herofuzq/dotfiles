@@ -6,7 +6,10 @@ local colors = require("appearance").colors
 local function find_media()
 	for _, p in ipairs({ "/opt/homebrew/bin/media-control", "/usr/local/bin/media-control" }) do
 		local f = io.open(p, "r")
-		if f then f:close(); return p end
+		if f then
+			f:close()
+			return p
+		end
 	end
 	return "/opt/homebrew/bin/media-control"
 end
@@ -18,25 +21,31 @@ local ICON_PAUSE = "\u{f04c}"
 local ICON_NEXT = "\u{f051}"
 local ICON_MUSIC = "\u{f001}"
 
--- sbar.exec 回调：JSON 输出自动解析成 Lua table（无需手动 parse）
--- 无播放时 media-control get 输出 JSON null，回调拿到 nil
 local skip_icon = 0
 
-local function update_label(info)
+local function display_title(info)
 	local title = (info and info.title) or ""
 	local artist = (info and info.artist) or ""
 	local album = (info and info.album) or ""
-	local display
 	if title == "" and artist == "" and album == "" then
-		display = "未播放"
-	else
-		local parts = {}
-		if title ~= "" then parts[#parts + 1] = title end
-		if artist ~= "" then parts[#parts + 1] = artist end
-		if album ~= "" then parts[#parts + 1] = album end
-		display = table.concat(parts, " - ")
+		return "未播放"
 	end
-	sbar.set("widgets.media_label", { label = { string = display } })
+
+	local parts = {}
+	if title ~= "" then
+		parts[#parts + 1] = title
+	end
+	if artist ~= "" then
+		parts[#parts + 1] = artist
+	end
+	if album ~= "" then
+		parts[#parts + 1] = album
+	end
+	return table.concat(parts, " - ")
+end
+
+local function update_label(info)
+	sbar.set("widgets.media_label", { label = { string = display_title(info) } })
 end
 
 local function refresh()

@@ -1,12 +1,11 @@
 -- Add the sketchybar module to the package cpath
 package.cpath = package.cpath .. ";" .. os.getenv("HOME") .. "/.local/share/sketchybar_lua/?.so"
 
--- 仅在 helper 缺失或源码更新时编译；bin 位于实际 CONFIG_DIR，不由 stow 管理
-
 local function shell_quote(s)
 	return "'" .. tostring(s):gsub("'", "'\\''") .. "'"
 end
 
+-- bin 位于实际 CONFIG_DIR，不由 stow 管理；这里只在缺失或源码更新时编译。
 local function needs_make(cfg)
 	local helpers = cfg .. "/helpers"
 	local targets = {
@@ -73,8 +72,7 @@ local function needs_make(cfg)
 	return stale
 end
 
-local cfg = os.getenv("CONFIG_DIR")
-if cfg and needs_make(cfg) then
+local function run_make(cfg)
 	local log_path = "/tmp/sketchybar_make.log"
 	local cmd = "cd "
 		.. shell_quote(cfg .. "/helpers")
@@ -87,12 +85,22 @@ if cfg and needs_make(cfg) then
 		exit_code = (f:read("*a") or ""):match("(%d+)%s*$") or "1"
 		f:close()
 	end
-	if tonumber(exit_code) ~= 0 then
+	return tonumber(exit_code) or 1, log_path
+end
+
+local function restart_event_providers()
+	os.execute(
+		"launchctl kickstart -k gui/$(id -u)/com.fuzhuoqun.input_method_watch >/dev/null 2>&1; "
+			.. "launchctl kickstart -k gui/$(id -u)/com.fuzhuoqun.media_watch >/dev/null 2>&1 &"
+	)
+end
+
+local cfg = os.getenv("CONFIG_DIR")
+if cfg and needs_make(cfg) then
+	local exit_code, log_path = run_make(cfg)
+	if exit_code ~= 0 then
 		io.stderr:write("sketchybar: helper compile failed (exit " .. exit_code .. "), see " .. log_path .. "\n")
 	else
-		os.execute(
-			"launchctl kickstart -k gui/$(id -u)/com.fuzhuoqun.input_method_watch >/dev/null 2>&1; "
-				.. "launchctl kickstart -k gui/$(id -u)/com.fuzhuoqun.media_watch >/dev/null 2>&1 &"
-		)
+		restart_event_providers()
 	end
 end

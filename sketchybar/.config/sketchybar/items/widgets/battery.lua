@@ -2,7 +2,8 @@
 local sbar = require("sketchybar")
 local icons = require("icons")
 local fonts = require("fonts")
-local colors = require("appearance").colors
+local appearance = require("appearance")
+local colors = appearance.colors
 
 local battery = sbar.add("item", "widgets.battery", {
 	position = "right",
@@ -38,7 +39,7 @@ local battery = sbar.add("item", "widgets.battery", {
 	popup = {
 		align = "center",
 		background = {
-			color = require("appearance").with_alpha(colors.pill_bg, 0.85),
+			color = appearance.with_alpha(colors.pill_bg, 0.85),
 			corner_radius = 12,
 			border_width = 2,
 			border_color = colors.border,
@@ -66,36 +67,56 @@ local batt_info = sbar.add("item", "widgets.battery.info", {
 local _popup_pinned, _popup_hovering, _exit_gen = false, false, 0
 
 local function scheduleHide()
-	if _popup_pinned then return end
+	if _popup_pinned then
+		return
+	end
 	_exit_gen = _exit_gen + 1
 	local gen = _exit_gen
 	sbar.delay(0.2, function()
-		if _exit_gen ~= gen then return end
-		if _popup_hovering or _popup_pinned then return end
+		if _exit_gen ~= gen then
+			return
+		end
+		if _popup_hovering or _popup_pinned then
+			return
+		end
 		batt_info:set({ drawing = false })
 		battery:set({ popup = { drawing = false } })
 	end)
 end
 
-	local function updateBattInfo()
+local function parse_battery(raw)
+	local cur_raw = (raw or ""):match('"CurrentCapacity"%s*=%s*(%d+)')
+	local max_raw = (raw or ""):match('"MaxCapacity"%s*=%s*(%d+)')
+	if not cur_raw or not max_raw then
+		return nil
+	end
+
+	local ext = raw and raw:match('"ExternalConnected"%s*=%s*%w+') or ""
+	local chg = raw and raw:match('"IsCharging"%s*=%s*%w+') or ""
+	local cur = tonumber(cur_raw) or 0
+	local max_cap = tonumber(max_raw) or 1
+
+	return {
+		ac = ext:find("Yes") ~= nil,
+		charging = chg:find("Yes") ~= nil,
+		min_left = tonumber((raw or ""):match('"AvgTimeToEmpty"%s*=%s*(%d+)')),
+		percent = math.floor(cur * 100 / max_cap + 0.5),
+	}
+end
+
+local function updateBattInfo()
 	sbar.exec("ioreg -rn AppleSmartBattery", function(raw)
-		local ext = raw and raw:match('"ExternalConnected"%s*=%s*%w+') or ""
-		local ac = ext:find("Yes") ~= nil
-		local cur_raw = (raw or ""):match('"CurrentCapacity"%s*=%s*(%d+)')
-		local max_raw = (raw or ""):match('"MaxCapacity"%s*=%s*(%d+)')
-		if not cur_raw or not max_raw then
+		local state = parse_battery(raw)
+		if not state then
 			batt_info:set({ label = "电池信息不可用" })
 			return
 		end
-		local cur = tonumber(cur_raw) or 0
-		local max_cap = tonumber(max_raw) or 1
-		local min_left = tonumber((raw or ""):match('"AvgTimeToEmpty"%s*=%s*(%d+)'))
-		local pct = math.floor(cur * 100 / max_cap + 0.5)
-		local status = ac and "⚡ 电源" or "🔋 电池"
-		local info = string.format("%s  %d%%", status, pct)
-		if not ac and min_left then
-			local h = math.floor(min_left / 60)
-			local m = min_left % 60
+
+		local status = state.ac and "⚡ 电源" or "🔋 电池"
+		local info = string.format("%s  %d%%", status, state.percent)
+		if not state.ac and state.min_left then
+			local h = math.floor(state.min_left / 60)
+			local m = state.min_left % 60
 			info = info .. string.format("  剩余 %d:%02d", h, m)
 		end
 		batt_info:set({ label = info })
@@ -129,38 +150,30 @@ batt_info:subscribe("mouse.exited", function()
 end)
 
 -- ========== 电池状态更新 ==========
-	local function update_battery()
+local function update_battery()
 	sbar.exec("ioreg -rn AppleSmartBattery", function(raw)
-		local cur_raw = (raw or ""):match('"CurrentCapacity"%s*=%s*(%d+)')
-		local max_raw = (raw or ""):match('"MaxCapacity"%s*=%s*(%d+)')
-		if not cur_raw or not max_raw then
+		local state = parse_battery(raw)
+		if not state then
 			battery:set({
 				icon = { string = icons.battery._0, color = colors.surface1 },
 				label = { string = "—" },
 			})
 			return
 		end
-		local cur = tonumber(cur_raw) or 0
-		local max_cap = tonumber(max_raw) or 1
-		local ext = raw and raw:match('"ExternalConnected"%s*=%s*%w+') or ""
-		local chg = raw and raw:match('"IsCharging"%s*=%s*%w+') or ""
-		local ac = ext:find("Yes") ~= nil
-		local charging = chg:find("Yes") ~= nil
-		local charge_num = math.floor(cur * 100 / max_cap + 0.5)
-		local label = string.format("%02d%%", charge_num)
+		local label = string.format("%02d%%", state.percent)
 
 		local color = colors.green
 		local icon
-		if ac or charging then
+		if state.ac or state.charging then
 			icon = icons.battery.charging
 		else
-			if charge_num > 80 then
+			if state.percent > 80 then
 				icon = icons.battery._100
-			elseif charge_num > 60 then
+			elseif state.percent > 60 then
 				icon = icons.battery._75
-			elseif charge_num > 40 then
+			elseif state.percent > 40 then
 				icon = icons.battery._50
-			elseif charge_num > 20 then
+			elseif state.percent > 20 then
 				icon = icons.battery._25
 				color = colors.peach
 			else

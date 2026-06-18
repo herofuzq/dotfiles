@@ -167,62 +167,47 @@ local function withWindows(f)
 end
 
 -- ========== 更新单个工作区 ==========
-local function updateWindow(workspace_index, args)
-	local open_windows = args.open_windows[workspace_index]
-	local focused_workspace = args.focused_workspace
-	local visible_workspaces = args.visible_workspaces
-	local is_focused = workspace_index == focused_workspace
-
-	if open_windows == nil then
-		open_windows = {}
-	end
-
-	-- 拼接应用图标字符串（使用 sketchybar-app-font 的 :name: 格式）
+local function app_icon_line(open_windows)
 	local icon_line = ""
-	local no_app = true
 	for _, app in ipairs(open_windows) do
-		no_app = false
 		local lookup = app_icons[app]
 		local icon = ((lookup == nil) and app_icons["Default"] or lookup)
 		icon_line = icon_line .. icon
 	end
+	return icon_line
+end
 
-	-- 情况1：没有应用，但工作区当前在屏幕上可见
+local function visible_monitor_id(workspace_index, visible_workspaces)
 	for _, vw in ipairs(visible_workspaces) do
-		if no_app and workspace_index == vw["workspace"] then
+		if workspace_index == vw["workspace"] then
 			local raw_id = vw["monitor-appkit-nsscreen-screens-id"]
-			local monitor_id = raw_id and math.floor(raw_id)
-			workspaces[workspace_index]:set({
-				drawing = true,
-				icon = { padding_left = 10, padding_right = 10 },
-				label = { drawing = false },
-				display = monitor_id,
-			})
-			return
+			return raw_id and math.floor(raw_id)
 		end
 	end
+	return nil
+end
 
-	-- 情况2：没有应用，也不聚焦 → always_show 则显示，否则隐藏
-	if no_app and workspace_index ~= focused_workspace then
-		workspaces[workspace_index]:set({
-			drawing = always_show[workspace_index] and true or false,
-			icon = { padding_left = 10, padding_right = 10 },
-			label = { drawing = false },
-		})
-		return
-	end
-
-	-- 情况3：没有应用，但是聚焦的工作区
-	if no_app and workspace_index == focused_workspace then
+local function show_empty_workspace(workspace_index, focused_workspace, visible_workspaces)
+	local monitor_id = visible_monitor_id(workspace_index, visible_workspaces)
+	if monitor_id then
 		workspaces[workspace_index]:set({
 			drawing = true,
 			icon = { padding_left = 10, padding_right = 10 },
 			label = { drawing = false },
+			display = monitor_id,
 		})
 		return
 	end
 
-	-- 情况4：有应用
+	local should_draw = workspace_index == focused_workspace or always_show[workspace_index] == true
+	workspaces[workspace_index]:set({
+		drawing = should_draw,
+		icon = { padding_left = 10, padding_right = 10 },
+		label = { drawing = false },
+	})
+end
+
+local function show_workspace_apps(workspace_index, icon_line)
 	-- 注：高亮由 root subscribe("aerospace_workspace_change") 立即设置（env.FOCUSED_WORKSPACE），
 	-- 此处不重复设置，避免 aerospace CLI 偶尔失败时把高亮误清
 	workspaces[workspace_index]:set({
@@ -230,6 +215,15 @@ local function updateWindow(workspace_index, args)
 		icon = { padding_left = 10, padding_right = 2 },
 		label = { drawing = true, string = icon_line },
 	})
+end
+
+local function updateWindow(workspace_index, args)
+	local open_windows = args.open_windows[workspace_index] or {}
+	if #open_windows == 0 then
+		show_empty_workspace(workspace_index, args.focused_workspace, args.visible_workspaces)
+	else
+		show_workspace_apps(workspace_index, app_icon_line(open_windows))
+	end
 end
 
 local function scheduleHide(ws_index, workspace)

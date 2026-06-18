@@ -1,9 +1,18 @@
 import Foundation
 
+struct MediaState {
+    let title: String
+    let artist: String
+    let album: String
+    let playing: Bool
+}
+
 // 循环等待依赖就绪，避免 launchd 无限重启
 func waitPath(_ name: String, candidates: [String]) -> String {
     while true {
-        for p in candidates where FileManager.default.isExecutableFile(atPath: p) { return p }
+        for p in candidates where FileManager.default.isExecutableFile(atPath: p) {
+            return p
+        }
         fputs("media_watch: \(name) not found, retrying in 5s\n", stderr)
         sleep(5)
     }
@@ -12,32 +21,65 @@ let sketchybar = waitPath("sketchybar", candidates: ["/opt/homebrew/bin/sketchyb
 let mediaControl = waitPath("media-control", candidates: ["/opt/homebrew/bin/media-control", "/usr/local/bin/media-control"])
 
 let stateQueue = DispatchQueue(label: "com.fuzhuoqun.media_watch.state")
-var lastTitle = "", lastArtist = "", lastAlbum = "", lastPlaying = false
+var lastState = MediaState(title: "", artist: "", album: "", playing: false)
 
-func applyUpdate(title: String, artist: String, album: String, playing: Bool) {
-    let iconChar = playing ? "\u{f04c}" : "\u{f04b}"
-    let display: String = {
-        if title.isEmpty && artist.isEmpty && album.isEmpty { return "未播放" }
-        var parts = [String]()
-        if !title.isEmpty { parts.append(title) }
-        if !artist.isEmpty { parts.append(artist) }
-        if !album.isEmpty { parts.append(album) }
-        return parts.joined(separator: " - ")
-    }()
-    let t1 = Process(); t1.launchPath = sketchybar; t1.arguments = ["--set", "widgets.media_label", "label=\(display)"]; t1.standardOutput = FileHandle.nullDevice; t1.standardError = FileHandle.nullDevice
-    if (try? t1.run()) != nil { t1.waitUntilExit() }
-    let t2 = Process(); t2.launchPath = sketchybar; t2.arguments = ["--set", "widgets.media_play_pause", "icon=\(iconChar)"]; t2.standardOutput = FileHandle.nullDevice; t2.standardError = FileHandle.nullDevice; try? t2.run() // don't wait, fire and forget
+func displayTitle(for state: MediaState) -> String {
+    if state.title.isEmpty && state.artist.isEmpty && state.album.isEmpty {
+        return "未播放"
+    }
+
+    var parts = [String]()
+    if !state.title.isEmpty { parts.append(state.title) }
+    if !state.artist.isEmpty { parts.append(state.artist) }
+    if !state.album.isEmpty { parts.append(state.album) }
+    return parts.joined(separator: " - ")
 }
 
-func updateState(title: String, artist: String, album: String, playing: Bool) {
-    guard title != lastTitle || artist != lastArtist || album != lastAlbum || playing != lastPlaying else {
+func runSketchybar(arguments: [String], wait: Bool = true) {
+    let task = Process()
+    task.launchPath = sketchybar
+    task.arguments = arguments
+    task.standardOutput = FileHandle.nullDevice
+    task.standardError = FileHandle.nullDevice
+
+    guard (try? task.run()) != nil else {
         return
     }
-    lastTitle = title
-    lastArtist = artist
-    lastAlbum = album
-    lastPlaying = playing
-    applyUpdate(title: title, artist: artist, album: album, playing: playing)
+    if wait {
+        task.waitUntilExit()
+    }
+}
+
+func applyUpdate(_ state: MediaState) {
+    let iconChar = state.playing ? "\u{f04c}" : "\u{f04b}"
+    runSketchybar(arguments: ["--set", "widgets.media_label", "label=\(displayTitle(for: state))"])
+    runSketchybar(arguments: ["--set", "widgets.media_play_pause", "icon=\(iconChar)"], wait: false)
+}
+
+func mediaState(from object: Any) -> MediaState? {
+    if object is NSNull {
+        return MediaState(title: "", artist: "", album: "", playing: false)
+    }
+    guard let json = object as? [String: Any] else {
+        return nil
+    }
+    return MediaState(
+        title: json["title"] as? String ?? "",
+        artist: json["artist"] as? String ?? "",
+        album: json["album"] as? String ?? "",
+        playing: json["playing"] as? Bool ?? false
+    )
+}
+
+func updateState(_ state: MediaState) {
+    guard state.title != lastState.title
+            || state.artist != lastState.artist
+            || state.album != lastState.album
+            || state.playing != lastState.playing else {
+        return
+    }
+    lastState = state
+    applyUpdate(state)
 }
 
 func updateFromCurrentState() {
@@ -50,17 +92,11 @@ func updateFromCurrentState() {
     guard (try? p.run()) != nil else { return }
     p.waitUntilExit()
     guard let data = try? out.fileHandleForReading.readToEnd(),
-          let object = try? JSONSerialization.jsonObject(with: data) else { return }
-    if object is NSNull {
-        updateState(title: "", artist: "", album: "", playing: false)
+          let object = try? JSONSerialization.jsonObject(with: data),
+          let state = mediaState(from: object) else {
         return
     }
-    guard let json = object as? [String: Any] else { return }
-    let title = json["title"] as? String ?? ""
-    let artist = json["artist"] as? String ?? ""
-    let album = json["album"] as? String ?? ""
-    let playing = json["playing"] as? Bool ?? false
-    updateState(title: title, artist: artist, album: album, playing: playing)
+    updateState(state)
 }
 
 let task = Process()
@@ -85,17 +121,11 @@ pipe.fileHandleForReading.readabilityHandler = { handle in
             buffer.removeSubrange(buffer.startIndex...newline)
             guard let data = line.data(using: .utf8),
                   let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-                  let payloadObject = json["payload"] else { continue }
-            if payloadObject is NSNull {
-                updateState(title: "", artist: "", album: "", playing: false)
+                  let payloadObject = json["payload"],
+                  let state = mediaState(from: payloadObject) else {
                 continue
             }
-            guard let payload = payloadObject as? [String: Any] else { continue }
-            let title = payload["title"] as? String ?? ""
-            let artist = payload["artist"] as? String ?? ""
-            let album = payload["album"] as? String ?? ""
-            let playing = payload["playing"] as? Bool ?? false
-            updateState(title: title, artist: artist, album: album, playing: playing)
+            updateState(state)
         }
     }
 }
