@@ -23,15 +23,26 @@ local SWITCH_DELAY = 3.0
 -- 找不到设备时的重试次数（每次间隔 1 秒）
 local RETRY_COUNT = 3
 
+local function screenSignature()
+	local ids = {}
+	for _, screen in ipairs(hs.screen.allScreens()) do
+		local ok, id = pcall(function() return screen:id() end)
+		ids[#ids + 1] = ok and tostring(id) or tostring(screen:name())
+	end
+	table.sort(ids)
+	return table.concat(ids, ",")
+end
+
 -- ---- 内部状态 ----
-local _screenCount = #hs.screen.allScreens()
+local _screenSignature = screenSignature()
 local _pendingTimer = nil
 
 -- ---- 查找设备 ----
 local function findDevice(transports)
 	local devices = hs.audiodevice.allOutputDevices()
 	for _, d in ipairs(devices) do
-		if transports[d:transportType()] then
+		local ok, transport = pcall(function() return d:transportType() end)
+		if ok and transports[transport] then
 			return d
 		end
 	end
@@ -40,22 +51,40 @@ end
 
 -- ---- 执行切换 ----
 local function doSwitch(target, label)
-	local current = hs.audiodevice.defaultOutputDevice()
-	if current:uid() == target:uid() then
-		print("[AudioSwitch] 已是目标设备: " .. target:name())
-		return
+	if not target then
+		print("[AudioSwitch] 目标设备不存在")
+		return false
 	end
-	-- 设备可能在 3 秒延迟期间消失（如线缆被拔），切换前再校验
-	if target and target:isOutputDevice() then
-		target:setDefaultOutputDevice()
+	local valid, isOutput = pcall(function() return target:isOutputDevice() end)
+	if not valid or not isOutput then
+		print("[AudioSwitch] 目标设备已失效")
+		return false
+	end
+
+	local current = hs.audiodevice.defaultOutputDevice()
+	local targetOK, targetUID = pcall(function() return target:uid() end)
+	local currentOK, currentUID = pcall(function() return current and current:uid() end)
+	if not targetOK then
+		print("[AudioSwitch] 无法读取目标设备")
+		return false
+	end
+	if currentOK and currentUID == targetUID then
+		print("[AudioSwitch] 已是目标设备: " .. target:name())
+		return true
+	end
+
+	local switched, result = pcall(function() return target:setDefaultOutputDevice() end)
+	if switched and result then
 		hs.alert.show(label .. target:name(), 1.5)
 		print("[AudioSwitch] 已切换: " .. target:name())
+		return true
 	else
-		print("[AudioSwitch] 设备在切换前消失: " .. tostring(target and target:name() or "nil"))
+		print("[AudioSwitch] 切换失败: " .. tostring(result))
+		return false
 	end
 end
 
-local function switchToExternal(retries)
+local function switchToExternal(retries, onExhausted)
 	retries = retries or RETRY_COUNT
 	local ext = findDevice(EXTERNAL_TRANSPORTS)
 	if ext then
@@ -67,11 +96,15 @@ local function switchToExternal(retries)
 		if _pendingTimer then _pendingTimer:stop() end
 		_pendingTimer = hs.timer.doAfter(1, function()
 			_pendingTimer = nil
-			switchToExternal(retries - 1)
+			switchToExternal(retries - 1, onExhausted)
 		end)
 	else
-		hs.alert.show("⚠ 未找到外接显示器音频设备", 1.5)
 		print("[AudioSwitch] 重试耗尽，未找到 HDMI/DisplayPort 音频设备")
+		if onExhausted then
+			onExhausted()
+		else
+			hs.alert.show("⚠ 未找到外接显示器音频设备", 1.5)
+		end
 	end
 end
 
@@ -87,12 +120,36 @@ local function hasExternalAudio()
 	return findDevice(EXTERNAL_TRANSPORTS) ~= nil
 end
 
+local function hasExternalScreen()
+	for _, screen in ipairs(hs.screen.allScreens()) do
+		local name = screen:name() or ""
+		if not name:find("Built%-in") then return true end
+	end
+	return false
+end
+
+local function reconcileAudio()
+	_pendingTimer = nil
+	if hasExternalAudio() then
+		switchToExternal(0)
+	elseif hasExternalScreen() then
+		-- 外接音频设备可能比屏幕晚出现，短暂重试；耗尽后保持当前输出。
+		switchToExternal(RETRY_COUNT, function() end)
+	else
+		switchToInternal()
+	end
+end
+
+local function scheduleReconcile()
+	if _pendingTimer then _pendingTimer:stop() end
+	_pendingTimer = hs.timer.doAfter(SWITCH_DELAY, reconcileAudio)
+end
+
 -- ---- 屏幕变化回调 ----
 local function onScreenChange()
-	local newCount = #hs.screen.allScreens()
-	if newCount == _screenCount then
-		return
-	end
+	local signature = screenSignature()
+	if signature == _screenSignature then return end
+	_screenSignature = signature
 
 	-- 取消正在进行的延迟切换（快速插拔时防抖）
 	if _pendingTimer then
@@ -100,36 +157,15 @@ local function onScreenChange()
 		_pendingTimer = nil
 	end
 
-	_screenCount = newCount
-
-	if newCount > 1 then
-				hs.alert.show("▣ 外接显示器 → 切换音频...", 1.0)
-		print("[AudioSwitch] 检测到外接显示器，" .. SWITCH_DELAY .. " 秒后切换音频...")
-		_pendingTimer = hs.timer.doAfter(SWITCH_DELAY, function()
-			_pendingTimer = nil
-			switchToExternal()
-		end)
-	elseif not hasExternalAudio() then
-		-- 外接音频设备全部断开才切回内置（合盖不会误切）
-		-- 文案用"音频"而非"扬声器"，避免在 DP-only 外接显示器（有视频无音频）场景下误导用户以为显示器没接
-		hs.alert.show("♪ 切回内置音频", 1.0)
-		print("[AudioSwitch] 无外接音频设备，切回内置扬声器")
-		switchToInternal()
-	end
+	print("[AudioSwitch] 屏幕拓扑变化，" .. SWITCH_DELAY .. " 秒后检查音频设备...")
+	scheduleReconcile()
 end
 
 -- ---- 系统唤醒监听（盒盖待机连接显示器场景） ----
 _WakeWatcher = hs.caffeinate.watcher.new(function(eventType)
 	if eventType == hs.caffeinate.watcher.systemDidWake then
 		print("[AudioSwitch] 系统唤醒，检测显示器...")
-		-- 唤醒后屏幕恢复可能有延迟，等 SWITCH_DELAY 再检查
-		hs.timer.doAfter(SWITCH_DELAY, function()
-			if hasExternalAudio() then
-				print("[AudioSwitch] 唤醒后检测到外接显示器，切换音频")
-		hs.alert.show("▣ 外接显示器 → 切换音频...", 1.0)
-				switchToExternal()
-			end
-		end)
+		scheduleReconcile()
 	end
 end)
 _WakeWatcher:start()
@@ -141,5 +177,5 @@ _ScreenWatcher:start()
 -- ---- 启动时检查 ----
 if hasExternalAudio() then
 	print("[AudioSwitch] 启动时检测到外接音频设备，切换音频...")
-	hs.timer.doAfter(SWITCH_DELAY, switchToExternal)
+	scheduleReconcile()
 end

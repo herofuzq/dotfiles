@@ -43,58 +43,152 @@ local function isUsingFcitx5()
 	return hs.keycodes.currentSourceID() == FCITX5_SRC
 end
 
--- 内部状态追踪：与 fcitx5 内部状态通过 eventtap 同步（caps / shift 都触发 toggle），
--- 不再轮询，避免同步 fork 子进程造成卡顿。
-local _zhState = ZH
-
+-- 内部状态只在查询或切换成功后更新，避免命令失败时误报。
+local _zhState = EN
 local _toggled = 0
+local _idleTimer = nil
+local _switchInFlight = false
+local _desiredState = nil
+local _desiredCallback = nil
+local _stateGeneration = 0
 
 -- ============================================================
 -- 空闲自动切换回英文
 -- ============================================================
 local IDLE_TIMEOUT = 10
 
-local function resetIdleTimer()
-	if _IdleTimer then
-		_IdleTimer:stop()
+local resetIdleTimer
+
+local function stopIdleTimer()
+	if _idleTimer then
+		_idleTimer:stop()
+		_idleTimer = nil
 	end
-	_IdleTimer = hs.timer.doAfter(IDLE_TIMEOUT, function()
-		hs.task.new(FCITX, function(_, stdout)
-			local state = tonumber(stdout and stdout:match("(%d)"))
-			if state == 2 then
-				hs.execute("'" .. FCITX .. "' -s " .. IM_EN, true)
-				_zhState = EN
-				hs.alert.show("⏱ 英文输入中", 0.4)
-			elseif state == 1 then
-				_zhState = EN
+end
+
+local function applyState(state)
+	_zhState = state
+	if state == ZH then
+		resetIdleTimer()
+	else
+		stopIdleTimer()
+	end
+end
+
+local function startTask(executable, args, callback, label)
+	local ok, task = pcall(hs.task.new, executable, callback, args)
+	if not ok or not task then
+		print("[Input] 无法创建任务 " .. (label or executable) .. ": " .. tostring(task))
+		return false
+	end
+	local started, result = pcall(function() return task:start() end)
+	if not started or not result then
+		print("[Input] 无法启动任务 " .. (label or executable) .. ": " .. tostring(result))
+		return false
+	end
+	return true
+end
+
+local function queryState(callback)
+	local generation = _stateGeneration
+	return startTask(FCITX, {}, function(exitCode, stdout, stderr)
+		local raw = tonumber((stdout or ""):match("^%s*([012])%s*$"))
+		if exitCode ~= 0 or raw == nil then
+			print("[Input] 查询状态失败: " .. tostring(stderr or exitCode))
+			if callback then callback(nil) end
+			return
+		end
+		if generation ~= _stateGeneration then
+			if callback then callback(nil) end
+			return
+		end
+		local state = raw == 2 and ZH or EN
+		applyState(state)
+		if callback then callback(state) end
+	end, "fcitx5 状态查询")
+end
+
+local function requestState(targetState, callback)
+	_desiredState = targetState
+	_desiredCallback = callback
+	if _switchInFlight then return end
+
+	local function drain()
+		local state = _desiredState
+		local stateCallback = _desiredCallback
+		_desiredState = nil
+		_desiredCallback = nil
+		if not state then return end
+
+		_switchInFlight = true
+		_stateGeneration = _stateGeneration + 1
+		local im = state == ZH and IM_ZH or IM_EN
+		local started = startTask(FCITX, { "-s", im }, function(exitCode, _, stderr)
+			_switchInFlight = false
+			local superseded = _desiredState and _desiredState ~= state
+			if exitCode == 0 then
+				applyState(state)
+			else
+				print("[Input] 切换失败: " .. tostring(stderr or exitCode))
 			end
-		end, {}):start()
+			if stateCallback and not superseded then stateCallback(exitCode == 0) end
+			if superseded then
+				drain()
+			else
+				_desiredState = nil
+				_desiredCallback = nil
+			end
+		end, "fcitx5 输入法切换")
+		if not started then
+			_switchInFlight = false
+			if stateCallback then stateCallback(false) end
+		end
+	end
+
+	drain()
+end
+
+resetIdleTimer = function()
+	stopIdleTimer()
+	if _zhState ~= ZH or not isUsingFcitx5() then return end
+	_idleTimer = hs.timer.doAfter(IDLE_TIMEOUT, function()
+		_idleTimer = nil
+		queryState(function(state)
+			if state == ZH then
+				requestState(EN, function(success)
+					if success then hs.alert.show("⏱ 英文输入中", 0.4) end
+				end)
+			end
+		end)
 	end)
 end
 
 local function toggle()
 	_toggled = hs.timer.secondsSinceEpoch()
 
-	-- 如果当前输入源是 ABC（非 fcitx5），切到 fcitx5（macism 自带等待）
+	-- 如果当前输入源是 ABC（非 fcitx5），先切输入源，再显式启用中文引擎。
 	if not isUsingFcitx5() then
-		hs.execute(MACISM_BIN .. " " .. FCITX5_SRC .. " 150", true)
-		hs.alert.show("⌨ 中文输入中", 0.4)
-		_zhState = ZH
-		resetIdleTimer()
+		startTask(MACISM_BIN, { FCITX5_SRC, "150" }, function(exitCode, _, stderr)
+			if exitCode ~= 0 then
+				print("[Input] 切换输入源失败: " .. tostring(stderr or exitCode))
+				return
+			end
+			requestState(ZH, function(success)
+				if success then hs.alert.show("⌨ 中文输入中", 0.4) end
+			end)
+		end, "macism 输入源切换")
 		return
 	end
 
-	-- 已在 fcitx5 中，用 -t 强制翻转 fcitx5 引擎激活态（异步避免阻塞 eventtap）
-	-- -t 不输出，需分两步：先翻再查真实态
-	hs.task.new(FCITX, function()
-		hs.task.new(FCITX, function(_, stdout)
-			_zhState = (tonumber(stdout and stdout:match("(%d)")) == 2) and ZH or EN
-			hs.alert.show(_zhState == ZH and "⌨ 中文输入中" or "⌨ 英文输入中", 0.4)
-			if _zhState == ZH then
-				resetIdleTimer()
+	queryState(function(state)
+		if not state then return end
+		local target = state == ZH and EN or ZH
+		requestState(target, function(success)
+			if success then
+				hs.alert.show(target == ZH and "⌨ 中文输入中" or "⌨ 英文输入中", 0.4)
 			end
-		end, {}):start()
-	end, { "-t" }):start()
+		end)
+	end)
 end
 
 -- ============================================================
@@ -106,6 +200,7 @@ local WARN_APPS = {
 	["org.alacritty"] = true,
 	["com.mitchellh.ghostty"] = true,
 	["com.cmuxterm.app"] = true,
+	["net.kovidgoyal.kitty"] = true,
 	["com.microsoft.VSCode"] = true,
 	["com.jetbrains.intellij"] = true,
 	["com.jetbrains.intellij.ce"] = true,
@@ -126,9 +221,11 @@ local function warnEN(id)
 	if not isUsingFcitx5() then
 		return
 	end
-	if _zhState == ZH then
-		hs.alert.show("⚠ 中文输入中", 1.0)
-	end
+	queryState(function(state)
+		if state == ZH then
+			hs.alert.show("⚠ 中文输入中", 1.0)
+		end
+	end)
 end
 
 -- 中文警告监听：进入指定应用时检查中文输入法状态
@@ -161,6 +258,7 @@ end
 -- ============================================================
 local hyper_pressed = false
 local hyper_used = false
+local shift_pressed = false
 
 _InputTap = hs.eventtap.new({
 	hs.eventtap.event.types.flagsChanged,
@@ -184,6 +282,12 @@ _InputTap = hs.eventtap.new({
 				toggle()
 			end
 		end
+		local shift = f.shift == true
+		if shift_pressed and not shift and not hyper and isUsingFcitx5() then
+			-- Fcitx5 在 Shift 松开后切换内部状态，稍后读取真实值。
+			hs.timer.doAfter(0.03, queryState)
+		end
+		shift_pressed = shift
 	elseif hyper_pressed then
 		hyper_used = true
 	end
@@ -205,23 +309,27 @@ _InputTap = hs.eventtap.new({
 end)
 _InputTap:start()
 
--- 启动空闲计时器
-resetIdleTimer()
+-- 启动时读取真实状态，避免默认缓存导致误报。
+queryState()
 
 -- ============================================================
 -- 暴露接口给外部模块使用（如 wps.lua）
 -- ============================================================
-_FcitxInput = {
-	isChinese = function()
-		return isUsingFcitx5() and _zhState == ZH
+return {
+	isChineseAsync = function(callback)
+		if not isUsingFcitx5() then
+			applyState(EN)
+			callback(false)
+			return
+		end
+		queryState(function(state)
+			callback(state == ZH)
+		end)
 	end,
-	-- 异步版本：用 hs.task 避免阻塞 eventtap 回调，减少右键延迟
-	switchToEnglishAsync = function()
-		hs.task.new(FCITX, nil, { "-s", IM_EN }):start()
-		_zhState = EN
+	switchToEnglishAsync = function(callback)
+		requestState(EN, callback)
 	end,
-	switchToChineseAsync = function()
-		hs.task.new(FCITX, nil, { "-s", IM_ZH }):start()
-		_zhState = ZH
+	switchToChineseAsync = function(callback)
+		requestState(ZH, callback)
 	end,
 }
