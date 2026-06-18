@@ -59,19 +59,26 @@ end
 
 -- ========== Popup：完整月历 ==========
 
-local CAL_LINES = 8
+local CAL_LINES = 9
+local CAL_LABEL_WIDTH = 292
+local CAL_GRID_PAD = 20
+local CAL_GRID_WIDTH = CAL_LABEL_WIDTH - CAL_GRID_PAD * 2
+local CAL_FONT = { family = "Menlo", style = "Bold", size = 15.0 }
 local cal_items = {}
 
 for i = 1, CAL_LINES do
 	local item = sbar.add("item", "calendar.cal_" .. i, {
 		position = "popup." .. cal.name,
+		width = CAL_LABEL_WIDTH,
 		icon = { drawing = false },
 		label = {
-			string = string.rep(" ", 30),
-			font = { family = fonts.font.text, style = fonts.font.style_map["Bold"], size = 15.0 },
+			string = "",
+			font = CAL_FONT,
+			align = "center",
 			color = colors.text,
-			padding_left = 38,
-			padding_right = 60,
+			padding_left = 0,
+			padding_right = 0,
+			width = CAL_LABEL_WIDTH,
 		},
 		background = { drawing = false },
 	})
@@ -98,16 +105,16 @@ local function updatePopupContent()
 	end
 	local ndays = dinm[month]
 
-	-- 星期头，4字符等宽
 	local wdays = { "Su", "Mo", "Tu", "We", "Th", "Fr", "Sa" }
 	local hdr = {}
 	for _, wd in ipairs(wdays) do
 		hdr[#hdr + 1] = string.format(" %-2s ", wd)
 	end
-	local lines = { table.concat(hdr):gsub("%s+$", "") }
-	local nlines = 1
+	local lines = {
+		{ string = string.format("%d年%d月", year, month), color = colors.mauve },
+		{ string = table.concat(hdr):gsub("%s+$", ""), grid = true, color = colors.subtext1 },
+	}
 
-	-- 日期：4字符等宽 " %2d " 或 "[%2d]"，空列 "    "
 	local cells = {}
 	for skip = 1, first_wday - 1 do
 		cells[#cells + 1] = "    "
@@ -115,8 +122,10 @@ local function updatePopupContent()
 	for d = 1, ndays do
 		cells[#cells + 1] = (d == today) and string.format("[%2d]", d) or string.format(" %2d ", d)
 		if #cells == 7 or d == ndays then
-			nlines = nlines + 1
-			lines[nlines] = table.concat(cells):gsub("%s+$", "")
+			while #cells < 7 do
+				cells[#cells + 1] = "    "
+			end
+			lines[#lines + 1] = { string = table.concat(cells):gsub("%s+$", ""), grid = true, color = colors.text }
 			cells = {}
 		end
 	end
@@ -126,21 +135,22 @@ local function updatePopupContent()
 		doy = doy + dinm[i]
 	end
 	local total = leap and 366 or 365
-	local stat = string.format("第 %d / %d 天", doy, total)
-
-	local max_w = 0
-	for i = 1, nlines do
-		if lines[i] and #lines[i] > max_w then
-			max_w = #lines[i]
-		end
-	end
-	local pad = math.floor((max_w - #stat) / 2)
-	nlines = nlines + 1
-	lines[nlines] = (pad > 0 and string.rep(" ", pad) or "") .. stat
+	lines[#lines + 1] = { string = string.format("第 %d / %d 天", doy, total), color = colors.subtext1 }
 
 	for i = 1, CAL_LINES do
-		if i <= nlines and lines[i] ~= "" then
-			cal_items[i]:set({ drawing = true, label = lines[i] })
+		local line = lines[i]
+		if line and line.string ~= "" then
+			cal_items[i]:set({
+				drawing = true,
+				label = {
+					string = line.string,
+					align = line.grid and "left" or "center",
+					color = line.color,
+					padding_left = line.grid and CAL_GRID_PAD or 0,
+					padding_right = line.grid and CAL_GRID_PAD or 0,
+					width = line.grid and CAL_GRID_WIDTH or CAL_LABEL_WIDTH,
+				},
+			})
 		else
 			cal_items[i]:set({ drawing = false })
 		end

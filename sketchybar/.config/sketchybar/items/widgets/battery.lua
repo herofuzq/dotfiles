@@ -85,23 +85,61 @@ local function scheduleHide()
 end
 
 local function parse_battery(raw)
-	local cur_raw = (raw or ""):match('"CurrentCapacity"%s*=%s*(%d+)')
-	local max_raw = (raw or ""):match('"MaxCapacity"%s*=%s*(%d+)')
+	raw = raw or ""
+	local cur_raw = raw:match('"CurrentCapacity"%s*=%s*(%d+)')
+	local max_raw = raw:match('"MaxCapacity"%s*=%s*(%d+)')
 	if not cur_raw or not max_raw then
 		return nil
 	end
 
-	local ext = raw and raw:match('"ExternalConnected"%s*=%s*%w+') or ""
-	local chg = raw and raw:match('"IsCharging"%s*=%s*%w+') or ""
+	local function number_field(key)
+		return tonumber(raw:match('"' .. key .. '"%s*=%s*(-?%d+)'))
+	end
+
+	local ext = raw:match('"ExternalConnected"%s*=%s*%w+') or ""
+	local chg = raw:match('"IsCharging"%s*=%s*%w+') or ""
 	local cur = tonumber(cur_raw) or 0
 	local max_cap = tonumber(max_raw) or 1
+	if max_cap <= 0 then
+		return nil
+	end
+
+	local min_left = number_field("AvgTimeToEmpty")
+	if min_left and min_left >= 65535 then
+		min_left = nil
+	end
+
+	local system_power = number_field("SystemPowerIn")
+	local battery_power = number_field("BatteryPower")
+	local amperage = number_field("InstantAmperage") or number_field("Amperage")
+	local voltage = number_field("Voltage") or number_field("AppleRawBatteryVoltage")
+	local current_watts
+
+	if system_power and system_power > 0 then
+		current_watts = system_power / 1000
+	elseif battery_power and battery_power ~= 0 then
+		current_watts = math.abs(battery_power) / 1000
+	elseif amperage and voltage and amperage ~= 0 and voltage > 0 then
+		current_watts = math.abs(amperage * voltage) / 1000000
+	end
 
 	return {
 		ac = ext:find("Yes") ~= nil,
 		charging = chg:find("Yes") ~= nil,
-		min_left = tonumber((raw or ""):match('"AvgTimeToEmpty"%s*=%s*(%d+)')),
+		current_watts = current_watts,
+		min_left = min_left,
 		percent = math.floor(cur * 100 / max_cap + 0.5),
 	}
+end
+
+local function format_watts(watts)
+	if not watts then
+		return nil
+	end
+	if watts >= 10 then
+		return string.format("%.0fW", watts)
+	end
+	return string.format("%.1fW", watts)
 end
 
 local function updateBattInfo()
@@ -114,6 +152,10 @@ local function updateBattInfo()
 
 		local status = state.ac and "⚡ 电源" or "🔋 电池"
 		local info = string.format("%s  %d%%", status, state.percent)
+		local watts = format_watts(state.current_watts)
+		if watts then
+			info = info .. string.format("  当前 %s", watts)
+		end
 		if not state.ac and state.min_left then
 			local h = math.floor(state.min_left / 60)
 			local m = state.min_left % 60
