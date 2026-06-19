@@ -1,4 +1,4 @@
--- ========== 媒体控制（歌名 + 下一首 + 播放/暂停 按钮）==========
+-- ========== 媒体控制（歌名 + 上一首 + 播放/暂停 + 下一首）==========
 local sbar = require("sketchybar")
 local fonts = require("fonts")
 local colors = require("appearance").colors
@@ -18,6 +18,7 @@ local MEDIA = find_media()
 -- Nerd Font 媒体控制图标
 local ICON_PLAY = "\u{f04b}"
 local ICON_PAUSE = "\u{f04c}"
+local ICON_PREVIOUS = "\u{f048}"
 local ICON_NEXT = "\u{f051}"
 local ICON_MUSIC = "\u{f001}"
 
@@ -99,9 +100,34 @@ local play_pause = sbar.add("item", "widgets.media_play_pause", {
 	background = { drawing = false },
 })
 
+-- ========== 上一首 ==========
+local previous_item = sbar.add("item", "widgets.media_previous", {
+	position = "right",
+	padding_left = 2,
+	padding_right = 2,
+	width = 12,
+	icon = {
+		string = ICON_PREVIOUS,
+		font = { family = fonts.font_icon.text, style = fonts.font_icon.style_map["Bold"], size = 14.0 },
+		color = colors.pill_fg,
+		padding_left = 2,
+		padding_right = 2,
+		width = 12,
+		align = "center",
+	},
+	label = { drawing = false },
+	background = { drawing = false },
+})
+
 -- 按钮按下立即切换图标，消除 shell click_script 的延迟
 next_item:subscribe("mouse.clicked", function()
 	sbar.exec('"' .. MEDIA .. '" next-track', function()
+		sbar.trigger("media_update")
+	end)
+end)
+
+previous_item:subscribe("mouse.clicked", function()
+	sbar.exec('"' .. MEDIA .. '" previous-track', function()
 		sbar.trigger("media_update")
 	end)
 end)

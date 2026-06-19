@@ -1,7 +1,5 @@
 # Stow-managed: this file is symlinked to ~/.config/aerospace/aerospace.toml
 # Aerospace reads config from $XDG_CONFIG_HOME/aerospace/aerospace.toml by default
-# Place a copy of this config to ~/.aerospace.toml
-# After that, you can edit ~/.aerospace.toml to your liking
 
 # Config version for compatibility and deprecations
 # Fallback value (if you omit the key): config-version = 1
@@ -11,12 +9,6 @@ config-version = 2
 # Available commands : https://nikitabobko.github.io/AeroSpace/commands
 after-startup-command = [
   'exec-and-forget borders active_color=0xffff9e64 inactive_color=0x00000000 width=5.0 hidpi=on',
-  # 兜底设计：无论 sketchybar 是否已运行都能正确启动
-  # - 已有实例 → 第 1 条发 reload 信号（向运行中的实例请求重载配置）
-  # - 未启动   → 第 1 条无效（无实例接收），第 2 条冷启动 sketchybar
-  # - 同时存在 → 第 2 条因 Mach 端口被占优雅退出，无副作用
-  # 'exec-and-forget sketchybar --reload',
-  # 'exec-and-forget sketchybar',
 ]
 
 # Start AeroSpace at login
@@ -216,11 +208,13 @@ outer.right = 7
 # 设置界面自动悬浮
 [[on-window-detected]]
 if.window-title-regex-substring = '(setting|设置|LuLu|lulu|滴答|会议|钉钉会议|biagmeeting)'
+check-further-callbacks = true
 run = 'layout floating'
 
 # 画中画窗口自动悬浮
 [[on-window-detected]]
 if.window-title-regex-substring = '(Picture-in-Picture|画中画)'
+check-further-callbacks = true
 run = 'layout floating'
 
 # 设定总是悬浮的程序
@@ -242,7 +236,7 @@ run = 'layout floating'
 
 [[on-window-detected]]
 if.app-id = "com.enlink.EnUES"
-run = 'layout floating'
+run = ["move-node-to-workspace 2̲Sec --focus-follows-window", "layout floating"]
 
 [[on-window-detected]]
 if.app-id = "com.Hyperart.Barbee"
@@ -290,7 +284,7 @@ run = 'layout floating'
 
 [[on-window-detected]]
 if.app-id = "cn.unisk.wohuiyi"
-run = ["move-node-to-workspace 3̲Chat",
+run = ["move-node-to-workspace 3̲Chat --focus-follows-window",
       "layout floating"
       ]
 
@@ -375,116 +369,112 @@ run = 'layout floating'
 # Edge (Chromium) — AeroSpace #1562 已知 Electron 应用检测不可靠，备用手动快捷键 cmd-alt-ctrl-shift-b
 [[on-window-detected]]
 if.app-id = "com.microsoft.edgemac"
-run = ["move-node-to-workspace 1̲Main"]
+run = ["move-node-to-workspace 1̲Main --focus-follows-window"]
 
 [[on-window-detected]]
 if.app-id = "com.brave.Browser"
-run = ["move-node-to-workspace 1̲Main"]
+run = ["move-node-to-workspace 1̲Main --focus-follows-window"]
 
 [[on-window-detected]]
 if.app-id = "com.kingsoft.wpsoffice.mac"
-run = ["move-node-to-workspace 4̲Work"]
+run = ["move-node-to-workspace 4̲Work --focus-follows-window"]
 
 [[on-window-detected]]
 if.app-id = "com.tableausoftware.tableaudesktop"
-run = ["move-node-to-workspace 4̲Work"]
+run = ["move-node-to-workspace 4̲Work --focus-follows-window"]
 
 [[on-window-detected]]
 if.app-id = "md.obsidian"
-run = ["move-node-to-workspace 4̲Work"]
+run = ["move-node-to-workspace 4̲Work --focus-follows-window"]
 
 [[on-window-detected]]
 if.app-id = "abnerworks.Typora"
-run = ["move-node-to-workspace 4̲Work"]
+run = ["move-node-to-workspace 4̲Work --focus-follows-window"]
 
 [[on-window-detected]]
 if.app-id = "com.tencent.qclaw"
-run = ["move-node-to-workspace 4̲Work"]
+run = ["move-node-to-workspace 4̲Work --focus-follows-window"]
 
 [[on-window-detected]]
 if.app-id = "com.jinghaoshe.qspace.pro"
-run = ["move-node-to-workspace 5̲Term"]
+run = ["move-node-to-workspace 5̲Term --focus-follows-window"]
 
 [[on-window-detected]]
 if.app-id = "com.parallels.desktop.console"
-run = ["move-node-to-workspace 2̲Sec"]
+run = ["move-node-to-workspace 2̲Sec --focus-follows-window"]
 
 [[on-window-detected]]
 if.app-id = "com.xiaomi.hyperConnect"
-run = ["move-node-to-workspace 2̲Sec"]
-
-[[on-window-detected]]
-if.app-id = "com.enlink.EnUES"
-run = ["move-node-to-workspace 2̲Sec"]
+run = ["move-node-to-workspace 2̲Sec --focus-follows-window"]
 
 [[on-window-detected]]
 if.app-id = "com.alienator88.Pearcleaner"
-run = ["move-node-to-workspace 2̲Sec"]
+run = ["move-node-to-workspace 2̲Sec --focus-follows-window"]
 
-[[on-window-detected]]
+[[on-window-detected]] # 微信主窗口兜底；浮窗规则在前面优先处理
 if.app-id = "com.tencent.xinWeChat"
-run = ["move-node-to-workspace 3̲Chat"]
+run = ["move-node-to-workspace 3̲Chat --focus-follows-window"]
 
-[[on-window-detected]]
+[[on-window-detected]] # 钉钉主窗口兜底；浮窗规则在前面优先处理
 if.app-id = "com.alibaba.DingTalkMac"
-run = ["move-node-to-workspace 3̲Chat"]
+run = ["move-node-to-workspace 3̲Chat --focus-follows-window"]
 
 [[on-window-detected]]
 if.app-id = "com.tencent.meeting"
-run = ["move-node-to-workspace 3̲Chat",
+run = ["move-node-to-workspace 3̲Chat --focus-follows-window",
       "layout floating"
       ]
 
 [[on-window-detected]]
 if.app-id = "com.ltysp.phone"
-run = ["move-node-to-workspace 3̲Chat"]
+run = ["move-node-to-workspace 3̲Chat --focus-follows-window"]
 
-[[on-window-detected]]
+[[on-window-detected]] # VidHub 主窗口兜底；播放器浮窗规则在前面优先处理
 if.app-id = "com.mac.utility.media.hub"
-run = ["move-node-to-workspace 6̲Play"]
+run = ["move-node-to-workspace 6̲Play --focus-follows-window"]
 
 [[on-window-detected]]
 if.app-id = "com.bilibili.bilibiliPC"
-run = ["move-node-to-workspace 6̲Play"]
+run = ["move-node-to-workspace 6̲Play --focus-follows-window"]
 
 [[on-window-detected]]
 if.app-id = "com.tencent.QQMusicMac"
-run = ["move-node-to-workspace 6̲Play"]
+run = ["move-node-to-workspace 6̲Play --focus-follows-window"]
 
 [[on-window-detected]]
 if.app-id = "com.colliderli.iina"
-run = ["move-node-to-workspace 6̲Play"]
+run = ["move-node-to-workspace 6̲Play --focus-follows-window"]
 
 [[on-window-detected]]
 if.app-id = "com.xnview.XnView"
-run = ["move-node-to-workspace 6̲Play"]
+run = ["move-node-to-workspace 6̲Play --focus-follows-window"]
 
 [[on-window-detected]]
 if.app-id = "com.googlecode.iterm2"
-run = ["move-node-to-workspace 5̲Term"]
+run = ["move-node-to-workspace 5̲Term --focus-follows-window"]
 
 [[on-window-detected]]
 if.app-id = "com.mitchellh.ghostty"
-run = ["move-node-to-workspace 5̲Term"]
+run = ["move-node-to-workspace 5̲Term --focus-follows-window"]
 
 [[on-window-detected]]
 if.app-id = "com.cmuxterm.app"
-run = ["move-node-to-workspace 5̲Term"]
+run = ["move-node-to-workspace 5̲Term --focus-follows-window"]
 
 [[on-window-detected]]
 if.app-id = "net.kovidgoyal.kitty"
-run = ["move-node-to-workspace 5̲Term"]
+run = ["move-node-to-workspace 5̲Term --focus-follows-window"]
 
 [[on-window-detected]]
 if.app-id = "com.ccswitch.desktop"
-run = ["move-node-to-workspace 5̲Term"]
+run = ["move-node-to-workspace 5̲Term --focus-follows-window"]
 
 [[on-window-detected]]
 if.app-id = "com.openai.codex"
-run = ["move-node-to-workspace 5̲Term"]
+run = ["move-node-to-workspace 5̲Term --focus-follows-window"]
 
 [[on-window-detected]]
 if.app-id = "net.battle.app"
-run = ["move-node-to-workspace 6̲Play",
+run = ["move-node-to-workspace 6̲Play --focus-follows-window",
        "layout floating",
       ]

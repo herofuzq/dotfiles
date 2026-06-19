@@ -91,16 +91,17 @@ end
 
 -- ========== 窗口信息收集 ==========
 local generation = 0
+local focused_workspace_cache
 
 local function withWindows(f)
 	local my_gen = generation
 	local results = {
 		open_windows = {},
 		has_fullscreen = {},
-		focused_workspace = nil,
+		focused_workspace = focused_workspace_cache,
 		visible_workspaces = nil,
 	}
-	local pending = 3
+	local pending = focused_workspace_cache and 2 or 3
 
 	local function check_done()
 		if my_gen ~= generation then
@@ -116,7 +117,6 @@ local function withWindows(f)
 		"aerospace list-windows --monitor all --format '%{workspace}%{app-name}%{window-id}%{window-is-fullscreen}' --json"
 	local query_visible_workspaces =
 		"aerospace list-workspaces --visible --monitor all --format '%{workspace}%{monitor-appkit-nsscreen-screens-id}' --json"
-	local get_focus_workspaces = "aerospace list-workspaces --focused"
 
 	sbar.exec(get_windows, function(workspace_and_windows)
 		if not workspace_and_windows then
@@ -149,14 +149,13 @@ local function withWindows(f)
 		check_done()
 	end)
 
-	sbar.exec(get_focus_workspaces, function(focused_workspace)
-		if focused_workspace then
-			results.focused_workspace = focused_workspace:match("^%s*(.-)%s*$")
-		else
-			results.focused_workspace = ""
-		end
-		check_done()
-	end)
+	if not focused_workspace_cache then
+		sbar.exec("aerospace list-workspaces --focused", function(focused_workspace)
+			results.focused_workspace = focused_workspace and focused_workspace:match("^%s*(.-)%s*$") or ""
+			focused_workspace_cache = results.focused_workspace
+			check_done()
+		end)
+	end
 
 	sbar.exec(query_visible_workspaces, function(visible_workspaces)
 		if not visible_workspaces then
@@ -328,6 +327,10 @@ end
 local function updateWindows()
 	generation = generation + 1
 	withWindows(function(args)
+		for ws_idx, ws in pairs(workspaces) do
+			set_highlight(ws, ws_idx == args.focused_workspace)
+		end
+
 		-- 第一步：更新每个工作区的窗口内容
 		for workspace_index, _ in pairs(workspaces) do
 			updateWindow(workspace_index, args)
@@ -572,6 +575,7 @@ sbar.exec(":", function()
 		ensure_front_app()
 		local focused = env.FOCUSED_WORKSPACE
 		if focused then
+			focused_workspace_cache = focused
 			for k, _ in pairs(_popup_pinned) do _popup_pinned[k] = false end
 			for k, _ in pairs(_popup_hovering) do _popup_hovering[k] = false end
 			for ws_idx, ws in pairs(workspaces) do
@@ -585,36 +589,22 @@ sbar.exec(":", function()
 		updateWindows()
 	end)
 
-	-- space_windows_change（300ms 防抖）
-	local _space_change_gen = 0
+	-- Hammerspoon 已做 50ms 防抖，此处直接刷新，避免重复等待。
 	root:subscribe("space_windows_change", function()
-		local my_gen = _space_change_gen + 1
-		_space_change_gen = my_gen
-		sbar.delay(0.3, function()
-			if _space_change_gen ~= my_gen then
-				return
-			end
-			updateWindows()
-		end)
+		updateWindows()
 	end)
 
-	-- display_change
-	root:subscribe("display_change", function()
+	-- 显示器变化/唤醒：同步 bar、自动显隐区域与工作区所属屏幕
+	root:subscribe({ "display_change", "system_woke" }, function()
 		local h = settings.detect_bar_height(true)
 		sbar.bar({ height = h })
+		settings.ensure_toggle(h)
 		updateWorkspaceMonitor()
 		updateWindows()
 	end)
 
-	-- aerospace_fullscreen_change（立即标记全屏分段，updateWindows 做完整同步）
+	-- 全屏状态由完整窗口查询统一同步，避免同一事件重复查询窗口列表。
 	root:subscribe("aerospace_fullscreen_change", function()
-		sbar.exec("aerospace list-windows --monitor all --format '%{workspace}%{window-is-fullscreen}' --json", function(data)
-			for _, w in ipairs(data or {}) do
-				if w["window-is-fullscreen"] then
-					borders.set_fullscreen("workspace." .. w.workspace)
-				end
-			end
-		end)
 		updateWindows()
 	end)
 
@@ -661,6 +651,7 @@ sbar.exec(":", function()
 			return
 		end
 		focused_workspace = focused_workspace:match("^%s*(.-)%s*$")
+		focused_workspace_cache = focused_workspace
 		if workspaces[focused_workspace] then
 			set_highlight(workspaces[focused_workspace], true)
 			borders.set_focused("workspace." .. focused_workspace)

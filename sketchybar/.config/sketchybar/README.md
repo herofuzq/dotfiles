@@ -15,7 +15,7 @@ This is a highly modular and event-driven Sketchybar configuration written in Lu
 3.  **`bar.lua`** → bar geometry, blur, colors
 4.  **`items/`** → apple logo, aerospace spaces, calendar, widgets
 5.  **`sbar.event_loop()`** → listens for system events (aerospace, input method, media, etc.)
-6.  **`helpers/`** → Swift daemons for CPU load, input method, media playback. Auto-compiled via `make`.
+6.  **`helpers/`** → C/Swift helpers for CPU load, input method, and media playback. Auto-compiled via `make`.
 
 ### File Structure
 
@@ -35,10 +35,22 @@ This is a highly modular and event-driven Sketchybar configuration written in Lu
 
 #### Advanced
 
-*   `helpers/borders.lua`: Fullscreen workspace border manager. Static borders handled per-item.
+*   `helpers/borders.lua`: Focused/fullscreen workspace segment styling.
 *   `event_providers/input_method/`: Swift daemon — macOS input method change notifications.
 *   `event_providers/media_watch/`: Swift daemon — monitors media playback via `media-control stream`, updates label + play/pause icon in real-time (no polling).
-*   `sketchybarrc`: Entry point. Do not edit.
+*   `sketchybarrc`: Entry point and automatic reveal helper bootstrap.
+
+### Desktop Integration Events
+
+| Producer | Event | Consumer | Purpose |
+|----------|-------|----------|---------|
+| AeroSpace | `aerospace_workspace_change` | `items/spaces.lua` | Immediate focus highlight and workspace refresh |
+| Hammerspoon | `space_windows_change` | `items/spaces.lua` | Refresh after a window is created or destroyed |
+| AeroSpace | `aerospace_fullscreen_change` | `items/spaces.lua` | Refresh fullscreen segment state |
+| Swift watcher + Hammerspoon | `input_method_change` | `widgets/input_method.lua` | macOS source and fcitx5 internal mode changes |
+| SketchyBar | `display_change` / `system_woke` | `items/spaces.lua` | Sync bar height, reveal zone, and workspace displays |
+
+Window focus is owned by AeroSpace. Hammerspoon only fills the create/destroy event gap: creation waits 250 ms for workspace routing, while window destruction and app termination use a 50 ms debounce.
 
 ### Setup on a New Machine
 
@@ -78,7 +90,7 @@ This is a highly modular and event-driven Sketchybar configuration written in Lu
 
 ### Input Method Widget
 
-Displays current macOS input source. The Swift daemon listens for `com.apple.Carbon.TISNotifySelectedKeyboardInputSourceChanged`.
+Displays the current macOS input source and fcitx5 mode. The Swift daemon handles source changes; Hammerspoon notifies SketchyBar when it changes fcitx5's internal English/Chinese state.
 
 | Input Source | Display |
 |-------------|---------|
@@ -92,7 +104,7 @@ Displays current macOS input source. The Swift daemon listens for `com.apple.Car
 Event-driven (no polling). The `media_watch` Swift daemon wraps `media-control stream` and directly sets label + play/pause icon when song or playback state changes.
 
 - **Song info**: title, artist, album displayed on hover-able pill
-- **Controls**: play/pause, next track
+- **Controls**: previous track, play/pause, next track
 - **Init**: Lua queries `media-control get` once on reload for initial display
 
 ### Battery Widget
@@ -112,7 +124,7 @@ Hover the pill to see a popup with battery percentage and estimated time remaini
 3.  **`bar.lua`** → bar 几何、模糊、颜色
 4.  **`items/`** → apple logo、aerospace 工作区、日历、widgets
 5.  **`sbar.event_loop()`** → 监听 aerospace、输入法、媒体等系统事件
-6.  **`helpers/`** → Swift 守护进程（CPU、输入法、媒体），`make` 自动编译
+6.  **`helpers/`** → C/Swift helpers（CPU、输入法、媒体），`make` 自动编译
 
 ### 文件结构
 
@@ -132,10 +144,22 @@ Hover the pill to see a popup with battery percentage and estimated time remaini
 
 #### 高级
 
-*   `helpers/borders.lua`: 全屏 workspace 边框管理。静态边框由各 item 自行管理。
+*   `helpers/borders.lua`: workspace 焦点/全屏分段样式。
 *   `event_providers/input_method/`: Swift 守护进程 — macOS 输入法切换。
 *   `event_providers/media_watch/`: Swift 守护进程 — 监听媒体播放，直接更新歌名和播放/暂停图标（零轮询）。
-*   `sketchybarrc`: 入口文件，无需编辑。
+*   `sketchybarrc`: 入口文件，并负责启动自动显隐 helper。
+
+### 桌面集成事件
+
+| 发送方 | 事件 | 接收方 | 用途 |
+|--------|------|--------|------|
+| AeroSpace | `aerospace_workspace_change` | `items/spaces.lua` | 立即更新焦点和工作区内容 |
+| Hammerspoon | `space_windows_change` | `items/spaces.lua` | 窗口创建或销毁后刷新内容 |
+| AeroSpace | `aerospace_fullscreen_change` | `items/spaces.lua` | 刷新全屏分段状态 |
+| Swift watcher + Hammerspoon | `input_method_change` | `widgets/input_method.lua` | 同步 macOS 输入源和 fcitx5 内部状态 |
+| SketchyBar | `display_change` / `system_woke` | `items/spaces.lua` | 同步 bar 高度、自动显隐区域和工作区屏幕 |
+
+窗口焦点由 AeroSpace 负责；Hammerspoon 只补充窗口创建/销毁事件：创建等待 250ms 让工作区路由完成，窗口销毁和应用退出使用 50ms 防抖。
 
 ### 新机器部署
 
@@ -175,7 +199,7 @@ Hover the pill to see a popup with battery percentage and estimated time remaini
 
 ### 输入法 Widget
 
-显示当前输入法。Swift 守护进程监听 `com.apple.Carbon.TISNotifySelectedKeyboardInputSourceChanged`。
+显示当前 macOS 输入源和 fcitx5 状态。Swift 守护进程负责输入源变化；Hammerspoon 修改 fcitx5 内部中英文状态后主动通知 SketchyBar。
 
 | 输入法 | 显示 |
 |--------|------|
@@ -189,7 +213,7 @@ Hover the pill to see a popup with battery percentage and estimated time remaini
 事件驱动（零轮询）。`media_watch` 守护进程包装 `media-control stream`，歌曲或播放状态变化时直接更新歌名和播放/暂停图标。
 
 - **歌曲信息**：悬停 pill 显示歌名、歌手、专辑
-- **控制**：播放/暂停、下一首
+- **控制**：上一首、播放/暂停、下一首
 - **初始化**：reload 时 Lua 主动查一次显示
 
 ### 电池 Widget

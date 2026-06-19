@@ -2,21 +2,12 @@
 -- 输入法切换 - fcitx5-remote
 -- 1 = 英文, 2 = 中文
 -- ============================================================
--- 动态查找 fcitx5-remote 路径（支持 .app 安装和 brew 安装）
-local function findFcitxRemote()
-	local candidates = {
-		"/Library/Input Methods/Fcitx5.app/Contents/bin/fcitx5-remote",
-		"/opt/homebrew/bin/fcitx5-remote",
-		"/usr/local/bin/fcitx5-remote",
-	}
-	for _, p in ipairs(candidates) do
-		if hs.fs.attributes(p, "mode") == "file" then
-			return p
-		end
-	end
-	return "/Library/Input Methods/Fcitx5.app/Contents/bin/fcitx5-remote"
-end
-local FCITX = findFcitxRemote()
+local command = require("command")
+local FCITX = command.find({
+	"/Library/Input Methods/Fcitx5.app/Contents/bin/fcitx5-remote",
+	"/opt/homebrew/bin/fcitx5-remote",
+	"/usr/local/bin/fcitx5-remote",
+}, "/Library/Input Methods/Fcitx5.app/Contents/bin/fcitx5-remote")
 local EN = 1
 local ZH = 2
 
@@ -29,22 +20,14 @@ local IM_ZH = "rime"
 local IM_EN = "keyboard-us"
 
 -- 动态查找 macism 路径（避免依赖 PATH）
-local MACISM_BIN = (function()
-	local candidates = { "/opt/homebrew/bin/macism", "/usr/local/bin/macism" }
-	for _, p in ipairs(candidates) do
-		if hs.fs.attributes(p, "mode") == "file" then
-			return p
-		end
-	end
-	return "macism" -- fallback 到 PATH
-end)()
+local MACISM_BIN = command.find({ "/opt/homebrew/bin/macism", "/usr/local/bin/macism" }, "macism")
 
 local function isUsingFcitx5()
 	return hs.keycodes.currentSourceID() == FCITX5_SRC
 end
 
 -- 内部状态只在查询或切换成功后更新，避免命令失败时误报。
-local _zhState = EN
+local _zhState
 local _toggled = 0
 local _idleTimer = nil
 local _switchInFlight = false
@@ -67,23 +50,29 @@ local function stopIdleTimer()
 end
 
 local function applyState(state)
+	local changed = _zhState ~= state
 	_zhState = state
 	if state == ZH then
 		resetIdleTimer()
 	else
 		stopIdleTimer()
 	end
+	if changed then
+		local started, err = command.triggerSketchybar("input_method_change", function(exitCode, _, stderr)
+			if exitCode ~= 0 then
+				print("[Input] SketchyBar 状态通知失败: " .. tostring(stderr or exitCode))
+			end
+		end)
+		if not started then
+			print("[Input] 无法通知 SketchyBar: " .. tostring(err))
+		end
+	end
 end
 
 local function startTask(executable, args, callback, label)
-	local ok, task = pcall(hs.task.new, executable, callback, args)
-	if not ok or not task then
-		print("[Input] 无法创建任务 " .. (label or executable) .. ": " .. tostring(task))
-		return false
-	end
-	local started, result = pcall(function() return task:start() end)
-	if not started or not result then
-		print("[Input] 无法启动任务 " .. (label or executable) .. ": " .. tostring(result))
+	local started, err = command.start(executable, args, callback)
+	if not started then
+		print("[Input] 无法启动任务 " .. (label or executable) .. ": " .. tostring(err))
 		return false
 	end
 	return true

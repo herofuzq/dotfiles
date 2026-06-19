@@ -3,15 +3,7 @@
 -- hyper = cmd+ctrl+opt（由 Raycast 定义，按键穿透到 Hammerspoon）
 -- ============================================================
 
--- 复用 window_watcher.lua 的路径解析风格
-local function findSketchybar()
-	local candidates = { "/opt/homebrew/bin/sketchybar", "/usr/local/bin/sketchybar" }
-	for _, p in ipairs(candidates) do
-		if hs.fs.attributes(p, "mode") == "file" then return p end
-	end
-	return "sketchybar" -- fallback to PATH
-end
-local SKETCHYBAR_BIN = findSketchybar()
+local command = require("command")
 
 -- 从 sketchybar --query bar 的 JSON 输出中解析 hidden 状态
 local function parseHidden(stdout)
@@ -23,13 +15,9 @@ local function parseHidden(stdout)
 end
 
 local function startSketchybarTask(args, callback)
-	local ok, task = pcall(hs.task.new, SKETCHYBAR_BIN, callback, args)
-	if not ok or not task then
-		hs.alert.show("Sketchybar 命令启动失败", 1.0)
-		return false
-	end
-	local started, result = pcall(function() return task:start() end)
-	if not started or not result then
+	local started, err = command.sketchybar(args, callback)
+	if not started then
+		print("[SketchybarToggle] 命令启动失败: " .. tostring(err))
 		hs.alert.show("Sketchybar 命令启动失败", 1.0)
 		return false
 	end

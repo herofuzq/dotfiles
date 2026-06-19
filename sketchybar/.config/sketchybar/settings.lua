@@ -1,5 +1,9 @@
 -- 全局设置：高度、默认边距等
 local BAR_HEIGHT_CACHE = "/tmp/sketchybar_bar_height.cache"
+local TOGGLE_PIDFILE = "/tmp/sketchybar_toggle.pid"
+local TOGGLE_CONFIG_FILE = "/tmp/sketchybar_toggle.config"
+local TOGGLE_TRIGGER_ZONE = 4
+local TOGGLE_DEBOUNCE_MS = 150
 
 local function read_cache(path)
 	local f = io.open(path, "r")
@@ -66,10 +70,41 @@ local function detect_dock_width()
 	return fallback, 0, 0
 end
 
+local function ensure_toggle(bar_height)
+	bar_height = math.floor(tonumber(bar_height) or 0)
+	if bar_height <= 0 then
+		return
+	end
+
+	local menu_bar_height = bar_height + 5
+	local signature = string.format("%d:%d:%d", TOGGLE_TRIGGER_ZONE, menu_bar_height, TOGGLE_DEBOUNCE_MS)
+	local command = table.concat({
+		'pidfile="' .. TOGGLE_PIDFILE .. '"',
+		'configfile="' .. TOGGLE_CONFIG_FILE .. '"',
+		'expected="' .. signature .. '"',
+		'old="$(cat "$pidfile" 2>/dev/null)"',
+		'case "$old" in ""|*[!0-9]*) old="" ;; esac',
+		'current="$(cat "$configfile" 2>/dev/null)"',
+		'is_toggle() { [ -n "$old" ] && ps -p "$old" -o args= 2>/dev/null | grep -Fq "sketchybar-toggle --trigger-zone"; }',
+		'if is_toggle && [ "$current" = "$expected" ]; then exit 0; fi',
+		'if is_toggle; then kill "$old" 2>/dev/null; else pkill -x sketchybar-toggle 2>/dev/null; fi',
+		string.format(
+			"sketchybar-toggle --trigger-zone %d --menu-bar-height %d --debounce %d >/dev/null 2>&1 &",
+			TOGGLE_TRIGGER_ZONE,
+			menu_bar_height,
+			TOGGLE_DEBOUNCE_MS
+		),
+		'echo $! > "$pidfile"',
+		'printf %s "$expected" > "$configfile"',
+	}, "\n")
+	os.execute(command)
+end
+
 return {
 	height = detect_bar_height(),
 	detect_bar_height = detect_bar_height,
 	detect_dock_width = detect_dock_width,
+	ensure_toggle = ensure_toggle,
 	default_padding = 8,
 	item_padding = {
 		icon_label_item = {
