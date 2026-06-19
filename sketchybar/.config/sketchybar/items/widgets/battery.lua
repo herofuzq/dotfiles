@@ -4,10 +4,11 @@ local icons = require("icons")
 local fonts = require("fonts")
 local appearance = require("appearance")
 local colors = appearance.colors
+local BATTERY_UPDATE_INTERVAL = 30
 
 local battery = sbar.add("item", "widgets.battery", {
 	position = "right",
-	update_freq = 180,
+	update_freq = BATTERY_UPDATE_INTERVAL,
 	padding_left = 4,
 	padding_right = 2,
 	icon = {
