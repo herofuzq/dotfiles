@@ -16,7 +16,7 @@ local toggle_cmd = table.concat({
 	'is_toggle() { [ -n "$old" ] && ps -p "$old" -o args= 2>/dev/null | grep -Fq "sketchybar-toggle --trigger-zone"; }',
 	'if is_toggle && [ "$current_height" = "$height" ]; then exit 0; fi',
 	'if is_toggle; then kill "$old" 2>/dev/null; else pkill -x sketchybar-toggle 2>/dev/null; fi',
-	'sketchybar-toggle --trigger-zone 5 --menu-bar-height "$height" --debounce 150 >/dev/null 2>&1 &',
+	'sketchybar-toggle --trigger-zone 4 --menu-bar-height "$height" --debounce 150 >/dev/null 2>&1 &',
 	'echo $! > "$pidfile"',
 	'echo "$height" > "$heightfile"',
 }, "\n")
