@@ -3,6 +3,8 @@ local sbar = require("sketchybar")
 local icons = require("icons")
 local fonts = require("fonts")
 local colors = require("appearance").colors
+local NETWORK_SAMPLE_INTERVAL = 3
+local INTERFACE_REFRESH_INTERVAL = 30
 
 -- ========== ↑ 上传（上排，y_offset 偏下）==========
 local up = sbar.add("item", "widgets.network_up", {
@@ -27,12 +29,12 @@ local up = sbar.add("item", "widgets.network_up", {
 -- ========== ↓ 下载（下排，y_offset 偏上）==========
 local down = sbar.add("item", "widgets.network_down", {
 	position = "right",
-	update_freq = 3,
+	update_freq = NETWORK_SAMPLE_INTERVAL,
 	padding_left = 2,
 	padding_right = 2,
 	width = 0,
 	icon = {
-		string = icons.wifi,
+		string = icons.network.offline,
 		font = { family = fonts.font_icon.text, style = fonts.font_icon.style_map["Bold"], size = 13.0 },
 		drawing = true,
 		padding_left = 4,
@@ -55,7 +57,6 @@ local down = sbar.add("item", "widgets.network_down", {
 -- bracket 容器：背景 + wifi 图标
 sbar.add("bracket", "widgets.network", { "widgets.network_up", "widgets.network_down" }, {
 	position = "right",
-	update_freq = 3,
 	icon = { drawing = false },
 	padding_left = 4,
 	padding_right = 0,
@@ -90,21 +91,100 @@ end
 
 local IFSTAT = find_ifstat()
 
-local function detect_network_interface()
-	local f = io.popen("route get default 2>/dev/null | awk '/interface:/{print $2; exit}'")
-	local iface = f and (f:read("*a") or ""):match("^%s*(.-)%s*$") or nil
+local function network_kind(port, iface)
+	port = (port or ""):lower()
+	if port:find("wi%-fi") or port:find("airport") then
+		return "wifi"
+	end
+	if port:find("iphone") or port:find("mobile") or port:find("cellular") then
+		return "hotspot"
+	end
+	if port:find("ethernet")
+		or port:find("lan")
+		or port:find("usb")
+		or port:find("thunderbolt")
+	then
+		return "ethernet"
+	end
+	if iface == "en0" then
+		return "wifi"
+	end
+	if iface and (iface:match("^en%d+$") or iface:match("^bridge%d+$")) then
+		return "ethernet"
+	end
+	return "unknown"
+end
+
+local function detect_network()
+	local command = table.concat({
+		"route get default 2>/dev/null",
+		"printf '\\n---SERVICES---\\n'",
+		"networksetup -listnetworkserviceorder 2>/dev/null",
+		"printf '\\n---NWI---\\n'",
+		"scutil --nwi 2>/dev/null",
+	}, "; ")
+	local f = io.popen(command)
+	local output = f and (f:read("*a") or "") or ""
 	if f then
 		f:close()
 	end
-	if iface and iface:match("^[%w%._-]+$") then
-		return iface
+
+	local route_output, services_output, nwi_output = output:match("^(.-)\n%-%-%-SERVICES%-%-%-\n(.-)\n%-%-%-NWI%-%-%-\n(.*)$")
+	route_output, services_output, nwi_output = route_output or "", services_output or "", nwi_output or ""
+	local iface = route_output:match("interface:%s*([%w%._-]+)")
+	if iface and iface:match("^utun%d+$") then
+		local interfaces = nwi_output:match("Network interfaces:%s*([^\n]+)") or ""
+		for candidate in interfaces:gmatch("[%w%._-]+") do
+			if not candidate:match("^utun%d+$") then
+				iface = candidate
+				break
+			end
+		end
 	end
-	return "en0"
+	if not iface or not iface:match("^[%w%._-]+$") then
+		return nil, "offline"
+	end
+
+	local port
+	for hardware_port, device in services_output:gmatch("Hardware Port:%s*([^,\n]+),%s*Device:%s*([^%)\n]+)") do
+		if device:match("^%s*(.-)%s*$") == iface then
+			port = hardware_port:match("^%s*(.-)%s*$")
+			break
+		end
+	end
+	return iface, network_kind(port, iface)
 end
 
-down:subscribe("routine", function()
-	local net_iface = detect_network_interface()
-	if not IFSTAT then
+local function icon_color(kind)
+	if kind == "offline" then
+		return colors.surface1
+	end
+	if kind == "hotspot" then
+		return colors.mauve
+	end
+	return colors.sapphire
+end
+
+local net_iface, current_network_kind, last_interface_check
+
+local function update_network(force_interface_check)
+	local now = os.time()
+	if force_interface_check
+		or not net_iface
+		or not last_interface_check
+		or now - last_interface_check >= INTERFACE_REFRESH_INTERVAL
+	then
+		net_iface, current_network_kind = detect_network()
+		last_interface_check = now
+		down:set({
+			icon = {
+				string = icons.network[current_network_kind] or icons.network.unknown,
+				color = icon_color(current_network_kind),
+			},
+		})
+	end
+
+	if not IFSTAT or not net_iface then
 		up:set({ label = "↑  —" })
 		down:set({ label = "↓  —" })
 		return
@@ -127,7 +207,17 @@ down:subscribe("routine", function()
 		up:set({ label = "↑" .. format_speed(up_raw) })
 		down:set({ label = "↓" .. format_speed(down_raw) })
 	end)
+end
+
+down:subscribe("routine", function()
+	update_network(false)
 end)
+
+down:subscribe({ "wifi_change", "system_woke" }, function()
+	update_network(true)
+end)
+
+update_network(true)
 
 -- ========== system bracket（clash_tun + network）==========
 sbar.set("widgets.clash_tun", { background = { drawing = false }, padding_left = 1, padding_right = 0 })

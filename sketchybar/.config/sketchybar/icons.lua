@@ -17,7 +17,13 @@ local icons = {
 		clash = {
 			tun = "\u{F0582}",
 		},
-		wifi = "\u{F16BB}",
+		network = {
+			wifi = "\u{F05A9}",
+			ethernet = "\u{F0200}",
+			hotspot = "\u{F0815}",
+			offline = "\u{F05AA}",
+			unknown = "\u{F0317}",
+		},
 		input_method = {
 			keyboard = "",
 		},
