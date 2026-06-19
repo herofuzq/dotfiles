@@ -8,6 +8,8 @@ local sbar = require("sketchybar")
 local fonts = require("fonts")
 local settings = require("settings")
 local SPACE_ICONS = { "󰼏", "󰼐", "󰼑", "󰼒", "󰼓", "󰼔" }
+local APP_ICON_FONT = "sketchybar-app-font:Regular:14.0"
+local EMPTY_APP_FONT = { family = fonts.font.text, style = fonts.font.style_map["Bold"], size = fonts.font.size }
 
 local function shell_quote(value)
 	return "'" .. tostring(value):gsub("'", "'\\''") .. "'"
@@ -74,7 +76,7 @@ local function ensure_front_app()
 		padding_left = 2,
 		icon = { drawing = false },
 		label = {
-			font = { family = fonts.font.text, style = fonts.font.style_map["Bold"], size = fonts.font.size },
+			font = { family = fonts.font.text, style = fonts.font.style_map["Bold"], size = 14.0 },
 			padding_left = 8,
 			padding_right = 8,
 			align = "center",
@@ -189,22 +191,21 @@ end
 
 local function show_empty_workspace(workspace_index, focused_workspace, visible_workspaces)
 	local monitor_id = visible_monitor_id(workspace_index, visible_workspaces)
-	if monitor_id then
-		workspaces[workspace_index]:set({
+	local properties = {
+		drawing = monitor_id ~= nil or workspace_index == focused_workspace or always_show[workspace_index] == true,
+		icon = { padding_left = 10, padding_right = 2 },
+		label = {
 			drawing = true,
-			icon = { padding_left = 10, padding_right = 10 },
-			label = { drawing = false },
-			display = monitor_id,
-		})
-		return
+			string = "_",
+			font = EMPTY_APP_FONT,
+			padding_left = 2,
+			padding_right = 10,
+		},
+	}
+	if monitor_id then
+		properties.display = monitor_id
 	end
-
-	local should_draw = workspace_index == focused_workspace or always_show[workspace_index] == true
-	workspaces[workspace_index]:set({
-		drawing = should_draw,
-		icon = { padding_left = 10, padding_right = 10 },
-		label = { drawing = false },
-	})
+	workspaces[workspace_index]:set(properties)
 end
 
 local function show_workspace_apps(workspace_index, icon_line)
@@ -213,7 +214,7 @@ local function show_workspace_apps(workspace_index, icon_line)
 	workspaces[workspace_index]:set({
 		drawing = true,
 		icon = { padding_left = 10, padding_right = 2 },
-		label = { drawing = true, string = icon_line },
+		label = { drawing = true, string = icon_line, font = APP_ICON_FONT },
 	})
 end
 
@@ -320,10 +321,10 @@ end
 
 -- ========== 工作区高亮辅助 ==========
 local function set_highlight(ws, is_focused)
-	ws:set({ icon = { highlight = is_focused } })
+	ws:set({ icon = { highlight = is_focused }, label = { highlight = is_focused } })
 end
 
--- ========== 更新所有工作区 + 分配边框颜色 ==========
+-- ========== 更新所有工作区 + 分段状态 ==========
 local function updateWindows()
 	generation = generation + 1
 	withWindows(function(args)
@@ -353,7 +354,7 @@ local function updateWindows()
 			end
 		end
 
-		-- 第三步：通过中央调色器分配边框颜色 + 全屏处理
+		-- 第三步：更新焦点/全屏分段样式
 		local visible_names = {}
 		local fullscreen_idx = {}
 		for i, ws_idx in ipairs(visible) do
@@ -417,19 +418,16 @@ end)
 for _, ws in ipairs(initial_workspaces) do
 	local workspace = sbar.add("item", "workspace." .. ws, {
 		background = {
-			color = appearance.colors.pill_bg,
-			drawing = true,
-			corner_radius = 10,
-			border_width = 2,
-			border_color = appearance.colors.border,
+			drawing = false,
+			border_width = 0,
 		},
 		drawing = false,
-		padding_left = 2,
-		padding_right = 2,
+		padding_left = 0,
+		padding_right = 0,
 		icon = {
 			color = appearance.colors.pill_fg,
 			highlight_color = appearance.colors.red,
-			font = { family = fonts.font.text, style = fonts.font.style_map["Bold"], size = fonts.font.size },
+			font = { family = fonts.font.text, style = fonts.font.style_map["Bold"], size = 13.0 },
 			padding_left = 10,
 			padding_right = 2,
 			drawing = true,
@@ -438,7 +436,7 @@ for _, ws in ipairs(initial_workspaces) do
 		label = {
 			color = appearance.colors.pill_fg,
 			highlight_color = appearance.colors.red,
-			font = "sketchybar-app-font:Regular:14.0",
+			font = APP_ICON_FONT,
 			padding_left = 2,
 			padding_right = 10,
 			y_offset = 0,
@@ -483,6 +481,23 @@ for _, ws in ipairs(initial_workspaces) do
 		_popup_items[ws][i] = popup_item
 	end
 end
+
+local workspace_names = {}
+for _, ws in ipairs(workspace_order) do
+	workspace_names[#workspace_names + 1] = "workspace." .. ws
+end
+
+sbar.add("bracket", "workspaces.bracket", workspace_names, {
+	position = "left",
+	padding_left = 2,
+	padding_right = 2,
+	background = {
+		color = appearance.colors.pill_bg,
+		corner_radius = 10,
+		border_width = 2,
+		border_color = appearance.colors.border,
+	},
+})
 
 -- front_app 在 begin_config 中直接创建（不依赖 aerospace 回调）
 ensure_front_app()
@@ -562,12 +577,9 @@ sbar.exec(":", function()
 			for ws_idx, ws in pairs(workspaces) do
 				set_highlight(ws, ws_idx == focused)
 			end
-			-- 即时设新焦点红色边框（不等 distribute），全屏时由 distribute 覆盖为 peach
+			-- 即时设置焦点分段（完整全屏状态随后由 updateWindows 同步）
 			if workspaces[focused] then
-				workspaces[focused]:set({ background = {
-					border_color = appearance.colors.red,
-					corner_radius = 10,
-				} })
+				borders.set_focused("workspace." .. focused)
 			end
 		end
 		updateWindows()
@@ -594,16 +606,12 @@ sbar.exec(":", function()
 		updateWindows()
 	end)
 
-	-- aerospace_fullscreen_change（立即查全屏 ws 设 peach，updateWindows 做完整同步）
+	-- aerospace_fullscreen_change（立即标记全屏分段，updateWindows 做完整同步）
 	root:subscribe("aerospace_fullscreen_change", function()
 		sbar.exec("aerospace list-windows --monitor all --format '%{workspace}%{window-is-fullscreen}' --json", function(data)
 			for _, w in ipairs(data or {}) do
 				if w["window-is-fullscreen"] then
-					sbar.set("workspace." .. w.workspace, { background = {
-						border_color = appearance.colors.peach,
-						border_width = 2,
-						corner_radius = 10,
-					} })
+					borders.set_fullscreen("workspace." .. w.workspace)
 				end
 			end
 		end)
@@ -624,13 +632,15 @@ sbar.exec(":", function()
 			local ws = workspaces[ws_idx]
 			if ws then
 				ws:set({
-					background = { color = appearance.colors.pill_bg },
 					icon = { color = appearance.colors.pill_fg },
 					label = { color = appearance.colors.pill_fg },
 					popup = { background = { color = appearance.with_alpha(appearance.colors.pill_bg, 0.85) } },
 				})
 			end
 		end
+		sbar.set("workspaces.bracket", {
+			background = { color = appearance.colors.pill_bg, border_color = appearance.colors.border },
+		})
 		for _, items in pairs(_popup_items) do
 			for _, item in ipairs(items) do
 				if item then
@@ -653,10 +663,7 @@ sbar.exec(":", function()
 		focused_workspace = focused_workspace:match("^%s*(.-)%s*$")
 		if workspaces[focused_workspace] then
 			set_highlight(workspaces[focused_workspace], true)
-			workspaces[focused_workspace]:set({ background = {
-				border_color = appearance.colors.red,
-				corner_radius = 10,
-			} })
+			borders.set_focused("workspace." .. focused_workspace)
 		end
 	end)
 end)
