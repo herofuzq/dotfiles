@@ -2,9 +2,11 @@
 local sbar = require("sketchybar")
 local icons = require("icons")
 local fonts = require("fonts")
+local parsers = require("helpers.widget_parsers")
 local colors = require("appearance").colors
 local NETWORK_SAMPLE_INTERVAL = 3
 local INTERFACE_REFRESH_INTERVAL = 30
+local MAX_CONSECUTIVE_FAILURES = 2
 
 -- ========== ↑ 上传（上排，y_offset 偏下）==========
 local up = sbar.add("item", "widgets.network_up", {
@@ -91,30 +93,6 @@ end
 
 local IFSTAT = find_ifstat()
 
-local function network_kind(port, iface)
-	port = (port or ""):lower()
-	if port:find("wi%-fi") or port:find("airport") then
-		return "wifi"
-	end
-	if port:find("iphone") or port:find("mobile") or port:find("cellular") then
-		return "hotspot"
-	end
-	if port:find("ethernet")
-		or port:find("lan")
-		or port:find("usb")
-		or port:find("thunderbolt")
-	then
-		return "ethernet"
-	end
-	if iface == "en0" then
-		return "wifi"
-	end
-	if iface and (iface:match("^en%d+$") or iface:match("^bridge%d+$")) then
-		return "ethernet"
-	end
-	return "unknown"
-end
-
 local function detect_network()
 	local command = table.concat({
 		"route get default 2>/dev/null",
@@ -152,7 +130,7 @@ local function detect_network()
 			break
 		end
 	end
-	return iface, network_kind(port, iface)
+	return iface, parsers.network_kind(port, iface)
 end
 
 local function icon_color(kind)
@@ -166,6 +144,12 @@ local function icon_color(kind)
 end
 
 local net_iface, current_network_kind, last_interface_check
+local consecutive_failures = 0
+
+local function show_unavailable()
+	up:set({ label = "↑  —" })
+	down:set({ label = "↓  —" })
+end
 
 local function update_network(force_interface_check)
 	local now = os.time()
@@ -185,8 +169,8 @@ local function update_network(force_interface_check)
 	end
 
 	if not IFSTAT or not net_iface then
-		up:set({ label = "↑  —" })
-		down:set({ label = "↓  —" })
+		consecutive_failures = 0
+		show_unavailable()
 		return
 	end
 	sbar.exec('"' .. IFSTAT .. '" -i ' .. net_iface .. " -b 0.1 1 2>/dev/null", function(raw)
@@ -198,12 +182,15 @@ local function update_network(force_interface_check)
 			end
 		end
 		local down_raw, up_raw = data:match("%s*(%S+)%s+(%S+)")
-		if not down_raw or not up_raw then
-			up:set({ label = "↑  —" })
-			down:set({ label = "↓  —" })
+		if not tonumber(down_raw) or not tonumber(up_raw) then
+			consecutive_failures = consecutive_failures + 1
+			if consecutive_failures >= MAX_CONSECUTIVE_FAILURES then
+				show_unavailable()
+			end
 			return
 		end
 
+		consecutive_failures = 0
 		up:set({ label = "↑" .. format_speed(up_raw) })
 		down:set({ label = "↓" .. format_speed(down_raw) })
 	end)
