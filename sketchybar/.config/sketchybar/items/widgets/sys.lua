@@ -45,7 +45,7 @@ local sys = sbar.add("item", "widgets.sys", {
 		padding_left = 2,
 		padding_right = 8,
 		align = "right",
-		max_chars = 3,
+		max_chars = 4,
 		width = 30,
 		color = colors.pill_fg,
 	},
@@ -58,8 +58,8 @@ local sys = sbar.add("item", "widgets.sys", {
 })
 
 sys:subscribe("cpu_update", function(env)
-	local cpu_load = tonumber(env.total_load) or 0
-	local cpu_str = string.format("%d%%", cpu_load > 99 and 99 or cpu_load)
+	local cpu_load = math.max(0, math.min(100, math.floor(tonumber(env.total_load) or 0)))
+	local cpu_str = string.format("%d%%", cpu_load)
 	local cpu_color = cpu_load > 70 and colors.red
 		or (cpu_load > 40 and colors.peach or colors.green)
 	sys:set({

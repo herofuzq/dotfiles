@@ -76,10 +76,9 @@ return function(opts)
 	end
 
 	local function check_status()
-		sbar.exec(
-			"lsappinfo -all info -only StatusLabel " .. safe_id .. ' | sed -n \'s/.*"label"="\\([^"]*\\)".*/\\1/p\'',
-			update_display
-		)
+		sbar.exec("lsappinfo -all info -only StatusLabel " .. safe_id, function(raw)
+			update_display(raw and raw:match('"label"%s*=%s*"([^"]*)"'))
+		end)
 	end
 
 	-- 主题切换时仅刷新颜色，不重查应用状态

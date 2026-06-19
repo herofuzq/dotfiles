@@ -65,7 +65,8 @@ local batt_info = sbar.add("item", "widgets.battery.info", {
 	background = { drawing = false },
 })
 
-local _popup_pinned, _popup_hovering, _exit_gen = false, false, 0
+local _popup_pinned, _popup_hovering, _popup_visible, _exit_gen = false, false, false, 0
+local last_state
 
 local UINT64_SIGNED_MAX = "9223372036854775807"
 local UINT64_MODULUS = "18446744073709551616"
@@ -120,6 +121,7 @@ local function scheduleHide()
 		if _popup_hovering or _popup_pinned then
 			return
 		end
+		_popup_visible = false
 		batt_info:set({ drawing = false })
 		battery:set({ popup = { drawing = false } })
 	end)
@@ -186,32 +188,30 @@ local function format_watts(watts)
 	return string.format("%.1fW", watts)
 end
 
-local function updateBattInfo()
-	sbar.exec("ioreg -rn AppleSmartBattery", function(raw)
-		local state = parse_battery(raw)
-		if not state then
-			batt_info:set({ label = "电池信息不可用" })
-			return
-		end
+local function update_batt_info(state)
+	if not state then
+		batt_info:set({ label = "电池信息不可用" })
+		return
+	end
 
-		local status = state.ac and "⚡ 电源" or "🔋 电池"
-		local info = string.format("%s  %d%%", status, state.percent)
-		local watts = format_watts(state.current_watts)
-		if watts then
-			info = info .. string.format("  当前 %s", watts)
-		end
-		if not state.ac and state.min_left then
-			local h = math.floor(state.min_left / 60)
-			local m = state.min_left % 60
-			info = info .. string.format("  剩余 %d:%02d", h, m)
-		end
-		batt_info:set({ label = info })
-	end)
+	local status = state.ac and "⚡ 电源" or "🔋 电池"
+	local info = string.format("%s  %d%%", status, state.percent)
+	local watts = format_watts(state.current_watts)
+	if watts then
+		info = info .. string.format("  当前 %s", watts)
+	end
+	if not state.ac and state.min_left then
+		local h = math.floor(state.min_left / 60)
+		local m = state.min_left % 60
+		info = info .. string.format("  剩余 %d:%02d", h, m)
+	end
+	batt_info:set({ label = info })
 end
 
 battery:subscribe("mouse.entered", function()
 	_exit_gen = _exit_gen + 1
-	updateBattInfo()
+	_popup_visible = true
+	update_batt_info(last_state)
 	batt_info:set({ drawing = true })
 	battery:set({ popup = { drawing = true } })
 end)
@@ -222,7 +222,11 @@ end)
 
 battery:subscribe("mouse.clicked", function()
 	_popup_pinned = not _popup_pinned
-	updateBattInfo()
+	_popup_visible = not _popup_visible
+	if _popup_visible then
+		update_batt_info(last_state)
+	end
+	batt_info:set({ drawing = _popup_visible })
 	battery:set({ popup = { drawing = "toggle" } })
 end)
 
@@ -236,42 +240,48 @@ batt_info:subscribe("mouse.exited", function()
 end)
 
 -- ========== 电池状态更新 ==========
+local function update_battery_display(state)
+	if not state then
+		battery:set({
+			icon = { string = icons.battery._0, color = colors.surface1 },
+			label = { string = "—" },
+		})
+		return
+	end
+
+	local color = colors.green
+	local icon
+	if state.ac or state.charging then
+		icon = icons.battery.charging
+	else
+		if state.percent > 80 then
+			icon = icons.battery._100
+		elseif state.percent > 60 then
+			icon = icons.battery._75
+		elseif state.percent > 40 then
+			icon = icons.battery._50
+		elseif state.percent > 20 then
+			icon = icons.battery._25
+			color = colors.peach
+		else
+			icon = icons.battery._0
+			color = colors.red
+		end
+	end
+
+	battery:set({
+		icon = { string = icon, color = color },
+		label = { string = string.format("%02d%%", state.percent) },
+	})
+end
+
 local function update_battery()
 	sbar.exec("ioreg -rn AppleSmartBattery", function(raw)
-		local state = parse_battery(raw)
-		if not state then
-			battery:set({
-				icon = { string = icons.battery._0, color = colors.surface1 },
-				label = { string = "—" },
-			})
-			return
+		last_state = parse_battery(raw)
+		update_battery_display(last_state)
+		if _popup_visible then
+			update_batt_info(last_state)
 		end
-		local label = string.format("%02d%%", state.percent)
-
-		local color = colors.green
-		local icon
-		if state.ac or state.charging then
-			icon = icons.battery.charging
-		else
-			if state.percent > 80 then
-				icon = icons.battery._100
-			elseif state.percent > 60 then
-				icon = icons.battery._75
-			elseif state.percent > 40 then
-				icon = icons.battery._50
-			elseif state.percent > 20 then
-				icon = icons.battery._25
-				color = colors.peach
-			else
-				icon = icons.battery._0
-				color = colors.red
-			end
-		end
-
-		battery:set({
-			icon = { string = icon, color = color },
-			label = { string = label },
-		})
 	end)
 end
 
