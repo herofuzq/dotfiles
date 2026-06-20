@@ -344,6 +344,18 @@ local function set_highlight(ws, is_focused)
 	ws:set({ icon = { highlight = is_focused }, label = { highlight = is_focused } })
 end
 
+local function distribute_cached_borders(focused_workspace)
+	local visible_names = {}
+	local fullscreen_idx = {}
+	for i, ws_idx in ipairs(workspace_order) do
+		visible_names[i] = "workspace." .. ws_idx
+		if fullscreen_snapshot[ws_idx] then
+			fullscreen_idx[i] = true
+		end
+	end
+	borders.distribute(visible_names, fullscreen_idx, "workspace." .. (focused_workspace or ""))
+end
+
 -- ========== 更新所有工作区 + 分段状态 ==========
 local function updateWindows()
 	if refresh_in_flight then
@@ -355,7 +367,7 @@ local function updateWindows()
 		if refresh_pending then
 			refresh_pending = false
 			refresh_in_flight = false
-			sbar.delay(0.03, updateWindows)
+			updateWindows()
 			return
 		end
 
@@ -631,10 +643,8 @@ sbar.exec(":", function()
 			for ws_idx, ws in pairs(workspaces) do
 				set_highlight(ws, ws_idx == focused)
 			end
-			-- 即时设置焦点分段（完整全屏状态随后由 updateWindows 同步）
-			if workspaces[focused] then
-				borders.set_focused("workspace." .. focused)
-			end
+			-- 使用已有快照一次性清除旧背景并点亮当前工作区，不触发窗口查询。
+			distribute_cached_borders(focused)
 		end
 	end)
 
@@ -715,15 +725,7 @@ sbar.exec(":", function()
 		sbar.set("aerospace_mode", { label = { color = appearance.colors.sapphire } })
 
 		-- 主题变化只需重绘现有分段，不重新枚举窗口。
-		local visible_names = {}
-		local fullscreen_idx = {}
-		for i, ws_idx in ipairs(workspace_order) do
-			visible_names[i] = "workspace." .. ws_idx
-			if fullscreen_snapshot[ws_idx] then
-				fullscreen_idx[i] = true
-			end
-		end
-		borders.distribute(visible_names, fullscreen_idx, "workspace." .. (focused_workspace_cache or ""))
+		distribute_cached_borders(focused_workspace_cache)
 	end)
 
 	-- 初始 focus
@@ -734,8 +736,10 @@ sbar.exec(":", function()
 		focused_workspace = focused_workspace:match("^%s*(.-)%s*$")
 		focused_workspace_cache = focused_workspace
 		if workspaces[focused_workspace] then
-			set_highlight(workspaces[focused_workspace], true)
-			borders.set_focused("workspace." .. focused_workspace)
+			for ws_idx, ws in pairs(workspaces) do
+				set_highlight(ws, ws_idx == focused_workspace)
+			end
+			distribute_cached_borders(focused_workspace)
 		end
 	end)
 end)
