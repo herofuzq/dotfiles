@@ -95,15 +95,40 @@ local focused_workspace_cache
 local refresh_in_flight = false
 local refresh_pending = false
 
+-- ========== 公共排序：focused 窗口排最前，其余按 window-id 降序 ==========
+-- 注意：
+--   - withWindows 数据是 {app, window_id}（下划线，字符串）
+--   - togglePopup 数据是 sbar.exec 直接返回的 JSON（短横线 window-id，数字）
+--   - 两者都要兼容
+--   - 比较前统一 tonumber，避免 string/number 类型不一致
+--   - window-id 是 macOS 给的 CGWindowID，同一会话内单调递增，跨重启会重置
+local function sort_windows_by_focus(wins, focused_window_id)
+	local focused_id = tonumber(focused_window_id)
+	table.sort(wins, function(a, b)
+		local aid = tonumber(a.window_id or a["window-id"]) or 0
+		local bid = tonumber(b.window_id or b["window-id"]) or 0
+		if focused_id then
+			if aid == focused_id then
+				return bid ~= focused_id
+			end
+			if bid == focused_id then
+				return false
+			end
+		end
+		return aid > bid
+	end)
+end
+
 local function withWindows(f)
 	local my_gen = generation
 	local results = {
 		open_windows = {},
 		has_fullscreen = {},
 		focused_workspace = focused_workspace_cache,
+		focused_window_id = nil,
 		visible_workspaces = nil,
 	}
-	local pending = focused_workspace_cache and 2 or 3
+	local pending = (focused_workspace_cache and 2 or 3) + 1
 
 	local function check_done()
 		if my_gen ~= generation then
@@ -111,6 +136,11 @@ local function withWindows(f)
 		end
 		pending = pending - 1
 		if pending == 0 then
+			-- 所有 sbar.exec 回调跑完后才排序：focused_window_id 是异步查询，
+			-- get_windows 回调里读到的还是 nil
+			for _, wins in pairs(results.open_windows) do
+				sort_windows_by_focus(wins, results.focused_window_id)
+			end
 			f(results)
 		end
 	end
@@ -144,10 +174,26 @@ local function withWindows(f)
 					results.open_windows[workspace_index] = {}
 				end
 
-				table.insert(results.open_windows[workspace_index], app)
+				table.insert(results.open_windows[workspace_index], {
+					app = app,
+					window_id = window_id,
+				})
 			end
 		end
 
+		-- 排序已挪到 check_done（等所有异步回调结束，确保 focused_window_id 已设上）
+
+		check_done()
+	end)
+
+	-- 查当前焦点窗口（用于排序时排最前）
+	sbar.exec("aerospace list-windows --focused --format '%{window-id}'", function(focused_win_id)
+		if focused_win_id then
+			local id = focused_win_id:match("^%s*(%d+)%s*$")
+			if id then
+				results.focused_window_id = id
+			end
+		end
 		check_done()
 	end)
 
@@ -172,7 +218,8 @@ end
 -- ========== 更新单个工作区 ==========
 local function app_icon_line(open_windows)
 	local icon_line = ""
-	for _, app in ipairs(open_windows) do
+	for _, win in ipairs(open_windows) do
+		local app = win.app
 		local lookup = app_icons[app]
 		local icon = ((lookup == nil) and app_icons["Default"] or lookup)
 		icon_line = icon_line .. icon
@@ -257,10 +304,20 @@ local function togglePopup(ws_index, workspace_item, force_show, gen)
 		.. shell_quote(ws_index)
 		.. " --format '%{window-id}%{app-name}%{window-title}' --json"
 
-	sbar.exec(cmd, function(windows)
+	-- 两个并行查询：窗口列表 + 当前 focused window（用于排序）
+	local pending = 2
+	local pop_results = { windows = nil, focused_id = nil }
+
+	local function check_done()
 		if gen and _popup_gen[ws_index] ~= gen then
 			return
 		end
+		pending = pending - 1
+		if pending > 0 then
+			return
+		end
+
+		local windows = pop_results.windows
 
 		if not windows or #windows == 0 then
 			_popup_windows[ws_index] = {}
@@ -273,6 +330,9 @@ local function togglePopup(ws_index, workspace_item, force_show, gen)
 			workspace_item:set({ popup = { drawing = false } })
 			return
 		end
+
+		-- 排序：focused 排最前，其余按 window-id 降序
+		sort_windows_by_focus(windows, pop_results.focused_id)
 
 		_popup_windows[ws_index] = {}
 		for i, w in ipairs(windows) do
@@ -317,6 +377,28 @@ local function togglePopup(ws_index, workspace_item, force_show, gen)
 
 		local drawing = force_show and true or "toggle"
 		workspace_item:set({ popup = { drawing = drawing } })
+	end
+
+	-- 启动两个并行查询：窗口列表 + 当前 focused window
+	sbar.exec(cmd, function(windows)
+		if gen and _popup_gen[ws_index] ~= gen then
+			return
+		end
+		pop_results.windows = windows
+		check_done()
+	end)
+
+	sbar.exec("aerospace list-windows --focused --format '%{window-id}'", function(focused_win_id)
+		if gen and _popup_gen[ws_index] ~= gen then
+			return
+		end
+		if focused_win_id then
+			local id = focused_win_id:match("^%s*(%d+)%s*$")
+			if id then
+				pop_results.focused_id = id
+			end
+		end
+		check_done()
 	end)
 end
 
@@ -613,6 +695,12 @@ sbar.exec(":", function()
 
 	-- Hammerspoon 已做 50ms 防抖，此处直接刷新，避免重复等待。
 	root:subscribe("space_windows_change", function()
+		updateWindows()
+	end)
+
+	-- 窗口焦点变化（aerospace on-focus-changed 触发）：让 focused window 在 bar 上排到最左
+	-- updateWindows 内部已有 refresh_in_flight 去重，高频切焦点不会堆叠请求
+	root:subscribe("aerospace_focus_change", function()
 		updateWindows()
 	end)
 
