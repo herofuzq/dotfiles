@@ -602,7 +602,13 @@ sbar.exec(":", function()
 				borders.set_focused("workspace." .. focused)
 			end
 		end
-		updateWindows()
+		-- 延迟 200ms 再 updateWindows：
+		-- 浮窗应用被 [[on-window-detected]] 的 layout floating 切到 float 时，
+		-- 如果立刻调 list-windows（走 AX API）会让 aerospace 重新评估浮窗 frame，
+		-- 在 layout floating 还没完全稳定的瞬间触发二次 setFrame —— 看到"位置挪动 + 仍是浮动"。
+		-- 等 200ms 让 on-window-detected 完全跑完，list-windows 的 AX 评估不会主动改 frame。
+		-- bar 高亮/borders 已经在上面立即更新，不受延迟影响。
+		sbar.delay(0.2, updateWindows)
 	end)
 
 	-- Hammerspoon 已做 50ms 防抖，此处直接刷新，避免重复等待。
