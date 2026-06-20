@@ -72,7 +72,7 @@ end
 
 -- ========== ③ alpha 常量 ==========
 local A = {
-	bar_bg = 0.3, -- bar 本体透明度
+	bar_bg = 0.2, -- bar 本体透明度
 	pill = 0.667, -- pill 背景 (0xaa/255)
 	border = 0.2, -- 边框 / 高亮 (0x33/255)
 }
@@ -117,7 +117,7 @@ function M.install_defaults()
 			border_width = 2,
 			color = C.pill_bg,
 			corner_radius = 9,
-			height = settings.height - 6,
+			height = settings.height - 4,
 			image = {
 				corner_radius = 0,
 				border_color = C.text,

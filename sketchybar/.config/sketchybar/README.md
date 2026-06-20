@@ -107,6 +107,10 @@ Event-driven (no polling). The `media_watch` Swift daemon wraps `media-control s
 - **Controls**: previous track, play/pause, next track
 - **Init**: Lua queries `media-control get` once on reload for initial display
 
+### System Widget
+
+The main CPU percentage remains driven by the lightweight native helper. The popup reads cached temperature/fan data immediately and refreshes it with a single `mactop` sample when stale; a lightweight `ps` sampler updates the ten busiest apps only while the popup is open. Install with `brew install mactop`.
+
 ### Battery Widget
 
 Hover the pill to see a popup with battery percentage and estimated time remaining. Data sourced from `ioreg -rn AppleSmartBattery`.
@@ -215,6 +219,10 @@ Hover the pill to see a popup with battery percentage and estimated time remaini
 - **歌曲信息**：悬停 pill 显示歌名、歌手、专辑
 - **控制**：上一首、播放/暂停、下一首
 - **初始化**：reload 时 Lua 主动查一次显示
+
+### 系统 Widget
+
+主 CPU 百分比继续由轻量原生 helper 推送。popup 会立即读取温度/风扇缓存，仅在缓存过期时用 `mactop` 采样一次；CPU 前十应用由轻量 `ps` 仅在 popup 打开期间更新。安装命令：`brew install mactop`。
 
 ### 电池 Widget
 

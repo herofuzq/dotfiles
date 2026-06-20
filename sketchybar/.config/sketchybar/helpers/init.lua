@@ -33,6 +33,13 @@ local function needs_make(cfg)
 			},
 		},
 		{
+			target = helpers .. "/event_providers/sys_watch/bin/sys_watch",
+			sources = {
+				helpers .. "/event_providers/sys_watch/sys_watch.swift",
+				helpers .. "/event_providers/sys_watch/makefile",
+			},
+		},
+		{
 			target = helpers .. "/menus/bin/menus",
 			sources = {
 				helpers .. "/menus/menus.c",

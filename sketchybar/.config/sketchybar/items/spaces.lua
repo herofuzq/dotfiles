@@ -92,6 +92,8 @@ end
 -- ========== 窗口信息收集 ==========
 local generation = 0
 local focused_workspace_cache
+local refresh_in_flight = false
+local refresh_pending = false
 
 local function withWindows(f)
 	local my_gen = generation
@@ -325,8 +327,20 @@ end
 
 -- ========== 更新所有工作区 + 分段状态 ==========
 local function updateWindows()
+	if refresh_in_flight then
+		refresh_pending = true
+		return
+	end
+	refresh_in_flight = true
 	generation = generation + 1
 	withWindows(function(args)
+		if refresh_pending then
+			refresh_pending = false
+			refresh_in_flight = false
+			sbar.delay(0.03, updateWindows)
+			return
+		end
+
 		for ws_idx, ws in pairs(workspaces) do
 			set_highlight(ws, ws_idx == args.focused_workspace)
 		end
@@ -367,6 +381,7 @@ local function updateWindows()
 			end
 		end
 		borders.distribute(visible_names, fullscreen_idx, "workspace." .. (args.focused_workspace or ""))
+		refresh_in_flight = false
 	end)
 end
 
@@ -496,8 +511,9 @@ sbar.add("bracket", "workspaces.bracket", workspace_names, {
 	padding_right = 2,
 	background = {
 		color = appearance.colors.pill_bg,
-		corner_radius = 10,
-		border_width = 2,
+		height = borders.workspace_style.bracket_height,
+		corner_radius = borders.workspace_style.bracket_radius,
+		border_width = borders.workspace_style.bracket_border_width,
 		border_color = appearance.colors.border,
 	},
 })

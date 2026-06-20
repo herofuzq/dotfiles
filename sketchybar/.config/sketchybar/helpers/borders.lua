@@ -2,20 +2,28 @@
 local sbar = require("sketchybar")
 local appearance = require("appearance")
 local colors = appearance.colors
+local settings = require("settings")
 
 local focused_bg = appearance.with_alpha(colors.red, 0.18)
 local fullscreen_bg = appearance.with_alpha(colors.peach, 0.36)
-local segment_height = 22
-local segment_radius = 8
+local workspace_style = {
+	bracket_height = settings.height - 4,
+	bracket_border_width = 2,
+	bracket_radius = 10,
+}
+workspace_style.segment_height = workspace_style.bracket_height - 2 * workspace_style.bracket_border_width
+workspace_style.segment_radius = workspace_style.bracket_radius - workspace_style.bracket_border_width
 
 local function set_focused(name)
 	sbar.set(name, {
 		background = {
 			drawing = true,
 			color = focused_bg,
-			height = segment_height,
+			height = workspace_style.segment_height,
 			border_width = 0,
-			corner_radius = segment_radius,
+			corner_radius = workspace_style.segment_radius,
+			padding_left = -1,
+			padding_right = -1,
 		},
 	})
 end
@@ -25,9 +33,11 @@ local function set_fullscreen(name)
 		background = {
 			drawing = true,
 			color = fullscreen_bg,
-			height = segment_height,
+			height = workspace_style.segment_height,
 			border_width = 0,
-			corner_radius = segment_radius,
+			corner_radius = workspace_style.segment_radius,
+			padding_left = -1,
+			padding_right = -1,
 		},
 	})
 end
@@ -50,4 +60,5 @@ return {
 	distribute = distribute,
 	set_focused = set_focused,
 	set_fullscreen = set_fullscreen,
+	workspace_style = workspace_style,
 }
