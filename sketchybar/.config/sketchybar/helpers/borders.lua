@@ -12,7 +12,17 @@ local workspace_style = {
 	bracket_radius = 10,
 }
 workspace_style.segment_height = workspace_style.bracket_height - 2 * workspace_style.bracket_border_width
-workspace_style.segment_radius = workspace_style.bracket_radius - workspace_style.bracket_border_width
+workspace_style.segment_radius = workspace_style.bracket_radius - 1
+
+local function segment_x_offset(name)
+	if name:match("^workspace%.1") then
+		return 2
+	end
+	if name:match("^workspace%.6") then
+		return -2
+	end
+	return 0
+end
 
 local function set_focused(name)
 	sbar.set(name, {
@@ -22,8 +32,9 @@ local function set_focused(name)
 			height = workspace_style.segment_height,
 			border_width = 0,
 			corner_radius = workspace_style.segment_radius,
-			padding_left = -1,
-			padding_right = -1,
+			padding_left = 0,
+			padding_right = 0,
+			x_offset = segment_x_offset(name),
 		},
 	})
 end
@@ -36,8 +47,9 @@ local function set_fullscreen(name)
 			height = workspace_style.segment_height,
 			border_width = 0,
 			corner_radius = workspace_style.segment_radius,
-			padding_left = -1,
-			padding_right = -1,
+			padding_left = 0,
+			padding_right = 0,
+			x_offset = segment_x_offset(name),
 		},
 	})
 end
