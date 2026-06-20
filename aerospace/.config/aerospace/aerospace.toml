@@ -237,7 +237,7 @@ run = 'layout floating'
 
 [[on-window-detected]]
 if.app-id = "com.enlink.EnUES"
-run = ["move-node-to-workspace 2̲Sec --focus-follows-window", "layout floating"]
+run = ["layout floating", "move-node-to-workspace 2̲Sec --focus-follows-window"]
 
 [[on-window-detected]]
 if.app-id = "com.Hyperart.Barbee"
@@ -285,8 +285,8 @@ run = 'layout floating'
 
 [[on-window-detected]]
 if.app-id = "cn.unisk.wohuiyi"
-run = ["move-node-to-workspace 3̲Chat --focus-follows-window",
-      "layout floating"
+run = ["layout floating",
+       "move-node-to-workspace 3̲Chat --focus-follows-window"
       ]
 
 [[on-window-detected]] # BetterTouchTool
@@ -304,22 +304,22 @@ run = 'layout floating'
 [[on-window-detected]] # 微信浮窗
 if.app-id = "com.tencent.xinWeChat"
 if.window-title-regex-substring = '(^(?!\s*微信\s*$).*$)'
-run = ["move-node-to-workspace 3̲Chat",
-       "layout floating"
+run = ["layout floating",
+       "move-node-to-workspace 3̲Chat"
       ]
 
 [[on-window-detected]] # 钉钉浮窗
 if.app-id = "com.alibaba.DingTalkMac"
 if.window-title-regex-substring = '(^(?!.*钉钉).*$)'
-run = ["move-node-to-workspace 3̲Chat",
-       "layout floating"
+run = ["layout floating",
+       "move-node-to-workspace 3̲Chat"
       ]
 
 [[on-window-detected]] # VidHub播放浮窗
 if.app-id = "com.mac.utility.media.hub"
 if.window-title-regex-substring = '(^(?!.*媒体库).*(视频播放器).*)'
-run = ["move-node-to-workspace 6̲Play",
-       "layout floating",
+run = ["layout floating",
+       "move-node-to-workspace 6̲Play",
       ]
 
 [[on-window-detected]]
@@ -422,8 +422,8 @@ run = ["move-node-to-workspace 3̲Chat --focus-follows-window"]
 
 [[on-window-detected]]
 if.app-id = "com.tencent.meeting"
-run = ["move-node-to-workspace 3̲Chat --focus-follows-window",
-      "layout floating"
+run = ["layout floating",
+       "move-node-to-workspace 3̲Chat --focus-follows-window"
       ]
 
 [[on-window-detected]]
@@ -480,6 +480,6 @@ run = ["move-node-to-workspace 5̲Term --focus-follows-window"]
 
 [[on-window-detected]]
 if.app-id = "net.battle.app"
-run = ["move-node-to-workspace 6̲Play --focus-follows-window",
-       "layout floating",
+run = ["layout floating",
+       "move-node-to-workspace 6̲Play",
       ]
