@@ -37,7 +37,6 @@ local MAX_POPUP_SLOTS = 8
 local _popup_items = {} -- { [ws_name] = { item1, ..., item8 } }
 local _popup_windows = {} -- { [ws_name] = { {id, app, title}, ... } }
 local _popup_pinned = {} -- { [ws_name] = true/false } 记录点击固定状态，固定后鼠标离开不隐藏
-local _popup_gen = {} -- { [ws_name] = gen } 防止 hover 异步回调覆盖 mouse.exited.global 的隐藏
 local _popup_hovering = {} -- { [ws_name] = true/false } 鼠标当前是否在 popup 子项上
 local _popup_exit_gen = {} -- { [ws_name] = gen } 延迟隐藏的代数，进入 popup 时作废旧延迟
 
@@ -90,23 +89,24 @@ local function ensure_front_app()
 end
 
 -- ========== 窗口信息收集 ==========
-local generation = 0
 local focused_workspace_cache
+local focused_window_id_cache
 local refresh_in_flight = false
 local refresh_pending = false
+local refresh_schedule_generation = 0
+local window_snapshot = {}
+local fullscreen_snapshot = {}
 
 -- ========== 公共排序：focused 窗口排最前，其余按 window-id 降序 ==========
 -- 注意：
---   - withWindows 数据是 {app, window_id}（下划线，字符串）
---   - togglePopup 数据是 sbar.exec 直接返回的 JSON（短横线 window-id，数字）
---   - 两者都要兼容
+--   - 快照和 popup 都使用 {app, window_id, title}
 --   - 比较前统一 tonumber，避免 string/number 类型不一致
 --   - window-id 是 macOS 给的 CGWindowID，同一会话内单调递增，跨重启会重置
 local function sort_windows_by_focus(wins, focused_window_id)
 	local focused_id = tonumber(focused_window_id)
 	table.sort(wins, function(a, b)
-		local aid = tonumber(a.window_id or a["window-id"]) or 0
-		local bid = tonumber(b.window_id or b["window-id"]) or 0
+		local aid = tonumber(a.window_id) or 0
+		local bid = tonumber(b.window_id) or 0
 		if focused_id then
 			if aid == focused_id then
 				return bid ~= focused_id
@@ -120,24 +120,20 @@ local function sort_windows_by_focus(wins, focused_window_id)
 end
 
 local function withWindows(f)
-	local my_gen = generation
 	local results = {
 		open_windows = {},
 		has_fullscreen = {},
+		snapshot_ok = false,
 		focused_workspace = focused_workspace_cache,
-		focused_window_id = nil,
+		focused_window_id = focused_window_id_cache,
 		visible_workspaces = nil,
 	}
-	local pending = (focused_workspace_cache and 2 or 3) + 1
+	local pending = focused_workspace_cache and 2 or 3
 
 	local function check_done()
-		if my_gen ~= generation then
-			return
-		end
 		pending = pending - 1
 		if pending == 0 then
-			-- 所有 sbar.exec 回调跑完后才排序：focused_window_id 是异步查询，
-			-- get_windows 回调里读到的还是 nil
+			-- 等窗口和工作区查询全部完成后统一排序、渲染。
 			for _, wins in pairs(results.open_windows) do
 				sort_windows_by_focus(wins, results.focused_window_id)
 			end
@@ -146,7 +142,7 @@ local function withWindows(f)
 	end
 
 	local get_windows =
-		"aerospace list-windows --monitor all --format '%{workspace}%{app-name}%{window-id}%{window-is-fullscreen}' --json"
+		"aerospace list-windows --monitor all --format '%{workspace}%{app-name}%{window-id}%{window-is-fullscreen}%{window-title}' --json"
 	local query_visible_workspaces =
 		"aerospace list-workspaces --visible --monitor all --format '%{workspace}%{monitor-appkit-nsscreen-screens-id}' --json"
 
@@ -155,6 +151,7 @@ local function withWindows(f)
 			check_done()
 			return
 		end
+		results.snapshot_ok = true
 		local processed_windows = {} -- 去重用：记录已处理的窗口 ID
 
 		for _, entry in ipairs(workspace_and_windows) do
@@ -177,23 +174,13 @@ local function withWindows(f)
 				table.insert(results.open_windows[workspace_index], {
 					app = app,
 					window_id = window_id,
+					title = entry["window-title"],
 				})
 			end
 		end
 
 		-- 排序已挪到 check_done（等所有异步回调结束，确保 focused_window_id 已设上）
 
-		check_done()
-	end)
-
-	-- 查当前焦点窗口（用于排序时排最前）
-	sbar.exec("aerospace list-windows --focused --format '%{window-id}'", function(focused_win_id)
-		if focused_win_id then
-			local id = focused_win_id:match("^%s*(%d+)%s*$")
-			if id then
-				results.focused_window_id = id
-			end
-		end
 		check_done()
 	end)
 
@@ -276,7 +263,6 @@ local function updateWindow(workspace_index, args)
 end
 
 local function scheduleHide(ws_index, workspace)
-	_popup_gen[ws_index] = (_popup_gen[ws_index] or 0) + 1
 	if _popup_pinned[ws_index] then
 		return
 	end
@@ -295,111 +281,62 @@ end
 
 -- ========== Popup：展示/切换工作区窗口列表 ==========
 -- force_show=true 用于 hover（总是展示，不 toggle），留空则是 toggle（点击切换）
-local function togglePopup(ws_index, workspace_item, force_show, gen)
+local function togglePopup(ws_index, workspace_item, force_show)
 	if not workspace_item then
 		return
 	end
 
-	local cmd = "aerospace list-windows --workspace "
-		.. shell_quote(ws_index)
-		.. " --format '%{window-id}%{app-name}%{window-title}' --json"
+	local windows = {}
+	for _, win in ipairs(window_snapshot[ws_index] or {}) do
+		windows[#windows + 1] = {
+			id = win.window_id,
+			app = win.app or "?",
+			title = (win.title and #win.title > 0 and win.title) or win.app or "Untitled",
+			window_id = win.window_id,
+		}
+	end
+	sort_windows_by_focus(windows, focused_window_id_cache)
 
-	-- 两个并行查询：窗口列表 + 当前 focused window（用于排序）
-	local pending = 2
-	local pop_results = { windows = nil, focused_id = nil }
-
-	local function check_done()
-		if gen and _popup_gen[ws_index] ~= gen then
-			return
+	_popup_windows[ws_index] = {}
+	for i, win in ipairs(windows) do
+		if i > MAX_POPUP_SLOTS then
+			break
 		end
-		pending = pending - 1
-		if pending > 0 then
-			return
-		end
-
-		local windows = pop_results.windows
-
-		if not windows or #windows == 0 then
-			_popup_windows[ws_index] = {}
-			for i = 1, MAX_POPUP_SLOTS do
-				local item = _popup_items[ws_index] and _popup_items[ws_index][i]
-				if item then
-					item:set({ drawing = false })
-				end
-			end
-			workspace_item:set({ popup = { drawing = false } })
-			return
-		end
-
-		-- 排序：focused 排最前，其余按 window-id 降序
-		sort_windows_by_focus(windows, pop_results.focused_id)
-
-		_popup_windows[ws_index] = {}
-		for i, w in ipairs(windows) do
-			if i > MAX_POPUP_SLOTS then
-				break
-			end
-			local id = w["window-id"]
-			if not id then
-				break
-			end
-			_popup_windows[ws_index][i] = {
-				id = id,
-				app = w["app-name"] or "?",
-				title = (w["window-title"] and #w["window-title"] > 0 and w["window-title"])
-					or w["app-name"]
-					or "Untitled",
-			}
-		end
-
-		for _, ws in pairs(workspaces) do
-			if ws ~= workspace_item then
-				ws:set({ popup = { drawing = false } })
-			end
-		end
-
-		for i = 1, MAX_POPUP_SLOTS do
-			local item = _popup_items[ws_index] and _popup_items[ws_index][i]
-			local win = _popup_windows[ws_index] and _popup_windows[ws_index][i]
-			if item then
-				if win then
-					local icon = (app_icons[win.app] or app_icons["Default"])
-					item:set({
-						drawing = true,
-						icon = { string = icon, color = appearance.colors.pill_fg },
-						label = { string = win.title, color = appearance.colors.text },
-					})
-				else
-					item:set({ drawing = false })
-				end
-			end
-		end
-
-		local drawing = force_show and true or "toggle"
-		workspace_item:set({ popup = { drawing = drawing } })
+		_popup_windows[ws_index][i] = win
 	end
 
-	-- 启动两个并行查询：窗口列表 + 当前 focused window
-	sbar.exec(cmd, function(windows)
-		if gen and _popup_gen[ws_index] ~= gen then
-			return
-		end
-		pop_results.windows = windows
-		check_done()
-	end)
-
-	sbar.exec("aerospace list-windows --focused --format '%{window-id}'", function(focused_win_id)
-		if gen and _popup_gen[ws_index] ~= gen then
-			return
-		end
-		if focused_win_id then
-			local id = focused_win_id:match("^%s*(%d+)%s*$")
-			if id then
-				pop_results.focused_id = id
+	if #windows == 0 then
+		for i = 1, MAX_POPUP_SLOTS do
+			local item = _popup_items[ws_index] and _popup_items[ws_index][i]
+			if item then
+				item:set({ drawing = false })
 			end
 		end
-		check_done()
-	end)
+		workspace_item:set({ popup = { drawing = false } })
+		return
+	end
+
+	for _, ws in pairs(workspaces) do
+		if ws ~= workspace_item then
+			ws:set({ popup = { drawing = false } })
+		end
+	end
+	for i = 1, MAX_POPUP_SLOTS do
+		local item = _popup_items[ws_index] and _popup_items[ws_index][i]
+		local win = _popup_windows[ws_index][i]
+		if item then
+			if win then
+				item:set({
+					drawing = true,
+					icon = { string = app_icons[win.app] or app_icons["Default"], color = appearance.colors.pill_fg },
+					label = { string = win.title, color = appearance.colors.text },
+				})
+			else
+				item:set({ drawing = false })
+			end
+		end
+	end
+	workspace_item:set({ popup = { drawing = force_show and true or "toggle" } })
 end
 
 -- ========== 工作区高亮辅助 ==========
@@ -414,13 +351,20 @@ local function updateWindows()
 		return
 	end
 	refresh_in_flight = true
-	generation = generation + 1
 	withWindows(function(args)
 		if refresh_pending then
 			refresh_pending = false
 			refresh_in_flight = false
 			sbar.delay(0.03, updateWindows)
 			return
+		end
+
+		if args.snapshot_ok then
+			window_snapshot = args.open_windows
+			fullscreen_snapshot = args.has_fullscreen
+		else
+			args.open_windows = window_snapshot
+			args.has_fullscreen = fullscreen_snapshot
 		end
 
 		for ws_idx, ws in pairs(workspaces) do
@@ -464,6 +408,17 @@ local function updateWindows()
 		end
 		borders.distribute(visible_names, fullscreen_idx, "workspace." .. (args.focused_workspace or ""))
 		refresh_in_flight = false
+	end)
+end
+
+-- 合并短时间内的多个刷新事件，避免重复执行窗口快照查询。
+local function scheduleUpdateWindows(delay)
+	refresh_schedule_generation = refresh_schedule_generation + 1
+	local scheduled_generation = refresh_schedule_generation
+	sbar.delay(delay, function()
+		if scheduled_generation == refresh_schedule_generation then
+			updateWindows()
+		end
 	end)
 end
 
@@ -610,16 +565,13 @@ sbar.exec(":", function()
 
 		w:subscribe("mouse.entered", function()
 			_popup_exit_gen[ws] = (_popup_exit_gen[ws] or 0) + 1
-			local gen = (_popup_gen[ws] or 0) + 1
-			_popup_gen[ws] = gen
-			togglePopup(ws, w, true, gen)
+			togglePopup(ws, w, true)
 		end)
 		w:subscribe("mouse.exited", function()
 			scheduleHide(ws, w)
 		end)
 		w:subscribe("mouse.exited.global", function()
 			_popup_exit_gen[ws] = (_popup_exit_gen[ws] or 0) + 1
-			_popup_gen[ws] = (_popup_gen[ws] or 0) + 1
 			if not _popup_pinned[ws] then
 				w:set({ popup = { drawing = false } })
 			end
@@ -664,7 +616,7 @@ sbar.exec(":", function()
 		end
 	end
 
-	-- 首次加载
+	-- 首次加载立即同步当前窗口快照。
 	updateWindows()
 	updateWorkspaceMonitor()
 
@@ -684,25 +636,33 @@ sbar.exec(":", function()
 				borders.set_focused("workspace." .. focused)
 			end
 		end
-		-- 延迟 500ms 再 updateWindows：
-		-- 浮窗应用被 [[on-window-detected]] 的 layout floating 切到 float 时，
-		-- 如果立刻调 list-windows（走 AX API）会让 aerospace 重新评估浮窗 frame，
-		-- 在 layout floating 还没完全稳定的瞬间触发二次 setFrame —— 看到"位置挪动 + 仍是浮动"。
-		-- 等 500ms 让 on-window-detected 完全跑完，list-windows 的 AX 评估不会主动改 frame。
-		-- 500ms 是观察后的保守值（部分浮窗 app 的 layout floating 完成较慢），
-		-- bar 高亮/borders 已经在上面立即更新，不受延迟影响。
-		sbar.delay(0.5, updateWindows)
 	end)
 
-	-- Hammerspoon 已做 50ms 防抖，此处直接刷新，避免重复等待。
 	root:subscribe("space_windows_change", function()
-		updateWindows()
+		scheduleUpdateWindows(0.1)
 	end)
 
-	-- 窗口焦点变化（aerospace on-focus-changed 触发）：让 focused window 在 bar 上排到最左
-	-- updateWindows 内部已有 refresh_in_flight 去重，高频切焦点不会堆叠请求
-	root:subscribe("aerospace_focus_change", function()
-		updateWindows()
+	-- 焦点变化只重排已有快照，不再调用 AeroSpace 窗口枚举。
+	root:subscribe("window_focus_change", function(env)
+		local focused_id = tonumber(env.FOCUSED_WINDOW_ID)
+		if not focused_id then
+			return
+		end
+		focused_window_id_cache = focused_id
+		for workspace_index, wins in pairs(window_snapshot) do
+			local contains_focused_window = false
+			for _, win in ipairs(wins) do
+				if tonumber(win.window_id) == focused_id then
+					contains_focused_window = true
+					break
+				end
+			end
+			if contains_focused_window and workspaces[workspace_index] then
+				sort_windows_by_focus(wins, focused_id)
+				show_workspace_apps(workspace_index, app_icon_line(wins))
+				break
+			end
+		end
 	end)
 
 	-- 显示器变化/唤醒：同步 bar、自动显隐区域与工作区所属屏幕
@@ -711,7 +671,7 @@ sbar.exec(":", function()
 		sbar.bar({ height = h })
 		settings.ensure_toggle(h)
 		updateWorkspaceMonitor()
-		updateWindows()
+		scheduleUpdateWindows(1.0)
 	end)
 
 	-- 全屏状态由完整窗口查询统一同步，避免同一事件重复查询窗口列表。
@@ -753,7 +713,17 @@ sbar.exec(":", function()
 			end
 		end
 		sbar.set("aerospace_mode", { label = { color = appearance.colors.sapphire } })
-		updateWindows()
+
+		-- 主题变化只需重绘现有分段，不重新枚举窗口。
+		local visible_names = {}
+		local fullscreen_idx = {}
+		for i, ws_idx in ipairs(workspace_order) do
+			visible_names[i] = "workspace." .. ws_idx
+			if fullscreen_snapshot[ws_idx] then
+				fullscreen_idx[i] = true
+			end
+		end
+		borders.distribute(visible_names, fullscreen_idx, "workspace." .. (focused_workspace_cache or ""))
 	end)
 
 	-- 初始 focus

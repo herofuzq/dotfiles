@@ -30,8 +30,12 @@ function M.sketchybar(args, callback)
 	return M.start(sketchybar, args, callback)
 end
 
-function M.triggerSketchybar(event, callback)
-	return M.sketchybar({ "--trigger", event }, callback)
+function M.triggerSketchybar(event, callback, fields)
+	local args = { "--trigger", event }
+	for key, value in pairs(fields or {}) do
+		args[#args + 1] = tostring(key) .. "=" .. tostring(value)
+	end
+	return M.sketchybar(args, callback)
 end
 
 return M

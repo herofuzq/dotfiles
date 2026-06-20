@@ -61,7 +61,6 @@ persistent-workspaces = ["1̲Main", "2̲Sec", "3̲Chat", "4̲Work", "5̲Term", "
 # See: https://nikitabobko.github.io/AeroSpace/guide#binding-modes
 # See: https://nikitabobko.github.io/AeroSpace/commands#mode
 on-mode-changed = ['exec-and-forget sketchybar --trigger aerospace_mode_change']
-on-focus-changed = ['exec-and-forget sketchybar --trigger aerospace_focus_change']
 
 # Possible values: (qwerty|dvorak|colemak)
 # See https://nikitabobko.github.io/AeroSpace/guide#key-mapping

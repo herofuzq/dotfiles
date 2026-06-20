@@ -46,6 +46,7 @@ This is a highly modular and event-driven Sketchybar configuration written in Lu
 |----------|-------|----------|---------|
 | AeroSpace | `aerospace_workspace_change` | `items/spaces.lua` | Immediate focus highlight and workspace refresh |
 | Hammerspoon | `space_windows_change` | `items/spaces.lua` | Refresh after a window is created or destroyed |
+| Hammerspoon | `window_focus_change` | `items/spaces.lua` | Reorder the cached focused window without querying AeroSpace |
 | AeroSpace | `aerospace_fullscreen_change` | `items/spaces.lua` | Refresh fullscreen segment state |
 | Swift watcher + Hammerspoon | `input_method_change` | `widgets/input_method.lua` | macOS source and fcitx5 internal mode changes |
 | SketchyBar | `display_change` / `system_woke` | `items/spaces.lua` | Sync bar height, reveal zone, and workspace displays |
@@ -159,6 +160,7 @@ Hover the pill to see a popup with battery percentage and estimated time remaini
 |--------|------|--------|------|
 | AeroSpace | `aerospace_workspace_change` | `items/spaces.lua` | 立即更新焦点和工作区内容 |
 | Hammerspoon | `space_windows_change` | `items/spaces.lua` | 窗口创建或销毁后刷新内容 |
+| Hammerspoon | `window_focus_change` | `items/spaces.lua` | 仅重排缓存中的焦点窗口，不查询 AeroSpace |
 | AeroSpace | `aerospace_fullscreen_change` | `items/spaces.lua` | 刷新全屏分段状态 |
 | Swift watcher + Hammerspoon | `input_method_change` | `widgets/input_method.lua` | 同步 macOS 输入源和 fcitx5 内部状态 |
 | SketchyBar | `display_change` / `system_woke` | `items/spaces.lua` | 同步 bar 高度、自动显隐区域和工作区屏幕 |
