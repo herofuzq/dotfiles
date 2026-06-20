@@ -9,7 +9,6 @@ local settings = require("settings")
 local CONFIG_DIR = os.getenv("CONFIG_DIR") or ""
 local WATCHER = CONFIG_DIR .. "/helpers/event_providers/sys_watch/bin/sys_watch"
 local WATCHER_PIDFILE = "/tmp/sketchybar_sys_watch.pid"
-local SENSOR_PIDFILE = "/tmp/sketchybar_sys_sensor.pid"
 local SENSOR_CACHE = "/tmp/sketchybar_sys_sensors.json"
 
 local function find_executable(candidates)
@@ -143,11 +142,6 @@ local function start_watcher()
 	_watching = true
 	local command = table.concat({
 		"pidfile=" .. shell_quote(WATCHER_PIDFILE),
-		"sensor_pidfile=" .. shell_quote(SENSOR_PIDFILE),
-		'sensor_pid="$(cat "$sensor_pidfile" 2>/dev/null)"',
-		'case "$sensor_pid" in ""|*[!0-9]*) sensor_pid="" ;; esac',
-		'if [ -n "$sensor_pid" ]; then kill "$sensor_pid" 2>/dev/null; fi',
-		'rm -f "$sensor_pidfile"',
 		shell_quote(WATCHER_EXECUTABLE)
 			.. " "
 			.. shell_quote(MACTOP)
@@ -156,32 +150,6 @@ local function start_watcher()
 			.. " 2000 "
 			.. shell_quote(SENSOR_CACHE)
 			.. " >/dev/null 2>&1 &",
-		'echo $! > "$pidfile"',
-	}, "\n")
-	sbar.exec(command)
-end
-
-local function refresh_sensor_cache()
-	if not MACTOP or not SKETCHYBAR or not WATCHER_EXECUTABLE then
-		return
-	end
-	local command = table.concat({
-		"pidfile=" .. shell_quote(SENSOR_PIDFILE),
-		"watcher_pidfile=" .. shell_quote(WATCHER_PIDFILE),
-		'watcher_pid="$(cat "$watcher_pidfile" 2>/dev/null)"',
-		'case "$watcher_pid" in ""|*[!0-9]*) watcher_pid="" ;; esac',
-		'if [ -n "$watcher_pid" ] && kill -0 "$watcher_pid" 2>/dev/null; then exit 0; fi',
-		'pid="$(cat "$pidfile" 2>/dev/null)"',
-		'case "$pid" in ""|*[!0-9]*) pid="" ;; esac',
-		'if [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null; then exit 0; fi',
-		shell_quote(WATCHER_EXECUTABLE)
-			.. " "
-			.. shell_quote(MACTOP)
-			.. " "
-			.. shell_quote(SKETCHYBAR)
-			.. " 2000 "
-			.. shell_quote(SENSOR_CACHE)
-			.. " --sensor-only >/dev/null 2>&1 &",
 		'echo $! > "$pidfile"',
 	}, "\n")
 	sbar.exec(command)
@@ -258,10 +226,6 @@ for _, item in ipairs({ info, table.unpack(process_items) }) do
 end
 
 stop_watcher()
-sbar.delay(8, refresh_sensor_cache)
-sys:subscribe("system_woke", function()
-	sbar.delay(8, refresh_sensor_cache)
-end)
 
 sys:subscribe("cpu_update", function(env)
 	local cpu_load = math.max(0, math.min(100, math.floor(tonumber(env.total_load) or 0)))

@@ -6,6 +6,7 @@ local status_widget = require("status_widget")
 status_widget({
 	name = "widgets.wechat",
 	app_id = "com.tencent.xinWeChat",
+	update_freq = 34,
 	icon = ":wechat:",
 	icon_color = "green",
 	icon_inactive_color = "green",

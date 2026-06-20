@@ -12,8 +12,8 @@ struct SensorCache: Codable {
     let timestamp: Double
 }
 
-guard CommandLine.arguments.count >= 5 else {
-    fputs("usage: sys_watch MACTOP SKETCHYBAR INTERVAL_MS CACHE_PATH [--sensor-only]\n", stderr)
+guard CommandLine.arguments.count == 5 else {
+    fputs("usage: sys_watch MACTOP SKETCHYBAR INTERVAL_MS CACHE_PATH\n", stderr)
     exit(2)
 }
 
@@ -21,7 +21,6 @@ let mactop = CommandLine.arguments[1]
 let sketchybar = CommandLine.arguments[2]
 let interval = Double(CommandLine.arguments[3]) ?? 2000
 let cachePath = CommandLine.arguments[4]
-let sensorOnly = CommandLine.arguments.contains("--sensor-only")
 let queue = DispatchQueue(label: "com.fuzhuoqun.sys_watch")
 var sensorTask: Process?
 var processTask: Process?
@@ -102,14 +101,12 @@ func header(for cache: SensorCache) -> String {
     return String(format: "CPU %.1f°C    风扇 %@", cache.temperature, fanText)
 }
 
-@discardableResult
-func applyCachedSensors() -> Bool {
+func applyCachedSensors() {
     guard let data = FileManager.default.contents(atPath: cachePath),
           let cache = try? JSONDecoder().decode(SensorCache.self, from: data) else {
-        return false
+        return
     }
     setHeader(header(for: cache))
-    return Date().timeIntervalSince1970 - cache.timestamp < 30
 }
 
 func applySensors(_ json: [String: Any]) -> Bool {
@@ -177,13 +174,9 @@ func sampleApps() {
     }
 }
 
-func startSensorRefresh(force: Bool) {
+func startSensorRefresh() {
     guard sensorTask == nil else { return }
-    let cacheIsFresh = applyCachedSensors()
-    if cacheIsFresh && !force {
-        if sensorOnly { exit(0) }
-        return
-    }
+    applyCachedSensors()
 
     sensorReceived = false
     sensorBuffer = ""
@@ -200,7 +193,6 @@ func startSensorRefresh(force: Bool) {
             if !sensorReceived {
                 setHeader("请安装 mactop")
             }
-            if sensorOnly { exit(0) }
         }
     }
     pipe.fileHandleForReading.readabilityHandler = { handle in
@@ -228,7 +220,6 @@ func startSensorRefresh(force: Bool) {
     } catch {
         sensorTask = nil
         setHeader("请安装 mactop")
-        if sensorOnly { exit(1) }
     }
 }
 
@@ -249,21 +240,18 @@ interruptSource.setEventHandler(handler: stop)
 terminateSource.resume()
 interruptSource.resume()
 
-if sensorOnly {
-    startSensorRefresh(force: true)
-} else {
-    startSensorRefresh(force: false)
-    let appTimer = DispatchSource.makeTimerSource(queue: queue)
-    appTimer.schedule(deadline: .now(), repeating: .milliseconds(max(500, Int(interval))))
-    appTimer.setEventHandler(handler: sampleApps)
-    appTimer.resume()
-    processTimer = appTimer
+// 先显示缓存，再为本次 popup 强制刷新一帧传感器数据。
+startSensorRefresh()
+let appTimer = DispatchSource.makeTimerSource(queue: queue)
+appTimer.schedule(deadline: .now(), repeating: .milliseconds(max(500, Int(interval))))
+appTimer.setEventHandler(handler: sampleApps)
+appTimer.resume()
+processTimer = appTimer
 
-    let temperatureTimer = DispatchSource.makeTimerSource(queue: queue)
-    temperatureTimer.schedule(deadline: .now() + 30, repeating: 30)
-    temperatureTimer.setEventHandler { startSensorRefresh(force: true) }
-    temperatureTimer.resume()
-    sensorTimer = temperatureTimer
-}
+let temperatureTimer = DispatchSource.makeTimerSource(queue: queue)
+temperatureTimer.schedule(deadline: .now() + 30, repeating: 30)
+temperatureTimer.setEventHandler(handler: startSensorRefresh)
+temperatureTimer.resume()
+sensorTimer = temperatureTimer
 
 CFRunLoopRun()

@@ -109,7 +109,7 @@ Event-driven (no polling). The `media_watch` Swift daemon wraps `media-control s
 
 ### System Widget
 
-The main CPU percentage remains driven by the lightweight native helper. The popup reads cached temperature/fan data immediately and refreshes it with a single `mactop` sample when stale; a lightweight `ps` sampler updates the ten busiest apps only while the popup is open. Install with `brew install mactop`.
+The main CPU percentage remains driven by the lightweight native helper. The popup displays cached temperature/fan data immediately, then refreshes it with one asynchronous `mactop` sample on every open; a lightweight `ps` sampler updates the ten busiest apps only while the popup is open. Install with `brew install mactop`.
 
 ### Battery Widget
 
@@ -222,7 +222,7 @@ Hover the pill to see a popup with battery percentage and estimated time remaini
 
 ### 系统 Widget
 
-主 CPU 百分比继续由轻量原生 helper 推送。popup 会立即读取温度/风扇缓存，仅在缓存过期时用 `mactop` 采样一次；CPU 前十应用由轻量 `ps` 仅在 popup 打开期间更新。安装命令：`brew install mactop`。
+主 CPU 百分比继续由轻量原生 helper 推送。popup 会先立即显示温度/风扇缓存，并在每次打开时用 `mactop` 异步刷新一帧；CPU 前十应用由轻量 `ps` 仅在 popup 打开期间更新。安装命令：`brew install mactop`。
 
 ### 电池 Widget
 

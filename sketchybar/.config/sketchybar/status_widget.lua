@@ -22,7 +22,7 @@ return function(opts)
 
 	local item = sbar.add("item", opts.name, {
 		position = "right",
-		update_freq = 30,
+		update_freq = opts.update_freq or 30,
 		padding_left = 2,
 		padding_right = 2,
 		icon = {

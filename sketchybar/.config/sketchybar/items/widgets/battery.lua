@@ -5,7 +5,7 @@ local fonts = require("fonts")
 local appearance = require("appearance")
 local parsers = require("helpers.widget_parsers")
 local colors = appearance.colors
-local BATTERY_UPDATE_INTERVAL = 30
+local BATTERY_UPDATE_INTERVAL = 37 -- 与其他外部轮询错峰
 
 local battery = sbar.add("item", "widgets.battery", {
 	position = "right",

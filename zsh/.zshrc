@@ -219,3 +219,6 @@ export PATH="/opt/homebrew/opt/imagemagick-full/bin:$PATH"
 
 # Kiro CLI post block. Keep at the bottom of this file.
 [[ -f "${HOME}/Library/Application Support/kiro-cli/shell/zshrc.post.zsh" ]] && builtin source "${HOME}/Library/Application Support/kiro-cli/shell/zshrc.post.zsh"
+
+# Added by MiniMax Code
+export PATH="/Users/fuzhuoqun/.mavis/bin:$PATH"

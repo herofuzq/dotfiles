@@ -5,7 +5,7 @@ local fonts = require("fonts")
 local parsers = require("helpers.widget_parsers")
 local colors = require("appearance").colors
 local NETWORK_SAMPLE_INTERVAL = 3
-local INTERFACE_REFRESH_INTERVAL = 30
+local INTERFACE_REFRESH_INTERVAL = 61
 local MAX_CONSECUTIVE_FAILURES = 2
 
 -- ========== ↑ 上传（上排，y_offset 偏下）==========
@@ -93,7 +93,7 @@ end
 
 local IFSTAT = find_ifstat()
 
-local function detect_network()
+local function detect_network(callback)
 	local command = table.concat({
 		"route get default 2>/dev/null",
 		"printf '\\n---SERVICES---\\n'",
@@ -101,36 +101,34 @@ local function detect_network()
 		"printf '\\n---NWI---\\n'",
 		"scutil --nwi 2>/dev/null",
 	}, "; ")
-	local f = io.popen(command)
-	local output = f and (f:read("*a") or "") or ""
-	if f then
-		f:close()
-	end
+	sbar.exec(command, function(output)
+		output = output or ""
+		local route_output, services_output, nwi_output = output:match("^(.-)\n%-%-%-SERVICES%-%-%-\n(.-)\n%-%-%-NWI%-%-%-\n(.*)$")
+		route_output, services_output, nwi_output = route_output or "", services_output or "", nwi_output or ""
+		local iface = route_output:match("interface:%s*([%w%._-]+)")
+		if iface and iface:match("^utun%d+$") then
+			local interfaces = nwi_output:match("Network interfaces:%s*([^\n]+)") or ""
+			for candidate in interfaces:gmatch("[%w%._-]+") do
+				if not candidate:match("^utun%d+$") then
+					iface = candidate
+					break
+				end
+			end
+		end
+		if not iface or not iface:match("^[%w%._-]+$") then
+			callback(nil, "offline")
+			return
+		end
 
-	local route_output, services_output, nwi_output = output:match("^(.-)\n%-%-%-SERVICES%-%-%-\n(.-)\n%-%-%-NWI%-%-%-\n(.*)$")
-	route_output, services_output, nwi_output = route_output or "", services_output or "", nwi_output or ""
-	local iface = route_output:match("interface:%s*([%w%._-]+)")
-	if iface and iface:match("^utun%d+$") then
-		local interfaces = nwi_output:match("Network interfaces:%s*([^\n]+)") or ""
-		for candidate in interfaces:gmatch("[%w%._-]+") do
-			if not candidate:match("^utun%d+$") then
-				iface = candidate
+		local port
+		for hardware_port, device in services_output:gmatch("Hardware Port:%s*([^,\n]+),%s*Device:%s*([^%)\n]+)") do
+			if device:match("^%s*(.-)%s*$") == iface then
+				port = hardware_port:match("^%s*(.-)%s*$")
 				break
 			end
 		end
-	end
-	if not iface or not iface:match("^[%w%._-]+$") then
-		return nil, "offline"
-	end
-
-	local port
-	for hardware_port, device in services_output:gmatch("Hardware Port:%s*([^,\n]+),%s*Device:%s*([^%)\n]+)") do
-		if device:match("^%s*(.-)%s*$") == iface then
-			port = hardware_port:match("^%s*(.-)%s*$")
-			break
-		end
-	end
-	return iface, parsers.network_kind(port, iface)
+		callback(iface, parsers.network_kind(port, iface))
+	end)
 end
 
 local function icon_color(kind)
@@ -145,29 +143,14 @@ end
 
 local net_iface, current_network_kind, last_interface_check
 local consecutive_failures = 0
+local interface_check_in_flight = false
 
 local function show_unavailable()
 	up:set({ label = "↑  —" })
 	down:set({ label = "↓  —" })
 end
 
-local function update_network(force_interface_check)
-	local now = os.time()
-	if force_interface_check
-		or not net_iface
-		or not last_interface_check
-		or now - last_interface_check >= INTERFACE_REFRESH_INTERVAL
-	then
-		net_iface, current_network_kind = detect_network()
-		last_interface_check = now
-		down:set({
-			icon = {
-				string = icons.network[current_network_kind] or icons.network.unknown,
-				color = icon_color(current_network_kind),
-			},
-		})
-	end
-
+local function sample_network()
 	if not IFSTAT or not net_iface then
 		consecutive_failures = 0
 		show_unavailable()
@@ -193,6 +176,35 @@ local function update_network(force_interface_check)
 		consecutive_failures = 0
 		up:set({ label = "↑" .. format_speed(up_raw) })
 		down:set({ label = "↓" .. format_speed(down_raw) })
+	end)
+end
+
+local function update_network(force_interface_check)
+	local now = os.time()
+	local needs_interface_check = force_interface_check
+		or not net_iface
+		or not last_interface_check
+		or now - last_interface_check >= INTERFACE_REFRESH_INTERVAL
+	if not needs_interface_check then
+		sample_network()
+		return
+	end
+	if interface_check_in_flight then
+		return
+	end
+
+	interface_check_in_flight = true
+	last_interface_check = now
+	detect_network(function(iface, kind)
+		interface_check_in_flight = false
+		net_iface, current_network_kind = iface, kind
+		down:set({
+			icon = {
+				string = icons.network[current_network_kind] or icons.network.unknown,
+				color = icon_color(current_network_kind),
+			},
+		})
+		sample_network()
 	end)
 end
 
