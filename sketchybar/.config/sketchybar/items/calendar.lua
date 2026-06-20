@@ -2,6 +2,7 @@
 local sbar = require("sketchybar")
 local fonts = require("fonts")
 local appearance = require("appearance")
+local popup_animation = require("helpers.popup_animation")
 local colors = appearance.colors
 
 local cal = sbar.add("item", "calendar", {
@@ -39,6 +40,7 @@ local cal = sbar.add("item", "calendar", {
 })
 
 local _popup_pinned, _popup_hovering, _exit_gen = false, false, 0
+local cal_popup
 
 local function scheduleHide()
 	if _popup_pinned then
@@ -53,9 +55,15 @@ local function scheduleHide()
 		if _popup_hovering or _popup_pinned then
 			return
 		end
-		cal:set({ popup = { drawing = false } })
+		cal_popup:hide(true)
 	end)
 end
+
+cal_popup = popup_animation.new(cal, {
+	background_color = function()
+		return appearance.with_alpha(colors.pill_bg, 0.85)
+	end,
+})
 
 -- ========== Popup：完整月历 ==========
 
@@ -167,17 +175,21 @@ cal:subscribe(
 		elseif s == "mouse.entered" then
 			_exit_gen = _exit_gen + 1
 			updatePopupContent()
-			cal:set({ popup = { drawing = true } })
+			cal_popup:show()
 		elseif s == "mouse.exited" then
 			scheduleHide()
 		elseif s == "mouse.clicked" then
 			_popup_pinned = not _popup_pinned
 			updatePopupContent()
-			cal:set({ popup = { drawing = "toggle" } })
+			if _popup_pinned then
+				cal_popup:show()
+			else
+				cal_popup:hide(true)
+			end
 		elseif s == "mouse.exited.global" then
 			_exit_gen = _exit_gen + 1
 			if not _popup_pinned then
-				cal:set({ popup = { drawing = false } })
+				cal_popup:hide(true)
 			end
 		end
 	end

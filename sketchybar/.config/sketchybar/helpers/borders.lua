@@ -6,6 +6,7 @@ local settings = require("settings")
 
 local focused_bg = appearance.with_alpha(colors.red, 0.18)
 local fullscreen_bg = appearance.with_alpha(colors.peach, 0.36)
+local inactive_bg = appearance.with_alpha(colors.red, 0)
 local workspace_style = {
 	bracket_height = settings.height - 4,
 	bracket_border_width = 2,
@@ -54,17 +55,40 @@ local function set_fullscreen(name)
 	})
 end
 
-local function distribute(visible_workspace_names, fullscreen_set, focused_name)
+local function set_inactive(name)
+	sbar.set(name, {
+		background = {
+			drawing = true,
+			color = inactive_bg,
+			height = workspace_style.segment_height,
+			border_width = 0,
+			corner_radius = workspace_style.segment_radius,
+			padding_left = 0,
+			padding_right = 0,
+			x_offset = segment_x_offset(name),
+		},
+	})
+end
+
+local function distribute(visible_workspace_names, fullscreen_set, focused_name, animated)
 	fullscreen_set = fullscreen_set or {}
 
-	for i, name in ipairs(visible_workspace_names) do
-		if fullscreen_set[i] then
-			set_fullscreen(name)
-		elseif name == focused_name then
-			set_focused(name)
-		else
-			sbar.set(name, { background = { drawing = false, border_width = 0 } })
+	local function apply()
+		for i, name in ipairs(visible_workspace_names) do
+			if fullscreen_set[i] then
+				set_fullscreen(name)
+			elseif name == focused_name then
+				set_focused(name)
+			else
+				set_inactive(name)
+			end
 		end
+	end
+
+	if animated then
+		sbar.animate("tanh", 8, apply)
+	else
+		apply()
 	end
 end
 

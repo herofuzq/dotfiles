@@ -3,6 +3,7 @@ local sbar = require("sketchybar")
 local icons = require("icons")
 local fonts = require("fonts")
 local appearance = require("appearance")
+local popup_animation = require("helpers.popup_animation")
 local colors = appearance.colors
 local settings = require("settings")
 
@@ -162,10 +163,20 @@ local function set_popup_items(drawing)
 	end
 end
 
+local sys_popup = popup_animation.new(sys, {
+	background_color = function()
+		return appearance.with_alpha(colors.pill_bg, 0.9)
+	end,
+	on_hidden = function()
+		set_popup_items(false)
+		stop_watcher()
+	end,
+})
+
 local function show_popup()
 	_exit_gen = _exit_gen + 1
 	set_popup_items(true)
-	sys:set({ popup = { drawing = true } })
+	sys_popup:show()
 	if not MACTOP then
 		info:set({ label = "请安装 mactop" })
 		for _, item in ipairs(process_items) do
@@ -184,9 +195,7 @@ local function show_popup()
 end
 
 local function hide_popup()
-	set_popup_items(false)
-	sys:set({ popup = { drawing = false } })
-	stop_watcher()
+	sys_popup:hide(true)
 end
 
 local function schedule_hide()

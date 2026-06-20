@@ -4,6 +4,7 @@
 local appearance = require("appearance")
 local app_icons = require("helpers.app_icons")
 local borders = require("helpers.borders")
+local popup_animation = require("helpers.popup_animation")
 local sbar = require("sketchybar")
 local fonts = require("fonts")
 local settings = require("settings")
@@ -39,6 +40,17 @@ local _popup_windows = {} -- { [ws_name] = { {id, app, title}, ... } }
 local _popup_pinned = {} -- { [ws_name] = true/false } 记录点击固定状态，固定后鼠标离开不隐藏
 local _popup_hovering = {} -- { [ws_name] = true/false } 鼠标当前是否在 popup 子项上
 local _popup_exit_gen = {} -- { [ws_name] = gen } 延迟隐藏的代数，进入 popup 时作废旧延迟
+local _popup_animations = {}
+local _content_anim_gen = {}
+local _content_signature = {}
+local animations_ready = false
+
+local CONTENT_FADE_OUT_FRAMES = 5
+local CONTENT_FADE_IN_FRAMES = 8
+
+local function transparent(color)
+	return appearance.with_alpha(color, 0)
+end
 
 -- aerospace 模式指示器（当前仅在 service 模式下显示 "󰰣" 图标）
 local mode_item = sbar.add("item", "aerospace_mode", {
@@ -253,13 +265,105 @@ local function show_workspace_apps(workspace_index, icon_line)
 	})
 end
 
+local function content_signature(open_windows)
+	if #open_windows == 0 then
+		return "empty"
+	end
+	local apps = {}
+	for _, win in ipairs(open_windows) do
+		apps[#apps + 1] = win.app or ""
+	end
+	table.sort(apps)
+	return table.concat(apps, "\0")
+end
+
+local function animate_workspace_content(workspace_index, apply_content)
+	_content_anim_gen[workspace_index] = (_content_anim_gen[workspace_index] or 0) + 1
+	local gen = _content_anim_gen[workspace_index]
+	local workspace = workspaces[workspace_index]
+
+	sbar.animate("tanh", CONTENT_FADE_OUT_FRAMES, function()
+		workspace:set({
+			label = {
+				color = transparent(appearance.colors.pill_fg),
+				highlight_color = transparent(appearance.colors.red),
+				y_offset = -2,
+			},
+		})
+	end)
+	sbar.delay(CONTENT_FADE_OUT_FRAMES / 60, function()
+		if _content_anim_gen[workspace_index] ~= gen then
+			return
+		end
+		apply_content()
+		workspace:set({
+			label = {
+				color = transparent(appearance.colors.pill_fg),
+				highlight_color = transparent(appearance.colors.red),
+				y_offset = 2,
+			},
+		})
+		sbar.animate("tanh", CONTENT_FADE_IN_FRAMES, function()
+			workspace:set({
+				label = {
+					color = appearance.colors.pill_fg,
+					highlight_color = appearance.colors.red,
+					y_offset = 0,
+				},
+			})
+		end)
+	end)
+end
+
 local function updateWindow(workspace_index, args)
 	local open_windows = args.open_windows[workspace_index] or {}
-	if #open_windows == 0 then
-		show_empty_workspace(workspace_index, args.focused_workspace, args.visible_workspaces)
-	else
-		show_workspace_apps(workspace_index, app_icon_line(open_windows))
+	local signature = content_signature(open_windows)
+	local changed = _content_signature[workspace_index] ~= nil
+		and _content_signature[workspace_index] ~= signature
+	_content_signature[workspace_index] = signature
+
+	local function apply_content()
+		if #open_windows == 0 then
+			show_empty_workspace(workspace_index, args.focused_workspace, args.visible_workspaces)
+		else
+			show_workspace_apps(workspace_index, app_icon_line(open_windows))
+		end
 	end
+
+	if animations_ready and changed then
+		animate_workspace_content(workspace_index, apply_content)
+	else
+		_content_anim_gen[workspace_index] = (_content_anim_gen[workspace_index] or 0) + 1
+		apply_content()
+	end
+end
+
+local function set_popup_item_colors(ws_index, icon_color, label_color)
+	for i = 1, MAX_POPUP_SLOTS do
+		local item = _popup_items[ws_index] and _popup_items[ws_index][i]
+		local win = _popup_windows[ws_index] and _popup_windows[ws_index][i]
+		if item and win then
+			item:set({ icon = { color = icon_color }, label = { color = label_color } })
+		end
+	end
+end
+
+local function show_popup(ws_index, workspace)
+	local animation = _popup_animations[ws_index]
+	if not animations_ready or not animation then
+		workspace:set({ popup = { drawing = true } })
+		return
+	end
+	animation:show()
+end
+
+local function hide_popup(ws_index, workspace, animated)
+	local animation = _popup_animations[ws_index]
+	if not animations_ready or not animation then
+		workspace:set({ popup = { drawing = false } })
+		return
+	end
+	animation:hide(animated)
 end
 
 local function scheduleHide(ws_index, workspace)
@@ -275,7 +379,7 @@ local function scheduleHide(ws_index, workspace)
 		if _popup_hovering[ws_index] or _popup_pinned[ws_index] then
 			return
 		end
-		workspace:set({ popup = { drawing = false } })
+		hide_popup(ws_index, workspace, true)
 	end)
 end
 
@@ -312,13 +416,13 @@ local function togglePopup(ws_index, workspace_item, force_show)
 				item:set({ drawing = false })
 			end
 		end
-		workspace_item:set({ popup = { drawing = false } })
+		hide_popup(ws_index, workspace_item, true)
 		return
 	end
 
-	for _, ws in pairs(workspaces) do
+	for other_index, ws in pairs(workspaces) do
 		if ws ~= workspace_item then
-			ws:set({ popup = { drawing = false } })
+			hide_popup(other_index, ws, false)
 		end
 	end
 	for i = 1, MAX_POPUP_SLOTS do
@@ -336,7 +440,11 @@ local function togglePopup(ws_index, workspace_item, force_show)
 			end
 		end
 	end
-	workspace_item:set({ popup = { drawing = force_show and true or "toggle" } })
+	if force_show or _popup_pinned[ws_index] then
+		show_popup(ws_index, workspace_item)
+	else
+		hide_popup(ws_index, workspace_item, true)
+	end
 end
 
 -- ========== 工作区高亮辅助 ==========
@@ -344,7 +452,7 @@ local function set_highlight(ws, is_focused)
 	ws:set({ icon = { highlight = is_focused }, label = { highlight = is_focused } })
 end
 
-local function distribute_cached_borders(focused_workspace)
+local function distribute_cached_borders(focused_workspace, animated)
 	local visible_names = {}
 	local fullscreen_idx = {}
 	for i, ws_idx in ipairs(workspace_order) do
@@ -353,7 +461,7 @@ local function distribute_cached_borders(focused_workspace)
 			fullscreen_idx[i] = true
 		end
 	end
-	borders.distribute(visible_names, fullscreen_idx, "workspace." .. (focused_workspace or ""))
+	borders.distribute(visible_names, fullscreen_idx, "workspace." .. (focused_workspace or ""), animated)
 end
 
 -- ========== 更新所有工作区 + 分段状态 ==========
@@ -418,8 +526,14 @@ local function updateWindows()
 				fullscreen_idx[i] = true
 			end
 		end
-		borders.distribute(visible_names, fullscreen_idx, "workspace." .. (args.focused_workspace or ""))
+		borders.distribute(
+			visible_names,
+			fullscreen_idx,
+			"workspace." .. (args.focused_workspace or ""),
+			animations_ready
+		)
 		refresh_in_flight = false
+		animations_ready = true
 	end)
 end
 
@@ -547,6 +661,26 @@ for _, ws in ipairs(initial_workspaces) do
 		})
 		_popup_items[ws][i] = popup_item
 	end
+	local workspace_index = ws
+	_popup_animations[workspace_index] = popup_animation.new(workspace, {
+		on_prepare_show = function()
+			set_popup_item_colors(
+				workspace_index,
+				transparent(appearance.colors.pill_fg),
+				transparent(appearance.colors.text)
+			)
+		end,
+		on_show = function()
+			set_popup_item_colors(workspace_index, appearance.colors.pill_fg, appearance.colors.text)
+		end,
+		on_hide = function()
+			set_popup_item_colors(
+				workspace_index,
+				transparent(appearance.colors.pill_fg),
+				transparent(appearance.colors.text)
+			)
+		end,
+	})
 end
 
 local workspace_names = {}
@@ -585,7 +719,7 @@ sbar.exec(":", function()
 		w:subscribe("mouse.exited.global", function()
 			_popup_exit_gen[ws] = (_popup_exit_gen[ws] or 0) + 1
 			if not _popup_pinned[ws] then
-				w:set({ popup = { drawing = false } })
+				hide_popup(ws, w, true)
 			end
 		end)
 		w:subscribe("mouse.clicked", function()
@@ -622,7 +756,7 @@ sbar.exec(":", function()
 					if win_id then
 						sbar.exec("aerospace focus --window-id " .. win_id)
 					end
-					w:set({ popup = { drawing = false } })
+					hide_popup(ws, w, true)
 				end
 			end)
 		end
@@ -644,7 +778,7 @@ sbar.exec(":", function()
 				set_highlight(ws, ws_idx == focused)
 			end
 			-- 使用已有快照一次性清除旧背景并点亮当前工作区，不触发窗口查询。
-			distribute_cached_borders(focused)
+			distribute_cached_borders(focused, animations_ready)
 		end
 	end)
 

@@ -3,6 +3,7 @@ local sbar = require("sketchybar")
 local icons = require("icons")
 local fonts = require("fonts")
 local appearance = require("appearance")
+local popup_animation = require("helpers.popup_animation")
 local parsers = require("helpers.widget_parsers")
 local colors = appearance.colors
 local BATTERY_UPDATE_INTERVAL = 37 -- 与其他外部轮询错峰
@@ -66,8 +67,16 @@ local batt_info = sbar.add("item", "widgets.battery.info", {
 	background = { drawing = false },
 })
 
-local _popup_pinned, _popup_hovering, _popup_visible, _exit_gen = false, false, false, 0
+local _popup_pinned, _popup_hovering, _exit_gen = false, false, 0
 local last_state
+local battery_popup = popup_animation.new(battery, {
+	background_color = function()
+		return appearance.with_alpha(colors.pill_bg, 0.85)
+	end,
+	on_hidden = function()
+		batt_info:set({ drawing = false })
+	end,
+})
 
 local function scheduleHide()
 	if _popup_pinned then
@@ -82,9 +91,7 @@ local function scheduleHide()
 		if _popup_hovering or _popup_pinned then
 			return
 		end
-		_popup_visible = false
-		batt_info:set({ drawing = false })
-		battery:set({ popup = { drawing = false } })
+		battery_popup:hide(true)
 	end)
 end
 
@@ -171,10 +178,9 @@ end
 
 battery:subscribe("mouse.entered", function()
 	_exit_gen = _exit_gen + 1
-	_popup_visible = true
 	update_batt_info(last_state)
 	batt_info:set({ drawing = true })
-	battery:set({ popup = { drawing = true } })
+	battery_popup:show()
 end)
 
 battery:subscribe("mouse.exited", function()
@@ -182,13 +188,15 @@ battery:subscribe("mouse.exited", function()
 end)
 
 battery:subscribe("mouse.clicked", function()
-	_popup_pinned = not _popup_pinned
-	_popup_visible = not _popup_visible
-	if _popup_visible then
+	if _popup_pinned then
+		_popup_pinned = false
+		battery_popup:hide(true)
+	else
+		_popup_pinned = true
 		update_batt_info(last_state)
+		batt_info:set({ drawing = true })
+		battery_popup:show()
 	end
-	batt_info:set({ drawing = _popup_visible })
-	battery:set({ popup = { drawing = "toggle" } })
 end)
 
 batt_info:subscribe("mouse.entered", function()
