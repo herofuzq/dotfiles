@@ -207,6 +207,15 @@ ln -s ~/.config/sketchybar/helpers/event_providers/media_watch/com.fuzhuoqun.med
 launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.fuzhuoqun.input_method_watch.plist
 launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.fuzhuoqun.media_watch.plist
 
+# ▸ macOS 系统偏好（dotfiles 管不到系统级 defaults，需手动执行）
+# 关闭窗口创建/关闭/resize 动画
+# 用途：aerospace 的 `[[on-window-detected]]` 是 post-creation hook，
+# 浮窗应用打开时会被先 tile 一下再切回 float（见 aerospace 源码 + issue #1562）。
+# 关闭自动动画后，两次 setFrame 的视觉跳变更直接，肉眼几乎察觉不到。
+# 还原：defaults delete -g NSAutomaticWindowAnimationsEnabled
+# 生效：需重启相关 app
+defaults write -g NSAutomaticWindowAnimationsEnabled -bool false
+
 # ▸ 初始化 Zim（Zsh 插件管理）
 curl -fsSL https://raw.githubusercontent.com/zimfw/install/master/install.zsh | zsh
 
