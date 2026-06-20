@@ -785,4 +785,5 @@ return {
 	["CC Switch"] = ":claude:",
 	["联通云会议"] = ":face_time:",
 	["biagmeeting"] = ":face_time:",
+	["MiniMax Code"] = ":copilot:",
 }

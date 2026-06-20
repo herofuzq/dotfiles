@@ -474,6 +474,10 @@ if.app-id = "com.openai.codex"
 run = ["move-node-to-workspace 5̲Term --focus-follows-window"]
 
 [[on-window-detected]]
+if.app-id = "com.minimax.agent.cn"
+run = ["move-node-to-workspace 5̲Term --focus-follows-window"]
+
+[[on-window-detected]]
 if.app-id = "net.battle.app"
 run = ["move-node-to-workspace 6̲Play --focus-follows-window",
        "layout floating",
