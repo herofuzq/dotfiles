@@ -2,7 +2,7 @@
 local BAR_HEIGHT_CACHE = "/tmp/sketchybar_bar_height.cache"
 local TOGGLE_PIDFILE = "/tmp/sketchybar_toggle.pid"
 local TOGGLE_CONFIG_FILE = "/tmp/sketchybar_toggle.config"
-local TOGGLE_TRIGGER_ZONE = 4
+local TOGGLE_TRIGGER_ZONE = 2
 local TOGGLE_DEBOUNCE_MS = 150
 
 local function read_cache(path)
