@@ -1,4 +1,10 @@
 -- 全局设置：高度、默认边距等
+--
+-- 外部依赖说明（哪些是 brew 装、哪些是本地编译）:
+--   bar_height: 本地编译产物 helpers/bar_height/bin/bar_height (Swift, autostart-on-stale)
+--   dock_width: 本地编译产物 helpers/dock_width/bin/dock_width (Swift, autostart-on-stale)
+--   sketchybar-toggle: brew 安装 (随 sketchybar cask 一起),由 ensure_toggle() 启动,
+--                      实现"鼠标接近顶部自动显示 / 远离自动隐藏"bar 的行为
 local BAR_HEIGHT_CACHE = "/tmp/sketchybar_bar_height.cache"
 local TOGGLE_PIDFILE = "/tmp/sketchybar_toggle.pid"
 local TOGGLE_CONFIG_FILE = "/tmp/sketchybar_toggle.config"

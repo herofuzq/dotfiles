@@ -261,9 +261,8 @@ local function update_battery()
 	sbar.exec("ioreg -rn AppleSmartBattery", function(raw)
 		last_state = parse_battery(raw)
 		update_battery_display(last_state)
-		if _popup_visible then
-			update_batt_info(last_state)
-		end
+		-- popup 内容由 mouse.entered / mouse.clicked 直接触发 update_batt_info,
+		-- 这里不必再判断 popup 可见性 (旧代码引用了从未定义的 _popup_visible)。
 	end)
 end
 

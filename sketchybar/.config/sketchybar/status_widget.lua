@@ -52,11 +52,18 @@ return function(opts)
 	})
 
 	local last_num = 0
+	-- dedup: 与 battery/network/sys widget 对齐,num + label 字符串都没变就跳过 set
+	local last_display_signature
 
 	local function update_display(count)
 		local raw = count and count:match("^%s*(.-)%s*$") or ""
 		local label = (raw and raw ~= "") and raw or "0"
 		local num = tonumber(label:match("^(%d+)")) or 0
+		local signature = tostring(num) .. "|" .. label
+		if signature == last_display_signature then
+			return
+		end
+		last_display_signature = signature
 		last_num = num
 		item:set({
 			icon = { color = num > 0 and resolve_color(opts.icon_color) or resolve_color(opts.icon_inactive_color) },

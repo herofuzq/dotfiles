@@ -15,6 +15,12 @@ local workspace_style = {
 workspace_style.segment_height = workspace_style.bracket_height - 2 * workspace_style.bracket_border_width
 workspace_style.segment_radius = workspace_style.bracket_radius - 1
 
+-- workspace.1 (1̲Main) 和 workspace.6 (6̲Play) 是 brackets 的左右端点,
+-- focus 高亮的圆角比 bracket 内沿圆角多 1px,导致焦点段两端和 bracket 边距错位。
+-- 这里给两端各 ±2px 的水平偏移补偿,让高亮段贴合 bracket 内部。
+-- 中间 workspace 不需要补偿。
+-- 注意: 若改 aerospace.toml 的 persistent-workspaces 顺序,让 1 不在左端或 6 不在
+-- 右端,这里要相应调整 (例如改成最后一个 workspace 的索引)。
 local function segment_x_offset(name)
 	if name:match("^workspace%.1") then
 		return 2
