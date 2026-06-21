@@ -44,6 +44,10 @@ local _popup_animations = {}
 local _content_anim_gen = {}
 local _content_signature = {}
 local animations_ready = false
+local front_app_generation = 0
+local front_app_initialized = false
+local front_app_name
+local mode_visible = false
 
 local CONTENT_FADE_OUT_FRAMES = 5
 local CONTENT_FADE_IN_FRAMES = 8
@@ -55,8 +59,9 @@ end
 -- aerospace 模式指示器（当前仅在 service 模式下显示 "󰰣" 图标）
 local mode_item = sbar.add("item", "aerospace_mode", {
 	position = "left",
-	padding_left = 2,
-	padding_right = 2,
+	padding_left = 0,
+	padding_right = 0,
+	width = 0,
 	icon = { drawing = false },
 	background = { drawing = false },
 	label = {
@@ -68,7 +73,7 @@ local mode_item = sbar.add("item", "aerospace_mode", {
 		},
 		padding_left = 4,
 		padding_right = 4,
-		color = appearance.colors.sapphire,
+		color = transparent(appearance.colors.sapphire),
 	},
 	drawing = false,
 })
@@ -96,7 +101,33 @@ local function ensure_front_app()
 		background = { drawing = false },
 	})
 	front_app:subscribe("front_app_switched", function(env)
-		front_app:set({ label = { string = env.INFO } })
+		local name = env.INFO or ""
+		if front_app_name == name then
+			return
+		end
+		front_app_name = name
+		front_app_generation = front_app_generation + 1
+		local generation = front_app_generation
+		if not front_app_initialized then
+			front_app_initialized = true
+			front_app:set({ label = { string = name } })
+			return
+		end
+		sbar.animate("tanh", CONTENT_FADE_OUT_FRAMES, function()
+			front_app:set({
+				label = { color = transparent(appearance.colors.peach), y_offset = -2 },
+			})
+		end)
+	sbar.delay(CONTENT_FADE_OUT_FRAMES / 60, function()
+			if front_app_generation ~= generation then
+				return
+			end
+			sbar.animate("tanh", CONTENT_FADE_IN_FRAMES, function()
+				front_app:set({
+					label = { string = name, color = appearance.colors.peach, y_offset = 0 },
+				})
+			end)
+		end)
 	end)
 end
 
@@ -291,7 +322,7 @@ local function animate_workspace_content(workspace_index, apply_content)
 			},
 		})
 	end)
-	sbar.delay(CONTENT_FADE_OUT_FRAMES / 60, function()
+		sbar.delay(CONTENT_FADE_OUT_FRAMES / 60, function()
 		if _content_anim_gen[workspace_index] ~= gen then
 			return
 		end
@@ -335,6 +366,13 @@ local function updateWindow(workspace_index, args)
 	else
 		_content_anim_gen[workspace_index] = (_content_anim_gen[workspace_index] or 0) + 1
 		apply_content()
+		workspaces[workspace_index]:set({
+			label = {
+				color = appearance.colors.pill_fg,
+				highlight_color = appearance.colors.red,
+				y_offset = 0,
+			},
+		})
 	end
 end
 
@@ -827,7 +865,30 @@ sbar.exec(":", function()
 	root:subscribe("aerospace_mode_change", function(_)
 		sbar.exec("aerospace list-modes --current", function(result)
 			local is_service = (result or ""):match("service") ~= nil
-			mode_item:set({ drawing = is_service })
+			if mode_visible == is_service then
+				return
+			end
+			mode_visible = is_service
+			if is_service then
+				mode_item:set({
+					drawing = true,
+					width = 0,
+					padding_left = 0,
+					padding_right = 0,
+					label = { color = transparent(appearance.colors.sapphire) },
+				})
+			end
+			sbar.animate("tanh", 8, function()
+				mode_item:set({
+					width = is_service and "dynamic" or 0,
+					padding_left = is_service and 2 or 0,
+					padding_right = is_service and 2 or 0,
+					label = {
+						color = is_service and appearance.colors.sapphire
+							or transparent(appearance.colors.sapphire),
+					},
+				})
+			end)
 		end)
 	end)
 

@@ -1,7 +1,8 @@
 -- ========== 媒体控制（歌名 + 上一首 + 播放/暂停 + 下一首）==========
 local sbar = require("sketchybar")
 local fonts = require("fonts")
-local colors = require("appearance").colors
+local appearance = require("appearance")
+local colors = appearance.colors
 
 local function find_media()
 	for _, p in ipairs({ "/opt/homebrew/bin/media-control", "/usr/local/bin/media-control" }) do
@@ -23,6 +24,10 @@ local ICON_NEXT = "\u{f051}"
 local ICON_MUSIC = "\u{f001}"
 
 local skip_icon = 0
+local label
+local last_display_title
+local title_generation = 0
+local title_initialized = false
 
 local function display_title(info)
 	local title = (info and info.title) or ""
@@ -45,12 +50,39 @@ local function display_title(info)
 	return table.concat(parts, " - ")
 end
 
-local function update_label(info)
-	sbar.set("widgets.media_label", { label = { string = display_title(info) } })
+local function update_label(info, animated)
+	local title = display_title(info)
+	if last_display_title == title then
+		return
+	end
+	last_display_title = title
+	if not label then
+		return
+	end
+	if not title_initialized or not animated then
+		title_initialized = true
+		label:set({ label = { string = title, color = colors.yellow, y_offset = 0 } })
+		return
+	end
+
+	title_generation = title_generation + 1
+	local generation = title_generation
+	sbar.animate("tanh", 5, function()
+		label:set({ label = { color = appearance.with_alpha(colors.yellow, 0), y_offset = -2 } })
+	end)
+	sbar.delay(5 / 60, function()
+		if title_generation ~= generation then
+			return
+		end
+		sbar.animate("tanh", 8, function()
+			label:set({ label = { string = title, color = colors.yellow, y_offset = 0 } })
+		end)
+	end)
 end
 
 local function refresh()
 	sbar.exec('"' .. MEDIA .. '" get 2>/dev/null', function(info)
+		update_label(info, true)
 		local playing = info and info.playing or false
 		if skip_icon > 0 then
 			skip_icon = skip_icon - 1
@@ -119,20 +151,30 @@ local previous_item = sbar.add("item", "widgets.media_previous", {
 	background = { drawing = false },
 })
 
+local function press_feedback(item)
+	sbar.animate("tanh", 4, function()
+		item:set({ y_offset = -2 })
+		item:set({ y_offset = 0 })
+	end)
+end
+
 -- 按钮按下立即切换图标，消除 shell click_script 的延迟
 next_item:subscribe("mouse.clicked", function()
+	press_feedback(next_item)
 	sbar.exec('"' .. MEDIA .. '" next-track', function()
 		sbar.trigger("media_update")
 	end)
 end)
 
 previous_item:subscribe("mouse.clicked", function()
+	press_feedback(previous_item)
 	sbar.exec('"' .. MEDIA .. '" previous-track', function()
 		sbar.trigger("media_update")
 	end)
 end)
 
 play_pause:subscribe("mouse.clicked", function()
+	press_feedback(play_pause)
 	skip_icon = 1
 	local q = play_pause:query()
 	local cur = q and q.icon and q.icon.value or ICON_PLAY
@@ -141,7 +183,7 @@ play_pause:subscribe("mouse.clicked", function()
 end)
 
 -- ========== 歌曲信息 ==========
-local label = sbar.add("item", "widgets.media_label", {
+label = sbar.add("item", "widgets.media_label", {
 	position = "right",
 	scroll_texts = "on",
 	padding_left = 2,
@@ -173,7 +215,7 @@ label:subscribe("media_update", refresh)
 
 -- 初始查询：reload 后首次显示（不恢复轮询）
 sbar.exec('"' .. MEDIA .. '" get 2>/dev/null', function(info)
-	update_label(info)
+	update_label(info, false)
 	local playing = info and info.playing or false
 	if playing then
 		sbar.set("widgets.media_play_pause", { icon = { string = ICON_PAUSE } })

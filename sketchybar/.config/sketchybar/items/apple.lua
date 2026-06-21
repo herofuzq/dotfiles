@@ -44,19 +44,15 @@ local apple = sbar.add("item", "apple", {
 })
 
 apple:subscribe("mouse.clicked", function()
-	sbar.animate("tanh", 0.15, function()
+	sbar.animate("tanh", 6, function()
 		apple:set({
 			background = { shadow = { distance = 0 } },
 			y_offset = -4,
 		})
-	end)
-	sbar.delay(0.15, function()
-		sbar.animate("tanh", 0.15, function()
-			apple:set({
-				background = { shadow = { distance = 4 } },
-				y_offset = 1,
-			})
-		end)
+		apple:set({
+			background = { shadow = { distance = 4 } },
+			y_offset = 1,
+		})
 	end)
 	sbar.exec("$CONFIG_DIR/helpers/menus/bin/menus -s 0")
 end)
