@@ -4,6 +4,7 @@ local icons = require("icons")
 local fonts = require("fonts")
 local parsers = require("helpers.widget_parsers")
 local enter_animation = require("helpers.enter_animation")
+local find_binary = require("helpers.find_binary").find
 local colors = require("appearance").colors
 local NETWORK_SAMPLE_INTERVAL = 3
 local INTERFACE_REFRESH_INTERVAL = 61
@@ -81,18 +82,7 @@ local function format_speed(raw)
 end
 
 -- 自动检测 ifstat 二进制路径（Apple Silicon / Intel Homebrew）
-local function find_ifstat()
-	for _, p in ipairs({ "/opt/homebrew/bin/ifstat", "/usr/local/bin/ifstat" }) do
-		local f = io.open(p, "r")
-		if f then
-			f:close()
-			return p
-		end
-	end
-	return nil
-end
-
-local IFSTAT = find_ifstat()
+local IFSTAT = find_binary({ "/opt/homebrew/bin/ifstat", "/usr/local/bin/ifstat" })
 
 local function detect_network(callback)
 	local command = table.concat({

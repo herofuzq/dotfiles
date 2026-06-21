@@ -5,24 +5,18 @@ local icons = require("icons")
 local fonts = require("fonts")
 local colors = require("appearance").colors
 local settings = require("settings")
+local find_binary = require("helpers.find_binary").find
 
--- 动态查找 fcitx5-remote 路径（支持 .app 安装和 brew 安装两种方式）
-local function findFcitxRemote()
-	local candidates = {
+-- 动态查找 fcitx5-remote 路径（支持 .app 安装和 brew 安装两种方式）。
+-- fallback 用 macOS .app 路径，因为这是 fcitx5 cask 的默认安装位置，比 brew 路径更稳。
+local FCITX_REMOTE = find_binary(
+	{
 		"/Library/Input Methods/Fcitx5.app/Contents/bin/fcitx5-remote",
 		"/opt/homebrew/bin/fcitx5-remote",
 		"/usr/local/bin/fcitx5-remote",
-	}
-	for _, p in ipairs(candidates) do
-		local f = io.open(p, "r")
-		if f then
-			f:close()
-			return p
-		end
-	end
-	return "/Library/Input Methods/Fcitx5.app/Contents/bin/fcitx5-remote"
-end
-local FCITX_REMOTE = findFcitxRemote()
+	},
+	"/Library/Input Methods/Fcitx5.app/Contents/bin/fcitx5-remote"
+)
 
 local input_method = sbar.add("item", "widgets.input_method", {
 	position = "right",

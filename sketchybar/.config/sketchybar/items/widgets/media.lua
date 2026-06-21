@@ -3,19 +3,15 @@ local sbar = require("sketchybar")
 local fonts = require("fonts")
 local appearance = require("appearance")
 local enter_animation = require("helpers.enter_animation")
+local find_binary = require("helpers.find_binary").find
 local colors = appearance.colors
 
-local function find_media()
-	for _, p in ipairs({ "/opt/homebrew/bin/media-control", "/usr/local/bin/media-control" }) do
-		local f = io.open(p, "r")
-		if f then
-			f:close()
-			return p
-		end
-	end
-	return "/opt/homebrew/bin/media-control"
-end
-local MEDIA = find_media()
+-- 保留历史 fallback 行为：找不到时返回 Apple Silicon 路径
+-- (Intel mac 上这个 fallback 是错的，但属于已知行为，未来如要修请单独评估)
+local MEDIA = find_binary(
+	{ "/opt/homebrew/bin/media-control", "/usr/local/bin/media-control" },
+	"/opt/homebrew/bin/media-control"
+)
 
 -- Nerd Font 媒体控制图标
 local ICON_PLAY = "\u{f04b}"

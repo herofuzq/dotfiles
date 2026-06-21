@@ -15,80 +15,14 @@ local function shell_quote(s)
 	return "'" .. tostring(s):gsub("'", "'\\''") .. "'"
 end
 
--- bin 位于实际 CONFIG_DIR，不由 stow 管理；这里只在缺失或源码更新时编译。
-local function needs_make(cfg)
-	local helpers = cfg .. "/helpers"
-	local targets = {
-		{
-			target = helpers .. "/event_providers/cpu_load/bin/cpu_load",
-			sources = {
-				helpers .. "/event_providers/cpu_load/cpu_load.c",
-				helpers .. "/event_providers/cpu_load/cpu.h",
-				helpers .. "/event_providers/sketchybar.h",
-				helpers .. "/event_providers/cpu_load/makefile",
-			},
-		},
-		{
-			target = helpers .. "/event_providers/input_method/bin/input_method_watch",
-			sources = {
-				helpers .. "/event_providers/input_method/input_method_watch.swift",
-				helpers .. "/event_providers/input_method/makefile",
-			},
-		},
-		{
-			target = helpers .. "/event_providers/media_watch/bin/media_watch",
-			sources = {
-				helpers .. "/event_providers/media_watch/media_watch.swift",
-				helpers .. "/event_providers/media_watch/makefile",
-			},
-		},
-		{
-			target = helpers .. "/event_providers/sys_watch/bin/sys_watch",
-			sources = {
-				helpers .. "/event_providers/sys_watch/sys_watch.swift",
-				helpers .. "/event_providers/sys_watch/makefile",
-			},
-		},
-		{
-			target = helpers .. "/menus/bin/menus",
-			sources = {
-				helpers .. "/menus/menus.c",
-				helpers .. "/menus/makefile",
-			},
-		},
-		{
-			target = helpers .. "/bar_height/bin/bar_height",
-			sources = {
-				helpers .. "/bar_height/main.swift",
-				helpers .. "/bar_height/makefile",
-			},
-		},
-		{
-			target = helpers .. "/dock_width/bin/dock_width",
-			sources = {
-				helpers .. "/dock_width/main.swift",
-				helpers .. "/dock_width/makefile",
-			},
-		},
-	}
-	local checks = {}
-	for _, item in ipairs(targets) do
-		local target = shell_quote(item.target)
-		checks[#checks + 1] = "[ ! -x " .. target .. " ]"
-		for _, source in ipairs(item.sources) do
-			checks[#checks + 1] = "[ " .. shell_quote(source) .. " -nt " .. target .. " ]"
-		end
-	end
-	local cmd = "if " .. table.concat(checks, " || ") .. "; then printf 1; else printf 0; fi"
-	local f = io.popen(cmd)
-	if not f then
-		return true
-	end
-	local stale = f:read("*a") == "1"
-	f:close()
-	return stale
-end
-
+-- bin 位于实际 CONFIG_DIR，不由 stow 管理；这里直接调 make，让 Makefile
+-- 自己判断 stale (mtime up-to-date 时 make noop，< 50ms)。新增 helper 只需：
+--   1. 在顶层 helpers/makefile 加 $(MAKE) -C <dir>
+--   2. 在 <dir>/makefile 里写编译规则
+-- 不再需要在本文件维护 target/source 清单。
+--
+-- 历史方案：needs_make() 用 Lua 表手工枚举 7 个 helper 的 target + source，
+-- 每次新增 helper 要同时改源码、makefile 和这个表。Codex review 后删除。
 local function run_make(cfg)
 	local log_path = "/tmp/sketchybar_make.log"
 	local cmd = "cd "
@@ -113,7 +47,7 @@ local function restart_event_providers()
 end
 
 local cfg = os.getenv("CONFIG_DIR")
-if cfg and needs_make(cfg) then
+if cfg then
 	local exit_code, log_path = run_make(cfg)
 	if exit_code ~= 0 then
 		io.stderr:write("sketchybar: helper compile failed (exit " .. exit_code .. "), see " .. log_path .. "\n")

@@ -13,24 +13,15 @@ local WATCHER = CONFIG_DIR .. "/helpers/event_providers/sys_watch/bin/sys_watch"
 local WATCHER_PIDFILE = "/tmp/sketchybar_sys_watch.pid"
 local SENSOR_CACHE = "/tmp/sketchybar_sys_sensors.json"
 
-local function find_executable(candidates)
-	for _, path in ipairs(candidates) do
-		local file = io.open(path, "r")
-		if file then
-			file:close()
-			return path
-		end
-	end
-	return nil
-end
+local find_binary = require("helpers.find_binary").find
 
 local function shell_quote(value)
 	return "'" .. tostring(value):gsub("'", "'\\''") .. "'"
 end
 
-local MACTOP = find_executable({ "/opt/homebrew/bin/mactop", "/usr/local/bin/mactop" })
-local SKETCHYBAR = find_executable({ "/opt/homebrew/bin/sketchybar", "/usr/local/bin/sketchybar" })
-local WATCHER_EXECUTABLE = find_executable({ WATCHER })
+local MACTOP = find_binary({ "/opt/homebrew/bin/mactop", "/usr/local/bin/mactop" })
+local SKETCHYBAR = find_binary({ "/opt/homebrew/bin/sketchybar", "/usr/local/bin/sketchybar" })
+local WATCHER_EXECUTABLE = find_binary({ WATCHER })
 
 -- 启动 CPU 监控后台进程，每 2 秒通过事件推送 CPU 数据
 -- 使用 pidfile 避免 reload 时误杀其他同名进程
