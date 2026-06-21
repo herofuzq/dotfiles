@@ -5,6 +5,7 @@ local appearance = require("appearance")
 local app_icons = require("helpers.app_icons")
 local borders = require("helpers.borders")
 local popup_animation = require("helpers.popup_animation")
+local enter_animation = require("helpers.enter_animation")
 local sbar = require("sketchybar")
 local fonts = require("fonts")
 local settings = require("settings")
@@ -48,9 +49,13 @@ local front_app_generation = 0
 local front_app_initialized = false
 local front_app_name
 local mode_visible = false
+local mode_generation = 0
 
-local CONTENT_FADE_OUT_FRAMES = 5
-local CONTENT_FADE_IN_FRAMES = 8
+-- 内容切换动画帧数:刻意非对称。消失快、出现慢,视觉上是"压住再展开",比对称更跟手。
+-- @120Hz: out=133ms, in=200ms。媒体标题(media.lua)也用同样节奏。
+-- UI 反馈类动画(apple click、mode indicator)是**对称**的,目的不同。
+local CONTENT_FADE_OUT_FRAMES = 16
+local CONTENT_FADE_IN_FRAMES = 24
 
 local function transparent(color)
 	return appearance.with_alpha(color, 0)
@@ -118,7 +123,7 @@ local function ensure_front_app()
 				label = { color = transparent(appearance.colors.peach), y_offset = -2 },
 			})
 		end)
-	sbar.delay(CONTENT_FADE_OUT_FRAMES / 60, function()
+	sbar.delay(CONTENT_FADE_OUT_FRAMES / 120, function()
 			if front_app_generation ~= generation then
 				return
 			end
@@ -322,7 +327,7 @@ local function animate_workspace_content(workspace_index, apply_content)
 			},
 		})
 	end)
-		sbar.delay(CONTENT_FADE_OUT_FRAMES / 60, function()
+		sbar.delay(CONTENT_FADE_OUT_FRAMES / 120, function()
 		if _content_anim_gen[workspace_index] ~= gen then
 			return
 		end
@@ -677,6 +682,10 @@ for _, ws in ipairs(initial_workspaces) do
 	workspaces[ws] = workspace
 	table.insert(workspace_order, ws)
 
+	-- reload 时动态 add 的 workspace 也要走"从上往下"渐入,
+	-- 不然跟其他已登记 item 视觉不一致
+	enter_animation.spawn("workspace." .. ws)
+
 	_popup_items[ws] = {}
 	for i = 1, MAX_POPUP_SLOTS do
 		local popup_item = sbar.add("item", "workspace." .. ws .. ".popup." .. i, {
@@ -878,7 +887,10 @@ sbar.exec(":", function()
 					label = { color = transparent(appearance.colors.sapphire) },
 				})
 			end
-			sbar.animate("tanh", 8, function()
+			mode_generation = mode_generation + 1
+			local gen = mode_generation
+			-- @120Hz: 200ms
+			sbar.animate("tanh", 24, function()
 				mode_item:set({
 					width = is_service and "dynamic" or 0,
 					padding_left = is_service and 2 or 0,
@@ -889,6 +901,15 @@ sbar.exec(":", function()
 					},
 				})
 			end)
+			-- 退出 service 时,动画结束后收起 drawing,避免空 item 占位
+			if not is_service then
+				sbar.delay(24 / 120, function()
+					if mode_generation ~= gen or mode_visible then
+						return
+					end
+					mode_item:set({ drawing = false })
+				end)
+			end
 		end)
 	end)
 
@@ -938,3 +959,10 @@ sbar.exec(":", function()
 		end
 	end)
 end)
+
+-- 渐入:只登记真正可见的同步 add item。
+-- mode_item 默认 drawing=false,等 aerospace_mode_change 才显示,不登记。
+-- spaces.root 只负责事件订阅,必须始终保持 drawing=false。
+-- workspaces 是在 sbar.exec 回调里动态 add 的,这里 register 不到;
+-- 它们在 run() 之后才出现,自带 generation 防护,初始就 drawing=false 也可接受。
+enter_animation.register("front_app")

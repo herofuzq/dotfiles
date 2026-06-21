@@ -5,7 +5,8 @@ local M = {}
 
 function M.new(parent, options)
 	options = options or {}
-	local frames = options.frames or 8
+	-- @120Hz: 默认 133ms(macOS 标准菜单弹出节奏)
+	local frames = options.frames or 16
 	local y_offset = options.y_offset or 2
 	local hidden_y_offset = options.hidden_y_offset or (y_offset + 3)
 	local generation = 0
@@ -69,7 +70,7 @@ function M.new(parent, options)
 				options.on_hide()
 			end
 		end)
-		sbar.delay(frames / 60, function()
+		sbar.delay(frames / 120, function()
 			if generation ~= current_generation or visible then
 				return
 			end

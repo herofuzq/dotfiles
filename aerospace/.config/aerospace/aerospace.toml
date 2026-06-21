@@ -79,12 +79,12 @@ on-mode-changed = ['exec-and-forget sketchybar --trigger aerospace_mode_change']
 inner.horizontal = 5
 inner.vertical = 5
 outer.left = 6
-outer.bottom = 6
+outer.bottom = 7
 outer.top = [
-  { monitor."Built-in Retina Display" = 6 },
-  { monitor."VG271U" = 36 },
-  { monitor."Mi Monitor" = 36 },
-  36,
+  { monitor."Built-in Retina Display" = 7 },
+  { monitor."VG271U" = 37 },
+  { monitor."Mi Monitor" = 37 },
+  37,
 ]
 outer.right = 6
 # 'main' binding mode declaration

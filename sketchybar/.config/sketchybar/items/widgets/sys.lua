@@ -4,6 +4,7 @@ local icons = require("icons")
 local fonts = require("fonts")
 local appearance = require("appearance")
 local popup_animation = require("helpers.popup_animation")
+local enter_animation = require("helpers.enter_animation")
 local colors = appearance.colors
 local settings = require("settings")
 
@@ -236,13 +237,22 @@ end
 
 stop_watcher()
 
+local last_cpu_signature
+
 sys:subscribe("cpu_update", function(env)
 	local cpu_load = math.max(0, math.min(100, math.floor(tonumber(env.total_load) or 0)))
-	local cpu_str = string.format("%d%%", cpu_load)
 	local cpu_color = cpu_load > 70 and colors.red
 		or (cpu_load > 40 and colors.peach or colors.green)
+	-- dedup: cpu 百分比和颜色档位都和上次一样就不 set
+	local signature = cpu_load .. "|" .. tostring(cpu_color)
+	if signature == last_cpu_signature then
+		return
+	end
+	last_cpu_signature = signature
 	sys:set({
 		icon = { color = cpu_color },
-		label = { string = cpu_str, color = colors.pill_fg },
+		label = { string = string.format("%d%%", cpu_load), color = colors.pill_fg },
 	})
 end)
+
+enter_animation.register("widgets.sys")

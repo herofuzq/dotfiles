@@ -1,6 +1,16 @@
 -- Add the sketchybar module to the package cpath
 package.cpath = package.cpath .. ";" .. os.getenv("HOME") .. "/.local/share/sketchybar_lua/?.so"
 
+-- 立即加载 sketchybar 并把 bar 设为完全透明:
+-- sketchybarrc 启动时(冷启动)到 init.lua 跑之间有一段 ~100ms 窗口,
+-- bar 默认会用 internal default (红色边框纯黑) 显示。
+-- 在 helpers init 阶段(最早的代码)就把它设成透明,缩短 default 状态窗口。
+require("sketchybar").bar({
+	color = 0x00000000,
+	border_color = 0x00000000,
+	border_width = 0,
+})
+
 local function shell_quote(s)
 	return "'" .. tostring(s):gsub("'", "'\\''") .. "'"
 end

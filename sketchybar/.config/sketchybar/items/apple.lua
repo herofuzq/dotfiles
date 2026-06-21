@@ -6,6 +6,7 @@ local icons = require("icons")
 local fonts = require("fonts")
 local colors = require("appearance").colors
 local settings = require("settings")
+local enter_animation = require("helpers.enter_animation")
 
 local border_width = 0 -- 无背景无边框
 local icon_width = 15
@@ -44,7 +45,8 @@ local apple = sbar.add("item", "apple", {
 })
 
 apple:subscribe("mouse.clicked", function()
-	sbar.animate("tanh", 6, function()
+	-- 反馈类:@120Hz 下 8 帧 = 67ms,跟手
+	sbar.animate("tanh", 8, function()
 		apple:set({
 			background = { shadow = { distance = 0 } },
 			y_offset = -4,
@@ -62,3 +64,5 @@ apple:subscribe({ "display_change", "system_woke" }, function()
 	local pl, pr = compute_icon_pad(true)
 	apple:set({ icon = { padding_left = pl, padding_right = pr } })
 end)
+
+enter_animation.register("apple")

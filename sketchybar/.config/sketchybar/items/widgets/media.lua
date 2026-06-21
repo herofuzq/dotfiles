@@ -2,6 +2,7 @@
 local sbar = require("sketchybar")
 local fonts = require("fonts")
 local appearance = require("appearance")
+local enter_animation = require("helpers.enter_animation")
 local colors = appearance.colors
 
 local function find_media()
@@ -26,6 +27,7 @@ local ICON_MUSIC = "\u{f001}"
 local skip_icon = 0
 local label
 local last_display_title
+local last_playing
 local title_generation = 0
 local title_initialized = false
 
@@ -67,14 +69,15 @@ local function update_label(info, animated)
 
 	title_generation = title_generation + 1
 	local generation = title_generation
-	sbar.animate("tanh", 5, function()
+	-- @120Hz: out=133ms, in=200ms
+	sbar.animate("tanh", 16, function()
 		label:set({ label = { color = appearance.with_alpha(colors.yellow, 0), y_offset = -2 } })
 	end)
-	sbar.delay(5 / 60, function()
+	sbar.delay(16 / 120, function()
 		if title_generation ~= generation then
 			return
 		end
-		sbar.animate("tanh", 8, function()
+		sbar.animate("tanh", 24, function()
 			label:set({ label = { string = title, color = colors.yellow, y_offset = 0 } })
 		end)
 	end)
@@ -86,7 +89,9 @@ local function refresh()
 		local playing = info and info.playing or false
 		if skip_icon > 0 then
 			skip_icon = skip_icon - 1
-		else
+		elseif playing ~= last_playing then
+			-- dedup: 播放状态没变就不 set
+			last_playing = playing
 			sbar.set("widgets.media_play_pause", {
 				icon = { string = playing and ICON_PAUSE or ICON_PLAY },
 			})
@@ -152,7 +157,8 @@ local previous_item = sbar.add("item", "widgets.media_previous", {
 })
 
 local function press_feedback(item)
-	sbar.animate("tanh", 4, function()
+	-- 反馈类:保持短,@120Hz 下 6 帧 = 50ms,跟手
+	sbar.animate("tanh", 6, function()
 		item:set({ y_offset = -2 })
 		item:set({ y_offset = 0 })
 	end)
@@ -221,3 +227,11 @@ sbar.exec('"' .. MEDIA .. '" get 2>/dev/null', function(info)
 		sbar.set("widgets.media_play_pause", { icon = { string = ICON_PAUSE } })
 	end
 end)
+
+-- media_label 创建时就有默认内容("未播放"+ 图标),drawing 默认 on,
+-- 实际是"立即可见"的 item,需要登记走渐入。
+-- update_label 第一次调用时不要动 y_offset,留给 enter_animation。
+enter_animation.register("widgets.media_label")
+enter_animation.register("widgets.media_previous")
+enter_animation.register("widgets.media_play_pause")
+enter_animation.register("widgets.media_next")

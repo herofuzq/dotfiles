@@ -4,6 +4,7 @@ local icons = require("icons")
 local fonts = require("fonts")
 local appearance = require("appearance")
 local popup_animation = require("helpers.popup_animation")
+local enter_animation = require("helpers.enter_animation")
 local parsers = require("helpers.widget_parsers")
 local colors = appearance.colors
 local BATTERY_UPDATE_INTERVAL = 37 -- 与其他外部轮询错峰
@@ -69,6 +70,7 @@ local batt_info = sbar.add("item", "widgets.battery.info", {
 
 local _popup_pinned, _popup_hovering, _exit_gen = false, false, 0
 local last_state
+local last_battery_signature
 local battery_popup = popup_animation.new(battery, {
 	background_color = function()
 		return appearance.with_alpha(colors.pill_bg, 0.85)
@@ -211,12 +213,23 @@ end)
 -- ========== 电池状态更新 ==========
 local function update_battery_display(state)
 	if not state then
+		if last_battery_signature == false then
+			return
+		end
+		last_battery_signature = false
 		battery:set({
 			icon = { string = icons.battery._0, color = colors.surface1 },
 			label = { string = "—" },
 		})
 		return
 	end
+
+	-- dedup: percent/charging/ac 跟上次一样就不 set
+	local signature = string.format("%d|%s|%s", state.percent, tostring(state.charging), tostring(state.ac))
+	if signature == last_battery_signature then
+		return
+	end
+	last_battery_signature = signature
 
 	local color = colors.green
 	local icon
@@ -257,3 +270,6 @@ end
 battery:subscribe({ "routine", "power_source_change", "system_woke" }, update_battery)
 battery:subscribe("theme_changed", update_battery)
 update_battery()
+
+-- batt_info 默认 drawing=false,等数据来了才显示,这里不登记
+enter_animation.register("widgets.battery")

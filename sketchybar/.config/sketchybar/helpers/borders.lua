@@ -86,7 +86,8 @@ local function distribute(visible_workspace_names, fullscreen_set, focused_name,
 	end
 
 	if animated then
-		sbar.animate("tanh", 8, apply)
+		-- @120Hz: 200ms
+		sbar.animate("tanh", 24, apply)
 	else
 		apply()
 	end

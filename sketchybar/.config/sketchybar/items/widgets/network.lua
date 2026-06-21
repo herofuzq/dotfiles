@@ -3,6 +3,7 @@ local sbar = require("sketchybar")
 local icons = require("icons")
 local fonts = require("fonts")
 local parsers = require("helpers.widget_parsers")
+local enter_animation = require("helpers.enter_animation")
 local colors = require("appearance").colors
 local NETWORK_SAMPLE_INTERVAL = 3
 local INTERFACE_REFRESH_INTERVAL = 61
@@ -142,6 +143,7 @@ local function icon_color(kind)
 end
 
 local net_iface, current_network_kind, last_interface_check
+local last_up_str, last_down_str
 local consecutive_failures = 0
 local interface_check_in_flight = false
 
@@ -174,8 +176,16 @@ local function sample_network()
 		end
 
 		consecutive_failures = 0
-		up:set({ label = "↑" .. format_speed(up_raw) })
-		down:set({ label = "↓" .. format_speed(down_raw) })
+		local up_str = "↑" .. format_speed(up_raw)
+		local down_str = "↓" .. format_speed(down_raw)
+		-- dedup: 上下行速度和上次一样就不 set
+		if up_str == last_up_str and down_str == last_down_str then
+			return
+		end
+		last_up_str = up_str
+		last_down_str = down_str
+		up:set({ label = up_str })
+		down:set({ label = down_str })
 	end)
 end
 
@@ -243,3 +253,6 @@ sbar.add("item", "widgets.media_spacer", {
 	padding_right = 0,
 	background = { drawing = false },
 })
+
+enter_animation.register("widgets.network_up")
+enter_animation.register("widgets.network_down")
