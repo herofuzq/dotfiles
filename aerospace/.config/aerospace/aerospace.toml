@@ -9,7 +9,8 @@ config-version = 2
 # Available commands : https://nikitabobko.github.io/AeroSpace/commands
 after-startup-command = [
   'exec-and-forget borders active_color=0xffff9e64 inactive_color=0x00000000 width=4.0 hidpi=on order=above',
-]
+  'exec-and-forget sketchybar --trigger space_windows_change',
+] 
 
 # Start AeroSpace at login
 start-at-login = true
@@ -439,7 +440,8 @@ run = ["move-node-to-workspace 6̲Play --focus-follows-window"]
 
 [[on-window-detected]]
 if.app-id = "com.tencent.QQMusicMac"
-run = ["move-node-to-workspace 6̲Play --focus-follows-window"]
+if.app-name-regex-substring = 'QQ音乐'
+run = ["move-node-to-workspace 6̲Play --focus-follows-window"] 
 
 [[on-window-detected]]
 if.app-id = "com.colliderli.iina"
