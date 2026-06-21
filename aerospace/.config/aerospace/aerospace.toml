@@ -165,12 +165,15 @@ outer.right = 6
     cmd-alt-ctrl-6 = 'workspace 6̲Play'
 
     # See: https://nikitabobko.github.io/AeroSpace/commands#move-node-to-workspace
-    cmd-alt-ctrl-shift-1 = 'move-node-to-workspace 1̲Main --focus-follows-window'
-    cmd-alt-ctrl-shift-2 = 'move-node-to-workspace 2̲Sec --focus-follows-window'
-    cmd-alt-ctrl-shift-3 = 'move-node-to-workspace 3̲Chat --focus-follows-window'
-    cmd-alt-ctrl-shift-4 = 'move-node-to-workspace 4̲Work --focus-follows-window'
-    cmd-alt-ctrl-shift-5 = 'move-node-to-workspace 5̲Term --focus-follows-window'
-    cmd-alt-ctrl-shift-6 = 'move-node-to-workspace 6̲Play --focus-follows-window'
+    # 注: 移动窗口后必须 trigger sketchybar 刷新窗口列表,
+    # 否则焦点 workspace 没变, exec-on-workspace-change 不触发,
+    # sketchybar 还显示旧信息。
+    cmd-alt-ctrl-shift-1 = ['move-node-to-workspace 1̲Main --focus-follows-window', 'exec-and-forget sketchybar --trigger space_windows_change']
+    cmd-alt-ctrl-shift-2 = ['move-node-to-workspace 2̲Sec --focus-follows-window', 'exec-and-forget sketchybar --trigger space_windows_change']
+    cmd-alt-ctrl-shift-3 = ['move-node-to-workspace 3̲Chat --focus-follows-window', 'exec-and-forget sketchybar --trigger space_windows_change']
+    cmd-alt-ctrl-shift-4 = ['move-node-to-workspace 4̲Work --focus-follows-window', 'exec-and-forget sketchybar --trigger space_windows_change']
+    cmd-alt-ctrl-shift-5 = ['move-node-to-workspace 5̲Term --focus-follows-window', 'exec-and-forget sketchybar --trigger space_windows_change']
+    cmd-alt-ctrl-shift-6 = ['move-node-to-workspace 6̲Play --focus-follows-window', 'exec-and-forget sketchybar --trigger space_windows_change'] 
 
     # See: https://nikitabobko.github.io/AeroSpace/commands#workspace-back-and-forth
     # alt-tab = 'workspace-back-and-forth'
