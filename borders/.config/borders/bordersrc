@@ -1,10 +1,13 @@
 #!/bin/bash
 
+# active_color 与 aerospace.toml:15 after-startup-command 里的 borders 颜色保持同步,
+# 当前对齐 Catppuccin Mocha peach (0xfffab387)。手动启动本脚本会在已有 aerospace 进程外
+# 再启动一份 borders,通常用于调试;日常使用交给 aerospace 启动。
 options=(
   style=round
   width=6.0
   hidpi=on
-  active_color=0xffff9e64
+  active_color=0xfffab387
   inactive_color=0x00000000
 )
 
