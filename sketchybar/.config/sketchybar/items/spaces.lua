@@ -51,10 +51,9 @@ local front_app_name
 local mode_visible = false
 local mode_generation = 0
 
--- 内容切换动画帧数:刻意非对称。消失快、出现慢,视觉上是"压住再展开",比对称更跟手。
--- @120Hz: out=133ms, in=200ms。媒体标题(media.lua)也用同样节奏。
--- UI 反馈类动画(apple click、mode indicator)是**对称**的,目的不同。
-local CONTENT_FADE_OUT_FRAMES = 16
+-- 内容切换动画帧数:统一规范，所有内容切换都是 24 帧 / 200ms linear。
+-- （已统一 out 和 in 速度，对称渐隐更直观；旧版 16/24 非对称的"压住再展开"取消）
+-- UI 反馈类动画(apple click、media button click)另算，不是入场动画。
 local CONTENT_FADE_IN_FRAMES = 24
 
 local function transparent(color)
@@ -118,18 +117,18 @@ local function ensure_front_app()
 			front_app:set({ label = { string = name } })
 			return
 		end
-		sbar.animate("tanh", CONTENT_FADE_OUT_FRAMES, function()
+		sbar.animate("linear", CONTENT_FADE_IN_FRAMES, function()
 			front_app:set({
-				label = { color = transparent(appearance.colors.peach), y_offset = -2 },
+				label = { color = transparent(appearance.colors.peach) },
 			})
 		end)
-	sbar.delay(CONTENT_FADE_OUT_FRAMES / 120, function()
+	sbar.delay(CONTENT_FADE_IN_FRAMES / 120, function()
 			if front_app_generation ~= generation then
 				return
 			end
-			sbar.animate("tanh", CONTENT_FADE_IN_FRAMES, function()
+			sbar.animate("linear", CONTENT_FADE_IN_FRAMES, function()
 				front_app:set({
-					label = { string = name, color = appearance.colors.peach, y_offset = 0 },
+					label = { string = name, color = appearance.colors.peach },
 				})
 			end)
 		end)
@@ -318,16 +317,15 @@ local function animate_workspace_content(workspace_index, apply_content)
 	local gen = _content_anim_gen[workspace_index]
 	local workspace = workspaces[workspace_index]
 
-	sbar.animate("tanh", CONTENT_FADE_OUT_FRAMES, function()
+	sbar.animate("linear", CONTENT_FADE_IN_FRAMES, function()
 		workspace:set({
 			label = {
 				color = transparent(appearance.colors.pill_fg),
 				highlight_color = transparent(appearance.colors.red),
-				y_offset = -2,
 			},
 		})
 	end)
-		sbar.delay(CONTENT_FADE_OUT_FRAMES / 120, function()
+		sbar.delay(CONTENT_FADE_IN_FRAMES / 120, function()
 		if _content_anim_gen[workspace_index] ~= gen then
 			return
 		end
@@ -336,15 +334,13 @@ local function animate_workspace_content(workspace_index, apply_content)
 			label = {
 				color = transparent(appearance.colors.pill_fg),
 				highlight_color = transparent(appearance.colors.red),
-				y_offset = 2,
 			},
 		})
-		sbar.animate("tanh", CONTENT_FADE_IN_FRAMES, function()
+		sbar.animate("linear", CONTENT_FADE_IN_FRAMES, function()
 			workspace:set({
 				label = {
 					color = appearance.colors.pill_fg,
 					highlight_color = appearance.colors.red,
-					y_offset = 0,
 				},
 			})
 		end)
@@ -375,7 +371,6 @@ local function updateWindow(workspace_index, args)
 			label = {
 				color = appearance.colors.pill_fg,
 				highlight_color = appearance.colors.red,
-				y_offset = 0,
 			},
 		})
 	end

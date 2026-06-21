@@ -63,22 +63,22 @@ local function update_label(info, animated)
 	end
 	if not title_initialized or not animated then
 		title_initialized = true
-		label:set({ label = { string = title, color = colors.yellow, y_offset = 0 } })
+		label:set({ label = { string = title, color = colors.yellow } })
 		return
 	end
 
 	title_generation = title_generation + 1
 	local generation = title_generation
-	-- @120Hz: out=133ms, in=200ms
-	sbar.animate("tanh", 16, function()
-		label:set({ label = { color = appearance.with_alpha(colors.yellow, 0), y_offset = -2 } })
+	-- 统一规范：纯 alpha 渐隐，linear 曲线，24 帧 / 200ms 对称
+	sbar.animate("linear", 24, function()
+		label:set({ label = { color = appearance.with_alpha(colors.yellow, 0) } })
 	end)
-	sbar.delay(16 / 120, function()
+	sbar.delay(24 / 120, function()
 		if title_generation ~= generation then
 			return
 		end
-		sbar.animate("tanh", 24, function()
-			label:set({ label = { string = title, color = colors.yellow, y_offset = 0 } })
+		sbar.animate("linear", 24, function()
+			label:set({ label = { string = title, color = colors.yellow } })
 		end)
 	end)
 end

@@ -1,14 +1,21 @@
+-- ========== Popup 弹出/收起：纯渐隐，无位移 ==========
+-- 统一规范：所有内容切换动画 = 24 帧 / 200ms linear
+--   - 不用 tanh：tanh 曲线在"长动画 + alpha 渐隐"场景下前 80% 时间几乎不可见，后 20% 突然"长出来"，视觉上是瞬时出现
+--   - 不用 y_offset：用户要求"渐隐感"，不要位移
+--
+-- 调用方只需传 background_color（默认 appearance.colors.pill_bg），动画内部自动处理 alpha。
+-- 已存在的 on_prepare_show / on_show / on_hide / on_hidden 钩子仍可用（比如改 popup item 的 icon/label 颜色）。
 local appearance = require("appearance")
 local sbar = require("sketchybar")
 
 local M = {}
 
+-- 统一动画帧数：24 帧 @ 120Hz = 200ms
+local DEFAULT_FRAMES = 24
+
 function M.new(parent, options)
 	options = options or {}
-	-- @120Hz: 默认 133ms(macOS 标准菜单弹出节奏)
-	local frames = options.frames or 16
-	local y_offset = options.y_offset or 2
-	local hidden_y_offset = options.hidden_y_offset or (y_offset + 3)
+	local frames = options.frames or DEFAULT_FRAMES
 	local generation = 0
 	local visible = false
 
@@ -28,18 +35,18 @@ function M.new(parent, options)
 		end
 		visible = true
 		local color = background_color()
+		-- 先把背景设为透明，再线性渐入到目标 alpha
 		parent:set({
 			popup = {
 				drawing = true,
-				y_offset = hidden_y_offset,
 				background = { color = appearance.with_alpha(color, 0) },
 			},
 		})
 		if options.on_prepare_show then
 			options.on_prepare_show()
 		end
-		sbar.animate("tanh", frames, function()
-			parent:set({ popup = { y_offset = y_offset, background = { color = color } } })
+		sbar.animate("linear", frames, function()
+			parent:set({ popup = { background = { color = color } } })
 			if options.on_show then
 				options.on_show()
 			end
@@ -59,10 +66,9 @@ function M.new(parent, options)
 		end
 
 		local color = background_color()
-		sbar.animate("tanh", frames, function()
+		sbar.animate("linear", frames, function()
 			parent:set({
 				popup = {
-					y_offset = hidden_y_offset,
 					background = { color = appearance.with_alpha(color, 0) },
 				},
 			})
