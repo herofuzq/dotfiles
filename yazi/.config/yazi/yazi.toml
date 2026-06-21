@@ -4,23 +4,24 @@ sort_by = "natural"
 sort_sensitive = false
 sort_reverse = false
 sort_dir_first = true
+sort_fallback = "alphabetical"
 sort_translit = false
 linemode = "none"
 show_hidden = false
 show_symlink = true
 scrolloff = 5
-mouse_events = ["click", "scroll"]
-title_format = "Yazi: {cwd}"
+mouse_events = ["click", "scroll", "drag"]
+# title_format removed in yazi 26.5.6 — use DDS event `ind-app-title` instead
 
 [preview]
 wrap = "no"
 tab_size = 2
-max_width = 2048
-max_height = 2048
+max_width = 1200
+max_height = 1200
 cache_dir = ""
-image_delay = 30
+image_delay = 10
 image_filter = "triangle"
-image_quality = 85
+image_quality = 75
 ueberzug_scale = 1
 ueberzug_offset = [0, 0, 0, 0]
 
@@ -96,8 +97,12 @@ rules = [
 ]
 
 [tasks]
-micro_workers = 10
-macro_workers = 10
+# Fine-grained worker control (replaces deprecated micro_workers/macro_workers in 26.5.6)
+file_workers = 5
+plugin_workers = 5
+fetch_workers = 10
+preload_workers = 3
+process_workers = 5
 bizarre_retry = 3
 image_alloc = 536870912      # 512MB
 image_bound = [10000, 10000]
