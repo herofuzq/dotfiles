@@ -4,9 +4,19 @@ local appearance = require("appearance")
 local colors = appearance.colors
 local settings = require("settings")
 
-local focused_bg = appearance.with_alpha(colors.red, 0.18)
-local fullscreen_bg = appearance.with_alpha(colors.peach, 0.36)
-local inactive_bg = appearance.with_alpha(colors.red, 0)
+-- ========== Workspace 分段状态样式 ==========
+-- segment 几何（x_offset、height、corner_radius 等）跟 segment 颜色分开管理：
+--   - 几何：set_segment_geometry 在 animation 之外 set，一次到位、不会被插值
+--   - 颜色：set_focused / set_fullscreen / set_inactive 在 sbar.animate 回调里 set，
+--           sketchybar 自动同步插值 bg.color + icon/label.color
+--
+-- 为什么拆开：实测发现 sketchybar 在 sbar.animate 里把 x_offset 当成"相对变化"处理，
+-- 每次 animation 启动都从某个隐式 baseline（target - 1）插到 target，造成最右 segment
+-- 在动画前 200ms 期间 x_offset 显示为 -1 而不是 -2，视觉上就是"高亮往回跳 1px"。
+-- 把 x_offset 拆到 animation 之外后就不参与插值，bug 消失。
+local focused_bg = colors.red
+local fullscreen_bg = colors.peach
+local inactive_bg = 0x00000000
 local workspace_style = {
 	bracket_height = settings.height - 4,
 	bracket_border_width = 2,
@@ -31,11 +41,10 @@ local function segment_x_offset(name)
 	return 0
 end
 
-local function set_focused(name)
+local function set_segment_geometry(name)
 	sbar.set(name, {
 		background = {
 			drawing = true,
-			color = focused_bg,
 			height = workspace_style.segment_height,
 			border_width = 0,
 			corner_radius = workspace_style.segment_radius,
@@ -43,42 +52,42 @@ local function set_focused(name)
 			padding_right = 0,
 			x_offset = segment_x_offset(name),
 		},
+	})
+end
+
+local function set_focused(name)
+	sbar.set(name, {
+		background = { color = focused_bg },
+		icon = { color = colors.crust, highlight_color = colors.crust },
+		label = { color = colors.crust, highlight_color = colors.crust },
 	})
 end
 
 local function set_fullscreen(name)
 	sbar.set(name, {
-		background = {
-			drawing = true,
-			color = fullscreen_bg,
-			height = workspace_style.segment_height,
-			border_width = 0,
-			corner_radius = workspace_style.segment_radius,
-			padding_left = 0,
-			padding_right = 0,
-			x_offset = segment_x_offset(name),
-		},
+		background = { color = fullscreen_bg },
+		icon = { color = colors.crust, highlight_color = colors.crust },
+		label = { color = colors.crust, highlight_color = colors.crust },
 	})
 end
 
 local function set_inactive(name)
 	sbar.set(name, {
-		background = {
-			drawing = true,
-			color = inactive_bg,
-			height = workspace_style.segment_height,
-			border_width = 0,
-			corner_radius = workspace_style.segment_radius,
-			padding_left = 0,
-			padding_right = 0,
-			x_offset = segment_x_offset(name),
-		},
+		background = { color = inactive_bg },
+		icon = { color = colors.pill_fg, highlight_color = colors.pill_fg },
+		label = { color = colors.pill_fg, highlight_color = colors.pill_fg },
 	})
 end
 
 local function distribute(visible_workspace_names, fullscreen_set, focused_name, animated)
 	fullscreen_set = fullscreen_set or {}
 
+	-- 第一步：segment 几何在 animation 之外一次设好（不被插值，避免 x_offset 跳 1px）
+	for i, name in ipairs(visible_workspace_names) do
+		set_segment_geometry(name)
+	end
+
+	-- 第二步：颜色（bg + icon/label）走 sbar.animate 同步插值
 	local function apply()
 		for i, name in ipairs(visible_workspace_names) do
 			if fullscreen_set[i] then

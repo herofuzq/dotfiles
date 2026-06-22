@@ -144,25 +144,16 @@ local refresh_schedule_generation = 0
 local window_snapshot = {}
 local fullscreen_snapshot = {}
 
--- ========== 公共排序：focused 窗口排最前，其余按 window-id 降序 ==========
+-- ========== 公共排序：按创建时间倒序 ==========
 -- 注意：
 --   - 快照和 popup 都使用 {app, window_id, title}
 --   - 比较前统一 tonumber，避免 string/number 类型不一致
 --   - window-id 是 macOS 给的 CGWindowID，同一会话内单调递增，跨重启会重置
-local function sort_windows_by_focus(wins, focused_window_id)
-	local focused_id = tonumber(focused_window_id)
+--   - id 大 = 创建晚，所以按 id 降序就是按创建时间倒序（最新创建的排最前）
+--   - 不再 special-case focused：focused 窗口的"高亮色"由渲染层单独处理，不影响顺序
+local function sort_windows_by_creation(wins)
 	table.sort(wins, function(a, b)
-		local aid = tonumber(a.window_id) or 0
-		local bid = tonumber(b.window_id) or 0
-		if focused_id then
-			if aid == focused_id then
-				return bid ~= focused_id
-			end
-			if bid == focused_id then
-				return false
-			end
-		end
-		return aid > bid
+		return (tonumber(a.window_id) or 0) > (tonumber(b.window_id) or 0)
 	end)
 end
 
@@ -182,7 +173,7 @@ local function withWindows(f)
 		if pending == 0 then
 			-- 等窗口和工作区查询全部完成后统一排序、渲染。
 			for _, wins in pairs(results.open_windows) do
-				sort_windows_by_focus(wins, results.focused_window_id)
+				sort_windows_by_creation(wins)
 			end
 			f(results)
 		end
@@ -312,7 +303,10 @@ local function content_signature(open_windows)
 	return table.concat(apps, "\0")
 end
 
-local function animate_workspace_content(workspace_index, apply_content)
+local function animate_workspace_content(workspace_index, apply_content, is_focused)
+	-- 反显色跟 borders.set_focused 对齐：focused 用 crust，inactive 用 pill_fg
+	-- 不再硬编码 pill_fg，否则 focused 工作区开/关窗口时反显会被冲掉。
+	local final_color = is_focused and appearance.colors.crust or appearance.colors.pill_fg
 	_content_anim_gen[workspace_index] = (_content_anim_gen[workspace_index] or 0) + 1
 	local gen = _content_anim_gen[workspace_index]
 	local workspace = workspaces[workspace_index]
@@ -320,8 +314,8 @@ local function animate_workspace_content(workspace_index, apply_content)
 	sbar.animate("linear", CONTENT_FADE_IN_FRAMES, function()
 		workspace:set({
 			label = {
-				color = transparent(appearance.colors.pill_fg),
-				highlight_color = transparent(appearance.colors.red),
+				color = transparent(final_color),
+				highlight_color = transparent(final_color),
 			},
 		})
 	end)
@@ -332,15 +326,15 @@ local function animate_workspace_content(workspace_index, apply_content)
 		apply_content()
 		workspace:set({
 			label = {
-				color = transparent(appearance.colors.pill_fg),
-				highlight_color = transparent(appearance.colors.red),
+				color = transparent(final_color),
+				highlight_color = transparent(final_color),
 			},
 		})
 		sbar.animate("linear", CONTENT_FADE_IN_FRAMES, function()
 			workspace:set({
 				label = {
-					color = appearance.colors.pill_fg,
-					highlight_color = appearance.colors.red,
+					color = final_color,
+					highlight_color = final_color,
 				},
 			})
 		end)
@@ -362,15 +356,18 @@ local function updateWindow(workspace_index, args)
 		end
 	end
 
+	local is_focused = args.focused_workspace == workspace_index
+
 	if animations_ready and changed then
-		animate_workspace_content(workspace_index, apply_content)
+		animate_workspace_content(workspace_index, apply_content, is_focused)
 	else
 		_content_anim_gen[workspace_index] = (_content_anim_gen[workspace_index] or 0) + 1
 		apply_content()
+		local final_color = is_focused and appearance.colors.crust or appearance.colors.pill_fg
 		workspaces[workspace_index]:set({
 			label = {
-				color = appearance.colors.pill_fg,
-				highlight_color = appearance.colors.red,
+				color = final_color,
+				highlight_color = final_color,
 			},
 		})
 	end
@@ -437,7 +434,7 @@ local function togglePopup(ws_index, workspace_item, force_show)
 			window_id = win.window_id,
 		}
 	end
-	sort_windows_by_focus(windows, focused_window_id_cache)
+	sort_windows_by_creation(windows)
 
 	_popup_windows[ws_index] = {}
 	for i, win in ipairs(windows) do
@@ -485,11 +482,6 @@ local function togglePopup(ws_index, workspace_item, force_show)
 	end
 end
 
--- ========== 工作区高亮辅助 ==========
-local function set_highlight(ws, is_focused)
-	ws:set({ icon = { highlight = is_focused }, label = { highlight = is_focused } })
-end
-
 local function distribute_cached_borders(focused_workspace, animated)
 	local visible_names = {}
 	local fullscreen_idx = {}
@@ -526,7 +518,8 @@ local function updateWindows()
 		end
 
 		for ws_idx, ws in pairs(workspaces) do
-			set_highlight(ws, ws_idx == args.focused_workspace)
+			-- icon/label color 已由 borders.distribute 在 sbar.animate 里一起渐变，
+			-- 这里不需要单独 toggle highlight 标志。
 		end
 
 		-- 第一步：更新每个工作区的窗口内容
@@ -645,7 +638,7 @@ for _, ws in ipairs(initial_workspaces) do
 		padding_right = 0,
 		icon = {
 			color = appearance.colors.pill_fg,
-			highlight_color = appearance.colors.red,
+			highlight_color = appearance.colors.crust,
 			font = { family = fonts.font.text, style = fonts.font.style_map["Bold"], size = 13.0 },
 			padding_left = 10,
 			padding_right = 2,
@@ -654,7 +647,7 @@ for _, ws in ipairs(initial_workspaces) do
 		},
 		label = {
 			color = appearance.colors.pill_fg,
-			highlight_color = appearance.colors.red,
+			highlight_color = appearance.colors.crust,
 			font = APP_ICON_FONT,
 			padding_left = 2,
 			padding_right = 10,
@@ -816,9 +809,6 @@ sbar.exec(":", function()
 			focused_workspace_cache = focused
 			for k, _ in pairs(_popup_pinned) do _popup_pinned[k] = false end
 			for k, _ in pairs(_popup_hovering) do _popup_hovering[k] = false end
-			for ws_idx, ws in pairs(workspaces) do
-				set_highlight(ws, ws_idx == focused)
-			end
 			-- 使用已有快照一次性清除旧背景并点亮当前工作区，不触发窗口查询。
 			distribute_cached_borders(focused, animations_ready)
 		end
@@ -833,7 +823,7 @@ sbar.exec(":", function()
 		scheduleUpdateWindows(0.5)
 	end)
 
-	-- 焦点变化只重排已有快照，不再调用 AeroSpace 窗口枚举。
+	-- 焦点变化不再触发 AeroSpace 窗口枚举，只重渲染已有快照以更新高亮色。
 	root:subscribe("window_focus_change", function(env)
 		local focused_id = tonumber(env.FOCUSED_WINDOW_ID)
 		if not focused_id then
@@ -849,7 +839,7 @@ sbar.exec(":", function()
 				end
 			end
 			if contains_focused_window and workspaces[workspace_index] then
-				sort_windows_by_focus(wins, focused_id)
+				-- 顺序由创建时间决定，不受焦点影响；只重渲染以更新高亮色
 				show_workspace_apps(workspace_index, app_icon_line(wins))
 				break
 			end
@@ -921,9 +911,6 @@ sbar.exec(":", function()
 		focused_workspace = focused_workspace:match("^%s*(.-)%s*$")
 		focused_workspace_cache = focused_workspace
 		if workspaces[focused_workspace] then
-			for ws_idx, ws in pairs(workspaces) do
-				set_highlight(ws, ws_idx == focused_workspace)
-			end
 			distribute_cached_borders(focused_workspace)
 		end
 	end)
