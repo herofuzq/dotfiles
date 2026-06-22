@@ -913,37 +913,6 @@ sbar.exec(":", function()
 		end)
 	end)
 
-	-- theme_changed
-	root:subscribe("theme_changed", function()
-		for _, ws_idx in ipairs(workspace_order) do
-			local ws = workspaces[ws_idx]
-			if ws then
-				ws:set({
-					icon = { color = appearance.colors.pill_fg },
-					label = { color = appearance.colors.pill_fg },
-					popup = { background = { color = appearance.with_alpha(appearance.colors.pill_bg, 0.85) } },
-				})
-			end
-		end
-		sbar.set("workspaces.bracket", {
-			background = { color = appearance.colors.pill_bg, border_color = appearance.colors.border },
-		})
-		for _, items in pairs(_popup_items) do
-			for _, item in ipairs(items) do
-				if item then
-					item:set({
-						icon = { color = appearance.colors.pill_fg },
-						label = { color = appearance.colors.text },
-					})
-				end
-			end
-		end
-		sbar.set("aerospace_mode", { label = { color = appearance.colors.sapphire } })
-
-		-- 主题变化只需重绘现有分段，不重新枚举窗口。
-		distribute_cached_borders(focused_workspace_cache)
-	end)
-
 	-- 初始 focus
 	sbar.exec("aerospace list-workspaces --focused", function(focused_workspace)
 		if not focused_workspace then

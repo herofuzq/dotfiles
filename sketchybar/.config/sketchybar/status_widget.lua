@@ -88,20 +88,7 @@ return function(opts)
 		end)
 	end
 
-	-- 主题切换时仅刷新颜色，不重查应用状态
-	local function refresh_colors()
-		item:set({
-			icon = {
-				color = last_num > 0 and resolve_color(opts.icon_color) or resolve_color(opts.icon_inactive_color),
-			},
-			label = {
-				color = last_num > 0 and resolve_color(opts.label_color) or resolve_color(opts.label_inactive_color),
-			},
-		})
-	end
-
 	item:subscribe({ "routine", "system_woke" }, check_status)
-	item:subscribe("theme_changed", refresh_colors)
 	check_status()
 
 	-- 点击打开对应应用

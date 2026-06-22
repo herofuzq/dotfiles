@@ -267,7 +267,6 @@ local function update_battery()
 end
 
 battery:subscribe({ "routine", "power_source_change", "system_woke" }, update_battery)
-battery:subscribe("theme_changed", update_battery)
 update_battery()
 
 -- batt_info 默认 drawing=false,等数据来了才显示,这里不登记

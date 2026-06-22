@@ -87,14 +87,5 @@ local function check_status()
 	end)
 end
 
-local function refresh_colors()
-	clash_tun:set({
-		icon = { color = color_for(last_state) },
-		label = { color = colors.pill_fg },
-	})
-end
-
 clash_tun:subscribe({ "routine", "system_woke" }, check_status)
 check_status()
-
-clash_tun:subscribe("theme_changed", refresh_colors)
