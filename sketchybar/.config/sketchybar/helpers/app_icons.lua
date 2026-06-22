@@ -786,4 +786,5 @@ return {
 	["联通云会议"] = ":face_time:",
 	["biagmeeting"] = ":face_time:",
 	["MiniMax Code"] = ":copilot:",
+	["eM Client"] = ":mail:",
 }
