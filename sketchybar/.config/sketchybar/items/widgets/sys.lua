@@ -112,7 +112,8 @@ for i = 1, 10 do
 	process_items[i] = popup_item("widgets.sys.process." .. i, " ")
 end
 
-local _popup_pinned, _popup_hovering, _exit_gen = false, false, 0
+local popup_utils = require("helpers.popup_utils")
+local popup_state = popup_utils.new_state()
 local _watching = false
 
 local function stop_watcher()
@@ -166,7 +167,7 @@ local sys_popup = popup_animation.new(sys, {
 })
 
 local function show_popup()
-	_exit_gen = _exit_gen + 1
+	popup_state.exit_gen = popup_state.exit_gen + 1
 	set_popup_items(true)
 	sys_popup:show()
 	if not MACTOP then
@@ -191,37 +192,30 @@ local function hide_popup()
 end
 
 local function schedule_hide()
-	if _popup_pinned then
-		return
-	end
-	_exit_gen = _exit_gen + 1
-	local gen = _exit_gen
-	sbar.delay(0.2, function()
-		if _exit_gen == gen and not _popup_hovering and not _popup_pinned then
-			hide_popup()
-		end
+	popup_utils.schedule_hide(popup_state, function()
+		hide_popup()
 	end)
 end
 
 sys:subscribe("mouse.entered", show_popup)
 sys:subscribe("mouse.exited", schedule_hide)
 sys:subscribe("mouse.clicked", function()
-	if _popup_pinned then
-		_popup_pinned = false
+	if popup_state.pinned then
+		popup_state.pinned = false
 		hide_popup()
 	else
-		_popup_pinned = true
+		popup_state.pinned = true
 		show_popup()
 	end
 end)
 
 for _, item in ipairs({ info, table.unpack(process_items) }) do
 	item:subscribe("mouse.entered", function()
-		_exit_gen = _exit_gen + 1
-		_popup_hovering = true
+		popup_state.exit_gen = popup_state.exit_gen + 1
+		popup_state.hovering = true
 	end)
 	item:subscribe("mouse.exited", function()
-		_popup_hovering = false
+		popup_state.hovering = false
 		schedule_hide()
 	end)
 end

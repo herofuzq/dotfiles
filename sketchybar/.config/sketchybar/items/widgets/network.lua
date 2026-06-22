@@ -235,8 +235,11 @@ sbar.add("bracket", "widgets.system", {
 	},
 })
 
--- spacer：防止后续 media 水平 item 覆盖 network bracket
-sbar.add("item", "widgets.media_spacer", {
+-- spacer：system bracket 与 social bracket 之间的水平间隙
+--   公式 = max(包裹item宽度) + 两侧bracket_border
+--        = network_down(33+4+13+2+2=54) + 2 + 2 = 58
+--   改 network_down 字体/宽度或 bracket border 时请同步更新此处
+sbar.add("item", "widgets.system_bracket_spacer", {
 	position = "right",
 	width = 58,
 	padding_left = 0,

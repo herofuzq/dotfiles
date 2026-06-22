@@ -40,22 +40,12 @@ local cal = sbar.add("item", "calendar", {
 	},
 })
 
-local _popup_pinned, _popup_hovering, _exit_gen = false, false, 0
+local popup_utils = require("helpers.popup_utils")
+local popup_state = popup_utils.new_state()
 local cal_popup
 
 local function scheduleHide()
-	if _popup_pinned then
-		return
-	end
-	_exit_gen = _exit_gen + 1
-	local gen = _exit_gen
-	sbar.delay(0.2, function()
-		if _exit_gen ~= gen then
-			return
-		end
-		if _popup_hovering or _popup_pinned then
-			return
-		end
+	popup_utils.schedule_hide(popup_state, function()
 		cal_popup:hide(true)
 	end)
 end
@@ -92,11 +82,11 @@ for i = 1, CAL_LINES do
 		background = { drawing = false },
 	})
 	item:subscribe("mouse.entered", function()
-		_exit_gen = _exit_gen + 1
-		_popup_hovering = true
+		popup_state.exit_gen = popup_state.exit_gen + 1
+		popup_state.hovering = true
 	end)
 	item:subscribe("mouse.exited", function()
-		_popup_hovering = false
+		popup_state.hovering = false
 		scheduleHide()
 	end)
 	cal_items[i] = item
@@ -174,22 +164,22 @@ cal:subscribe(
 			local t = os.date("*t")
 			cal:set({ icon = string.format("%d月%d日", t.month, t.day), label = string.format(" %02d:%02d", t.hour, t.min) })
 		elseif s == "mouse.entered" then
-			_exit_gen = _exit_gen + 1
+			popup_state.exit_gen = popup_state.exit_gen + 1
 			updatePopupContent()
 			cal_popup:show()
 		elseif s == "mouse.exited" then
 			scheduleHide()
 		elseif s == "mouse.clicked" then
-			_popup_pinned = not _popup_pinned
+			popup_state.pinned = not popup_state.pinned
 			updatePopupContent()
-			if _popup_pinned then
+			if popup_state.pinned then
 				cal_popup:show()
 			else
 				cal_popup:hide(true)
 			end
 		elseif s == "mouse.exited.global" then
-			_exit_gen = _exit_gen + 1
-			if not _popup_pinned then
+			popup_state.exit_gen = popup_state.exit_gen + 1
+			if not popup_state.pinned then
 				cal_popup:hide(true)
 			end
 		end

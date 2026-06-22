@@ -848,7 +848,7 @@ sbar.exec(":", function()
 
 	-- 显示器变化/唤醒：同步 bar、自动显隐区域与工作区所属屏幕
 	root:subscribe({ "display_change", "system_woke" }, function()
-		local h = settings.detect_bar_height(true)
+		local h = settings.detect_bar_height()
 		sbar.bar({ height = h })
 		settings.ensure_toggle(h)
 		updateWorkspaceMonitor()

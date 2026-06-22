@@ -68,7 +68,8 @@ local batt_info = sbar.add("item", "widgets.battery.info", {
 	background = { drawing = false },
 })
 
-local _popup_pinned, _popup_hovering, _exit_gen = false, false, 0
+local popup_utils = require("helpers.popup_utils")
+local popup_state = popup_utils.new_state()
 local last_state
 local last_battery_signature
 local battery_popup = popup_animation.new(battery, {
@@ -81,18 +82,7 @@ local battery_popup = popup_animation.new(battery, {
 })
 
 local function scheduleHide()
-	if _popup_pinned then
-		return
-	end
-	_exit_gen = _exit_gen + 1
-	local gen = _exit_gen
-	sbar.delay(0.2, function()
-		if _exit_gen ~= gen then
-			return
-		end
-		if _popup_hovering or _popup_pinned then
-			return
-		end
+	popup_utils.schedule_hide(popup_state, function()
 		battery_popup:hide(true)
 	end)
 end
@@ -179,7 +169,7 @@ local function update_batt_info(state)
 end
 
 battery:subscribe("mouse.entered", function()
-	_exit_gen = _exit_gen + 1
+	popup_state.exit_gen = popup_state.exit_gen + 1
 	update_batt_info(last_state)
 	batt_info:set({ drawing = true })
 	battery_popup:show()
@@ -190,11 +180,11 @@ battery:subscribe("mouse.exited", function()
 end)
 
 battery:subscribe("mouse.clicked", function()
-	if _popup_pinned then
-		_popup_pinned = false
+	if popup_state.pinned then
+		popup_state.pinned = false
 		battery_popup:hide(true)
 	else
-		_popup_pinned = true
+		popup_state.pinned = true
 		update_batt_info(last_state)
 		batt_info:set({ drawing = true })
 		battery_popup:show()
@@ -202,11 +192,11 @@ battery:subscribe("mouse.clicked", function()
 end)
 
 batt_info:subscribe("mouse.entered", function()
-	_exit_gen = _exit_gen + 1
-	_popup_hovering = true
+	popup_state.exit_gen = popup_state.exit_gen + 1
+	popup_state.hovering = true
 end)
 batt_info:subscribe("mouse.exited", function()
-	_popup_hovering = false
+	popup_state.hovering = false
 	scheduleHide()
 end)
 

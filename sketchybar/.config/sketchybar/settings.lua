@@ -6,8 +6,8 @@
 --   sketchybar-toggle: brew 安装 (随 sketchybar cask 一起),由 ensure_toggle() 启动,
 --                      实现"鼠标接近顶部自动显示 / 远离自动隐藏"bar 的行为
 local BAR_HEIGHT_CACHE = "/tmp/sketchybar_bar_height.cache"
-local TOGGLE_PIDFILE = "/tmp/sketchybar_toggle.pid"
-local TOGGLE_CONFIG_FILE = "/tmp/sketchybar_toggle.config"
+local TOGGLE_PIDNAME = "sketchybar_toggle.pid"
+local TOGGLE_CONFIGNAME = "sketchybar_toggle.config"
 local TOGGLE_TRIGGER_ZONE = 2
 local TOGGLE_DEBOUNCE_MS = 150
 
@@ -38,7 +38,7 @@ end
 -- 用 Carbon GetMBarHeight (30) 的标准值, 不信实测 31 那 1pt 漂移
 local FALLBACK_HEIGHT = 30
 
-local function detect_bar_height(force)
+local function detect_bar_height()
 	local cfg = os.getenv("CONFIG_DIR")
 	if cfg then
 		local f = io.popen('"' .. cfg .. '/helpers/bar_height/bin/bar_height" 2>/dev/null')
@@ -103,8 +103,8 @@ local function ensure_toggle(bar_height)
 	local menu_bar_height = bar_height + 5
 	local signature = string.format("%d:%d:%d", TOGGLE_TRIGGER_ZONE, menu_bar_height, TOGGLE_DEBOUNCE_MS)
 	local command = table.concat({
-		'pidfile="' .. TOGGLE_PIDFILE .. '"',
-		'configfile="' .. TOGGLE_CONFIG_FILE .. '"',
+		'pidfile="${TMPDIR:-/tmp}/' .. TOGGLE_PIDNAME .. '"',
+		'configfile="${TMPDIR:-/tmp}/' .. TOGGLE_CONFIGNAME .. '"',
 		'expected="' .. signature .. '"',
 		'old="$(cat "$pidfile" 2>/dev/null)"',
 		'case "$old" in ""|*[!0-9]*) old="" ;; esac',

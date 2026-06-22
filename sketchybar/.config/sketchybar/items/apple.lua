@@ -11,8 +11,8 @@ local enter_animation = require("helpers.enter_animation")
 local border_width = 0 -- 无背景无边框
 local icon_width = 15
 
-local function compute_icon_pad(force)
-	local dock_w, dock_hidden = settings.detect_dock_width(force)
+local function compute_icon_pad()
+	local dock_w, dock_hidden = settings.detect_dock_width()
 	if dock_hidden == 1 then
 		return 15, 15
 	else
@@ -61,7 +61,7 @@ end)
 
 -- 显示器切换时重新检测 Dock 宽度，动态调整 icon padding
 apple:subscribe({ "display_change", "system_woke" }, function()
-	local pl, pr = compute_icon_pad(true)
+	local pl, pr = compute_icon_pad()
 	apple:set({ icon = { padding_left = pl, padding_right = pr } })
 
 	-- 同时重新检测 bar height: 内外屏切换时 notch / menubar 状态可能不同
