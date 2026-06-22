@@ -384,6 +384,10 @@ if.app-id = "com.brave.Browser"
 run = ["move-node-to-workspace 1̲Main --focus-follows-window"]
 
 [[on-window-detected]]
+if.app-id = "app.zen-browser.zen"
+run = ["move-node-to-workspace 1̲Main --focus-follows-window"]
+
+[[on-window-detected]]
 if.app-id = "com.kingsoft.wpsoffice.mac"
 run = ["move-node-to-workspace 4̲Work --focus-follows-window"]
 
@@ -401,6 +405,10 @@ run = ["move-node-to-workspace 4̲Work --focus-follows-window"]
 
 [[on-window-detected]]
 if.app-id = "com.tencent.qclaw"
+run = ["move-node-to-workspace 4̲Work --focus-follows-window"]
+
+[[on-window-detected]]
+if.app-id = "com.emclient.mail.client"
 run = ["move-node-to-workspace 4̲Work --focus-follows-window"]
 
 [[on-window-detected]]
