@@ -1,2 +1,4 @@
 bin
 tests
+# macOS Finder metadata（gitignored 但 stow 不读 .gitignore，得手动列）
+.DS_Store
