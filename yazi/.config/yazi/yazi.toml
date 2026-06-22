@@ -19,7 +19,7 @@ tab_size = 2
 max_width = 1200
 max_height = 1200
 cache_dir = ""
-image_delay = 10
+image_delay = 30
 image_filter = "triangle"
 image_quality = 75
 ueberzug_scale = 1
@@ -153,12 +153,13 @@ previewers = [
 	{ url = "*.tar*", run = 'piper --format=url -- tar tf "$1"' },
 	{ url = "*.csv", run = 'piper -- bat -p --color=always "$1"' },
 	{ mime = "application/sqlite3", run = 'piper -- sqlite3 "$1" ".schema --indent"' },
-  # Office
-  { url = "*.[xX][lL][sS]*" , run = 'piper -- python3 -m xlsx2csv -s 0 "$1" | bat --style=header,grid --color=always --language=csv' },
-  { url = "*.[dD][oO][cC][xX]" , run = 'piper -- pandoc -f docx -t markdown "$1" | rich - -m --theme=monokai --max-width=$w' },
-  { url = "*.[pP][pP][tT][xX]" , run = 'piper -- sh -c "python3 -c \"import sys, pptx; prs=pptx.Presentation(sys.argv[1]); [print(f\\\"--- Slide {i+1} ---\\\n\\\" + \\\"\n\\\".join([p.text for s in slide.shapes if s.has_text_frame for p in s.text_frame.paragraphs])) for i, slide in enumerate(prs.slides)]\" \"$1\" 2>/dev/null | bat --style=header,grid --color=always --language=csv"' },
+	# Office
+	{ url = "*.[xX][lL][sS]*" , run = 'piper -- python3 -m xlsx2csv -s 0 "$1" | bat --style=header,grid --color=always --language=csv' },
+	{ url = "*.[dD][oO][cC][xX]" , run = 'piper -- pandoc -f docx -t markdown "$1" | rich - -m --theme=monokai --max-width=$w' },
+	{ url = "*.[dD][oO][cC]", run = 'piper -- textutil -stdout -convert txt "$1" | bat --style=header,grid --color=always --language=txt' },
+	{ url = "*.[pP][pP][tT][xX]" , run = 'piper -- sh -c "python3 -c \"import sys, pptx; prs=pptx.Presentation(sys.argv[1]); [print(f\\\"--- Slide {i+1} ---\\\n\\\" + \\\"\n\\\".join([p.text for s in slide.shapes if s.has_text_frame for p in s.text_frame.paragraphs])) for i, slide in enumerate(prs.slides)]\" \"$1\" 2>/dev/null | bat --style=header,grid --color=always --language=csv"' },
 
-  { url = "*/", run = "folder" },
+	{ url = "*/", run = "folder" },
 	# Code
 	{ mime = "text/*", run = "code" },
 	{ mime = "application/{mbox,javascript,wine-extension-ini}", run = "code" },
