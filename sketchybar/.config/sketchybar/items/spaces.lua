@@ -825,7 +825,12 @@ sbar.exec(":", function()
 	end)
 
 	root:subscribe("space_windows_change", function()
-		scheduleUpdateWindows(0.1)
+		-- 500ms 跟 c6918af 的 aerospace_workspace_change handler 对齐：
+		-- aerospace (重)启动时 after-startup-command 会触发此事件，
+		-- 此时 on-window-detected 还在 settle 各浮窗，100ms 太短会让
+		-- list-windows 的 AX 评估触发 aerospace 重算浮窗 frame → 浮窗位移。
+		-- Hammerspoon 触发的开关窗事件吃 400ms 额外延迟可接受（HS 自己 debounce 50/250ms）。
+		scheduleUpdateWindows(0.5)
 	end)
 
 	-- 焦点变化只重排已有快照，不再调用 AeroSpace 窗口枚举。

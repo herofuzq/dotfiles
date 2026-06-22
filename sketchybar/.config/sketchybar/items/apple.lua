@@ -63,6 +63,16 @@ end)
 apple:subscribe({ "display_change", "system_woke" }, function()
 	local pl, pr = compute_icon_pad(true)
 	apple:set({ icon = { padding_left = pl, padding_right = pr } })
+
+	-- 同时重新检测 bar height: 内外屏切换时 notch / menubar 状态可能不同
+	-- settings.detect_bar_height() 内部会清掉跨屏遗留的 stale cache
+	local new_h = settings.detect_bar_height()
+	if new_h and new_h ~= settings.height then
+		sbar.bar({ height = new_h })
+		-- 同步更新 sketchybar-toggle 的 trigger zone (menu_bar_height = bar_h + 5)
+		settings.ensure_toggle(new_h)
+		settings.height = new_h
+	end
 end)
 
 enter_animation.register("apple")

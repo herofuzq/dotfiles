@@ -30,6 +30,10 @@ local function write_cache(path, value)
 	f:close()
 end
 
+local function clear_cache(path)
+	os.remove(path)
+end
+
 -- fallback: 非刘海外接屏无菜单栏时的兜底
 -- 用 Carbon GetMBarHeight (30) 的标准值, 不信实测 31 那 1pt 漂移
 local FALLBACK_HEIGHT = 30
@@ -41,16 +45,25 @@ local function detect_bar_height(force)
 		if f then
 			local output = f:read("*a")
 			f:close()
-			local h = output:match("^(%d+)")
-			if h then
-				h = tonumber(h)
+			-- 严格解析 "N M" (N>=0, M=0|1) — 区分 binary 成功返 0 vs binary 崩溃输出空
+			-- 注意: `output and output:match(...)` 里的 and 会把多返回值截断成 1 个,
+			--      所以先判 nil, 再单独 match
+			local h_str, flag
+			if output then
+				h_str, flag = output:match("^%s*(%d+)%s+(%d+)")
+			end
+			if h_str and flag then
+				local h = tonumber(h_str)
 				if h and h > 0 then
 					-- binary 拿到有效值 → 更新 cache 并返回
 					write_cache(BAR_HEIGHT_CACHE, tostring(h))
 					return h
 				end
-				-- h == 0: 菜单栏在无刘海屏被隐藏了, 不污染 cache
+				-- h == 0: 菜单栏在无刘海屏被隐藏了 → 跨屏了, 清掉旧 cache, 走 fallback
+				-- (不然后面 cache 一直带着内屏 33 来到外屏)
+				clear_cache(BAR_HEIGHT_CACHE)
 			end
+			-- binary 输出不可解析 (崩溃/重编中) → 保留 cache
 		end
 	end
 	-- binary 失败 / 菜单栏在无刘海屏隐藏 → 优先用 cache (保留上次可见时的实测值)
