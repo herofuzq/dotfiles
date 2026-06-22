@@ -30,14 +30,11 @@ local function write_cache(path, value)
 	f:close()
 end
 
+-- fallback: 非刘海外接屏无菜单栏时的兜底
+-- 用 Carbon GetMBarHeight (30) 的标准值, 不信实测 31 那 1pt 漂移
+local FALLBACK_HEIGHT = 30
+
 local function detect_bar_height(force)
-	local fallback = 30
-	if not force then
-		local cached = tonumber(read_cache(BAR_HEIGHT_CACHE))
-		if cached and cached > 0 then
-			return cached
-		end
-	end
 	local cfg = os.getenv("CONFIG_DIR")
 	if cfg then
 		local f = io.popen('"' .. cfg .. '/helpers/bar_height/bin/bar_height" 2>/dev/null')
@@ -47,15 +44,23 @@ local function detect_bar_height(force)
 			local h = output:match("^(%d+)")
 			if h then
 				h = tonumber(h)
-				if h > 0 then
+				if h and h > 0 then
+					-- binary 拿到有效值 → 更新 cache 并返回
 					write_cache(BAR_HEIGHT_CACHE, tostring(h))
 					return h
 				end
+				-- h == 0: 菜单栏在无刘海屏被隐藏了, 不污染 cache
 			end
 		end
 	end
-	write_cache(BAR_HEIGHT_CACHE, tostring(fallback))
-	return fallback
+	-- binary 失败 / 菜单栏在无刘海屏隐藏 → 优先用 cache (保留上次可见时的实测值)
+	local cached = tonumber(read_cache(BAR_HEIGHT_CACHE))
+	if cached and cached > 0 then
+		return cached
+	end
+	-- 冷启动 cache 也是空 → 用 fallback
+	write_cache(BAR_HEIGHT_CACHE, tostring(FALLBACK_HEIGHT))
+	return FALLBACK_HEIGHT
 end
 
 local function detect_dock_width()
