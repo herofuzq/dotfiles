@@ -23,6 +23,17 @@ end
 --
 -- 历史方案：needs_make() 用 Lua 表手工枚举 7 个 helper 的 target + source，
 -- 每次新增 helper 要同时改源码、makefile 和这个表。Codex review 后删除。
+local function stat_mtime(path)
+	-- BSD stat: -f %m 输出 mtime epoch。文件不存在时输出空，tonumber 返回 nil。
+	local f = io.popen("stat -f %m " .. shell_quote(path) .. " 2>/dev/null")
+	if not f then
+		return nil
+	end
+	local s = f:read("*l")
+	f:close()
+	return tonumber(s)
+end
+
 local function run_make(cfg)
 	local log_path = "/tmp/sketchybar_make.log"
 
@@ -39,11 +50,7 @@ local function run_make(cfg)
 	}
 	local before = {}
 	for _, t in ipairs(targets) do
-		local f = io.open(t)
-		if f then
-			before[t] = f:seek("end")
-			f:close()
-		end
+		before[t] = stat_mtime(t)
 	end
 
 	local cmd = "cd "
@@ -58,17 +65,12 @@ local function run_make(cfg)
 		f:close()
 	end
 
+	-- 重建后任一 binary 的 mtime 变了 → 视为 changed（触发 event provider restart）。
+	-- mtime 粒度到秒，几乎不存在"重建后 mtime 完全相同"的边界 case。
 	local changed = false
 	for _, t in ipairs(targets) do
-		local f2 = io.open(t)
-		if f2 then
-			local after = f2:seek("end")
-			f2:close()
-			if (before[t] or 0) ~= after then
-				changed = true
-				break
-			end
-		elseif before[t] then
+		local after = stat_mtime(t)
+		if before[t] ~= after then
 			changed = true
 			break
 		end

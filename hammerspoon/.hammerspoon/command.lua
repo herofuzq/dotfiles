@@ -20,7 +20,9 @@ function M.find(candidates, fallback)
 			return path
 		end
 	end
-	if fallback and is_executable(fallback) then
+	-- fallback 是无路径的程序名（如 "sketchybar"），交给 hs.task.new 走 PATH 解析。
+	-- 不能用 test -x 卡它：test -x 不查 PATH，自编译装到 ~/bin 的 binary 会漏。
+	if fallback then
 		return fallback
 	end
 	return nil

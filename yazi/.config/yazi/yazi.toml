@@ -161,6 +161,9 @@ previewers = [
 
 	{ url = "*/", run = "folder" },
 	# Code
+	# HTML 必须放在 text/* 之前：previewers 按序匹配第一个命中
+	# 否则 text/* 会先用 code previewer（语法高亮），不是 w3m 渲染结果
+	{ mime = "text/html", run = 'w3m -dump -I UTF-8 -O UTF-8 -T text/html {}' },
 	{ mime = "text/*", run = "code" },
 	{ mime = "application/{mbox,javascript,wine-extension-ini}", run = "code" },
 	# JSON
