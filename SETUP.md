@@ -32,7 +32,10 @@ brew bundle install --file=Brewfile
 # 3. Stow 所有配置包（--no-folding 避免目录折叠）
 stow --no-folding aerospace bash bat borders btop clash cmux fastfetch fcitx5 fd \
      ghostty git hammerspoon karabiner kitty lazygit npm nvim \
-     sketchybar ssh starship tmux yazi zsh aerc
+     sketchybar ssh starship tmux yazi zsh
+
+# 3.5 aerc 用单独的 target 装到 macOS 路径（详见下方 aerc 章节）
+stow --no-folding --target=$HOME/Library/Preferences --dir=$HOME/dotfiles/aerc/.config aerc
 
 # 4. 安装 Xcode Command Line Tools（编译 helpers 需要）
 xcode-select --install
@@ -76,7 +79,55 @@ brew bundle cleanup --file=Brewfile       # 清理未列出项
 | `bash` | `~/.bash_profile` | Bash 兼容配置 |
 | `starship` | `~/.config/starship.toml` | Shell 提示符主题 |
 | `tmux` | `~/.config/tmux/` | Tmux 配置 + 插件（tpm, catppuccin 等） |
-| `aerc` | `~/.config/aerc/` | 终端邮件客户端（Gmail IMAP/SMTP + Keychain 取密钥） |
+| `aerc` | `~/Library/Preferences/aerc/` | 终端邮件客户端（特殊 stow target，详见下方） |
+
+**aerc 特殊安装说明**：
+
+aerc 0.21 在 macOS 上**默认配置目录是 `~/Library/Preferences/aerc/`**（不是 `Library/Application Support`）。所以 stow 时不能用默认 target，要指定到 `~/Library/Preferences`：
+
+```bash
+# 升级后重新跑这个命令即可
+stow --no-folding --target=$HOME/Library/Preferences \
+     --dir=$HOME/dotfiles/aerc/.config aerc
+```
+
+**aerc + yazi 联动**（共享 w3m，统一附件体验）：
+
+aerc 邮件体在 [filters] 里渲染（text/plain→colorize、text/html→w3m）。**附件**则在 [openers] 里调 yazi 接管：
+
+- 在 aerc viewer 里按 `O`（或 `Enter`）→ 调 yazi 看当前 part
+- yazi 自己的 preview 体系（w3m 渲染 HTML、chafa 渲染图片、archive 看 zip 内文件、PDF、Office 文档等）远比 aerc 内置强
+- 共享 `w3m`（Brewfile 声明），aerc 自带 `html` filter 和 yazi 的 text/html preview 都用 w3m
+
+分工：
+| Part 类型 | 处理方 | 配置位置 |
+|-----------|--------|----------|
+| 邮件体 text/plain | aerc [filters] colorize | `aerc/.config/aerc/aerc.conf` |
+| 邮件体 text/html | aerc [filters] w3m（`! html`）| `aerc/.config/aerc/aerc.conf` |
+| 附件 image/* / archive / PDF / Office / json / mbox | yazi 接管（按 O）| `aerc.conf` [openers] + `yazi.toml` previewers |
+| 独立 .html 附件 | yazi 接管 + w3m 渲染 | `aerc.conf` `text/html=yazi {}` |
+
+**accounts.conf 处理**：
+- 真实 `accounts.conf` 含明文密码，**不进 git**
+- dotfiles 里只有 `accounts.conf.example` 模板
+- 真实文件在 `~/Library/Preferences/aerc/accounts.conf`（stow 不会动它）
+- 首次在新机器上：参考 `accounts.conf.example`，自己创建真实 `accounts.conf`，设权限 0600
+
+**Symlink 路径**（target 是 `~/Library/Preferences/aerc/`，跟其他包不同深度）：
+
+```text
+~/Library/Preferences/aerc/aerc.conf      -> ../../../dotfiles/aerc/.config/aerc/aerc.conf
+~/Library/Preferences/aerc/binds.conf     -> ../../../dotfiles/aerc/.config/aerc/binds.conf
+~/Library/Preferences/aerc/accounts.conf  -> 真实文件（0600，不进 dotfiles）
+~/Library/Preferences/aerc/accounts.conf.example -> ../../../dotfiles/aerc/.config/aerc/accounts.conf.example
+```
+
+> ⚠️ **stow 2.4.1 在 macOS 上有 bug**：dry-run 报"已 link"但实际没建。workaround 是先 `mavis-trash` 删旧文件再跑 stow，或者手动 `ln -s` 建 symlink。
+
+> ⚠️ **aerc 0.21 [filters] 必须显式配**：旧版本 binary 内置 `text/plain=colorize` 等 mapping，0.21 移除了。不写会报 `No filter configured for this mimetype ('text/plain')`。可执行 filter 在 `/opt/homebrew/Cellar/aerc/<ver>/libexec/aerc/filters/`，aerc.conf 必须写映射才能用。
+
+> ⚠️ **验证不能只看启动 log**：`No filter configured` 是 aerc viewer 渲染 part 时的状态栏告警，启动 log 看不到。改完 aerc.conf 必须在 TUI 里打开**带 text/plain / text/html / application/octet-stream 附件的真实邮件**确认。
+
 
 **新机器注意：**
 - Zim 需要额外安装：`curl -fsSL https://raw.githubusercontent.com/zimfw/install/master/install.zsh | zsh`
@@ -197,7 +248,11 @@ cd ~ && git clone <your-dotfiles-repo> dotfiles
 # ▸ Stow 所有配置
 cd dotfiles && stow --no-folding aerospace bash bat borders btop clash cmux fastfetch fcitx5 fd \
      ghostty git hammerspoon karabiner kitty lazygit npm nvim \
-     sketchybar ssh starship tmux yazi zsh aerc
+     sketchybar ssh starship tmux yazi zsh
+
+# ▸ aerc 特殊：装到 macOS Library/Preferences（用 --target 覆盖）
+stow --no-folding --target=$HOME/Library/Preferences \
+     --dir=$HOME/dotfiles/aerc/.config aerc
 
 # ▸ 安装 Homebrew 软件
 brew bundle install --file=Brewfile

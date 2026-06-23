@@ -33,3 +33,12 @@
 
 # Runtime-managed plugins
 tmux/.config/tmux/plugins/
+
+# aerc 真实账户配置（含明文密码 / OAuth 令牌）
+# .example 模板进 dotfiles；真本留本地 ~/Library/Preferences/aerc/accounts.conf
+aerc/.config/aerc/accounts.conf
+aerc/.config/aerc/accounts.conf.bak
+aerc/.config/aerc/accounts.conf.local
+aerc/.config/aerc/accounts.conf.real
+# 允许 .example 模板
+!aerc/.config/aerc/accounts.conf.example

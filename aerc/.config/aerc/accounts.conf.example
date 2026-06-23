@@ -1,0 +1,53 @@
+# aerc 账户配置模板
+#
+# 真实文件: ~/Library/Preferences/aerc/accounts.conf
+# - 文件权限必须 0600 (aerc 启动会检查)
+# - 含明文密码 / 令牌，**不进 git**
+# - 本文件（.example）才进 dotfiles 仓库
+#
+# 模板格式: man aerc-accounts (5)
+#
+# 初始化步骤:
+#   1. cp dotfiles/aerc/.config/aerc/accounts.conf.example \
+#         ~/Library/Preferences/aerc/accounts.conf
+#   2. chmod 600 ~/Library/Preferences/aerc/accounts.conf
+#   3. 编辑 accounts.conf，填入真实账户信息
+#
+# 更安全的密钥管理（推荐）:
+#   accounts.conf 里只写账户名 + outgoing-cred-cmd / source-cred-cmd
+#   命令从 macOS Keychain / 1Password CLI / pass 拉密钥
+#   例: source-cred-cmd = "security find-generic-password -s aerc-gmail -w"
+
+# 账户段名为 tab 标题，多账户时取不同名字
+# 字段顺序无所谓，每行 key = value
+
+[Work]
+# 协议 + 服务器 + 端口。用户名密码可直接写 URL（%40 = @）
+# source        = imaps://user%40domain.com:password@imap.domain.com:993
+# outgoing      = smtps://user%40domain.com:password@smtp.domain.com:465
+
+# 替代：拉密钥（更安全）
+# source-cred-cmd = security find-generic-password -s aerc-work-src -w
+# outgoing-cred-cmd = security find-generic-password -s aerc-work-out -w
+# source          = imaps://user%40domain.com@imap.domain.com:993
+# outgoing        = smtps://user%40domain.com@smtp.domain.com:465
+
+# 默认收件箱
+# default       = INBOX
+
+# 发件人显示名 + 邮件
+# from          = 张三 <zhangsan@example.com>
+
+# 缓存 message headers（断网也能看列表）
+# cache-headers = true
+
+# 多个抄送 / 密送地址
+# copy-to       = Sent
+# folders-are-maildirs = false
+
+# [Personal]
+# source        = imaps://user%40gmail.com:app-password@imap.gmail.com:993
+# outgoing      = smtps://user%40gmail.com:app-password@smtp.gmail.com:465
+# from          = 张三 <zhangsan@gmail.com>
+# default       = INBOX
+# cache-headers = true

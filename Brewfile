@@ -44,6 +44,7 @@ brew "fd"                 # find 替代品
 brew "fastfetch"          # 系统信息
 brew "chafa"              # 终端图片显示
 brew "yazi"               # 终端文件管理器
+brew "w3m"                # HTML→text（aerc html filter + yazi HTML preview 共享）
 brew "midnight-commander" # 终端文件管理器
 brew "stow"               # dotfiles 管理
 brew "jq"                 # JSON 处理器
