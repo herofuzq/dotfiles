@@ -157,16 +157,11 @@ previewers = [
 	{ url = "*.[xX][lL][sS]*" , run = 'piper -- python3 -m xlsx2csv -s 0 "$1" | bat --style=header,grid --color=always --language=csv' },
 	{ url = "*.[dD][oO][cC][xX]" , run = 'piper -- pandoc -f docx -t markdown "$1" | rich - -m --theme=monokai --max-width=$w' },
 	{ url = "*.[dD][oO][cC]", run = 'piper -- textutil -stdout -convert txt "$1" | bat --style=header,grid --color=always --language=txt' },
-	{ url = "*.[pP][pP][tT][xX]" , run = 'piper -- sh -c "python3 -c \"import sys, pptx; prs=pptx.Presentation(sys.argv[1]); [print(f\\\"--- Slide {i+1} ---\\\n\\\" + \\\"\n\\\".join([p.text for s in slide.shapes if s.has_text_frame for p in s.text_frame.paragraphs])) for i, slide in enumerate(prs.slides)]\" \"$1" 2>/dev/null | bat --style=header,grid --color=always --language=csv"' },
+	{ url = "*.[pP][pP][tT][xX]" , run = 'piper -- sh -c "python3 -c \"import sys, pptx; prs=pptx.Presentation(sys.argv[1]); [print(f\\\"--- Slide {i+1} ---\\\n\\\" + \\\"\n\\\".join([p.text for s in slide.shapes if s.has_text_frame for p in s.text_frame.paragraphs])) for i, slide in enumerate(prs.slides)]\" \"$1\" 2>/dev/null | bat --style=header,grid --color=always --language=csv"' },
 
 	{ url = "*/", run = "folder" },
 	# Code
 	{ mime = "text/*", run = "code" },
-	# HTML 渲染：被 aerc [openers] 调过来时按 w3m 渲染（不是源码高亮）
-	# aerc 配置: text/html=yazi {} (见 dotfiles/aerc/.config/aerc/aerc.conf [openers])
-	# 顺序: text/* 在前会先匹配，但 aerc 用 MIME glob 匹配，这里靠 MIME 命中 text/html
-	# yazi 内部浏览 .html 文件也用 w3m 覆盖默认的 code previewer
-	{ mime = "text/html", run = 'w3m -dump -I UTF-8 -O UTF-8 -T text/html {}' },
 	{ mime = "application/{mbox,javascript,wine-extension-ini}", run = "code" },
 	# JSON
 	{ mime = "application/{json,ndjson}", run = "json" },
