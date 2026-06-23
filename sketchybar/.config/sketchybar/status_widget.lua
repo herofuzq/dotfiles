@@ -74,11 +74,14 @@ return function(opts)
 		})
 	end
 
-	local safe_id = opts.app_id:gsub("[^%w%.%-]", "") -- 过滤非法字符，防止 shell 注入
+	local raw_id = opts.app_id or ""
+	local safe_id = raw_id:gsub("[^%w%.%-]", "")
 	if safe_id == "" then
-		io.stderr:write(
-			"sketchybar: status_widget: invalid app_id after sanitization: " .. tostring(opts.app_id) .. "\n"
-		)
+		io.stderr:write("sketchybar: status_widget: missing app_id\n")
+		return
+	end
+	if not safe_id:match("%.") then
+		io.stderr:write("sketchybar: status_widget: invalid bundle id format: " .. safe_id .. "\n")
 		return
 	end
 

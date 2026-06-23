@@ -16,6 +16,10 @@ local TOGGLE_DEBOUNCE_MS = 150
 -- （如需立即停掉正在跑的 toggle,手动 `pkill -x sketchybar-toggle`）
 local TOGGLE_ENABLED = false
 
+local function shell_quote(s)
+	return "'" .. tostring(s):gsub("'", "'\\''") .. "'"
+end
+
 local function read_cache(path)
 	local f = io.open(path, "r")
 	if not f then
@@ -46,7 +50,7 @@ local FALLBACK_HEIGHT = 30
 local function detect_bar_height()
 	local cfg = os.getenv("CONFIG_DIR")
 	if cfg then
-		local f = io.popen('"' .. cfg .. '/helpers/bar_height/bin/bar_height" 2>/dev/null')
+		local f = io.popen(shell_quote(cfg .. '/helpers/bar_height/bin/bar_height') .. ' 2>/dev/null')
 		if f then
 			local output = f:read("*a")
 			f:close()
@@ -85,7 +89,7 @@ local function detect_dock_width()
 	local fallback = 55
 	local cfg = os.getenv("CONFIG_DIR")
 	if cfg then
-		local f = io.popen('"' .. cfg .. '/helpers/dock_width/bin/dock_width" 2>/dev/null')
+		local f = io.popen(shell_quote(cfg .. '/helpers/dock_width/bin/dock_width') .. ' 2>/dev/null')
 		if f then
 			local output = f:read("*a")
 			f:close()

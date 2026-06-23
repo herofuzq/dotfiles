@@ -25,6 +25,27 @@ end
 -- 每次新增 helper 要同时改源码、makefile 和这个表。Codex review 后删除。
 local function run_make(cfg)
 	local log_path = "/tmp/sketchybar_make.log"
+
+	local targets = {
+		-- 新增 helper binary 时需要同步更新此列表。
+		-- makefile 会处理编译，这里只负责比较 mtime 决定是否 restart service。
+		cfg .. "/helpers/event_providers/cpu_load/bin/cpu_load",
+		cfg .. "/helpers/event_providers/input_method/bin/input_method_watch",
+		cfg .. "/helpers/event_providers/media_watch/bin/media_watch",
+		cfg .. "/helpers/event_providers/sys_watch/bin/sys_watch",
+		cfg .. "/helpers/menus/bin/menus",
+		cfg .. "/helpers/bar_height/bin/bar_height",
+		cfg .. "/helpers/dock_width/bin/dock_width",
+	}
+	local before = {}
+	for _, t in ipairs(targets) do
+		local f = io.open(t)
+		if f then
+			before[t] = f:seek("end")
+			f:close()
+		end
+	end
+
 	local cmd = "cd "
 		.. shell_quote(cfg .. "/helpers")
 		.. " && make > "
@@ -36,7 +57,24 @@ local function run_make(cfg)
 		exit_code = (f:read("*a") or ""):match("(%d+)%s*$") or "1"
 		f:close()
 	end
-	return tonumber(exit_code) or 1, log_path
+
+	local changed = false
+	for _, t in ipairs(targets) do
+		local f2 = io.open(t)
+		if f2 then
+			local after = f2:seek("end")
+			f2:close()
+			if (before[t] or 0) ~= after then
+				changed = true
+				break
+			end
+		elseif before[t] then
+			changed = true
+			break
+		end
+	end
+
+	return tonumber(exit_code) or 1, log_path, changed
 end
 
 local function restart_event_providers()
@@ -48,10 +86,10 @@ end
 
 local cfg = os.getenv("CONFIG_DIR")
 if cfg then
-	local exit_code, log_path = run_make(cfg)
+	local exit_code, log_path, changed = run_make(cfg)
 	if exit_code ~= 0 then
 		io.stderr:write("sketchybar: helper compile failed (exit " .. exit_code .. "), see " .. log_path .. "\n")
-	else
+	elseif changed then
 		restart_event_providers()
 	end
 end

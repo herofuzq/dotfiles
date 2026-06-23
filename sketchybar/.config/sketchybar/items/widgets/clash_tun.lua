@@ -1,4 +1,7 @@
 -- ========== Clash TUN 代理状态 ==========
+-- background 由 network.lua 统一管理（widgets.system bracket）。
+-- 这里设置的 background 在 network.lua 加载后被 drawing=false 覆盖，
+-- 仅作为 network.lua 尚未 require 时的 fallback 初始值。
 local sbar = require("sketchybar")
 local icons = require("icons")
 local fonts = require("fonts")
@@ -77,11 +80,14 @@ local function update_display(state)
 	})
 end
 
-local last_state = "off"
+local last_state
 
 local function check_status()
 	sbar.exec("$CONFIG_DIR/helpers/clash_status.sh", function(status)
 		status = (status or ""):match("^%s*(.-)%s*$")
+		if status == last_state then
+			return
+		end
 		last_state = status
 		update_display(status)
 	end)

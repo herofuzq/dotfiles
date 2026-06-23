@@ -81,7 +81,7 @@ void ax_print_menu_options(AXUIElementRef app) {
         CFTypeRef title = ax_get_title(item);
 
         if (title) {
-          uint32_t buffer_len = 2 * CFStringGetLength(title) + 1;
+          uint32_t buffer_len = 4 * CFStringGetLength(title) + 1;
           char buffer[buffer_len];
           CFStringGetCString(title, buffer, buffer_len, kCFStringEncodingUTF8);
           printf("%s\n", buffer);

@@ -122,7 +122,7 @@ local function ensure_front_app()
 				label = { color = transparent(appearance.colors.peach) },
 			})
 		end)
-	sbar.delay(CONTENT_FADE_IN_FRAMES / 120, function()
+		sbar.delay(CONTENT_FADE_IN_FRAMES / 120, function()
 			if front_app_generation ~= generation then
 				return
 			end

@@ -56,8 +56,8 @@ function M.new(parent, options)
 	function controller:hide(animated)
 		generation = generation + 1
 		local current_generation = generation
-		visible = false
 		if not animated then
+			visible = false
 			parent:set({ popup = { drawing = false } })
 			if options.on_hidden then
 				options.on_hidden()
@@ -77,9 +77,10 @@ function M.new(parent, options)
 			end
 		end)
 		sbar.delay(frames / 120, function()
-			if generation ~= current_generation or visible then
+			if generation ~= current_generation then
 				return
 			end
+			visible = false
 			parent:set({ popup = { drawing = false } })
 			if options.on_hidden then
 				options.on_hidden()

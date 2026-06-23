@@ -138,8 +138,8 @@ local consecutive_failures = 0
 local interface_check_in_flight = false
 
 local function show_unavailable()
-	up:set({ label = "↑  —" })
-	down:set({ label = "↓  —" })
+	up:set({ label = "↑ —" })
+	down:set({ label = "↓ —" })
 end
 
 local function sample_network()
@@ -219,6 +219,9 @@ end)
 update_network(true)
 
 -- ========== system bracket（clash_tun + network）==========
+-- widget.clash_tun 在 clash_tun.lua 创建，此处覆写其 background + padding
+-- 使 clash_tun 和 network_up/down 共享同一个 system bracket 背景。
+-- 此耦合依赖 widgets/init.lua 的 require 顺序：clash_tun 在 network 之前加载。
 sbar.set("widgets.clash_tun", { background = { drawing = false }, padding_left = 1, padding_right = 0 })
 sbar.set("widgets.network", { background = { drawing = false } })
 sbar.add("bracket", "widgets.system", {

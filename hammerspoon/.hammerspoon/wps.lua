@@ -32,16 +32,16 @@ local function createWPSTap()
 			if etype == hs.eventtap.event.types.rightMouseDown then
 				input.isChineseAsync(function(isChinese)
 					if generation ~= _sessionGeneration or not isChinese then return end
-						_switched = true
-						input.switchToEnglishAsync(function(success)
-							if generation ~= _sessionGeneration then return end
-							if success then
-								hs.alert.show("⌨ 英文输入中", 0.5)
-							else
-								_switched = false
-							end
-						end)
+					_switched = true
+					input.switchToEnglishAsync(function(success)
+						if generation ~= _sessionGeneration then return end
+						if success then
+							hs.alert.show("⌨ 英文输入中", 0.5)
+						else
+							_switched = false
+						end
 					end)
+				end)
 			elseif _switched then
 				if etype == hs.eventtap.event.types.leftMouseDown then
 					if _recoverTimer then _recoverTimer:stop(); _recoverTimer = nil end

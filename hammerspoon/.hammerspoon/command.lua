@@ -1,12 +1,29 @@
 local M = {}
 
+local function shell_quote(s)
+	return "'" .. tostring(s):gsub("'", "'\\''") .. "'"
+end
+
+local function is_executable(path)
+	local f = io.popen("test -x " .. shell_quote(path) .. " && echo 1")
+	if not f then
+		return false
+	end
+	local r = f:read("*a") or ""
+	f:close()
+	return r:sub(1, 1) == "1"
+end
+
 function M.find(candidates, fallback)
 	for _, path in ipairs(candidates) do
-		if hs.fs.attributes(path, "mode") == "file" then
+		if is_executable(path) then
 			return path
 		end
 	end
-	return fallback
+	if fallback and is_executable(fallback) then
+		return fallback
+	end
+	return nil
 end
 
 function M.start(executable, args, callback)
