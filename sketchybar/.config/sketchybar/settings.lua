@@ -11,6 +11,11 @@ local TOGGLE_CONFIGNAME = "sketchybar_toggle.config"
 local TOGGLE_TRIGGER_ZONE = 2
 local TOGGLE_DEBOUNCE_MS = 150
 
+-- sketchybar-toggle 总开关（TODO: 调试/试验完成后改回 true 重新启用）
+-- false 时 ensure_toggle() 立即返回,不会启动新 toggle,也不会清理已运行的 toggle
+-- （如需立即停掉正在跑的 toggle,手动 `pkill -x sketchybar-toggle`）
+local TOGGLE_ENABLED = false
+
 local function read_cache(path)
 	local f = io.open(path, "r")
 	if not f then
@@ -95,6 +100,9 @@ local function detect_dock_width()
 end
 
 local function ensure_toggle(bar_height)
+	if not TOGGLE_ENABLED then
+		return
+	end
 	bar_height = math.floor(tonumber(bar_height) or 0)
 	if bar_height <= 0 then
 		return
