@@ -48,6 +48,7 @@ brew "midnight-commander" # 终端文件管理器
 brew "stow"               # dotfiles 管理
 brew "jq"                 # JSON 处理器
 brew "pandoc"             # 文档转换
+brew "aerc"               # 终端邮件客户端
 brew "tag"                # 标签管理 CLI
 brew "switchaudio-osx"    # 音频输出切换
 

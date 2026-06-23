@@ -114,6 +114,9 @@ eval "$(starship init zsh)"
 
 # Added by SkillHub CLI installer
 export PATH="/Users/fuzhuoqun/.local/bin:$PATH"
+
+# 用户自定义脚本(aria2 wrapper a2 等)
+export PATH="$HOME/bin:$PATH"
 # 增加zoxide
 eval "$(zoxide init zsh)"
 

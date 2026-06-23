@@ -32,7 +32,7 @@ brew bundle install --file=Brewfile
 # 3. Stow 所有配置包（--no-folding 避免目录折叠）
 stow --no-folding aerospace bash bat borders btop clash cmux fastfetch fcitx5 fd \
      ghostty git hammerspoon karabiner kitty lazygit npm nvim \
-     sketchybar ssh starship tmux yazi zsh
+     sketchybar ssh starship tmux yazi zsh aerc
 
 # 4. 安装 Xcode Command Line Tools（编译 helpers 需要）
 xcode-select --install
@@ -49,7 +49,7 @@ sketchybar --reload       # 状态栏（helpers 自动编译）
 
 | 类别 | 典型软件 |
 |------|---------|
-| Terminal | ghostty, tmux, starship, zoxide, fzf, bat, fd, yazi |
+| Terminal | ghostty, tmux, starship, zoxide, fzf, bat, fd, yazi, aerc |
 | Editor | neovide-app, lazygit |
 | macOS Tools | raycast, hammerspoon, karabiner-elements, aerospace, borders |
 | Desktop Apps | obsidian, typora, bitwarden, iina |
@@ -76,6 +76,7 @@ brew bundle cleanup --file=Brewfile       # 清理未列出项
 | `bash` | `~/.bash_profile` | Bash 兼容配置 |
 | `starship` | `~/.config/starship.toml` | Shell 提示符主题 |
 | `tmux` | `~/.config/tmux/` | Tmux 配置 + 插件（tpm, catppuccin 等） |
+| `aerc` | `~/.config/aerc/` | 终端邮件客户端（Gmail IMAP/SMTP + Keychain 取密钥） |
 
 **新机器注意：**
 - Zim 需要额外安装：`curl -fsSL https://raw.githubusercontent.com/zimfw/install/master/install.zsh | zsh`
@@ -196,7 +197,7 @@ cd ~ && git clone <your-dotfiles-repo> dotfiles
 # ▸ Stow 所有配置
 cd dotfiles && stow --no-folding aerospace bash bat borders btop clash cmux fastfetch fcitx5 fd \
      ghostty git hammerspoon karabiner kitty lazygit npm nvim \
-     sketchybar ssh starship tmux yazi zsh
+     sketchybar ssh starship tmux yazi zsh aerc
 
 # ▸ 安装 Homebrew 软件
 brew bundle install --file=Brewfile
