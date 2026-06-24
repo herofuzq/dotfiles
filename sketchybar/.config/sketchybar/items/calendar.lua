@@ -81,16 +81,9 @@ for i = 1, CAL_LINES do
 		},
 		background = { drawing = false },
 	})
-	item:subscribe("mouse.entered", function()
-		popup_state.exit_gen = popup_state.exit_gen + 1
-		popup_state.hovering = true
-	end)
-	item:subscribe("mouse.exited", function()
-		popup_state.hovering = false
-		scheduleHide()
-	end)
 	cal_items[i] = item
 end
+	popup_utils.bind_popup_hover(cal_items, popup_state, scheduleHide)
 
 local function updatePopupContent()
 	local t = os.date("*t")

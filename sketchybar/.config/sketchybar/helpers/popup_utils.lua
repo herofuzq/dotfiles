@@ -24,4 +24,21 @@ function M.schedule_hide(state, hide_fn)
 	end)
 end
 
+-- 给 popup 子项批量绑定 hover 事件，替代各 widget 中重复的 mouse.entered / mouse.exited 模版代码。
+-- items: 要绑定的 item 列表（可以是 sbar item 对象，也可以是 table）。
+-- state: popup_utils.new_state() 返回的状态表。
+-- scheduleHide_fn: widget 本地的延迟隐藏函数（包装了 popup_utils.schedule_hide）。
+function M.bind_popup_hover(items, state, scheduleHide_fn)
+	for _, item in ipairs(items) do
+		item:subscribe("mouse.entered", function()
+			state.exit_gen = state.exit_gen + 1
+			state.hovering = true
+		end)
+		item:subscribe("mouse.exited", function()
+			state.hovering = false
+			scheduleHide_fn()
+		end)
+	end
+end
+
 return M

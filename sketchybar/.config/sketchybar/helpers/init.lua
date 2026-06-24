@@ -11,9 +11,7 @@ require("sketchybar").bar({
 	border_width = 0,
 })
 
-local function shell_quote(s)
-	return "'" .. tostring(s):gsub("'", "'\\''") .. "'"
-end
+local shell_quote = require("helpers.utils").shell_quote
 
 -- bin 位于实际 CONFIG_DIR，不由 stow 管理；这里直接调 make，让 Makefile
 -- 自己判断 stale (mtime up-to-date 时 make noop，< 50ms)。新增 helper 只需：

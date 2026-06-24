@@ -16,9 +16,7 @@ local TOGGLE_DEBOUNCE_MS = 150
 -- （如需立即停掉正在跑的 toggle,手动 `pkill -x sketchybar-toggle`）
 local TOGGLE_ENABLED = false
 
-local function shell_quote(s)
-	return "'" .. tostring(s):gsub("'", "'\\''") .. "'"
-end
+local shell_quote = require("helpers.utils").shell_quote
 
 local function read_cache(path)
 	local f = io.open(path, "r")

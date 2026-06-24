@@ -9,9 +9,7 @@
 --   - hammerspoon 用 hs.fs.attributes(path, "mode") == "file"
 --   - 这里用 io.popen + sh test -x
 -- 两套实现不能合并，否则会引入 hammerspoon 在 sketchybar Lua 里被 require 的依赖。
-local function shell_quote(s)
-	return "'" .. tostring(s):gsub("'", "'\\''") .. "'"
-end
+local shell_quote = require("helpers.utils").shell_quote
 
 local M = {}
 

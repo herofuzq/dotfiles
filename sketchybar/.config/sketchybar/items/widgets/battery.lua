@@ -191,14 +191,7 @@ battery:subscribe("mouse.clicked", function()
 	end
 end)
 
-batt_info:subscribe("mouse.entered", function()
-	popup_state.exit_gen = popup_state.exit_gen + 1
-	popup_state.hovering = true
-end)
-batt_info:subscribe("mouse.exited", function()
-	popup_state.hovering = false
-	scheduleHide()
-end)
+popup_utils.bind_popup_hover({ batt_info }, popup_state, scheduleHide)
 
 -- ========== 电池状态更新 ==========
 local function update_battery_display(state)

@@ -30,11 +30,24 @@ function M.new(parent, options)
 
 	function controller:show()
 		generation = generation + 1
+		local color = background_color()
 		if visible then
+			-- hide 动画进行中被 show 打断：generation 递增已使 hide 的
+			-- delay 回调失效，但 in-flight 的渐隐 animate 仍在跑。
+			-- 这里直接 set popup 到目标颜色（snap），覆盖竞态的渐隐动画，
+			-- 避免 popup 在用户 hover 回来时继续变暗甚至消失。
+			parent:set({
+				popup = {
+					drawing = true,
+					background = { color = color },
+				},
+			})
+			if options.on_show then
+				options.on_show()
+			end
 			return
 		end
 		visible = true
-		local color = background_color()
 		-- 先把背景设为透明，再线性渐入到目标 alpha
 		parent:set({
 			popup = {

@@ -15,9 +15,7 @@ local SENSOR_CACHE = "/tmp/sketchybar_sys_sensors.json"
 
 local find_binary = require("helpers.find_binary").find
 
-local function shell_quote(value)
-	return "'" .. tostring(value):gsub("'", "'\\''") .. "'"
-end
+local shell_quote = require("helpers.utils").shell_quote
 
 local MACTOP = find_binary({ "/opt/homebrew/bin/mactop", "/usr/local/bin/mactop" })
 local SKETCHYBAR = find_binary({ "/opt/homebrew/bin/sketchybar", "/usr/local/bin/sketchybar" })
@@ -209,16 +207,7 @@ sys:subscribe("mouse.clicked", function()
 	end
 end)
 
-for _, item in ipairs({ info, table.unpack(process_items) }) do
-	item:subscribe("mouse.entered", function()
-		popup_state.exit_gen = popup_state.exit_gen + 1
-		popup_state.hovering = true
-	end)
-	item:subscribe("mouse.exited", function()
-		popup_state.hovering = false
-		schedule_hide()
-	end)
-end
+popup_utils.bind_popup_hover({ info, table.unpack(process_items) }, popup_state, schedule_hide)
 
 stop_watcher()
 

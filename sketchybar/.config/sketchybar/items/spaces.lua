@@ -13,9 +13,7 @@ local SPACE_ICONS = { "󰼏", "󰼐", "󰼑", "󰼒", "󰼓", "󰼔" }
 local APP_ICON_FONT = "sketchybar-app-font:Regular:14.0"
 local EMPTY_APP_FONT = { family = fonts.font.text, style = fonts.font.style_map["Bold"], size = fonts.font.size }
 
-local function shell_quote(value)
-	return "'" .. tostring(value):gsub("'", "'\\''") .. "'"
-end
+local shell_quote = require("helpers.utils").shell_quote
 
 -- 始终显示的工作区（即使没有应用也会显示）
 -- 注：键名含 U+0332 组合下划线，对应 aerospace 工作区名称，请勿修改
@@ -601,11 +599,22 @@ local function updateWorkspaceMonitor()
 end
 
 -- ========== 初始化：同步查询 + begin_config 批量创建 workspace（性能优化）==========
--- 同步查询 workspace 列表（在 begin_config 内，纳入批量处理）
-local f = io.popen(query_workspaces .. " 2>/dev/null")
-local raw = f and f:read("*a") or ""
-if f then
-	f:close()
+-- 先用 pgrep 检查 aerospace 是否在运行,避免进程不响应时 io.popen 阻塞启动。
+-- pgrep 自身 < 2ms,不会卡。
+local aerospace_alive = false
+local pgrep = io.popen("pgrep -x AeroSpace 2>/dev/null")
+if pgrep then
+	aerospace_alive = pgrep:read("*l") ~= nil
+	pgrep:close()
+end
+
+local raw = ""
+if aerospace_alive then
+	local f = io.popen(query_workspaces .. " 2>/dev/null")
+	raw = f and f:read("*a") or ""
+	if f then
+		f:close()
+	end
 end
 
 local initial_workspaces = {}
