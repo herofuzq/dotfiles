@@ -13,7 +13,7 @@ config-version = 2
 # (改 appearance.lua 的 M.active) 时,如果想让窗口外框也同步,需要手动改这一行。
 after-startup-command = [
   # 'exec-and-forget borders active_color=0xfffab387 inactive_color=0x00000000 width=4.0 hidpi=on order=above',
-  'exec-and-forget sketchybar --trigger space_windows_change',
+  'exec-and-forget /bin/bash -c "sleep 0.3 && sketchybar --trigger space_windows_change"',
 ] 
 
 # Start AeroSpace at login
@@ -83,7 +83,7 @@ on-mode-changed = ['exec-and-forget sketchybar --trigger aerospace_mode_change']
 [gaps]
 inner.horizontal = 6
 inner.vertical = 6
-outer.left = 5
+outer.left = 4
 outer.bottom = 5
 outer.top = [
   { monitor."Built-in Retina Display" = 5 },
@@ -91,7 +91,7 @@ outer.top = [
   { monitor."Mi Monitor" = 35 },
   37,
 ]
-outer.right = 5
+outer.right = 4
 # 'main' binding mode declaration
 # See: https://nikitabobko.github.io/AeroSpace/guide#binding-modes
 # 'main' binding mode must be always presented
@@ -252,6 +252,10 @@ run = 'layout floating'
 
 [[on-window-detected]]
 if.app-id = "com.ibluebox.aqua-menu-bar"
+run = 'layout floating'
+
+[[on-window-detected]]
+if.app-id = "com.ayangweb.BongoCat"
 run = 'layout floating'
 
 [[on-window-detected]]

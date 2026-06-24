@@ -91,6 +91,27 @@ local function check_status()
 	end)
 end
 
-input_method:subscribe("input_method_change", check_status)
+local function check_status_fast(env)
+	local fcitx5_active = env.FICITX5_ACTIVE
+	if fcitx5_active == "1" then
+		local fcitx_mode = env.FICITX5_MODE
+		if fcitx_mode == "2" or fcitx_mode == "1" then
+			update_display("org.fcitx.inputmethod.Fcitx5.zhHans", fcitx_mode)
+			return
+		end
+	elseif fcitx5_active == "0" then
+		update_display("com.apple.keylayout.ABC")
+		return
+	end
+	check_status()
+end
+
+input_method:subscribe("input_method_change", function(env)
+	if env.FICITX5_ACTIVE ~= nil then
+		check_status_fast(env)
+	else
+		check_status()
+	end
+end)
 input_method:subscribe("system_woke", check_status)
 check_status()

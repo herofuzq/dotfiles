@@ -141,6 +141,7 @@ local refresh_pending = false
 local refresh_schedule_generation = 0
 local window_snapshot = {}
 local fullscreen_snapshot = {}
+	local window_to_workspace = {} -- window_id → workspace_index 反向索引，O(1)
 
 -- ========== 公共排序：按创建时间倒序 ==========
 -- 注意：
@@ -510,6 +511,12 @@ local function updateWindows()
 		if args.snapshot_ok then
 			window_snapshot = args.open_windows
 			fullscreen_snapshot = args.has_fullscreen
+			window_to_workspace = {}
+			for ws_idx, ws_wins in pairs(args.open_windows) do
+				for _, win in ipairs(ws_wins) do
+					window_to_workspace[tostring(win.window_id)] = ws_idx
+				end
+			end
 		else
 			args.open_windows = window_snapshot
 			args.has_fullscreen = fullscreen_snapshot
@@ -824,12 +831,9 @@ sbar.exec(":", function()
 	end)
 
 	root:subscribe("space_windows_change", function()
-		-- 500ms 跟 c6918af 的 aerospace_workspace_change handler 对齐：
-		-- aerospace (重)启动时 after-startup-command 会触发此事件，
-		-- 此时 on-window-detected 还在 settle 各浮窗，100ms 太短会让
-		-- list-windows 的 AX 评估触发 aerospace 重算浮窗 frame → 浮窗位移。
-		-- Hammerspoon 触发的开关窗事件吃 400ms 额外延迟可接受（HS 自己 debounce 50/250ms）。
-		scheduleUpdateWindows(0.5)
+		-- 300ms：aerospace after-startup-command 已有 sleep 0.3，日常 Hammerspoon
+		-- 开/关窗 debounce 50/250ms + 300ms = 550ms 最差，但大多数场景下更快响应。
+		scheduleUpdateWindows(0.3)
 	end)
 
 	-- 焦点变化不再触发 AeroSpace 窗口枚举，只重渲染已有快照以更新高亮色。
@@ -839,18 +843,11 @@ sbar.exec(":", function()
 			return
 		end
 		focused_window_id_cache = focused_id
-		for workspace_index, wins in pairs(window_snapshot) do
-			local contains_focused_window = false
-			for _, win in ipairs(wins) do
-				if tonumber(win.window_id) == focused_id then
-					contains_focused_window = true
-					break
-				end
-			end
-			if contains_focused_window and workspaces[workspace_index] then
-				-- 顺序由创建时间决定，不受焦点影响；只重渲染以更新高亮色
-				show_workspace_apps(workspace_index, app_icon_line(wins))
-				break
+		local ws_idx = window_to_workspace[tostring(focused_id)]
+		if ws_idx and workspaces[ws_idx] then
+			local wins = window_snapshot[ws_idx]
+			if wins then
+				show_workspace_apps(ws_idx, app_icon_line(wins))
 			end
 		end
 	end)

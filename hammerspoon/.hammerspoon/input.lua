@@ -58,11 +58,15 @@ local function applyState(state)
 		stopIdleTimer()
 	end
 	if changed then
+		local fcitx5_active = isUsingFcitx5()
 		local started, err = command.triggerSketchybar("input_method_change", function(exitCode, _, stderr)
 			if exitCode ~= 0 then
 				print("[Input] SketchyBar 状态通知失败: " .. tostring(stderr or exitCode))
 			end
-		end)
+		end, {
+			FCITX5_ACTIVE = fcitx5_active and "1" or "0",
+			FCITX5_MODE = (state == ZH) and "2" or "1",
+		})
 		if not started then
 			print("[Input] 无法通知 SketchyBar: " .. tostring(err))
 		end
