@@ -1,3 +1,4 @@
+import Carbon
 import Foundation
 
 /// 循环等待 sketchybar 就绪，避免 launchd 无限重启
@@ -24,24 +25,67 @@ func waitSketchybar() -> String {
 }
 let sketchybarPath = waitSketchybar()
 
-let center = DistributedNotificationCenter.default()
-let observer = center.addObserver(
-    forName: NSNotification.Name("com.apple.Carbon.TISNotifySelectedKeyboardInputSourceChanged"),
-    object: nil, queue: .main
-) { _ in
+func firstExecutable(_ paths: [String]) -> String? {
+    for path in paths where FileManager.default.isExecutableFile(atPath: path) {
+        return path
+    }
+    return nil
+}
+
+let fcitxRemotePath = firstExecutable([
+    "/Library/Input Methods/Fcitx5.app/Contents/bin/fcitx5-remote",
+    "/opt/homebrew/bin/fcitx5-remote",
+    "/usr/local/bin/fcitx5-remote",
+])
+
+func currentInputSourceID() -> String {
+    guard let source = TISCopyCurrentKeyboardInputSource()?.takeRetainedValue(),
+          let property = TISGetInputSourceProperty(source, kTISPropertyInputSourceID) else {
+        return ""
+    }
+    return Unmanaged<CFString>.fromOpaque(property).takeUnretainedValue() as String
+}
+
+func currentFcitxMode() -> String {
+    guard let fcitxRemotePath else { return "" }
+    let task = Process()
+    task.launchPath = fcitxRemotePath
+    let pipe = Pipe()
+    task.standardOutput = pipe
+    task.standardError = FileHandle.nullDevice
+    guard (try? task.run()) != nil else { return "" }
+    task.waitUntilExit()
+    guard task.terminationStatus == 0,
+          let output = String(data: pipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) else {
+        return ""
+    }
+    return output.trimmingCharacters(in: .whitespacesAndNewlines)
+}
+
+func triggerInputMethodChange() {
+    let inputSourceID = currentInputSourceID()
+    let isFcitx = inputSourceID == "org.fcitx.inputmethod.Fcitx5.zhHans"
     let task = Process()
     task.launchPath = sketchybarPath
-    task.arguments = ["--trigger", "input_method_change"]
+    task.arguments = [
+        "--trigger", "input_method_change",
+        "IM_ID=\(inputSourceID)",
+        "FCITX5_ACTIVE=\(isFcitx ? "1" : "0")",
+        "FCITX5_MODE=\(isFcitx ? currentFcitxMode() : "")",
+    ]
     task.standardOutput = FileHandle.nullDevice
     task.standardError = FileHandle.nullDevice
     try? task.run()
 }
 
-let task = Process()
-task.launchPath = sketchybarPath
-task.arguments = ["--trigger", "input_method_change"]
-task.standardOutput = FileHandle.nullDevice
-task.standardError = FileHandle.nullDevice
-try? task.run()
+let center = DistributedNotificationCenter.default()
+let observer = center.addObserver(
+    forName: NSNotification.Name("com.apple.Carbon.TISNotifySelectedKeyboardInputSourceChanged"),
+    object: nil, queue: .main
+) { _ in
+    triggerInputMethodChange()
+}
+
+triggerInputMethodChange()
 
 RunLoop.main.run()

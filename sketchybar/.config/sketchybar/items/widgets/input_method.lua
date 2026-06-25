@@ -92,14 +92,20 @@ local function check_status()
 end
 
 local function check_status_fast(env)
-	local fcitx5_active = env.FICITX5_ACTIVE
+	local im_id = env.IM_ID
+	if im_id and im_id ~= "" and im_id ~= "org.fcitx.inputmethod.Fcitx5.zhHans" then
+		update_display(im_id)
+		return
+	end
+
+	local fcitx5_active = env.FCITX5_ACTIVE
 	if fcitx5_active == "1" then
-		local fcitx_mode = env.FICITX5_MODE
-		if fcitx_mode == "2" or fcitx_mode == "1" then
+		local fcitx_mode = env.FCITX5_MODE
+		if fcitx_mode == "2" or fcitx_mode == "1" or fcitx_mode == "0" then
 			update_display("org.fcitx.inputmethod.Fcitx5.zhHans", fcitx_mode)
 			return
 		end
-	elseif fcitx5_active == "0" then
+	elseif fcitx5_active == "0" and im_id and im_id ~= "" then
 		update_display("com.apple.keylayout.ABC")
 		return
 	end
@@ -107,7 +113,7 @@ local function check_status_fast(env)
 end
 
 input_method:subscribe("input_method_change", function(env)
-	if env.FICITX5_ACTIVE ~= nil then
+	if env.FCITX5_ACTIVE ~= nil or env.IM_ID ~= nil then
 		check_status_fast(env)
 	else
 		check_status()

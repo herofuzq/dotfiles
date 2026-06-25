@@ -23,18 +23,6 @@ let mediaControl = waitPath("media-control", candidates: ["/opt/homebrew/bin/med
 let stateQueue = DispatchQueue(label: "com.fuzhuoqun.media_watch.state")
 var lastState = MediaState(title: "", artist: "", album: "", playing: false)
 
-func displayTitle(for state: MediaState) -> String {
-    if state.title.isEmpty && state.artist.isEmpty && state.album.isEmpty {
-        return "未播放"
-    }
-
-    var parts = [String]()
-    if !state.title.isEmpty { parts.append(state.title) }
-    if !state.artist.isEmpty { parts.append(state.artist) }
-    if !state.album.isEmpty { parts.append(state.album) }
-    return parts.joined(separator: " - ")
-}
-
 func runSketchybar(arguments: [String], wait: Bool = true) {
     let task = Process()
     task.launchPath = sketchybar
@@ -51,9 +39,13 @@ func runSketchybar(arguments: [String], wait: Bool = true) {
 }
 
 func applyUpdate(_ state: MediaState) {
-    let iconChar = state.playing ? "\u{f04c}" : "\u{f04b}"
-    runSketchybar(arguments: ["--set", "widgets.media_label", "label=\(displayTitle(for: state))"])
-    runSketchybar(arguments: ["--set", "widgets.media_play_pause", "icon=\(iconChar)"], wait: false)
+    runSketchybar(arguments: [
+        "--trigger", "media_update",
+        "TITLE=\(state.title)",
+        "ARTIST=\(state.artist)",
+        "ALBUM=\(state.album)",
+        "PLAYING=\(state.playing ? "1" : "0")",
+    ], wait: false)
 }
 
 func mediaState(from object: Any) -> MediaState? {

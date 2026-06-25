@@ -79,19 +79,41 @@ local function update_label(info, animated)
 	end)
 end
 
-local function refresh()
+local function info_from_env(env)
+	if not env or (env.TITLE == nil and env.ARTIST == nil and env.ALBUM == nil and env.PLAYING == nil) then
+		return nil
+	end
+	return {
+		title = env.TITLE or "",
+		artist = env.ARTIST or "",
+		album = env.ALBUM or "",
+		playing = env.PLAYING == "1" or env.PLAYING == "true",
+	}
+end
+
+local function apply_state(info, animated)
+	update_label(info, animated)
+	local playing = info and info.playing or false
+	if skip_icon > 0 then
+		skip_icon = skip_icon - 1
+		last_playing = playing
+	elseif playing ~= last_playing then
+		-- dedup: 播放状态没变就不 set
+		last_playing = playing
+		sbar.set("widgets.media_play_pause", {
+			icon = { string = playing and ICON_PAUSE or ICON_PLAY },
+		})
+	end
+end
+
+local function refresh(env)
+	local info = info_from_env(env)
+	if info then
+		apply_state(info, true)
+		return
+	end
 	sbar.exec('"' .. MEDIA .. '" get 2>/dev/null', function(info)
-		update_label(info, true)
-		local playing = info and info.playing or false
-		if skip_icon > 0 then
-			skip_icon = skip_icon - 1
-		elseif playing ~= last_playing then
-			-- dedup: 播放状态没变就不 set
-			last_playing = playing
-			sbar.set("widgets.media_play_pause", {
-				icon = { string = playing and ICON_PAUSE or ICON_PLAY },
-			})
-		end
+		apply_state(info, true)
 	end)
 end
 
@@ -217,11 +239,7 @@ label:subscribe("media_update", refresh)
 
 -- 初始查询：reload 后首次显示（不恢复轮询）
 sbar.exec('"' .. MEDIA .. '" get 2>/dev/null', function(info)
-	update_label(info, false)
-	local playing = info and info.playing or false
-	if playing then
-		sbar.set("widgets.media_play_pause", { icon = { string = ICON_PAUSE } })
-	end
+	apply_state(info, false)
 end)
 
 -- media_label 创建时就有默认内容("未播放"+ 图标),drawing 默认 on,
