@@ -140,8 +140,7 @@ local refresh_in_flight = false
 local refresh_pending = false
 local refresh_schedule_generation = 0
 local window_snapshot = {}
-local fullscreen_snapshot = {}
-	local window_to_workspace = {} -- window_id → workspace_index 反向索引，O(1)
+local window_to_workspace = {} -- window_id → workspace_index 反向索引，O(1)
 
 -- ========== 公共排序：按创建时间倒序 ==========
 -- 注意：
@@ -159,7 +158,6 @@ end
 local function withWindows(f)
 	local results = {
 		open_windows = {},
-		has_fullscreen = {},
 		snapshot_ok = false,
 		focused_workspace = focused_workspace_cache,
 		focused_window_id = focused_window_id_cache,
@@ -196,10 +194,6 @@ local function withWindows(f)
 			local app = entry["app-name"]
 			local window_id = entry["window-id"]
 
-			if entry["window-is-fullscreen"] then
-				results.has_fullscreen[workspace_index] = true
-			end
-
 			-- 每个窗口独立统计，允许同一应用多个窗口显示多个图标
 			if not processed_windows[window_id] then
 				processed_windows[window_id] = true
@@ -211,6 +205,7 @@ local function withWindows(f)
 				table.insert(results.open_windows[workspace_index], {
 					app = app,
 					window_id = window_id,
+					is_fullscreen = entry["window-is-fullscreen"] == true,
 					title = entry["window-title"],
 				})
 			end
@@ -246,9 +241,23 @@ local function app_icon_line(open_windows)
 		local app = win.app
 		local lookup = app_icons[app]
 		local icon = ((lookup == nil) and app_icons["Default"] or lookup)
+		if win.is_fullscreen then
+			icon = ":chevron_left:" .. icon .. ":chevron_right:"
+		end
 		icon_line = icon_line .. icon
 	end
 	return icon_line
+end
+
+local function snapshot_has_fullscreen_window()
+	for _, wins in pairs(window_snapshot) do
+		for _, win in ipairs(wins) do
+			if win.is_fullscreen then
+				return true
+			end
+		end
+	end
+	return false
 end
 
 local function visible_monitor_id(workspace_index, visible_workspaces)
@@ -296,7 +305,7 @@ local function content_signature(open_windows)
 	end
 	local apps = {}
 	for _, win in ipairs(open_windows) do
-		apps[#apps + 1] = win.app or ""
+		apps[#apps + 1] = (win.app or "") .. ":" .. tostring(win.is_fullscreen == true)
 	end
 	table.sort(apps)
 	return table.concat(apps, "\0")
@@ -483,14 +492,10 @@ end
 
 local function distribute_cached_borders(focused_workspace, animated)
 	local visible_names = {}
-	local fullscreen_idx = {}
 	for i, ws_idx in ipairs(workspace_order) do
 		visible_names[i] = "workspace." .. ws_idx
-		if fullscreen_snapshot[ws_idx] then
-			fullscreen_idx[i] = true
-		end
 	end
-	borders.distribute(visible_names, fullscreen_idx, "workspace." .. (focused_workspace or ""), animated)
+	borders.distribute(visible_names, "workspace." .. (focused_workspace or ""), animated)
 end
 
 -- ========== 更新所有工作区 + 分段状态 ==========
@@ -510,7 +515,6 @@ local function updateWindows()
 
 		if args.snapshot_ok then
 			window_snapshot = args.open_windows
-			fullscreen_snapshot = args.has_fullscreen
 			window_to_workspace = {}
 			for ws_idx, ws_wins in pairs(args.open_windows) do
 				for _, win in ipairs(ws_wins) do
@@ -519,7 +523,6 @@ local function updateWindows()
 			end
 		else
 			args.open_windows = window_snapshot
-			args.has_fullscreen = fullscreen_snapshot
 		end
 
 		for ws_idx, ws in pairs(workspaces) do
@@ -553,18 +556,13 @@ local function updateWindows()
 			end
 		end
 
-		-- 第三步：更新焦点/全屏分段样式
+		-- 第三步：更新焦点分段样式
 		local visible_names = {}
-		local fullscreen_idx = {}
 		for i, ws_idx in ipairs(visible) do
 			visible_names[#visible_names + 1] = "workspace." .. ws_idx
-			if args.has_fullscreen[ws_idx] then
-				fullscreen_idx[i] = true
-			end
 		end
 		borders.distribute(
 			visible_names,
-			fullscreen_idx,
 			"workspace." .. (args.focused_workspace or ""),
 			animations_ready
 		)
@@ -837,20 +835,26 @@ sbar.exec(":", function()
 	end)
 
 	-- 焦点变化不再触发 AeroSpace 窗口枚举，只重渲染已有快照以更新高亮色。
-	root:subscribe("window_focus_change", function(env)
-		local focused_id = tonumber(env.FOCUSED_WINDOW_ID)
-		if not focused_id then
-			return
-		end
-		focused_window_id_cache = focused_id
-		local ws_idx = window_to_workspace[tostring(focused_id)]
-		if ws_idx and workspaces[ws_idx] then
-			local wins = window_snapshot[ws_idx]
-			if wins then
-				show_workspace_apps(ws_idx, app_icon_line(wins))
+		root:subscribe("window_focus_change", function(env)
+			local focused_id = tonumber(env.FOCUSED_WINDOW_ID)
+			if not focused_id then
+				return
 			end
-		end
-	end)
+			local needs_fullscreen_refresh = snapshot_has_fullscreen_window()
+			focused_window_id_cache = focused_id
+			local ws_idx = window_to_workspace[tostring(focused_id)]
+			if ws_idx and workspaces[ws_idx] then
+				local wins = window_snapshot[ws_idx]
+				if wins then
+					show_workspace_apps(ws_idx, app_icon_line(wins))
+				end
+			end
+			-- AeroSpace may drop fullscreen when switching apps without emitting
+			-- aerospace_fullscreen_change, so refresh only while a stale marker is possible.
+			if needs_fullscreen_refresh then
+				scheduleUpdateWindows(0.15)
+			end
+		end)
 
 	-- 显示器变化/唤醒：同步 bar、自动显隐区域与工作区所属屏幕
 	root:subscribe({ "display_change", "system_woke" }, function()
@@ -861,7 +865,7 @@ sbar.exec(":", function()
 		scheduleUpdateWindows(1.0)
 	end)
 
-	-- 全屏状态由完整窗口查询统一同步，避免同一事件重复查询窗口列表。
+	-- 全屏状态由完整窗口查询统一同步，用括号标记对应窗口图标。
 	root:subscribe("aerospace_fullscreen_change", function()
 		updateWindows()
 	end)
