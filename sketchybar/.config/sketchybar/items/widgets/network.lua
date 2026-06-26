@@ -124,7 +124,7 @@ end
 
 local function icon_color(kind)
 	if kind == "offline" then
-		return colors.surface1
+		return colors.red
 	end
 	if kind == "hotspot" then
 		return colors.mauve
@@ -137,7 +137,20 @@ local last_up_str, last_down_str
 local consecutive_failures = 0
 local interface_check_in_flight = false
 
+local function set_network_icon(kind)
+	current_network_kind = kind or "offline"
+	down:set({
+		icon = {
+			drawing = true,
+			string = icons.network[current_network_kind] or icons.network.offline,
+			color = icon_color(current_network_kind),
+		},
+	})
+end
+
 local function show_unavailable()
+	last_up_str, last_down_str = nil, nil
+	set_network_icon("offline")
 	up:set({ label = "↑ —" })
 	down:set({ label = "↓ —" })
 end
@@ -197,13 +210,8 @@ local function update_network(force_interface_check)
 	last_interface_check = now
 	detect_network(function(iface, kind)
 		interface_check_in_flight = false
-		net_iface, current_network_kind = iface, kind
-		down:set({
-			icon = {
-				string = icons.network[current_network_kind] or icons.network.unknown,
-				color = icon_color(current_network_kind),
-			},
-		})
+		net_iface = iface
+		set_network_icon(kind)
 		sample_network()
 	end)
 end

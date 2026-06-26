@@ -105,6 +105,8 @@ fi
 if [[ ! ${ZIM_HOME}/init.zsh -nt ${ZIM_CONFIG_FILE:-${ZDOTDIR:-${HOME}}/.zimrc} ]]; then
   source ${ZIM_HOME}/zimfw.zsh init
 fi
+# Docker CLI completions must be in fpath before Zim initializes completions.
+fpath=(/Users/fuzhuoqun/.docker/completions $fpath)
 # Initialize modules.
 source ${ZIM_HOME}/init.zsh
 # }}} End configuration added by Zim Framework install
@@ -220,8 +222,9 @@ export NVM_DIR="$HOME/.nvm"
 export PATH="/opt/homebrew/opt/imagemagick-full/bin:$PATH"
 
 
-# Kiro CLI post block. Keep at the bottom of this file.
-[[ -f "${HOME}/Library/Application Support/kiro-cli/shell/zshrc.post.zsh" ]] && builtin source "${HOME}/Library/Application Support/kiro-cli/shell/zshrc.post.zsh"
 
 # Added by MiniMax Code
 export PATH="/Users/fuzhuoqun/.mavis/bin:$PATH"
+
+# Kiro CLI post block. Keep at the bottom of this file.
+[[ -f "${HOME}/Library/Application Support/kiro-cli/shell/zshrc.post.zsh" ]] && builtin source "${HOME}/Library/Application Support/kiro-cli/shell/zshrc.post.zsh"

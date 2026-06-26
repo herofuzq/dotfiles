@@ -84,12 +84,12 @@ on-mode-changed = ['exec-and-forget sketchybar --trigger aerospace_mode_change']
 inner.horizontal = 6
 inner.vertical = 6
 outer.left = 4
-outer.bottom = 5
+outer.bottom = 4
 outer.top = [
-  { monitor."Built-in Retina Display" = 5 },
-  { monitor."VG271U" = 35 },
-  { monitor."Mi Monitor" = 35 },
-  37,
+  { monitor."Built-in Retina Display" = 4 },
+  { monitor."VG271U" = 34 },
+  { monitor."Mi Monitor" = 34 },
+  34,
 ]
 outer.right = 4
 # 'main' binding mode declaration
@@ -417,6 +417,10 @@ run = ["move-node-to-workspace 4̲Work --focus-follows-window"]
 
 [[on-window-detected]]
 if.app-id = "com.jinghaoshe.qspace.pro"
+run = ["move-node-to-workspace 5̲Term --focus-follows-window"]
+
+[[on-window-detected]]
+if.app-id = "com.electron.dockerdesktop"
 run = ["move-node-to-workspace 5̲Term --focus-follows-window"]
 
 [[on-window-detected]]
