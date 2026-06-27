@@ -30,6 +30,7 @@ function M.new(parent, options)
 
 	function controller:show()
 		generation = generation + 1
+		local current_generation = generation
 		local color = background_color()
 		if visible then
 			-- hide 动画进行中被 show 打断：generation 递增已使 hide 的
@@ -59,6 +60,9 @@ function M.new(parent, options)
 			options.on_prepare_show()
 		end
 		sbar.animate("linear", frames, function()
+			if generation ~= current_generation then
+				return
+			end
 			parent:set({ popup = { background = { color = color } } })
 			if options.on_show then
 				options.on_show()

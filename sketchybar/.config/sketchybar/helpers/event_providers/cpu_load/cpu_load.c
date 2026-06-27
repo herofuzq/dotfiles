@@ -1,4 +1,5 @@
 #include "cpu.h"
+#include <math.h>
 #include "../sketchybar.h"
 
 int main(int argc, char** argv) {
@@ -29,7 +30,10 @@ int main(int argc, char** argv) {
              cpu.total_load);
 
     sketchybar(trigger_message);
-    if (update_freq > 0.0f && update_freq < 3600.0f) usleep(update_freq * 1000000);
+    // isfinite 拦 NaN/inf:NaN 让所有比较返 false,会跳过 usleep 形成死循环;
+    // inf 会让 usleep 参数溢出 (uint32_t 微秒约 4294s 上限)。
+    if (isfinite(update_freq) && update_freq > 0.0f && update_freq < 3600.0f)
+      usleep(update_freq * 1000000);
   }
   return 0;
 }
