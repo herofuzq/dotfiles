@@ -228,3 +228,7 @@ export PATH="/Users/fuzhuoqun/.mavis/bin:$PATH"
 
 # Kiro CLI post block. Keep at the bottom of this file.
 [[ -f "${HOME}/Library/Application Support/kiro-cli/shell/zshrc.post.zsh" ]] && builtin source "${HOME}/Library/Application Support/kiro-cli/shell/zshrc.post.zsh"
+
+# Added by LM Studio CLI (lms)
+export PATH="$PATH:/Users/fuzhuoqun/.lmstudio/bin"
+# End of LM Studio CLI section

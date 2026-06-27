@@ -13,14 +13,8 @@ require("sketchybar").bar({
 
 local shell_quote = require("helpers.utils").shell_quote
 
--- bin 位于实际 CONFIG_DIR，不由 stow 管理；这里直接调 make，让 Makefile
--- 自己判断 stale (mtime up-to-date 时 make noop，< 50ms)。新增 helper 只需：
---   1. 在顶层 helpers/makefile 加 $(MAKE) -C <dir>
---   2. 在 <dir>/makefile 里写编译规则
--- 不再需要在本文件维护 target/source 清单。
---
--- 历史方案：needs_make() 用 Lua 表手工枚举 7 个 helper 的 target + source，
--- 每次新增 helper 要同时改源码、makefile 和这个表。Codex review 后删除。
+-- bin 位于实际 CONFIG_DIR，不由 stow 管理。启动时先用 mtime 快速判断
+-- helper 是否 stale；只有缺 binary 或源码更新时才同步跑 make。
 local function stat_mtime(path)
 	-- BSD stat: -f %m 输出 mtime epoch。文件不存在时输出空，tonumber 返回 nil。
 	local f = io.popen("stat -f %m " .. shell_quote(path) .. " 2>/dev/null")
@@ -32,23 +26,90 @@ local function stat_mtime(path)
 	return tonumber(s)
 end
 
-local function run_make(cfg)
-	local log_path = "/tmp/sketchybar_make.log"
-
-	local targets = {
-		-- 新增 helper binary 时需要同步更新此列表。
-		-- makefile 会处理编译，这里只负责比较 mtime 决定是否 restart service。
-		cfg .. "/helpers/event_providers/cpu_load/bin/cpu_load",
-		cfg .. "/helpers/event_providers/input_method/bin/input_method_watch",
-		cfg .. "/helpers/event_providers/media_watch/bin/media_watch",
-		cfg .. "/helpers/event_providers/sys_watch/bin/sys_watch",
-		cfg .. "/helpers/menus/bin/menus",
-		cfg .. "/helpers/bar_height/bin/bar_height",
-		cfg .. "/helpers/dock_width/bin/dock_width",
+local function helper_specs(cfg)
+	local h = cfg .. "/helpers"
+	return {
+		{
+			target = h .. "/event_providers/cpu_load/bin/cpu_load",
+			sources = {
+				h .. "/event_providers/cpu_load/cpu_load.c",
+				h .. "/event_providers/cpu_load/cpu.h",
+				h .. "/event_providers/sketchybar.h",
+				h .. "/event_providers/cpu_load/makefile",
+			},
+		},
+		{
+			target = h .. "/event_providers/input_method/bin/input_method_watch",
+			restart = true,
+			sources = {
+				h .. "/event_providers/input_method/input_method_watch.swift",
+				h .. "/event_providers/input_method/makefile",
+			},
+		},
+		{
+			target = h .. "/event_providers/media_watch/bin/media_watch",
+			restart = true,
+			sources = {
+				h .. "/event_providers/media_watch/media_watch.swift",
+				h .. "/event_providers/media_watch/makefile",
+			},
+		},
+		{
+			target = h .. "/event_providers/sys_watch/bin/sys_watch",
+			sources = {
+				h .. "/event_providers/sys_watch/sys_watch.swift",
+				h .. "/event_providers/sys_watch/makefile",
+			},
+		},
+		{
+			target = h .. "/menus/bin/menus",
+			sources = {
+				h .. "/menus/menus.c",
+				h .. "/menus/makefile",
+			},
+		},
+		{
+			target = h .. "/bar_height/bin/bar_height",
+			sources = {
+				h .. "/bar_height/main.swift",
+				h .. "/bar_height/makefile",
+			},
+		},
+		{
+			target = h .. "/dock_width/bin/dock_width",
+			sources = {
+				h .. "/dock_width/main.swift",
+				h .. "/dock_width/makefile",
+			},
+		},
 	}
+end
+
+local function needs_make(specs)
+	local tests = {}
+	for _, spec in ipairs(specs) do
+		local target = shell_quote(spec.target)
+		table.insert(tests, "[ ! -e " .. target .. " ]")
+		for _, source in ipairs(spec.sources) do
+			table.insert(tests, "[ ! -e " .. shell_quote(source) .. " ]")
+			table.insert(tests, "[ " .. shell_quote(source) .. " -nt " .. target .. " ]")
+		end
+	end
+
+	local f = io.popen("if " .. table.concat(tests, " || ") .. "; then printf 1; else printf 0; fi")
+	if not f then
+		return true
+	end
+	local stale = f:read("*a") == "1"
+	f:close()
+	return stale
+end
+
+local function run_make(cfg, specs)
+	local log_path = "/tmp/sketchybar_make.log"
 	local before = {}
-	for _, t in ipairs(targets) do
-		before[t] = stat_mtime(t)
+	for _, spec in ipairs(specs) do
+		before[spec.target] = stat_mtime(spec.target)
 	end
 
 	local cmd = "cd "
@@ -65,16 +126,16 @@ local function run_make(cfg)
 
 	-- 重建后任一 binary 的 mtime 变了 → 视为 changed（触发 event provider restart）。
 	-- mtime 粒度到秒，几乎不存在"重建后 mtime 完全相同"的边界 case。
-	local changed = false
-	for _, t in ipairs(targets) do
-		local after = stat_mtime(t)
-		if before[t] ~= after then
-			changed = true
+	local restart_needed = false
+	for _, spec in ipairs(specs) do
+		local after = stat_mtime(spec.target)
+		if spec.restart and before[spec.target] ~= after then
+			restart_needed = true
 			break
 		end
 	end
 
-	return tonumber(exit_code) or 1, log_path, changed
+	return tonumber(exit_code) or 1, log_path, restart_needed
 end
 
 local function restart_event_providers()
@@ -86,10 +147,13 @@ end
 
 local cfg = os.getenv("CONFIG_DIR")
 if cfg then
-	local exit_code, log_path, changed = run_make(cfg)
-	if exit_code ~= 0 then
-		io.stderr:write("sketchybar: helper compile failed (exit " .. exit_code .. "), see " .. log_path .. "\n")
-	elseif changed then
-		restart_event_providers()
+	local specs = helper_specs(cfg)
+	if needs_make(specs) then
+		local exit_code, log_path, restart_needed = run_make(cfg, specs)
+		if exit_code ~= 0 then
+			io.stderr:write("sketchybar: helper compile failed (exit " .. exit_code .. "), see " .. log_path .. "\n")
+		elseif restart_needed then
+			restart_event_providers()
+		end
 	end
 end

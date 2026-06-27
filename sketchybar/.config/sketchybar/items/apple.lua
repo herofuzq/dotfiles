@@ -10,6 +10,7 @@ local enter_animation = require("helpers.enter_animation")
 
 local border_width = 0 -- 无背景无边框
 local icon_width = 15
+local dock_sync_generation = 0
 
 local function compute_icon_pad()
 	local dock_w, dock_hidden = settings.detect_dock_width()
@@ -61,17 +62,16 @@ end)
 
 -- 显示器切换时重新检测 Dock 宽度，动态调整 icon padding
 apple:subscribe({ "display_change", "system_woke" }, function()
-	local pl, pr = compute_icon_pad()
-	apple:set({ icon = { padding_left = pl, padding_right = pr } })
-
-	-- 同时重新检测 bar height: 内外屏切换时 notch / menubar 状态可能不同
-	-- settings.detect_bar_height() 内部会清掉跨屏遗留的 stale cache
-	local new_h = settings.detect_bar_height()
-	if new_h and new_h ~= settings.height then
-		sbar.bar({ height = new_h })
-		-- 同步更新 sketchybar-toggle 的 trigger zone (menu_bar_height = bar_h + 5)
-		settings.ensure_toggle(new_h)
-		settings.height = new_h
+	dock_sync_generation = dock_sync_generation + 1
+	local gen = dock_sync_generation
+	for _, delay in ipairs({ 0.25, 1.25 }) do
+		sbar.delay(delay, function()
+			if dock_sync_generation ~= gen then
+				return
+			end
+			local pl, pr = compute_icon_pad()
+			apple:set({ icon = { padding_left = pl, padding_right = pr } })
+		end)
 	end
 end)
 

@@ -136,6 +136,8 @@ local net_iface, current_network_kind, last_interface_check
 local last_up_str, last_down_str
 local consecutive_failures = 0
 local interface_check_in_flight = false
+local interface_check_pending = false
+local interface_check_generation = 0
 
 local function set_network_icon(kind)
 	current_network_kind = kind or "offline"
@@ -203,16 +205,43 @@ local function update_network(force_interface_check)
 		return
 	end
 	if interface_check_in_flight then
+		if force_interface_check then
+			interface_check_pending = true
+		end
 		return
 	end
 
 	interface_check_in_flight = true
+	interface_check_generation = interface_check_generation + 1
+	local generation = interface_check_generation
 	last_interface_check = now
+
+	sbar.delay(5, function()
+		if not interface_check_in_flight or interface_check_generation ~= generation then
+			return
+		end
+		last_interface_check = nil
+		interface_check_in_flight = false
+		if interface_check_pending then
+			interface_check_pending = false
+			update_network(true)
+		else
+			sample_network()
+		end
+	end)
+
 	detect_network(function(iface, kind)
+		if not interface_check_in_flight or interface_check_generation ~= generation then
+			return
+		end
 		interface_check_in_flight = false
 		net_iface = iface
 		set_network_icon(kind)
 		sample_network()
+		if interface_check_pending then
+			interface_check_pending = false
+			update_network(true)
+		end
 	end)
 end
 

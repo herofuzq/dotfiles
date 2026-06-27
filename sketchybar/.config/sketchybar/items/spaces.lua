@@ -12,6 +12,7 @@ local settings = require("settings")
 local SPACE_ICONS = { "󰼏", "󰼐", "󰼑", "󰼒", "󰼓", "󰼔" }
 local APP_ICON_FONT = "sketchybar-app-font:Regular:14.0"
 local EMPTY_APP_FONT = { family = fonts.font.text, style = fonts.font.style_map["Bold"], size = fonts.font.size }
+local REFRESH_TIMEOUT = 3.0
 
 local shell_quote = require("helpers.utils").shell_quote
 
@@ -138,7 +139,10 @@ local focused_workspace_cache
 local focused_window_id_cache
 local refresh_in_flight = false
 local refresh_pending = false
+local refresh_pending_protect_empty_snapshot = false
 local refresh_schedule_generation = 0
+local refresh_generation = 0
+local display_sync_generation = 0
 local window_snapshot = {}
 local window_to_workspace = {} -- window_id → workspace_index 反向索引，O(1)
 
@@ -260,6 +264,24 @@ local function snapshot_has_fullscreen_window()
 	return false
 end
 
+local function snapshot_is_empty(snapshot)
+	for _, wins in pairs(snapshot) do
+		if #wins > 0 then
+			return false
+		end
+	end
+	return true
+end
+
+local function rebuild_window_index(snapshot)
+	window_to_workspace = {}
+	for ws_idx, ws_wins in pairs(snapshot) do
+		for _, win in ipairs(ws_wins) do
+			window_to_workspace[tostring(win.window_id)] = ws_idx
+		end
+	end
+end
+
 local function visible_monitor_id(workspace_index, visible_workspaces)
 	for _, vw in ipairs(visible_workspaces) do
 		if workspace_index == vw["workspace"] then
@@ -327,7 +349,7 @@ local function animate_workspace_content(workspace_index, apply_content, is_focu
 			},
 		})
 	end)
-		sbar.delay(CONTENT_FADE_IN_FRAMES / 120, function()
+	sbar.delay(CONTENT_FADE_IN_FRAMES / 120, function()
 		if _content_anim_gen[workspace_index] ~= gen then
 			return
 		end
@@ -499,35 +521,56 @@ local function distribute_cached_borders(focused_workspace, animated)
 end
 
 -- ========== 更新所有工作区 + 分段状态 ==========
-local function updateWindows()
+local function updateWindows(opts)
+	opts = opts or {}
 	if refresh_in_flight then
 		refresh_pending = true
+		refresh_pending_protect_empty_snapshot = refresh_pending_protect_empty_snapshot
+			or opts.protect_empty_snapshot == true
 		return
 	end
+
+	refresh_generation = refresh_generation + 1
+	local generation = refresh_generation
+	local protect_empty_snapshot = opts.protect_empty_snapshot == true
 	refresh_in_flight = true
-	withWindows(function(args)
+
+	sbar.delay(REFRESH_TIMEOUT, function()
+		if not refresh_in_flight or refresh_generation ~= generation then
+			return
+		end
+		refresh_in_flight = false
 		if refresh_pending then
+			local pending_protect = refresh_pending_protect_empty_snapshot
 			refresh_pending = false
+			refresh_pending_protect_empty_snapshot = false
+			updateWindows({ protect_empty_snapshot = pending_protect })
+		end
+	end)
+
+	withWindows(function(args)
+		if not refresh_in_flight or refresh_generation ~= generation then
+			return
+		end
+
+		if refresh_pending then
+			local pending_protect = refresh_pending_protect_empty_snapshot
+			refresh_pending = false
+			refresh_pending_protect_empty_snapshot = false
 			refresh_in_flight = false
-			updateWindows()
+			updateWindows({ protect_empty_snapshot = pending_protect })
 			return
 		end
 
 		if args.snapshot_ok then
-			window_snapshot = args.open_windows
-			window_to_workspace = {}
-			for ws_idx, ws_wins in pairs(args.open_windows) do
-				for _, win in ipairs(ws_wins) do
-					window_to_workspace[tostring(win.window_id)] = ws_idx
-				end
+			if protect_empty_snapshot and snapshot_is_empty(args.open_windows) and not snapshot_is_empty(window_snapshot) then
+				args.open_windows = window_snapshot
+			else
+				window_snapshot = args.open_windows
+				rebuild_window_index(window_snapshot)
 			end
 		else
 			args.open_windows = window_snapshot
-		end
-
-		for ws_idx, ws in pairs(workspaces) do
-			-- icon/label color 已由 borders.distribute 在 sbar.animate 里一起渐变，
-			-- 这里不需要单独 toggle highlight 标志。
 		end
 
 		-- 第一步：更新每个工作区的窗口内容
@@ -589,11 +632,18 @@ local function updateWorkspaceMonitor()
 		if not workspaces_and_monitors then
 			return
 		end
+		local has_monitor_data = false
 		for _, entry in ipairs(workspaces_and_monitors) do
 			local space_index = entry.workspace
 			local raw_id = entry["monitor-appkit-nsscreen-screens-id"]
 			local monitor_id = raw_id and math.floor(raw_id)
-			workspace_monitor[space_index] = monitor_id
+			if space_index and monitor_id then
+				has_monitor_data = true
+				workspace_monitor[space_index] = monitor_id
+			end
+		end
+		if not has_monitor_data then
+			return
 		end
 		for workspace_index, _ in pairs(workspaces) do
 			workspaces[workspace_index]:set({
@@ -603,38 +653,39 @@ local function updateWorkspaceMonitor()
 	end)
 end
 
--- ========== 初始化：同步查询 + begin_config 批量创建 workspace（性能优化）==========
--- 先用 pgrep 检查 aerospace 是否在运行,避免进程不响应时 io.popen 阻塞启动。
--- pgrep 自身 < 2ms,不会卡。
-local aerospace_alive = false
-local pgrep = io.popen("pgrep -x AeroSpace 2>/dev/null")
-if pgrep then
-	aerospace_alive = pgrep:read("*l") ~= nil
-	pgrep:close()
+local function syncDisplayState()
+	local h = settings.detect_bar_height()
+	if h and h > 0 then
+		sbar.bar({ height = h })
+		settings.height = h
+		settings.ensure_toggle(h)
+	end
+
+	-- Display/wake can leave the focused workspace cache stale while AeroSpace
+	-- is still settling. Force the next window snapshot to query the real focus.
+	focused_workspace_cache = nil
+	updateWorkspaceMonitor()
+	updateWindows({ protect_empty_snapshot = true })
 end
 
-local raw = ""
-if aerospace_alive then
-	local f = io.popen(query_workspaces .. " 2>/dev/null")
-	raw = f and f:read("*a") or ""
-	if f then
-		f:close()
+local function scheduleDisplaySync()
+	display_sync_generation = display_sync_generation + 1
+	local gen = display_sync_generation
+	for _, delay in ipairs({ 0.25, 1.25 }) do
+		sbar.delay(delay, function()
+			if display_sync_generation == gen then
+				syncDisplayState()
+			end
+		end)
 	end
 end
 
+-- ========== 初始化：begin_config 批量创建 workspace（性能优化）==========
+-- AeroSpace 配置固定使用 persistent-workspaces，启动时直接创建这些常驻工作区。
+-- 避免在 SketchyBar 冷启动路径同步等待 aerospace CLI；显示器/窗口状态后续异步同步。
 local initial_workspaces = {}
-local seen_initial_workspaces = {}
-for ws in raw:gmatch('"workspace"%s*:%s*"([^"]+)"') do
-	if not seen_initial_workspaces[ws] then
-		seen_initial_workspaces[ws] = true
-		initial_workspaces[#initial_workspaces + 1] = ws
-	end
-end
-
-if #initial_workspaces == 0 then
-	for ws, _ in pairs(always_show) do
-		initial_workspaces[#initial_workspaces + 1] = ws
-	end
+for ws, _ in pairs(always_show) do
+	initial_workspaces[#initial_workspaces + 1] = ws
 end
 
 table.sort(initial_workspaces, function(a, b)
@@ -835,34 +886,30 @@ sbar.exec(":", function()
 	end)
 
 	-- 焦点变化不再触发 AeroSpace 窗口枚举，只重渲染已有快照以更新高亮色。
-		root:subscribe("window_focus_change", function(env)
-			local focused_id = tonumber(env.FOCUSED_WINDOW_ID)
-			if not focused_id then
-				return
+	root:subscribe("window_focus_change", function(env)
+		local focused_id = tonumber(env.FOCUSED_WINDOW_ID)
+		if not focused_id then
+			return
+		end
+		local needs_fullscreen_refresh = snapshot_has_fullscreen_window()
+		focused_window_id_cache = focused_id
+		local ws_idx = window_to_workspace[tostring(focused_id)]
+		if ws_idx and workspaces[ws_idx] then
+			local wins = window_snapshot[ws_idx]
+			if wins then
+				show_workspace_apps(ws_idx, app_icon_line(wins))
 			end
-			local needs_fullscreen_refresh = snapshot_has_fullscreen_window()
-			focused_window_id_cache = focused_id
-			local ws_idx = window_to_workspace[tostring(focused_id)]
-			if ws_idx and workspaces[ws_idx] then
-				local wins = window_snapshot[ws_idx]
-				if wins then
-					show_workspace_apps(ws_idx, app_icon_line(wins))
-				end
-			end
-			-- AeroSpace may drop fullscreen when switching apps without emitting
-			-- aerospace_fullscreen_change, so refresh only while a stale marker is possible.
-			if needs_fullscreen_refresh then
-				scheduleUpdateWindows(0.15)
-			end
-		end)
+		end
+		-- AeroSpace may drop fullscreen when switching apps without emitting
+		-- aerospace_fullscreen_change, so refresh only while a stale marker is possible.
+		if needs_fullscreen_refresh then
+			scheduleUpdateWindows(0.15)
+		end
+	end)
 
 	-- 显示器变化/唤醒：同步 bar、自动显隐区域与工作区所属屏幕
 	root:subscribe({ "display_change", "system_woke" }, function()
-		local h = settings.detect_bar_height()
-		sbar.bar({ height = h })
-		settings.ensure_toggle(h)
-		updateWorkspaceMonitor()
-		scheduleUpdateWindows(1.0)
+		scheduleDisplaySync()
 	end)
 
 	-- 全屏状态由完整窗口查询统一同步，用括号标记对应窗口图标。
