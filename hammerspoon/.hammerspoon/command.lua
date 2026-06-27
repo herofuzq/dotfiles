@@ -5,13 +5,14 @@ local function shell_quote(s)
 end
 
 local function is_executable(path)
-	local f = io.popen("test -x " .. shell_quote(path) .. " && echo 1")
-	if not f then
+	-- 用 hs.fs.attributes 代替 io.popen("test -x")，避免阻塞主线程。
+	-- mode 格式如 "-rwxr-xr-x"，第 4 个字符是 owner execute bit。
+	local attr = hs.fs.attributes(path)
+	if not attr then
 		return false
 	end
-	local r = f:read("*a") or ""
-	f:close()
-	return r:sub(1, 1) == "1"
+	local mode = attr.mode or ""
+	return #mode >= 4 and mode:sub(4, 4) == "x"
 end
 
 function M.find(candidates, fallback)

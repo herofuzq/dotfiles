@@ -80,6 +80,9 @@ function M.new(parent, options)
 
 		local color = background_color()
 		sbar.animate("linear", frames, function()
+			if generation ~= current_generation then
+				return
+			end
 			parent:set({
 				popup = {
 					background = { color = appearance.with_alpha(color, 0) },

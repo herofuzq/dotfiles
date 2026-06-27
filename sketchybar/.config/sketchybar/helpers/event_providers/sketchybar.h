@@ -98,8 +98,8 @@ static inline uint32_t format_message(char* message, char* formatted_message) {
     caret++;
   }
 
-  if (caret > 0 && formatted_message[caret] == '\0'
-      && formatted_message[caret - 1] == '\0') {
+  if (caret > 1 && formatted_message[caret - 1] == '\0'
+      && formatted_message[caret - 2] == '\0') {
     caret--;
   }
   formatted_message[caret] = '\0';

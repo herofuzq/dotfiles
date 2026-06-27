@@ -76,6 +76,7 @@ func triggerInputMethodChange() {
     task.standardOutput = FileHandle.nullDevice
     task.standardError = FileHandle.nullDevice
     try? task.run()
+    task.waitUntilExit()
 }
 
 let center = DistributedNotificationCenter.default()

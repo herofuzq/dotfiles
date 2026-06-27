@@ -168,17 +168,26 @@ local function withWindows(f)
 		visible_workspaces = nil,
 	}
 	local pending = focused_workspace_cache and 2 or 3
+	local completed = false
 
 	local function check_done()
 		pending = pending - 1
-		if pending == 0 then
-			-- 等窗口和工作区查询全部完成后统一排序、渲染。
+		if pending == 0 and not completed then
+			completed = true
 			for _, wins in pairs(results.open_windows) do
 				sort_windows_by_creation(wins)
 			end
 			f(results)
 		end
 	end
+
+	-- 超时保护：若 sbar.exec 回调丢失，5s 后强制完成，避免 refresh_in_flight 永久卡住
+	sbar.delay(5.0, function()
+		if not completed then
+			completed = true
+			f(results)
+		end
+	end)
 
 	local get_windows =
 		"aerospace list-windows --monitor all --format '%{workspace}%{app-name}%{window-id}%{window-is-fullscreen}%{window-title}' --json"

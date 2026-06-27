@@ -23,19 +23,15 @@ let mediaControl = waitPath("media-control", candidates: ["/opt/homebrew/bin/med
 let stateQueue = DispatchQueue(label: "com.fuzhuoqun.media_watch.state")
 var lastState = MediaState(title: "", artist: "", album: "", playing: false)
 
-func runSketchybar(arguments: [String], wait: Bool = true) {
+func runSketchybar(arguments: [String]) {
     let task = Process()
     task.launchPath = sketchybar
     task.arguments = arguments
     task.standardOutput = FileHandle.nullDevice
     task.standardError = FileHandle.nullDevice
 
-    guard (try? task.run()) != nil else {
-        return
-    }
-    if wait {
-        task.waitUntilExit()
-    }
+    guard (try? task.run()) != nil else { return }
+    task.waitUntilExit()
 }
 
 func applyUpdate(_ state: MediaState) {
@@ -45,7 +41,7 @@ func applyUpdate(_ state: MediaState) {
         "ARTIST=\(state.artist)",
         "ALBUM=\(state.album)",
         "PLAYING=\(state.playing ? "1" : "0")",
-    ], wait: false)
+    ])
 }
 
 func mediaState(from object: Any) -> MediaState? {

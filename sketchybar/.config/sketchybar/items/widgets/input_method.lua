@@ -83,7 +83,7 @@ local function check_status()
 		im_id = im_id and im_id:match("^%s*(.-)%s*$")
 		if im_id == "org.fcitx.inputmethod.Fcitx5.zhHans" then
 			sbar.exec("'" .. FCITX_REMOTE .. "'", function(mode)
-				update_display(im_id, mode and mode:match("^%s*(.-)%s*$"))
+				local clean = mode and mode:match("^%s*(.-)%s*$"); update_display(im_id, (clean and clean:match("^[012]$")) and clean or nil)
 			end)
 		else
 			update_display(im_id)
