@@ -815,6 +815,10 @@ ensure_front_app()
 
 -- 事件订阅 + 初始化（在 end_config 后延迟执行）
 sbar.exec(":", function()
+	if not next(workspace_order) then
+		io.stderr:write("sketchybar: spaces init failed — no workspaces loaded\n")
+		return
+	end
 	for _, ws in ipairs(workspace_order) do
 		local w = workspaces[ws]
 

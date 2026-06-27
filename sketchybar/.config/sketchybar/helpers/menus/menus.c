@@ -218,13 +218,18 @@ extern void _SLPSGetFrontProcess(ProcessSerialNumber* psn);
 extern void SLSGetConnectionIDForPSN(int cid, ProcessSerialNumber* psn, int* cid_out);
 extern void SLSConnectionGetPID(int cid, pid_t* pid_out);
 AXUIElementRef ax_get_front_app() {
-  ProcessSerialNumber psn;
+  ProcessSerialNumber psn = { 0, 0 };
   _SLPSGetFrontProcess(&psn);
-  int target_cid;
-  SLSGetConnectionIDForPSN(SLSMainConnectionID(), &psn, &target_cid);
+  if (psn.highLongOfPSN == 0 && psn.lowLongOfPSN == 0) return NULL;
 
-  pid_t pid;
+  int target_cid = 0;
+  SLSGetConnectionIDForPSN(SLSMainConnectionID(), &psn, &target_cid);
+  if (!target_cid) return NULL;
+
+  pid_t pid = 0;
   SLSConnectionGetPID(target_cid, &pid);
+  if (pid <= 0) return NULL;
+
   return AXUIElementCreateApplication(pid);
 }
 

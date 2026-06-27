@@ -29,6 +29,7 @@ static inline void cpu_update(struct cpu* cpu) {
 
   if (error != KERN_SUCCESS) {
     printf("Error: Could not read cpu host statistics.\n");
+    cpu->has_prev_load = false;
     return;
   }
 
