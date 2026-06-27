@@ -101,7 +101,10 @@ updateFromCurrentState()
 var buffer = ""
 pipe.fileHandleForReading.readabilityHandler = { handle in
     let data = handle.availableData
-    guard !data.isEmpty, let chunk = String(data: data, encoding: .utf8) else { exit(0) }
+    guard !data.isEmpty, let chunk = String(data: data, encoding: .utf8) else {
+        stateQueue.async { exit(0) }
+        return
+    }
     stateQueue.async {
         buffer += chunk
         while let newline = buffer.firstIndex(of: "\n") {

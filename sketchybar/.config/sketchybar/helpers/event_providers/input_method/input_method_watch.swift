@@ -89,4 +89,10 @@ let observer = center.addObserver(
 
 triggerInputMethodChange()
 
+// Graceful shutdown on SIGTERM (launchd stop)
+signal(SIGTERM, SIG_IGN)
+let sigtermSource = DispatchSource.makeSignalSource(signal: SIGTERM, queue: .main)
+sigtermSource.setEventHandler { exit(0) }
+sigtermSource.resume()
+
 RunLoop.main.run()

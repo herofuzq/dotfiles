@@ -51,7 +51,6 @@ return function(opts)
 		},
 	})
 
-	local last_num = 0
 	-- dedup: 与 battery/network/sys widget 对齐,num + label 字符串都没变就跳过 set
 	local last_display_signature
 
@@ -64,7 +63,6 @@ return function(opts)
 			return
 		end
 		last_display_signature = signature
-		last_num = num
 		item:set({
 			icon = { color = num > 0 and resolve_color(opts.icon_color) or resolve_color(opts.icon_inactive_color) },
 			label = {

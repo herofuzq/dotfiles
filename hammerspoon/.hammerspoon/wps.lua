@@ -27,7 +27,9 @@ local function createWPSTap()
 		},
 		function(event)
 			local etype = event:getType()
-			_sessionGeneration = _sessionGeneration + 1
+			if etype == hs.eventtap.event.types.rightMouseDown then
+				_sessionGeneration = _sessionGeneration + 1
+			end
 			local generation = _sessionGeneration
 			if etype == hs.eventtap.event.types.rightMouseDown then
 				input.isChineseAsync(function(isChinese)

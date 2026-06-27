@@ -8,7 +8,6 @@ int main(int argc, char** argv) {
     exit(1);
   }
 
-  alarm(0);
   struct cpu cpu;
   cpu_init(&cpu);
 
@@ -30,7 +29,7 @@ int main(int argc, char** argv) {
              cpu.total_load);
 
     sketchybar(trigger_message);
-    usleep(update_freq * 1000000);
+    if (update_freq > 0.0f && update_freq < 3600.0f) usleep(update_freq * 1000000);
   }
   return 0;
 }
