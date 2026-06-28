@@ -82,7 +82,7 @@ return function(opts)
 
 	local function check_status()
 		sbar.exec("lsappinfo -all info -only StatusLabel " .. safe_id, function(raw)
-			update_display(raw and raw:match('"label"%s*=%s*"([^"]*)"'))
+			update_display(raw and raw:match([["label"%s*=%s*"([^"]*)"]]))
 		end)
 	end
 

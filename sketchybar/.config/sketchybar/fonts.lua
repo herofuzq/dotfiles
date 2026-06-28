@@ -1,3 +1,7 @@
+-- ========== 字体定义 ==========
+-- text: 主文字字体（label / popup 内容）
+-- font_icon: 图标字体（Nerd Font + SF Symbols 回退）
+-- 用法: 整个模块直接 require("fonts") 拿到字面 table
 return {
 	font = {
 		text = "JetBrains Maple Mono",

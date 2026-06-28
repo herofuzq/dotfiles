@@ -1,3 +1,7 @@
+-- ========== Helper 二进制编译管理 ==========
+-- 启动时检查 helpers/event_providers/ 下各 Swift/C helper 源码是否比编译产物新，
+-- 是的话跑 make 重建。bin/ 不在 dotfiles 里 stow（避免每次 make 都触发 git diff）。
+
 -- Add the sketchybar module to the package cpath
 package.cpath = package.cpath .. ";" .. os.getenv("HOME") .. "/.local/share/sketchybar_lua/?.so"
 

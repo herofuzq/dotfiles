@@ -1,10 +1,4 @@
 -- ========== Workspace 分段状态样式 ==========
-local sbar = require("sketchybar")
-local appearance = require("appearance")
-local colors = appearance.colors
-local settings = require("settings")
-
--- ========== Workspace 分段状态样式 ==========
 -- segment 几何（x_offset、height、corner_radius 等）跟 segment 颜色分开管理：
 --   - 几何：set_segment_geometry 在 animation 之外 set，一次到位、不会被插值
 --   - 颜色：set_focused / set_inactive 在 sbar.animate 回调里 set，
@@ -14,6 +8,11 @@ local settings = require("settings")
 -- 每次 animation 启动都从某个隐式 baseline（target - 1）插到 target，造成最右 segment
 -- 在动画前 200ms 期间 x_offset 显示为 -1 而不是 -2，视觉上就是"高亮往回跳 1px"。
 -- 把 x_offset 拆到 animation 之外后就不参与插值，bug 消失。
+local sbar = require("sketchybar")
+local appearance = require("appearance")
+local colors = appearance.colors
+local settings = require("settings")
+
 local focused_bg = colors.red
 local inactive_bg = 0x00000000
 local workspace_style = {

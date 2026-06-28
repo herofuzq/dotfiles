@@ -1,3 +1,7 @@
+-- ========== Widget 数据解析 ==========
+-- 处理 widget 从外部命令读取的 raw 输出：
+--   - parse_ioreg_integer: ioreg 输出的大整数（UInt64）→ Lua number
+--   - subtract_decimal / parse helpers: 各种数值字段的安全解析
 local M = {}
 
 local UINT64_SIGNED_MAX = "9223372036854775807"

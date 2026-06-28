@@ -2,7 +2,7 @@
 -- 切换主题：改 M.active → sketchybar --reload
 local M = {}
 
--- ========== ① 色板（纯色值，无 alpha）==========
+-- ========== (1) 色板（纯色值，无 alpha）==========
 local palette = {
 	mocha = {
 		rosewater = 0xfff5e0dc,
@@ -62,7 +62,7 @@ local palette = {
 	},
 }
 
--- ========== ② 工具函数（需在 build_colors 之前定义）==========
+-- ========== (2) 工具函数（需在 build_colors 之前定义）==========
 function M.with_alpha(color, alpha)
 	if alpha > 1.0 or alpha < 0.0 then
 		return color
@@ -70,14 +70,14 @@ function M.with_alpha(color, alpha)
 	return (color & 0x00ffffff) | (math.floor(alpha * 255) * 0x1000000)
 end
 
--- ========== ③ alpha 常量 ==========
+-- ========== (3) alpha 常量 ==========
 local A = {
 	bar_bg = 0.2, -- bar 本体透明度
 	pill = 0.667, -- pill 背景 (0xaa/255)
 	border = 0.2, -- 边框 / 高亮 (0x33/255)
 }
 
--- ========== ④ 构建实际颜色表（含 alpha）==========
+-- ========== (4) 构建实际颜色表（含 alpha）==========
 local function build_colors(P)
 	return {
 		pill_bg = M.with_alpha(P.surface0, A.pill), -- surface0 @ 0.667
@@ -101,11 +101,11 @@ local function build_colors(P)
 	}
 end
 
--- ========== ⑤ 切换 ==========
+-- ========== (5) 切换 ==========
 M.active = "mocha"
 M.colors = build_colors(palette[M.active])
 
--- ========== ⑥ 样式 helpers ==========
+-- ========== (6) 样式 helpers ==========
 -- 所有 widget 复用的标准样式，避免每个文件重抄。
 -- 改全局圆角/边框/font size 时只改这里。
 local fonts = require("fonts")
@@ -141,7 +141,7 @@ function M.font_label_bold(size)
 	}
 end
 
--- ========== ⑥ 全局默认样式 ==========
+-- ========== (7) 全局默认样式 ==========
 function M.install_defaults()
 	local C = M.colors
 	local settings = require("settings")

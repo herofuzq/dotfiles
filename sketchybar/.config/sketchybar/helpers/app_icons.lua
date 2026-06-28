@@ -1,3 +1,7 @@
+-- ========== 应用名 → 图标字形映射 ==========
+-- key 是 macOS app 的 bundle name（可能含多语言版本：英文/中文/俄文等），
+-- value 是 Nerd Font 或 SF Symbols 的图标字形。
+-- 改一个 icon 影响范围：单行替换即可。
 return {
 	["Live"] = ":ableton:",
 	["Adobe Bridge"] = ":adobe_bridge:",
