@@ -1,35 +1,29 @@
 local M = {}
 
-local function shell_quote(s)
-	return "'" .. tostring(s):gsub("'", "'\\''") .. "'"
-end
-
-local function is_executable(path)
-	-- 用 hs.fs.attributes 代替 io.popen("test -x")，避免阻塞主线程。
-	-- mode 格式如 "-rwxr-xr-x"，第 4 个字符是 owner execute bit。
+local function path_exists(path)
 	local attr = hs.fs.attributes(path)
-	if not attr then
-		return false
-	end
-	local mode = attr.mode or ""
-	return #mode >= 4 and mode:sub(4, 4) == "x"
+	return attr ~= nil
 end
 
 function M.find(candidates, fallback)
 	for _, path in ipairs(candidates) do
-		if is_executable(path) then
+		if path_exists(path) then
 			return path
 		end
 	end
-	-- fallback 是无路径的程序名（如 "sketchybar"），交给 hs.task.new 走 PATH 解析。
-	-- 不能用 test -x 卡它：test -x 不查 PATH，自编译装到 ~/bin 的 binary 会漏。
-	if fallback then
+
+	-- hs.task.new 需要可访问的 launch path；裸命令名不会可靠走 shell PATH。
+	if fallback and fallback:find("/", 1, true) and path_exists(fallback) then
 		return fallback
 	end
+
 	return nil
 end
 
 function M.start(executable, args, callback)
+	if not executable then
+		return false, "executable not found"
+	end
 	local ok, task = pcall(hs.task.new, executable, callback, args)
 	if not ok or not task then
 		return false, tostring(task)

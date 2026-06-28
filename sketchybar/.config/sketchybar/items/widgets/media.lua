@@ -20,12 +20,12 @@ local ICON_PREVIOUS = "\u{f048}"
 local ICON_NEXT = "\u{f051}"
 local ICON_MUSIC = "\u{f001}"
 
-local skip_icon = 0
 local label
 local last_display_title
 local last_playing
 local title_generation = 0
 local title_initialized = false
+local fallback_refresh_generation = 0
 
 local function display_title(info)
 	local title = (info and info.title) or ""
@@ -94,10 +94,7 @@ end
 local function apply_state(info, animated)
 	update_label(info, animated)
 	local playing = info and info.playing or false
-	if skip_icon > 0 then
-		skip_icon = skip_icon - 1
-		last_playing = playing
-	elseif playing ~= last_playing then
+	if playing ~= last_playing then
 		-- dedup: 播放状态没变就不 set
 		last_playing = playing
 		sbar.set("widgets.media_play_pause", {
@@ -106,9 +103,22 @@ local function apply_state(info, animated)
 	end
 end
 
+local function schedule_fallback_refresh()
+	fallback_refresh_generation = fallback_refresh_generation + 1
+	local generation = fallback_refresh_generation
+	for _, delay in ipairs({ 0.6, 1.4 }) do
+		sbar.delay(delay, function()
+			if fallback_refresh_generation == generation then
+				sbar.trigger("media_update")
+			end
+		end)
+	end
+end
+
 local function refresh(env)
 	local info = info_from_env(env)
 	if info then
+		fallback_refresh_generation = fallback_refresh_generation + 1
 		apply_state(info, true)
 		return
 	end
@@ -186,24 +196,27 @@ end
 next_item:subscribe("mouse.clicked", function()
 	press_feedback(next_item)
 	sbar.exec('"' .. MEDIA .. '" next-track', function()
-		sbar.trigger("media_update")
+		schedule_fallback_refresh()
 	end)
 end)
 
 previous_item:subscribe("mouse.clicked", function()
 	press_feedback(previous_item)
 	sbar.exec('"' .. MEDIA .. '" previous-track', function()
-		sbar.trigger("media_update")
+		schedule_fallback_refresh()
 	end)
 end)
 
 play_pause:subscribe("mouse.clicked", function()
 	press_feedback(play_pause)
-	skip_icon = 1
 	local q = play_pause:query()
 	local cur = q and q.icon and q.icon.value or ICON_PLAY
-	play_pause:set({ icon = { string = (cur == ICON_PLAY) and ICON_PAUSE or ICON_PLAY } })
-	sbar.exec('"' .. MEDIA .. '" toggle-play-pause')
+	local optimistic_playing = cur == ICON_PLAY
+	last_playing = optimistic_playing
+	play_pause:set({ icon = { string = optimistic_playing and ICON_PAUSE or ICON_PLAY } })
+	sbar.exec('"' .. MEDIA .. '" toggle-play-pause', function()
+		schedule_fallback_refresh()
+	end)
 end)
 
 -- ========== 歌曲信息 ==========
