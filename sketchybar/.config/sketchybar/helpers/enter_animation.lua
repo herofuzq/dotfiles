@@ -15,6 +15,7 @@
 --  - 60Hz 设备:动画时长 = 帧数 / 60(看起来稍慢但稳定)
 local sbar = require("sketchybar")
 local appearance = require("appearance")
+local timing = require("helpers.timing")
 
 local M = {}
 
@@ -52,7 +53,7 @@ function M.run_bar()
 		})
 		-- bar 渐入完成,逐个把 item 设为可见
 		for i, p in ipairs(_pending) do
-			local delay = (i - 1) * STAGGER_FRAMES / 120
+			local delay = timing.frames_to_seconds((i - 1) * STAGGER_FRAMES)
 			sbar.delay(delay, function()
 				sbar.animate("linear", REVEAL_FRAMES, function()
 					sbar.set(p.name, { drawing = true })

@@ -3,6 +3,7 @@ local sbar = require("sketchybar")
 local fonts = require("fonts")
 local appearance = require("appearance")
 local enter_animation = require("helpers.enter_animation")
+local timing = require("helpers.timing")
 local find_binary = require("helpers.find_binary").find
 local colors = appearance.colors
 
@@ -65,15 +66,15 @@ local function update_label(info, animated)
 
 	title_generation = title_generation + 1
 	local generation = title_generation
-	-- 统一规范：纯 alpha 渐隐，linear 曲线，24 帧 / 200ms 对称
-	sbar.animate("linear", 24, function()
+	-- 统一规范：纯 alpha 渐隐，linear 曲线，200ms 对称
+	sbar.animate("linear", timing.STANDARD_DURATION_FRAMES, function()
 		label:set({ label = { color = appearance.with_alpha(colors.yellow, 0) } })
 	end)
-	sbar.delay(24 / 120, function()
+	sbar.delay(timing.frames_to_seconds(timing.STANDARD_DURATION_FRAMES), function()
 		if title_generation ~= generation then
 			return
 		end
-		sbar.animate("linear", 24, function()
+		sbar.animate("linear", timing.STANDARD_DURATION_FRAMES, function()
 			label:set({ label = { string = title, color = colors.yellow } })
 		end)
 	end)

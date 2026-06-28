@@ -6,6 +6,7 @@ local app_icons = require("helpers.app_icons")
 local borders = require("helpers.borders")
 local popup_animation = require("helpers.popup_animation")
 local enter_animation = require("helpers.enter_animation")
+local timing = require("helpers.timing")
 local sbar = require("sketchybar")
 local fonts = require("fonts")
 local settings = require("settings")
@@ -121,7 +122,7 @@ local function ensure_front_app()
 				label = { color = transparent(appearance.colors.peach) },
 			})
 		end)
-		sbar.delay(CONTENT_FADE_IN_FRAMES / 120, function()
+		sbar.delay(timing.frames_to_seconds(CONTENT_FADE_IN_FRAMES), function()
 			if front_app_generation ~= generation then
 				return
 			end
@@ -358,7 +359,7 @@ local function animate_workspace_content(workspace_index, apply_content, is_focu
 			},
 		})
 	end)
-	sbar.delay(CONTENT_FADE_IN_FRAMES / 120, function()
+	sbar.delay(timing.frames_to_seconds(CONTENT_FADE_IN_FRAMES), function()
 		if _content_anim_gen[workspace_index] ~= gen then
 			return
 		end
@@ -446,7 +447,7 @@ local function scheduleHide(ws_index, workspace)
 	end
 	local gen = (_popup_exit_gen[ws_index] or 0) + 1
 	_popup_exit_gen[ws_index] = gen
-	sbar.delay(0.2, function()
+	sbar.delay(timing.POPUP_HIDE_DELAY_S, function()
 		if _popup_exit_gen[ws_index] ~= gen then
 			return
 		end
@@ -963,7 +964,7 @@ sbar.exec(":", function()
 			end)
 			-- 退出 service 时,动画结束后收起 drawing,避免空 item 占位
 			if not is_service then
-				sbar.delay(24 / 120, function()
+				sbar.delay(timing.frames_to_seconds(timing.STANDARD_DURATION_FRAMES), function()
 					if mode_generation ~= gen or mode_visible then
 						return
 					end

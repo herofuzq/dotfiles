@@ -6,12 +6,13 @@
 -- 调用方只需传 background_color（默认 appearance.colors.pill_bg），动画内部自动处理 alpha。
 -- 已存在的 on_prepare_show / on_show / on_hide / on_hidden 钩子仍可用（比如改 popup item 的 icon/label 颜色）。
 local appearance = require("appearance")
+local timing = require("helpers.timing")
 local sbar = require("sketchybar")
 
 local M = {}
 
 -- 统一动画帧数：24 帧 @ 120Hz = 200ms
-local DEFAULT_FRAMES = 24
+local DEFAULT_FRAMES = timing.STANDARD_DURATION_FRAMES
 
 function M.new(parent, options)
 	options = options or {}
@@ -96,7 +97,7 @@ function M.new(parent, options)
 				options.on_hide()
 			end
 		end)
-		sbar.delay(frames / 120, function()
+		sbar.delay(timing.frames_to_seconds(frames), function()
 			if generation ~= current_generation then
 				return
 			end
