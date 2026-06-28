@@ -1,10 +1,14 @@
 git:
+  disableForcePushing: true
   pagers:
     - colorArg: always
       pager: delta --paging=never --features="mellow-barbet" --syntax-theme="Catppuccin Mocha"
       useConfig: false
       
 gui:
+  showIcons: true
+  nerdFontsVersion: "3"
+  showDivergenceFromBaseBranch: arrowAndNumber
   theme:
     activeBorderColor:
       - "#31748f"
