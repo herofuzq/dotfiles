@@ -30,10 +30,10 @@ workspace_style.segment_radius = workspace_style.bracket_radius - 1
 -- 注意: 若改 aerospace.toml 的 persistent-workspaces 顺序,让 1 不在左端或 6 不在
 -- 右端,这里要相应调整 (例如改成最后一个 workspace 的索引)。
 local function segment_x_offset(name)
-	if name:match("^workspace%.1") then
+	if name == "workspace.1" or name:match("^workspace%.1%.") then
 		return 2
 	end
-	if name:match("^workspace%.6") then
+	if name == "workspace.6" or name:match("^workspace%.6%.") then
 		return -2
 	end
 	return 0

@@ -117,9 +117,11 @@ local function schedule_fallback_refresh()
 end
 
 local function refresh(env)
+	-- 总是 bump generation，让之前 schedule 的 fallback refresh 失效。
+	-- 之前只在 info 非空时 bump，导致 nil-info 路径可能让旧的 fallback 触发重复 fetch。
+	fallback_refresh_generation = fallback_refresh_generation + 1
 	local info = info_from_env(env)
 	if info then
-		fallback_refresh_generation = fallback_refresh_generation + 1
 		apply_state(info, true)
 		return
 	end
