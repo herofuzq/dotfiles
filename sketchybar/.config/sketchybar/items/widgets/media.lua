@@ -136,7 +136,7 @@ local next_item = sbar.add("item", "widgets.media_next", {
 	width = 12,
 	icon = {
 		string = ICON_NEXT,
-		font = { family = fonts.font_icon.text, style = fonts.font_icon.style_map["Bold"], size = 14.0 },
+		font = appearance.font_icon_bold(14.0),
 		color = colors.pill_fg,
 		padding_left = 2,
 		padding_right = 2,
@@ -155,7 +155,7 @@ local play_pause = sbar.add("item", "widgets.media_play_pause", {
 	width = 12,
 	icon = {
 		string = ICON_PLAY,
-		font = { family = fonts.font_icon.text, style = fonts.font_icon.style_map["Bold"], size = 14.0 },
+		font = appearance.font_icon_bold(14.0),
 		color = colors.pill_fg,
 		padding_left = 2,
 		padding_right = 2,
@@ -174,7 +174,7 @@ local previous_item = sbar.add("item", "widgets.media_previous", {
 	width = 14,
 	icon = {
 		string = ICON_PREVIOUS,
-		font = { family = fonts.font_icon.text, style = fonts.font_icon.style_map["Bold"], size = 14.0 },
+		font = appearance.font_icon_bold(14.0),
 		color = colors.pill_fg,
 		padding_left = 2,
 		padding_right = 2,
@@ -228,7 +228,7 @@ label = sbar.add("item", "widgets.media_label", {
 	padding_right = 2,
 	icon = {
 		string = ICON_MUSIC,
-		font = { family = fonts.font_icon.text, style = fonts.font_icon.style_map["Bold"], size = 11.0 },
+		font = appearance.font_icon_bold(11.0),
 		color = colors.peach,
 		padding_left = 6,
 		padding_right = 2,

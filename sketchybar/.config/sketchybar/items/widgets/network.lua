@@ -2,10 +2,11 @@
 local sbar = require("sketchybar")
 local icons = require("icons")
 local fonts = require("fonts")
+local appearance = require("appearance")
 local parsers = require("helpers.widget_parsers")
 local enter_animation = require("helpers.enter_animation")
 local find_binary = require("helpers.find_binary").find
-local colors = require("appearance").colors
+local colors = appearance.colors
 local NETWORK_SAMPLE_INTERVAL = 3
 local INTERFACE_REFRESH_INTERVAL = 61
 local MAX_CONSECUTIVE_FAILURES = 2
@@ -19,7 +20,7 @@ local up = sbar.add("item", "widgets.network_up", {
 	icon = { drawing = false, padding_left = 4, padding_right = 0 },
 	label = {
 		string = "—",
-		font = { family = fonts.font.text, style = fonts.font.style_map["Bold"], size = 9.0 },
+		font = appearance.font_label_bold(9.0),
 		padding_left = 0,
 		padding_right = 0,
 		width = 33,
@@ -39,7 +40,7 @@ local down = sbar.add("item", "widgets.network_down", {
 	width = 0,
 	icon = {
 		string = icons.network.offline,
-		font = { family = fonts.font_icon.text, style = fonts.font_icon.style_map["Bold"], size = 13.0 },
+		font = appearance.font_icon_bold(13.0),
 		drawing = true,
 		padding_left = 4,
 		padding_right = 0,
@@ -47,7 +48,7 @@ local down = sbar.add("item", "widgets.network_down", {
 	},
 	label = {
 		string = "—",
-		font = { family = fonts.font.text, style = fonts.font.style_map["Bold"], size = 9.0 },
+		font = appearance.font_label_bold(9.0),
 		padding_left = 0,
 		padding_right = 0,
 		width = 33,
@@ -64,12 +65,7 @@ sbar.add("bracket", "widgets.network", { "widgets.network_up", "widgets.network_
 	icon = { drawing = false },
 	padding_left = 4,
 	padding_right = 0,
-	background = {
-		color = colors.pill_bg,
-		corner_radius = 10,
-		border_width = 2,
-		border_color = colors.border,
-	},
+	background = appearance.pill_bg(),
 })
 
 local function format_speed(raw)
@@ -267,12 +263,7 @@ sbar.add("bracket", "widgets.system", {
 	"widgets.network_down",
 }, {
 	position = "right",
-	background = {
-		color = colors.pill_bg,
-		corner_radius = 10,
-		border_width = 2,
-		border_color = colors.border,
-	},
+	background = appearance.pill_bg(),
 })
 
 -- spacer：system bracket 与 social bracket 之间的水平间隙

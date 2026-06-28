@@ -12,7 +12,7 @@ local fonts = require("fonts")
 local settings = require("settings")
 local SPACE_ICONS = { "󰼏", "󰼐", "󰼑", "󰼒", "󰼓", "󰼔" }
 local APP_ICON_FONT = "sketchybar-app-font:Regular:14.0"
-local EMPTY_APP_FONT = { family = fonts.font.text, style = fonts.font.style_map["Bold"], size = fonts.font.size }
+local EMPTY_APP_FONT = appearance.font_label_bold()
 local REFRESH_TIMEOUT = 3.0
 
 local shell_quote = require("helpers.utils").shell_quote
@@ -96,7 +96,7 @@ local function ensure_front_app()
 		padding_left = 2,
 		icon = { drawing = false },
 		label = {
-			font = { family = fonts.font.text, style = fonts.font.style_map["Bold"], size = 14.0 },
+			font = appearance.font_label_bold(14.0),
 			padding_left = 8,
 			padding_right = 8,
 			align = "center",
@@ -714,7 +714,7 @@ for _, ws in ipairs(initial_workspaces) do
 		icon = {
 			color = appearance.colors.pill_fg,
 			highlight_color = appearance.colors.crust,
-			font = { family = fonts.font.text, style = fonts.font.style_map["Bold"], size = 13.0 },
+			font = appearance.font_label_bold(13.0),
 			padding_left = 10,
 			padding_right = 2,
 			drawing = true,

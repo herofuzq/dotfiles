@@ -5,7 +5,8 @@
 local sbar = require("sketchybar")
 local icons = require("icons")
 local fonts = require("fonts")
-local colors = require("appearance").colors
+local appearance = require("appearance")
+local colors = appearance.colors
 local settings = require("settings")
 
 local clash_tun = sbar.add("item", "widgets.clash_tun", {
@@ -14,31 +15,18 @@ local clash_tun = sbar.add("item", "widgets.clash_tun", {
 	padding_left = 0,
 	padding_right = 2,
 	icon = {
-		font = {
-			family = fonts.font_icon.text,
-			style = fonts.font_icon.style_map["Bold"],
-			size = fonts.font_icon.size,
-		},
+		font = appearance.font_icon_bold(),
 		padding_left = 2,
 		padding_right = 2,
 		color = colors.surface1,
 	},
 	label = {
-		font = {
-			family = fonts.font.text,
-			style = fonts.font.style_map["Bold"],
-			size = fonts.font.size,
-		},
+		font = appearance.font_label_bold(),
 		padding_left = 0,
 		padding_right = settings.item_padding.icon_label_item.label.padding_right,
 		color = colors.pill_fg,
 	},
-	background = {
-		color = colors.pill_bg,
-		corner_radius = 10,
-		border_width = 2,
-		border_color = colors.border,
-	},
+	background = appearance.pill_bg(),
 })
 
 local function color_for(state)

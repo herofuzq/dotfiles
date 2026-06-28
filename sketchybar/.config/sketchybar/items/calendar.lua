@@ -12,13 +12,13 @@ local cal = sbar.add("item", "calendar", {
 	padding_left = 2,
 	padding_right = 5,
 	icon = {
-		font = { family = fonts.font.text, style = fonts.font.style_map["Bold"], size = 13.0 },
+		font = appearance.font_label_bold(13.0),
 		padding_left = 2,
 		padding_right = 2,
 		color = colors.pill_fg,
 	},
 	label = {
-		font = { family = fonts.font.text, style = fonts.font.style_map["Bold"], size = 13.0 },
+		font = appearance.font_label_bold(13.0),
 		padding_left = 0,
 		padding_right = 14,
 		color = colors.pill_fg,

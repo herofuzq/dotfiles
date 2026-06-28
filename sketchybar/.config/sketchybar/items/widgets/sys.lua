@@ -42,22 +42,14 @@ local sys = sbar.add("item", "widgets.sys", {
 	padding_right = 2,
 	icon = {
 		string = icons.cpu,
-		font = {
-			family = fonts.font_icon.text,
-			style = fonts.font_icon.style_map["Bold"],
-			size = fonts.font_icon.size,
-		},
+		font = appearance.font_icon_bold(),
 		padding_left = settings.item_padding.icon_label_item.icon.padding_left,
 		padding_right = 0,
 		color = colors.mauve,
 	},
 	label = {
 		string = "0%",
-		font = {
-			family = fonts.font.text,
-			style = fonts.font.style_map["Bold"],
-			size = fonts.font.size,
-		},
+		font = appearance.font_label_bold(),
 		padding_left = 2,
 		padding_right = 8,
 		align = "right",
@@ -65,12 +57,7 @@ local sys = sbar.add("item", "widgets.sys", {
 		width = 30,
 		color = colors.pill_fg,
 	},
-	background = {
-		color = colors.pill_bg,
-		corner_radius = 10,
-		border_width = 2,
-		border_color = colors.border,
-	},
+	background = appearance.pill_bg(),
 	popup = {
 		align = "center",
 		background = {

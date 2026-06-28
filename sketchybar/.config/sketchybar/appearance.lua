@@ -105,6 +105,42 @@ end
 M.active = "mocha"
 M.colors = build_colors(palette[M.active])
 
+-- ========== ⑥ 样式 helpers ==========
+-- 所有 widget 复用的标准样式，避免每个文件重抄。
+-- 改全局圆角/边框/font size 时只改这里。
+local fonts = require("fonts")
+
+-- 标准 pill 背景（widget 和 bracket 都用）。
+-- 用法: sbar.add("item", "widgets.battery", { background = appearance.pill_bg(), ... })
+function M.pill_bg()
+	return {
+		color = M.colors.pill_bg,
+		corner_radius = 10,
+		border_width = 2,
+		border_color = M.colors.border,
+	}
+end
+
+-- 标准 icon 字体（Bold），size 可选，默认用 fonts.font_icon.size。
+-- 用法: icon = { ..., font = appearance.font_icon_bold() }
+function M.font_icon_bold(size)
+	return {
+		family = fonts.font_icon.text,
+		style = fonts.font_icon.style_map["Bold"],
+		size = size or fonts.font_icon.size,
+	}
+end
+
+-- 标准 label 字体（Bold），size 可选，默认用 fonts.font.size。
+-- 用法: label = { ..., font = appearance.font_label_bold() }
+function M.font_label_bold(size)
+	return {
+		family = fonts.font.text,
+		style = fonts.font.style_map["Bold"],
+		size = size or fonts.font.size,
+	}
+end
+
 -- ========== ⑥ 全局默认样式 ==========
 function M.install_defaults()
 	local C = M.colors

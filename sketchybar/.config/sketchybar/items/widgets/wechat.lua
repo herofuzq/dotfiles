@@ -1,6 +1,7 @@
 -- ========== 微信未读消息数 ==========
 local sbar = require("sketchybar")
-local colors = require("appearance").colors
+local appearance = require("appearance")
+local colors = appearance.colors
 local status_widget = require("status_widget")
 
 status_widget({
@@ -31,10 +32,5 @@ sbar.set("widgets.wechat", {
 })
 sbar.add("bracket", "widgets.social", { "widgets.dingtalk", "widgets.wechat" }, {
 	position = "right",
-	background = {
-		color = colors.pill_bg,
-		corner_radius = 10,
-		border_width = 2,
-		border_color = colors.border,
-	},
+	background = appearance.pill_bg(),
 })

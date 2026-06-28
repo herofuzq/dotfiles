@@ -15,31 +15,18 @@ local battery = sbar.add("item", "widgets.battery", {
 	padding_left = 4,
 	padding_right = 2,
 	icon = {
-		font = {
-			family = fonts.font_icon.text,
-			style = fonts.font_icon.style_map["Bold"],
-			size = fonts.font_icon.size,
-		},
+		font = appearance.font_icon_bold(),
 		padding_left = 8,
 		padding_right = 2,
 		color = colors.pill_fg,
 	},
 	label = {
-		font = {
-			family = fonts.font.text,
-			style = fonts.font.style_map["Bold"],
-			size = fonts.font.size,
-		},
+		font = appearance.font_label_bold(),
 		padding_left = 0,
 		padding_right = 8,
 		color = colors.pill_fg,
 	},
-	background = {
-		color = colors.pill_bg,
-		corner_radius = 10,
-		border_width = 2,
-		border_color = colors.border,
-	},
+	background = appearance.pill_bg(),
 	popup = {
 		align = "center",
 		background = {
@@ -60,7 +47,7 @@ local batt_info = sbar.add("item", "widgets.battery.info", {
 	drawing = false,
 	icon = { drawing = false },
 	label = {
-		font = { family = fonts.font.text, style = fonts.font.style_map["Bold"], size = 13.0 },
+		font = appearance.font_label_bold(13.0),
 		color = colors.pill_fg,
 		padding_left = 10,
 		padding_right = 10,

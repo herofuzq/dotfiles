@@ -1,7 +1,8 @@
 -- ========== 通用状态角标 Widget 工厂 ==========
 local sbar = require("sketchybar")
 local fonts = require("fonts")
-local colors = require("appearance").colors
+local appearance = require("appearance")
+local colors = appearance.colors
 local settings = require("settings")
 
 return function(opts)
@@ -34,11 +35,7 @@ return function(opts)
 		},
 		label = {
 			string = "0",
-			font = {
-				family = fonts.font.text,
-				style = fonts.font.style_map["Bold"],
-				size = fonts.font.size,
-			},
+			font = appearance.font_label_bold(),
 			padding_left = 0,
 			padding_right = settings.item_padding.icon_label_item.label.padding_right,
 			color = resolve_color(opts.label_inactive_color),
