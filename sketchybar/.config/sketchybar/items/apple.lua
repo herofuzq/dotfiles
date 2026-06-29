@@ -15,7 +15,7 @@ local dock_sync_generation = 0
 local function compute_icon_pad()
 	local dock_w, dock_hidden = settings.detect_dock_width()
 	if dock_hidden == 1 then
-		return 13, 13
+		return 10, 10
 	else
 		local pad = math.floor((dock_w - icon_width - 2 * border_width - 4) / 2)
 		return pad + 0, pad - 0
