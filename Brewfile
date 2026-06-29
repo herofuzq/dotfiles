@@ -1,225 +1,284 @@
-# =============================================================================
-# Brewfile — Homebrew Bundle
-# 用法: brew bundle install --file=Brewfile
-# 自动生成于: 2026-06-16 (brew bundle dump)
-# =============================================================================
-
-# --- Taps ---
-tap "anomalyco/tap"
-tap "asmvik/formulae"
-tap "barutsrb/tap"
-tap "cyberlesterr/antify"
-tap "digitalghost-dev/tap"
-tap "felixkratz/formulae"
+tap "anomalyco/tap", trusted: true
+tap "asmvik/formulae", trusted: true
+tap "barutsrb/tap", "https://github.com/BarutSRB/homebrew-tap", trusted: true
+tap "cyberlesterr/antify", "https://github.com/cyberlesterr/homebrew-antify.git", trusted: true
+tap "digitalghost-dev/tap", trusted: true
+tap "felixkratz/formulae", "https://github.com/FelixKratz/homebrew-formulae", trusted: true
 tap "gechr/tap"
-tap "gromgit/fuse"
-tap "hmbown/deepseek-tui"
-tap "joelekstrom/repo"
-tap "k06a/tap"
-tap "karinushka/paneru"
-tap "laishulu/homebrew"
-tap "lihaoyun6/tap"
-tap "malpern/tap"
-tap "manaflow-ai/cmux"
+tap "gromgit/fuse", trusted: true
+tap "hmbown/deepseek-tui", "https://github.com/Hmbown/homebrew-deepseek-tui", trusted: true
+tap "joelekstrom/repo", trusted: true
+tap "k06a/tap", trusted: true
+tap "laishulu/homebrew", trusted: true
+tap "lihaoyun6/tap", trusted: true
+tap "malpern/tap", trusted: true
 tap "mdnmdn/asimeow"
-tap "narbs/tap"
-tap "nikitabobko/tap"
-tap "otuerk/sidebar"
-tap "steipete/tap"
-tap "sunnyyoung/tap"
-tap "vitorgalvao/tiny-scripts"
-tap "yqrashawn/goku"
-
-# =============================================================================
-# 终端 / Shell
-# =============================================================================
-cask "ghostty"            # GPU 加速终端
-cask "kitty"              # GPU 终端模拟器
-brew "tmux"               # 终端复用器
-brew "starship"           # shell 提示符
-brew "zoxide"             # 智能 cd
-brew "fzf"                # 模糊搜索
-brew "bat"                # cat 替代品
-brew "fd"                 # find 替代品
-brew "fastfetch"          # 系统信息
-brew "chafa"              # 终端图片显示
-brew "yazi"               # 终端文件管理器
-brew "w3m"                # HTML→text（aerc html filter + yazi HTML preview 共享）
-brew "midnight-commander" # 终端文件管理器
-brew "stow"               # dotfiles 管理
-brew "jq"                 # JSON 处理器
-brew "pandoc"             # 文档转换
-brew "aerc"               # 终端邮件客户端
-brew "tag"                # 标签管理 CLI
-brew "switchaudio-osx"    # 音频输出切换
-
-# =============================================================================
-# 编辑器 / Git
-# =============================================================================
-brew "neovide"            # Neovim CLI
-cask "neovide-app"        # Neovim GUI
-brew "lazygit"            # Git TUI
-brew "git"                # Git
-brew "lua"                # Lua (Neovim 依赖)
-
-# =============================================================================
-# 编程语言 / 运行时
-# =============================================================================
-brew "node@22"            # Node.js
-brew "pnpm"               # 包管理
-brew "ruby", link: false  # Ruby
-brew "openjdk@17"         # Java
-cask "flutter"            # Flutter SDK
-brew "mpv"                # 视频播放器 (CLI 库)
-
-# =============================================================================
-# macOS 工具
-# =============================================================================
-cask "nikitabobko/tap/aerospace"  # 平铺窗口管理器
-cask "hammerspoon"                # 自动化
-cask "karabiner-elements"         # 键盘改键
-cask "bettertouchtool"            # 触控板/鼠标增强
-cask "mac-mouse-fix"              # 鼠标增强
-cask "homerow"                    # 键盘导航
-cask "cmux"                       # 窗口布局管理
-cask "hazeover"                   # 聚焦窗口
-brew "felixkratz/formulae/borders"  # 窗口边框
-cask "cleanshot"                  # 截图工具
-cask "keyboardcleantool"          # 键盘清洁工具
-cask "pearcleaner"                # 应用卸载
-cask "blockblock"                 # 安全监控
-cask "knockknock"                 # 安全扫描
-cask "onyx"                       # 系统维护
-cask "tencent-lemon"              # 系统清理
-brew "mdnmdn/asimeow/asimeow"     # Time Machine 排除管理
-
-# =============================================================================
-# Sketchybar 及依赖
-# =============================================================================
-brew "felixkratz/formulae/sketchybar"   # 状态栏
-brew "malpern/tap/sketchybar-toggle"    # 与原生菜单栏协调显示/隐藏
-cask "gechr/tap/whichspace"             # macOS Space 切换（sketchybar 依赖）
-brew "laishulu/homebrew/macism"         # 输入法查询
-brew "nowplaying-cli"                   # 媒体信息查询
-cask "squirrel-app"                     # 鼠须管 (Rime 输入法)
-
-# --- 编译依赖 ---
-# xcode-select --install（Xcode Command Line Tools）
-
-# =============================================================================
-# 桌面应用
-# =============================================================================
-cask "obsidian"               # 笔记
-cask "typora"                 # Markdown 编辑器
-cask "bitwarden"              # 密码管理
-cask "iina"                   # 视频播放器
-cask "balenaetcher"           # 镜像烧录
-cask "downie"                 # 视频下载
-cask "daisydisk"              # 磁盘分析
-cask "imageoptim"             # 图片压缩
-cask "folx"                   # 下载管理器
-cask "localsend"              # AirDrop 替代
-cask "goodsync"               # 文件同步
-cask "nutstore"               # 云存储
-cask "qspace-pro"             # Finder 替代
-cask "android-studio"         # Android 开发
-cask "xnviewmp"               # 图片管理
-cask "sf-symbols"             # Apple SF Symbols
-
-# =============================================================================
-# 浏览器
-# =============================================================================
-cask "microsoft-edge"         # Edge 浏览器
-
-# =============================================================================
-# 字体
-# =============================================================================
+tap "narbs/tap", trusted: true
+tap "nikitabobko/tap", trusted: true
+tap "otuerk/sidebar", trusted: true
+tap "steipete/tap", trusted: true
+tap "vitorgalvao/tiny-scripts", trusted: true
+tap "yqrashawn/goku", trusted: true
+# Email client that runs in your terminal
+brew "aerc"
+# Download with resuming and segmented downloading
+brew "aria2"
+# Aquarium animation in ASCII art
+brew "asciiquarium"
+# Bastard Tetris
+brew "bastet"
+# Clone of cat(1) with syntax highlighting and Git integration
+brew "bat"
+# Resource monitor. C++ version and continuation of bashtop and bpytop
+brew "btop"
+# Emacs dependency management
+brew "cask"
+# Console Bonsai is a bonsai tree generator, written in C using ncurses
+brew "cbonsai"
+# All-in-one assistant tool for Claude Code, Codex, Gemini, OpenCode and OpenClaw
+brew "cc-switch-cli"
+# Versatile and fast Unicode/ASCII/ANSI graphics renderer
+brew "chafa"
+# Copy files from your terminal that actually paste into GUI apps
+brew "clippy"
+# Console Matrix
+brew "cmatrix"
+# Pack, ship and run any application as a lightweight container
+brew "docker"
+# Powerful, lightweight programming language
+brew "lua"
+# Like neofetch, but much faster because written mostly in C
+brew "fastfetch"
+# Simple, fast and user-friendly alternative to find
+brew "fd"
+# Play, record, convert, and stream select audio and video codecs
+brew "ffmpeg"
+# Create thumbnails for your video files
+brew "ffmpegthumbnailer"
+# Infamous electronic fortune-cookie generator
+brew "fortune"
+# Command-line fuzzy finder written in Go
+brew "fzf"
+# Distributed revision control system
+brew "git"
+# Tool to report network interface bandwidth
+brew "ifstat"
+# Tools and libraries to manipulate images in select formats
+brew "imagemagick"
+# Tools and libraries to manipulate images in many formats
+brew "imagemagick-full"
+# Lightweight and flexible command-line JSON processor
+brew "jq"
+# Simple terminal UI for git commands
+brew "lazygit"
+# Apple Silicon Monitor Top written in Go Lang
+brew "mactop"
+# Control and observe media playback from the command-line
+brew "media-control"
+# Unified display of technical and tag data for audio/video
+brew "media-info"
+# Terminal-based visual file manager
+brew "midnight-commander"
+# Deep clean and optimize your Mac
+brew "mole"
+# Media player based on MPlayer and mplayer2
+brew "mpv"
+# No Nonsense Neovim Client in Rust
+brew "neovide"
+# Single-player roguelike video game
+brew "nethack"
+# Open-source, cross-platform JavaScript runtime environment
+brew "node@22"
+# Ncurses based sudoku game
+brew "nudoku"
+# Renders an animated, color, ANSI-text loop of the Poptart Cat
+brew "nyancat"
+# Development kit for the Java programming language
+brew "openjdk@17"
+# Swiss-army knife of markup format conversion
+brew "pandoc"
+# Execute binaries from Python packages in isolated environments
+brew "pipx"
+# Fast, disk space efficient package manager
+brew "pnpm"
+# Command-line toolbox for fancy output in the terminal
+brew "rich-cli"
+# Powerful, clean, object-oriented scripting language
+brew "ruby", link: false
+# 7-Zip is a file archiver with a high compression ratio
+brew "sevenzip"
+# SMART hard drive monitoring
+brew "smartmontools"
+# Cross-shell prompt for astronauts
+brew "starship"
+# Organize software neatly under a single directory tree (e.g. /usr/local)
+brew "stow"
+# Change macOS audio source from the command-line
+brew "switchaudio-osx"
+# Manipulate and query tags on macOS files
+brew "tag"
+# User interface to the TELNET protocol
+brew "telnet"
+# Terminal image and video viewer
+brew "timg"
+# Terminal multiplexer
+brew "tmux"
+# Lightweight BitTorrent client
+brew "transmission-cli"
+# Digital clock in ncurses
+brew "tty-clock"
+# Command-line unarchiving tools supporting multiple formats
+brew "unar"
+# Image processing library
+brew "vips"
+# Terminal-based Tetris clone
+brew "vitetris"
+# Pager/text based browser
+brew "w3m"
+# Network analyzer and capture tool - without graphical user interface
+brew "wireshark"
+# Blazing fast terminal file manager written in Rust, based on async I/O
+brew "yazi"
+# Shell extension to navigate your filesystem faster
+brew "zoxide"
+# The AI coding agent built for the terminal.
+brew "anomalyco/tap/opencode", trusted: true
+# A window border system for macOS
+brew "felixkratz/formulae/borders"
+# Custom macOS statusbar with shell plugin, interaction and graph support
+brew "felixkratz/formulae/sketchybar"
+# File system for accessing archives using libarchive
+brew "gromgit/fuse/archivemount-mac"
+# Terminal-native coding agent for DeepSeek V4
+brew "hmbown/deepseek-tui/deepseek-tui"
+# An ncurses-based minesweeper game
+brew "joelekstrom/repo/terminal-mines"
+# Real-time power consumption monitor for Apple Silicon Macs
+brew "k06a/tap/macpow"
+# macOS Input Source Manager
+brew "laishulu/homebrew/macism"
+# Coordinates SketchyBar and the native macOS menu bar
+brew "malpern/tap/sketchybar-toggle", trusted: true
+# A tool for managing macOS Time Machine exclusions for developer projects
+brew "mdnmdn/asimeow/asimeow", trusted: true
+# AeroSpace is an i3-like tiling window manager for macOS
+cask "nikitabobko/tap/aerospace"
+# Enable Windows-like alt-tab
+cask "alt-tab"
+# Tools for building Android applications
+cask "android-studio"
+# Tool to flash OS images to SD cards & USB drives
+cask "balenaetcher"
+# Tool to customise input devices and automate computer systems
+cask "bettertouchtool"
+# Desktop password and login vault
+cask "bitwarden"
+# Monitors common persistence locations
+cask "blockblock"
+# Configuration manager for AI coding agents
+cask "cc-switch"
+# OpenAI's official ChatGPT desktop app
+cask "chatgpt"
+# Continuation of Clash Verge - A Clash Meta GUI based on Tauri
+cask "clash-verge-rev"
+# Anthropic's official Claude AI desktop app
+cask "claude"
+# Terminal-based AI coding assistant
+cask "claude-code"
+# Screen capturing tool
+cask "cleanshot"
+# OpenAI's coding agent that runs in your terminal
+cask "codex"
+# OpenAI's Codex desktop app for managing coding agents
+cask "codex-app"
+# Disk space visualiser
+cask "daisydisk"
+# App to build and share containerised applications and microservices
+cask "docker-desktop"
+# Downloads videos from different websites
+cask "downie"
+# Run Stable Diffusion locally
+cask "draw-things"
+# Email client
+cask "emclient"
+# Flip clock screensaver
+cask "fliqlo"
+# UI toolkit for building applications for mobile, web and desktop
+cask "flutter"
 cask "font-hack-nerd-font"
 cask "font-jetbrains-maple-mono-nf"
-cask "font-sarasa-gothic"
-cask "font-sketchybar-app-font"
+cask "laishulu/homebrew/font-sarasa-nerd"
 cask "font-sf-mono"
 cask "font-sf-pro"
-
-# =============================================================================
-# 通讯 / 社交
-# =============================================================================
-cask "qqmusic"                # QQ 音乐
-cask "fliqlo"                 # 翻页时钟屏保
-
-# =============================================================================
-# 代理
-# =============================================================================
-cask "clash-verge-rev"        # Clash 代理客户端
-
-# =============================================================================
-# 网络工具
-# =============================================================================
-brew "wireshark"              # 抓包
-brew "smartmontools"          # 磁盘监控
-brew "telnet"                 # Telnet
-brew "transmission-cli"       # BT 客户端 (CLI)
-brew "mole"                   # 隧道代理
-brew "ifstat"                 # 网络接口带宽监控
-brew "gromgit/fuse/archivemount-mac" # 归档挂载
-
-# =============================================================================
-# 系统监控 / 菜单栏
-# =============================================================================
-cask "istat-menus"            # 系统监控
-cask "soundsource"            # 音频管理
-cask "lunarbar"               # 菜单栏整理
-brew "btop"                   # 终端系统监控
-
-# =============================================================================
-# 媒体 / 图像
-# =============================================================================
-brew "ffmpeg"                 # 音视频处理
-brew "ffmpegthumbnailer"      # 视频缩略图
-brew "media-info"             # 媒体信息查询
-brew "vips"                   # 图像处理库
-brew "timg"                   # 终端图片/视频查看
-brew "imagemagick"            # 图像处理
-brew "imagemagick-full"       # 图像处理 (完整版)
-brew "unar"                   # 解压缩工具
-
-# =============================================================================
-# 游戏
-# =============================================================================
-brew "nethack"
-brew "bastet"
-brew "vitetris"
-brew "nudoku"
-brew "nyancat"
-brew "tty-clock"
-brew "cmatrix"
-brew "cbonsai"
-brew "asciiquarium"
-brew "joelekstrom/repo/terminal-mines"
+cask "font-sketchybar-app-font"
+# Terminal emulator that uses platform-native UI and GPU acceleration
+cask "ghostty"
+# File synchronisation and backup software
+cask "goodsync"
+# Desktop automation application
+cask "hammerspoon"
+# Windows manager and desktop organiser
+cask "hazeover"
+# Chromium-based web browser
+cask "helium-browser"
+# Keyboard shortcuts for every button on your screen
+cask "homerow"
+# Free and open-source media player
+cask "iina"
+# Tool to optimise images to a smaller size
+cask "imageoptim"
+# System monitoring app
+cask "istat-menus"
+# Keyboard customiser
+cask "karabiner-elements"
+# Blocks all Keyboard and TouchBar input
+cask "keyboardcleantool"
+# AI-powered productivity tool for the command-line
+cask "kiro-cli"
+# GPU-based terminal emulator
+cask "kitty"
+# Tool to show what is persistently installed on the computer
+cask "knockknock"
+# Discover, download, and run local LLMs
+cask "lm-studio"
+# Open-source cross-platform alternative to AirDrop
+cask "localsend"
+# Lunar calendar for menu bar
+cask "lunarbar"
+# Mouse utility to add gesture functions and smooth scrolling to 3rd party mice
+cask "mac-mouse-fix"
+# Multi-platform web browser
+cask "microsoft-edge"
+# Neovim Client
+cask "neovide-app"
+# Cloud storage service platform
+cask "nutstore"
+# Knowledge base that works on top of a local folder of plain text Markdown files
+cask "obsidian"
+# Verify system files structure, run miscellaneous maintenance and more
+cask "onyx"
+# Utility to uninstall apps and remove leftover files from old/uninstalled apps
+cask "pearcleaner"
+# Chinese music streaming application
+cask "qqmusic"
+# Better Finder alternative
+cask "qspace-pro"
+# Tool that provides consistent, highly configurable symbols for apps
+cask "sf-symbols"
+# Traditional roguelike dungeon crawler with randomised levels, enemies and items
 cask "shattered-pixel-dungeon"
-brew "fortune"
-
-# =============================================================================
-# 开发工具
-# =============================================================================
-brew "anomalyco/tap/opencode"   # AI 编程助手
-brew "hmbown/deepseek-tui/deepseek-tui"  # DeepSeek TUI
-cask "codex"                    # OpenAI 编程代理
-cask "kiro-cli"                 # AI CLI 工具
-brew "cc-switch-cli"            # AI 助手切换
-brew "docker"                   # Docker CLI
-brew "sevenzip"                 # 压缩工具
-brew "clippy"                   # 剪贴板管理 CLI
-brew "cask"                     # Homebrew Cask CLI
-brew "rich-cli"                 # 终端美化输出
-
-# =============================================================================
-# npm 全局包
-# =============================================================================
+# Sound and audio controller
+cask "soundsource"
+# Rime input method engine
+cask "squirrel-app"
+# Cleanup and system status tool
+cask "tencent-lemon"
+# Configurable document editor that supports Markdown
+cask "typora"
+# Menu bar utility for viewing and switching macOS Spaces
+cask "gechr/tap/whichspace", trusted: true
+# Photo viewer, image manager, image resiser and more
+cask "xnviewmp"
+cargo "pokeget"
 npm "corepack"
 npm "reasonix"
-
-# =============================================================================
-# Cargo
-# =============================================================================
-cargo "pokeget"
