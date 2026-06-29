@@ -377,6 +377,26 @@ run = 'layout floating'
 if.app-id = "com.superultra.Homerow"
 run = 'layout floating'
 
+[[on-window-detected]]
+if.app-id = "pl.maketheweb.cleanshotx"
+run = 'layout floating'
+
+[[on-window-detected]]
+if.app-id = "app.remixdesign.LaunchOS"
+run = 'layout floating'
+
+[[on-window-detected]]
+if.app-id = "com.objective-see.blockblock.helper"
+run = 'layout floating'
+
+[[on-window-detected]]
+if.app-id = "com.lwouis.alt-tab-macos"
+run = 'layout floating'
+
+[[on-window-detected]]
+if.app-id = "com.bjango.istatmenus.status"
+run = 'layout floating'
+
 #根据程序自动设定工作区
 # Edge (Chromium) — AeroSpace #1562 已知 Electron 应用检测不可靠，备用手动快捷键 cmd-alt-ctrl-shift-b
 [[on-window-detected]]
@@ -389,6 +409,10 @@ run = ["move-node-to-workspace 1̲Main --focus-follows-window"]
 
 [[on-window-detected]]
 if.app-id = "app.zen-browser.zen"
+run = ["move-node-to-workspace 1̲Main --focus-follows-window"]
+
+[[on-window-detected]]
+if.app-id = "net.imput.helium"
 run = ["move-node-to-workspace 1̲Main --focus-follows-window"]
 
 [[on-window-detected]]
@@ -413,6 +437,10 @@ run = ["move-node-to-workspace 4̲Work --focus-follows-window"]
 
 [[on-window-detected]]
 if.app-id = "com.emclient.mail.client"
+run = ["move-node-to-workspace 4̲Work --focus-follows-window"]
+
+[[on-window-detected]]
+if.app-id = "com.workreview.app"
 run = ["move-node-to-workspace 4̲Work --focus-follows-window"]
 
 [[on-window-detected]]
