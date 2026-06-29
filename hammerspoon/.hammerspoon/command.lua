@@ -40,8 +40,17 @@ local sketchybar = M.find({
 	"/usr/local/bin/sketchybar",
 }, "sketchybar")
 
+local aerospace = M.find({
+	"/opt/homebrew/bin/aerospace",
+	"/usr/local/bin/aerospace",
+}, "aerospace")
+
 function M.sketchybar(args, callback)
 	return M.start(sketchybar, args, callback)
+end
+
+function M.aerospace(args, callback)
+	return M.start(aerospace, args, callback)
 end
 
 function M.triggerSketchybar(event, callback, fields)

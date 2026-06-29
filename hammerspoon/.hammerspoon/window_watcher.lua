@@ -5,7 +5,18 @@
 
 local CREATE_DELAY = 0.25
 local DESTROY_DELAY = 0.05
+local CREATED_PLACEMENT_DELAY = 0.30
+local CREATED_PLACEMENT_RETRY_DELAY = 0.20
+local CREATED_PLACEMENT_MAX_ATTEMPTS = 6
+local RESCUE_MOVE_DELAY = 0.08
+local TOP_GUARD_HEIGHT = 34
+local VISIBLE_FRAME_PADDING = 4
+local MIN_RESCUE_WIDTH = 220
+local MIN_RESCUE_HEIGHT = 120
+local RESCUE_ANIMATION_DURATION = 0.20
 local debounceTimer = nil
+local rescueTimers = {}
+local createdPlacementTimers = {}
 local command = require("command")
 
 -- 每次创建新 hs.task 对象。hs.task 不能在前一个未结束时复用 start()，
@@ -29,16 +40,185 @@ local function scheduleNotify(delay)
 	end)
 end
 
+local function safeTopForWindow(window)
+	local screen = window and window:screen()
+	if not screen then
+		return nil
+	end
+	local visible = screen:frame()
+	local full = screen:fullFrame()
+	return math.max(visible.y + VISIBLE_FRAME_PADDING, full.y + TOP_GUARD_HEIGHT)
+end
+
+local function centerFrameInSafeArea(window, frame, safeTop)
+	local visible = window:screen():frame()
+	local safeBottom = visible.y + visible.h
+	local safeHeight = math.max(0, safeBottom - safeTop)
+
+	frame.x = visible.x + math.max(0, (visible.w - frame.w) / 2)
+	frame.y = safeTop + math.max(0, (safeHeight - frame.h) / 2)
+	return frame
+end
+
+local function isPlaceableWindow(window)
+	if not window or not window:isStandard() or window:isFullScreen() then
+		return false
+	end
+
+	local frame = window:frame()
+	if frame.w < MIN_RESCUE_WIDTH or frame.h < MIN_RESCUE_HEIGHT then
+		return false
+	end
+	return true, frame
+end
+
+local function centerWindowInSafeArea(window)
+	local ok, frame = isPlaceableWindow(window)
+	if not ok then
+		return
+	end
+
+	local safeTop = safeTopForWindow(window)
+	if safeTop then
+		frame = centerFrameInSafeArea(window, frame, safeTop)
+		window:setFrame(frame, RESCUE_ANIMATION_DURATION)
+	end
+end
+
+local function rescueTopOverlap(window)
+	local ok, frame = isPlaceableWindow(window)
+	if not ok then
+		return
+	end
+
+	local safeTop = safeTopForWindow(window)
+	if safeTop and frame.y + 1 < safeTop then
+		frame = centerFrameInSafeArea(window, frame, safeTop)
+		window:setFrame(frame, RESCUE_ANIMATION_DURATION)
+	end
+end
+
+local function aerospaceWindowIsFloating(stdout, windowID)
+	local ok, windows = pcall(hs.json.decode, stdout or "")
+	if not ok or type(windows) ~= "table" then
+		return false
+	end
+
+	for _, item in ipairs(windows) do
+		if tonumber(item["window-id"]) == tonumber(windowID) then
+			return item["window-parent-container-layout"] == "floating"
+				or item["window-layout"] == "floating"
+				or item.layout == "floating"
+				or item["is-floating"] == true
+				or item.floating == true
+		end
+	end
+	return false
+end
+
+local function windowBundleID(window)
+	local okApp, app = pcall(function()
+		return window and window:application()
+	end)
+	if not okApp or not app then
+		return nil
+	end
+
+	local okBundle, bundleID = pcall(function()
+		return app:bundleID()
+	end)
+	if okBundle and bundleID and bundleID ~= "" then
+		return bundleID
+	end
+	return nil
+end
+
+local function createdWindowQueryArgs(window)
+	local args = { "list-windows", "--workspace", "focused", "--format", "%{window-id}%{window-layout}", "--json" }
+	local bundleID = windowBundleID(window)
+	if bundleID then
+		args[#args + 1] = "--app-bundle-id"
+		args[#args + 1] = bundleID
+	end
+	return args
+end
+
+local scheduleCreatedPlacement
+
+local function placeCreatedWindow(window, windowID, attempt)
+	attempt = attempt or 1
+	local started = command.aerospace(createdWindowQueryArgs(window), function(exitCode, stdout)
+		local ok, err = pcall(function()
+			if exitCode == 0 and aerospaceWindowIsFloating(stdout, windowID) then
+				centerWindowInSafeArea(window)
+			elseif attempt < CREATED_PLACEMENT_MAX_ATTEMPTS then
+				scheduleCreatedPlacement(window, CREATED_PLACEMENT_RETRY_DELAY, attempt + 1)
+			else
+				rescueTopOverlap(window)
+			end
+		end)
+		if not ok then
+			print("[window_watcher] created window placement 失败: " .. tostring(err))
+		end
+	end)
+	if not started then
+		rescueTopOverlap(window)
+	end
+end
+
+scheduleCreatedPlacement = function(window, delay, attempt)
+	local windowID = window and window:id()
+	if not windowID then
+		return
+	end
+	if createdPlacementTimers[windowID] then
+		createdPlacementTimers[windowID]:stop()
+	end
+	createdPlacementTimers[windowID] = hs.timer.doAfter(delay, function()
+		createdPlacementTimers[windowID] = nil
+		local ok, err = pcall(placeCreatedWindow, window, windowID, attempt)
+		if not ok then
+			print("[window_watcher] schedule created placement 失败: " .. tostring(err))
+		end
+	end)
+end
+
+local function scheduleTopRescue(window, delay)
+	local windowID = window and window:id()
+	if not windowID then
+		return
+	end
+	if rescueTimers[windowID] then
+		rescueTimers[windowID]:stop()
+	end
+	rescueTimers[windowID] = hs.timer.doAfter(delay, function()
+		rescueTimers[windowID] = nil
+		local ok, err = pcall(rescueTopOverlap, window)
+		if not ok then
+			print("[window_watcher] top safe-area rescue 失败: " .. tostring(err))
+		end
+	end)
+end
+
 local function notify(window, _, event)
 	if event == hs.window.filter.windowFocused then
 		local windowID = window and window:id()
 		if windowID then
 			fireSketchybarTrigger("window_focus_change", { FOCUSED_WINDOW_ID = windowID })
 		end
+		scheduleTopRescue(window, RESCUE_MOVE_DELAY)
 		return
 	end
-	local created = event == hs.window.filter.windowCreated
-	scheduleNotify(created and CREATE_DELAY or DESTROY_DELAY)
+	if event == hs.window.filter.windowCreated then
+		scheduleNotify(CREATE_DELAY)
+		scheduleCreatedPlacement(window, CREATED_PLACEMENT_DELAY)
+		return
+	end
+	if event == hs.window.filter.windowMoved then
+		scheduleTopRescue(window, RESCUE_MOVE_DELAY)
+		return
+	end
+	scheduleNotify(DESTROY_DELAY)
 end
 
 -- 窗口变化（用默认 filter）
@@ -47,11 +227,16 @@ end
 _windowWatcher_filter = hs.window.filter.new()
 _windowWatcher_filter:rejectApp("iStat Menus")
 
-_windowWatcher_filter:subscribe({
+local windowEvents = {
 	hs.window.filter.windowCreated,
 	hs.window.filter.windowDestroyed,
 	hs.window.filter.windowFocused,
-}, notify)
+}
+if hs.window.filter.windowMoved then
+	table.insert(windowEvents, hs.window.filter.windowMoved)
+end
+
+_windowWatcher_filter:subscribe(windowEvents, notify)
 
 -- 某些菜单栏/工具类应用不会产生可见的 windowDestroyed，退出事件作为兜底。
 _windowWatcher_app = hs.application.watcher.new(function(_, event)
@@ -61,4 +246,4 @@ _windowWatcher_app = hs.application.watcher.new(function(_, event)
 end)
 _windowWatcher_app:start()
 
-print("[window_watcher] window topology + focused window → sketchybar cache events")
+print("[window_watcher] window topology + focused window + top safe-area rescue + new floating center")
