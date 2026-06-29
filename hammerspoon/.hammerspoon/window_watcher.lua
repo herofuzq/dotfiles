@@ -18,6 +18,9 @@ local debounceTimer = nil
 local rescueTimers = {}
 local createdPlacementTimers = {}
 local command = require("command")
+local SKIP_BUNDLE_IDS = {
+	["pl.maketheweb.cleanshotx"] = true,
+}
 
 -- 每次创建新 hs.task 对象。hs.task 不能在前一个未结束时复用 start()，
 -- 否则会刷 "task already launched" 警告并占用事件循环。
@@ -60,8 +63,28 @@ local function centerFrameInSafeArea(window, frame, safeTop)
 	return frame
 end
 
+local function windowBundleID(window)
+	local okApp, app = pcall(function()
+		return window and window:application()
+	end)
+	if not okApp or not app then
+		return nil
+	end
+
+	local okBundle, bundleID = pcall(function()
+		return app:bundleID()
+	end)
+	if okBundle and bundleID and bundleID ~= "" then
+		return bundleID
+	end
+	return nil
+end
+
 local function isPlaceableWindow(window)
 	if not window or not window:isStandard() or window:isFullScreen() then
+		return false
+	end
+	if SKIP_BUNDLE_IDS[windowBundleID(window)] then
 		return false
 	end
 
@@ -114,23 +137,6 @@ local function aerospaceWindowIsFloating(stdout, windowID)
 		end
 	end
 	return false
-end
-
-local function windowBundleID(window)
-	local okApp, app = pcall(function()
-		return window and window:application()
-	end)
-	if not okApp or not app then
-		return nil
-	end
-
-	local okBundle, bundleID = pcall(function()
-		return app:bundleID()
-	end)
-	if okBundle and bundleID and bundleID ~= "" then
-		return bundleID
-	end
-	return nil
 end
 
 local function createdWindowQueryArgs(window)
