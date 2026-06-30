@@ -247,6 +247,10 @@ if.app-id = "com.enlink.EnUES"
 run = ["layout floating", "move-node-to-workspace 2̲Sec --focus-follows-window"]
 
 [[on-window-detected]]
+if.app-id = "com.sangfor.tray"
+run = 'layout floating'
+
+[[on-window-detected]]
 if.app-id = "com.Hyperart.Barbee"
 run = 'layout floating'
 
