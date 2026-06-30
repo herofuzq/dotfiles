@@ -4,17 +4,22 @@ let app = NSApplication.shared
 app.setActivationPolicy(.accessory)
 Thread.sleep(forTimeInterval: 0.1)
 
-let task = Process()
-task.launchPath = "/usr/bin/defaults"
-task.arguments = ["read", "com.apple.dock", "autohide"]
-let pipe = Pipe()
-task.standardOutput = pipe
-task.standardError = FileHandle.nullDevice
-if (try? task.run()) != nil {
-	task.waitUntilExit()
+func readDockDefault(_ key: String) -> String? {
+	let task = Process()
+	task.launchPath = "/usr/bin/defaults"
+	task.arguments = ["read", "com.apple.dock", key]
+	let pipe = Pipe()
+	task.standardOutput = pipe
+	task.standardError = FileHandle.nullDevice
+	if (try? task.run()) != nil {
+		task.waitUntilExit()
+	}
+	let data = pipe.fileHandleForReading.readDataToEndOfFile()
+	return String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines)
 }
-let data = pipe.fileHandleForReading.readDataToEndOfFile()
-let autohide = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines) == "1"
+
+let autohide = readDockDefault("autohide") == "1"
+let orientation = readDockDefault("orientation") ?? "bottom"
 
 func getDockInfo() -> (width: Int, x: Int)? {
     guard let dockApp = NSRunningApplication.runningApplications(
@@ -45,11 +50,11 @@ func getDockInfo() -> (width: Int, x: Int)? {
 	return (Int(size.width), Int(pos.x))
 }
 
-if let info = getDockInfo() {
-    let hiddenFlag = autohide ? 1 : 0
+if autohide || orientation != "left" {
+	print("55 \(autohide ? 1 : 0) 0")
+} else if let info = getDockInfo() {
     // 格式: <width> <hidden> <x>
-    print("\(info.width) \(hiddenFlag) \(info.x)")
+    print("\(info.width) 0 \(info.x)")
 } else {
-	let hiddenFlag = autohide ? 1 : 0
-	print("55 \(hiddenFlag) 0")
+	print("55 0 0")
 }
