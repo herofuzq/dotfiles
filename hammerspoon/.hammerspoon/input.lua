@@ -50,10 +50,14 @@ local HUD_FADE_OUT_DURATION = 0.16
 local MOCHA_BASE = { red = 30 / 255, green = 30 / 255, blue = 46 / 255 }
 local MOCHA_SURFACE0 = { red = 49 / 255, green = 50 / 255, blue = 68 / 255 }
 local MOCHA_SUBTEXT1 = { red = 186 / 255, green = 194 / 255, blue = 222 / 255 }
+local MOCHA_GREEN = { red = 166 / 255, green = 227 / 255, blue = 161 / 255 }
+local MOCHA_YELLOW = { red = 249 / 255, green = 226 / 255, blue = 175 / 255 }
 local MOCHA_RED = { red = 243 / 255, green = 139 / 255, blue = 168 / 255 }
 local HUD_BG = { red = MOCHA_BASE.red, green = MOCHA_BASE.green, blue = MOCHA_BASE.blue, alpha = 0.42 }
 local HUD_TEXT = { red = MOCHA_SUBTEXT1.red, green = MOCHA_SUBTEXT1.green, blue = MOCHA_SUBTEXT1.blue, alpha = 1.0 }
-local HUD_PROGRESS_FILL = { red = MOCHA_RED.red, green = MOCHA_RED.green, blue = MOCHA_RED.blue, alpha = 0.9 }
+local HUD_PROGRESS_GREEN = { red = MOCHA_GREEN.red, green = MOCHA_GREEN.green, blue = MOCHA_GREEN.blue, alpha = 0.9 }
+local HUD_PROGRESS_YELLOW = { red = MOCHA_YELLOW.red, green = MOCHA_YELLOW.green, blue = MOCHA_YELLOW.blue, alpha = 0.9 }
+local HUD_PROGRESS_RED = { red = MOCHA_RED.red, green = MOCHA_RED.green, blue = MOCHA_RED.blue, alpha = 0.9 }
 local HUD_PROGRESS_EMPTY = { red = MOCHA_SURFACE0.red, green = MOCHA_SURFACE0.green, blue = MOCHA_SURFACE0.blue, alpha = 0.52 }
 
 local resetIdleTimer
@@ -98,6 +102,16 @@ local function countdownFilledSlots(remaining, total)
 	remaining = math.max(0, tonumber(remaining) or 0)
 	total = math.max(1, tonumber(total) or IDLE_TIMEOUT)
 	return math.max(0, math.min(HUD_BAR_SLOTS, math.ceil((remaining / total) * HUD_BAR_SLOTS)))
+end
+
+local function progressSlotColor(index)
+	local fromRight = HUD_BAR_SLOTS - index + 1
+	if fromRight <= 4 then
+		return HUD_PROGRESS_GREEN
+	elseif fromRight <= 7 then
+		return HUD_PROGRESS_YELLOW
+	end
+	return HUD_PROGRESS_RED
 end
 
 hideInputHud = function(fade)
@@ -170,7 +184,7 @@ local function showInputHud(state, remaining, kpm)
 		table.insert(elements, {
 			type = "rectangle",
 			action = "fill",
-			fillColor = filled and HUD_PROGRESS_FILL or HUD_PROGRESS_EMPTY,
+			fillColor = filled and progressSlotColor(i) or HUD_PROGRESS_EMPTY,
 			roundedRectRadii = { xRadius = 2, yRadius = 2 },
 			frame = { x = slotX + (i - 1) * (slotW + slotGap), y = slotY, w = slotW, h = slotH },
 		})
