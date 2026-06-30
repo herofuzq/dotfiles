@@ -1,5 +1,5 @@
 -- ========== Popup 弹出/收起：纯渐隐，无位移 ==========
--- 统一规范：所有内容切换动画 = 24 帧 / 200ms linear
+-- 统一规范：所有内容切换动画跟随 timing.STANDARD_DURATION_FRAMES
 --   - 不用 tanh：tanh 曲线在"长动画 + alpha 渐隐"场景下前 80% 时间几乎不可见，后 20% 突然"长出来"，视觉上是瞬时出现
 --   - 不用 y_offset：用户要求"渐隐感"，不要位移
 --
@@ -11,7 +11,7 @@ local sbar = require("sketchybar")
 
 local M = {}
 
--- 统一动画帧数：24 帧 @ 120Hz = 200ms
+-- 统一动画帧数：12 帧 @ 120Hz = 100ms
 local DEFAULT_FRAMES = timing.STANDARD_DURATION_FRAMES
 
 function M.new(parent, options)

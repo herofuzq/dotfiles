@@ -66,7 +66,7 @@ local function update_label(info, animated)
 
 	title_generation = title_generation + 1
 	local generation = title_generation
-	-- 统一规范：纯 alpha 渐隐，linear 曲线，200ms 对称
+	-- 统一规范：纯 alpha 渐隐，linear 曲线，100ms 对称
 	sbar.animate("linear", timing.STANDARD_DURATION_FRAMES, function()
 		label:set({ label = { color = appearance.with_alpha(colors.yellow, 0) } })
 	end)
@@ -188,10 +188,14 @@ local previous_item = sbar.add("item", "widgets.media_previous", {
 })
 
 local function press_feedback(item)
-	-- 反馈类:保持短,@120Hz 下 6 帧 = 50ms,跟手
-	sbar.animate("tanh", 6, function()
-		item:set({ y_offset = -2 })
-		item:set({ y_offset = 0 })
+	local frames = math.max(1, math.floor(timing.STANDARD_DURATION_FRAMES / 2))
+	sbar.animate("linear", frames, function()
+		item:set({ icon = { color = colors.yellow } })
+	end)
+	sbar.delay(timing.frames_to_seconds(frames), function()
+		sbar.animate("linear", frames, function()
+			item:set({ icon = { color = colors.pill_fg } })
+		end)
 	end)
 end
 

@@ -35,11 +35,11 @@ local function fireSketchybarTrigger(name, fields)
 	end
 end
 
-local function scheduleNotify(delay)
+local function scheduleNotify(delay, reason)
 	if debounceTimer then debounceTimer:stop() end
 	debounceTimer = hs.timer.doAfter(delay, function()
 		debounceTimer = nil
-		fireSketchybarTrigger("space_windows_change")
+		fireSketchybarTrigger("space_windows_change", { WINDOW_EVENT = reason or "changed" })
 	end)
 end
 
@@ -216,7 +216,7 @@ local function notify(window, _, event)
 		return
 	end
 	if event == hs.window.filter.windowCreated then
-		scheduleNotify(CREATE_DELAY)
+		scheduleNotify(CREATE_DELAY, "created")
 		scheduleCreatedPlacement(window, CREATED_PLACEMENT_DELAY)
 		return
 	end
@@ -224,7 +224,7 @@ local function notify(window, _, event)
 		scheduleTopRescue(window, RESCUE_MOVE_DELAY)
 		return
 	end
-	scheduleNotify(DESTROY_DELAY)
+	scheduleNotify(DESTROY_DELAY, "destroyed")
 end
 
 -- 窗口变化（用默认 filter）
@@ -247,7 +247,7 @@ _windowWatcher_filter:subscribe(windowEvents, notify)
 -- 某些菜单栏/工具类应用不会产生可见的 windowDestroyed，退出事件作为兜底。
 _windowWatcher_app = hs.application.watcher.new(function(_, event)
 	if event == hs.application.watcher.terminated then
-		scheduleNotify(DESTROY_DELAY)
+		scheduleNotify(DESTROY_DELAY, "terminated")
 	end
 end)
 _windowWatcher_app:start()

@@ -1,7 +1,7 @@
 -- ========== Bar/Item 渐入动画 ==========
 -- 由 init.lua 在 sbar.end_config() 之后调用一次:
---   1) bar 从完全透明渐入到目标颜色 (color + border)   533ms
---   2) bar 渐入完成后,登记的 item 逐个 set drawing=true  200ms + stagger
+--   1) bar 从完全透明渐入到目标颜色 (color + border)   267ms
+--   2) bar 渐入完成后,登记的 item 逐个 set drawing=true  100ms + stagger
 --
 -- "渐隐感"实现:
 --  - bar 用 linear 渐入(0x00000000 → 0x3311111b),这本身就有"渐隐"
@@ -19,10 +19,10 @@ local timing = require("helpers.timing")
 
 local M = {}
 
--- @120Hz: BAR 533ms, REVEAL 总约 200ms+stagger
-local STAGGER_FRAMES = 4
-local BAR_FRAMES = 64
-local REVEAL_FRAMES = 24
+-- @120Hz: BAR 267ms, REVEAL 总约 100ms+stagger
+local STAGGER_FRAMES = 2
+local BAR_FRAMES = 32
+local REVEAL_FRAMES = 12
 
 local _pending = {}
 

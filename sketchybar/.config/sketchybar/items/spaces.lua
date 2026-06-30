@@ -14,6 +14,9 @@ local SPACE_ICONS = { "󰼏", "󰼐", "󰼑", "󰼒", "󰼓", "󰼔" }
 local APP_ICON_FONT = "sketchybar-app-font:Regular:14.0"
 local EMPTY_APP_FONT = appearance.font_label_bold()
 local REFRESH_TIMEOUT = 3.0
+local WINDOW_REFRESH_DELAY_DEFAULT = 0.30
+local WINDOW_REFRESH_DELAY_CREATED = 0.30
+local WINDOW_REFRESH_DELAY_DESTROYED = 0.05
 
 local shell_quote = require("helpers.utils").shell_quote
 
@@ -42,8 +45,7 @@ local _popup_pinned = {} -- { [ws_name] = true/false } 记录点击固定状态�
 local _popup_hovering = {} -- { [ws_name] = true/false } 鼠标当前是否在 popup 子项上
 local _popup_exit_gen = {} -- { [ws_name] = gen } 延迟隐藏的代数，进入 popup 时作废旧延迟
 local _popup_animations = {}
-local _content_anim_gen = {}
-local _content_signature = {}
+local _border_signature
 local animations_ready = false
 local front_app_generation = 0
 local front_app_initialized = false
@@ -51,10 +53,11 @@ local front_app_name
 local mode_visible = false
 local mode_generation = 0
 
--- 内容切换动画帧数:统一规范，所有内容切换都是 24 帧 / 200ms linear。
--- （已统一 out 和 in 速度，对称渐隐更直观；旧版 16/24 非对称的"压住再展开"取消）
+-- 内容切换动画帧数:统一规范，跟随 timing.lua 的标准 fade 时长。
+-- Workspace app 图标是一整串 label；内容变化时直接切换到最终反显色，
+-- 避免高亮背景上的 alpha 过渡看起来像闪烁。
 -- UI 反馈类动画(apple click、media button click)另算，不是入场动画。
-local CONTENT_FADE_IN_FRAMES = 24
+local CONTENT_FADE_FRAMES = timing.STANDARD_DURATION_FRAMES
 
 local function transparent(color)
 	return appearance.with_alpha(color, 0)
@@ -117,18 +120,21 @@ local function ensure_front_app()
 			front_app:set({ label = { string = name } })
 			return
 		end
-		sbar.animate("linear", CONTENT_FADE_IN_FRAMES, function()
+		sbar.animate("linear", CONTENT_FADE_FRAMES, function()
 			front_app:set({
 				label = { color = transparent(appearance.colors.peach) },
 			})
 		end)
-		sbar.delay(timing.frames_to_seconds(CONTENT_FADE_IN_FRAMES), function()
+		sbar.delay(timing.frames_to_seconds(CONTENT_FADE_FRAMES), function()
 			if front_app_generation ~= generation then
 				return
 			end
-			sbar.animate("linear", CONTENT_FADE_IN_FRAMES, function()
+			front_app:set({
+				label = { string = name, color = transparent(appearance.colors.peach) },
+			})
+			sbar.animate("linear", CONTENT_FADE_FRAMES, function()
 				front_app:set({
-					label = { string = name, color = appearance.colors.peach },
+					label = { color = appearance.colors.peach },
 				})
 			end)
 		end)
@@ -302,18 +308,23 @@ local function visible_monitor_id(workspace_index, visible_workspaces)
 	return nil
 end
 
-local function show_empty_workspace(workspace_index, focused_workspace, visible_workspaces)
+local function show_empty_workspace(workspace_index, focused_workspace, visible_workspaces, label_color)
 	local monitor_id = visible_monitor_id(workspace_index, visible_workspaces)
+	local label = {
+		drawing = true,
+		string = "_",
+		font = EMPTY_APP_FONT,
+		padding_left = 2,
+		padding_right = 10,
+	}
+	if label_color then
+		label.color = label_color
+		label.highlight_color = label_color
+	end
 	local properties = {
 		drawing = monitor_id ~= nil or workspace_index == focused_workspace or always_show[workspace_index] == true,
 		icon = { padding_left = 10, padding_right = 2 },
-		label = {
-			drawing = true,
-			string = "_",
-			font = EMPTY_APP_FONT,
-			padding_left = 2,
-			padding_right = 10,
-		},
+		label = label,
 	}
 	if monitor_id then
 		properties.display = monitor_id
@@ -321,96 +332,35 @@ local function show_empty_workspace(workspace_index, focused_workspace, visible_
 	workspaces[workspace_index]:set(properties)
 end
 
-local function show_workspace_apps(workspace_index, icon_line)
+local function show_workspace_apps(workspace_index, icon_line, label_color)
 	-- 注：高亮由 root subscribe("aerospace_workspace_change") 立即设置（env.FOCUSED_WORKSPACE），
 	-- 此处不重复设置，避免 aerospace CLI 偶尔失败时把高亮误清
+	local label = { drawing = true, string = icon_line, font = APP_ICON_FONT }
+	if label_color then
+		label.color = label_color
+		label.highlight_color = label_color
+	end
 	workspaces[workspace_index]:set({
 		drawing = true,
 		icon = { padding_left = 10, padding_right = 2 },
-		label = { drawing = true, string = icon_line, font = APP_ICON_FONT },
+		label = label,
 	})
-end
-
-local function content_signature(open_windows)
-	if #open_windows == 0 then
-		return "empty"
-	end
-	local apps = {}
-	for _, win in ipairs(open_windows) do
-		apps[#apps + 1] = (win.app or "") .. ":" .. tostring(win.is_fullscreen == true)
-	end
-	table.sort(apps)
-	return table.concat(apps, "\0")
-end
-
-local function animate_workspace_content(workspace_index, apply_content, is_focused)
-	-- 反显色跟 borders.set_focused 对齐：focused 用 crust，inactive 用 pill_fg
-	-- 不再硬编码 pill_fg，否则 focused 工作区开/关窗口时反显会被冲掉。
-	local final_color = is_focused and appearance.colors.crust or appearance.colors.pill_fg
-	_content_anim_gen[workspace_index] = (_content_anim_gen[workspace_index] or 0) + 1
-	local gen = _content_anim_gen[workspace_index]
-	local workspace = workspaces[workspace_index]
-
-	sbar.animate("linear", CONTENT_FADE_IN_FRAMES, function()
-		workspace:set({
-			label = {
-				color = transparent(final_color),
-				highlight_color = transparent(final_color),
-			},
-		})
-	end)
-	sbar.delay(timing.frames_to_seconds(CONTENT_FADE_IN_FRAMES), function()
-		if _content_anim_gen[workspace_index] ~= gen then
-			return
-		end
-		apply_content()
-		workspace:set({
-			label = {
-				color = transparent(final_color),
-				highlight_color = transparent(final_color),
-			},
-		})
-		sbar.animate("linear", CONTENT_FADE_IN_FRAMES, function()
-			workspace:set({
-				label = {
-					color = final_color,
-					highlight_color = final_color,
-				},
-			})
-		end)
-	end)
 end
 
 local function updateWindow(workspace_index, args)
 	local open_windows = args.open_windows[workspace_index] or {}
-	local signature = content_signature(open_windows)
-	local changed = _content_signature[workspace_index] ~= nil
-		and _content_signature[workspace_index] ~= signature
-	_content_signature[workspace_index] = signature
 
-	local function apply_content()
+	local function apply_content(label_color)
 		if #open_windows == 0 then
-			show_empty_workspace(workspace_index, args.focused_workspace, args.visible_workspaces)
+			show_empty_workspace(workspace_index, args.focused_workspace, args.visible_workspaces, label_color)
 		else
-			show_workspace_apps(workspace_index, app_icon_line(open_windows))
+			show_workspace_apps(workspace_index, app_icon_line(open_windows), label_color)
 		end
 	end
 
 	local is_focused = args.focused_workspace == workspace_index
-
-	if animations_ready and changed then
-		animate_workspace_content(workspace_index, apply_content, is_focused)
-	else
-		_content_anim_gen[workspace_index] = (_content_anim_gen[workspace_index] or 0) + 1
-		apply_content()
-		local final_color = is_focused and appearance.colors.crust or appearance.colors.pill_fg
-		workspaces[workspace_index]:set({
-			label = {
-				color = final_color,
-				highlight_color = final_color,
-			},
-		})
-	end
+	local final_color = is_focused and appearance.colors.crust or appearance.colors.pill_fg
+	apply_content(final_color)
 end
 
 local function set_popup_item_colors(ws_index, icon_color, label_color)
@@ -527,7 +477,22 @@ local function distribute_cached_borders(focused_workspace, animated)
 	for i, ws_idx in ipairs(workspace_order) do
 		visible_names[i] = "workspace." .. ws_idx
 	end
-	borders.distribute(visible_names, "workspace." .. (focused_workspace or ""), animated)
+	local focused_name = "workspace." .. (focused_workspace or "")
+	local signature = focused_name .. "\0" .. table.concat(visible_names, "\0")
+	if _border_signature == signature then
+		return
+	end
+	_border_signature = signature
+	borders.distribute(visible_names, focused_name, animated)
+end
+
+local function distribute_borders_if_changed(visible_names, focused_name, animated)
+	local signature = (focused_name or "") .. "\0" .. table.concat(visible_names, "\0")
+	if _border_signature == signature then
+		return
+	end
+	_border_signature = signature
+	borders.distribute(visible_names, focused_name, animated)
 end
 
 -- ========== 更新所有工作区 + 分段状态 ==========
@@ -614,7 +579,7 @@ local function updateWindows(opts)
 		for i, ws_idx in ipairs(visible) do
 			visible_names[#visible_names + 1] = "workspace." .. ws_idx
 		end
-		borders.distribute(
+		distribute_borders_if_changed(
 			visible_names,
 			"workspace." .. (args.focused_workspace or ""),
 			animations_ready
@@ -893,10 +858,15 @@ sbar.exec(":", function()
 		end
 	end)
 
-	root:subscribe("space_windows_change", function()
-		-- 300ms：aerospace after-startup-command 已有 sleep 0.3，日常 Hammerspoon
-		-- 开/关窗 debounce 50/250ms + 300ms = 550ms 最差，但大多数场景下更快响应。
-		scheduleUpdateWindows(0.3)
+	root:subscribe("space_windows_change", function(env)
+		local event = env and env.WINDOW_EVENT
+		local delay = WINDOW_REFRESH_DELAY_DEFAULT
+		if event == "created" then
+			delay = WINDOW_REFRESH_DELAY_CREATED
+		elseif event == "destroyed" or event == "terminated" then
+			delay = WINDOW_REFRESH_DELAY_DESTROYED
+		end
+		scheduleUpdateWindows(delay)
 	end)
 
 	-- 焦点变化不再触发 AeroSpace 窗口枚举，只重渲染已有快照以更新高亮色。
@@ -940,40 +910,41 @@ sbar.exec(":", function()
 				return
 			end
 			mode_visible = is_service
+			mode_generation = mode_generation + 1
+			local gen = mode_generation
 			if is_service then
 				mode_item:set({
 					drawing = true,
-					width = 0,
-					padding_left = 0,
-					padding_right = 0,
+					width = "dynamic",
+					padding_left = 2,
+					padding_right = 2,
 					label = { color = transparent(appearance.colors.sapphire) },
 				})
 			end
-			mode_generation = mode_generation + 1
-			local gen = mode_generation
-			-- @120Hz: 200ms
-			sbar.animate("tanh", 24, function()
+			-- 退出 service 时,动画结束后收起 drawing,避免空 item 占位
+			sbar.animate("linear", timing.STANDARD_DURATION_FRAMES, function()
 				mode_item:set({
-					width = is_service and "dynamic" or 0,
-					padding_left = is_service and 2 or 0,
-					padding_right = is_service and 2 or 0,
 					label = {
 						color = is_service and appearance.colors.sapphire
 							or transparent(appearance.colors.sapphire),
 					},
 				})
 			end)
-			-- 退出 service 时,动画结束后收起 drawing,避免空 item 占位
 			if not is_service then
 				sbar.delay(timing.frames_to_seconds(timing.STANDARD_DURATION_FRAMES), function()
 					if mode_generation ~= gen or mode_visible then
 						return
 					end
-					mode_item:set({ drawing = false })
+					mode_item:set({
+						drawing = false,
+						width = 0,
+						padding_left = 0,
+						padding_right = 0,
+					})
 				end)
 			end
+			end)
 		end)
-	end)
 
 	-- 初始 focus
 	sbar.exec("aerospace list-workspaces --focused", function(focused_workspace)

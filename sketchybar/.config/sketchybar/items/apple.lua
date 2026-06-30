@@ -7,6 +7,7 @@ local fonts = require("fonts")
 local colors = require("appearance").colors
 local settings = require("settings")
 local enter_animation = require("helpers.enter_animation")
+local timing = require("helpers.timing")
 
 local border_width = 0 -- 无背景无边框
 local icon_width = 15
@@ -46,16 +47,14 @@ local apple = sbar.add("item", "apple", {
 })
 
 apple:subscribe("mouse.clicked", function()
-	-- 反馈类:@120Hz 下 8 帧 = 67ms,跟手
-	sbar.animate("tanh", 8, function()
-		apple:set({
-			background = { shadow = { distance = 0 } },
-			y_offset = -4,
-		})
-		apple:set({
-			background = { shadow = { distance = 4 } },
-			y_offset = 1,
-		})
+	local frames = math.max(1, math.floor(timing.STANDARD_DURATION_FRAMES / 2))
+	sbar.animate("linear", frames, function()
+		apple:set({ icon = { color = colors.yellow } })
+	end)
+	sbar.delay(timing.frames_to_seconds(frames), function()
+		sbar.animate("linear", frames, function()
+			apple:set({ icon = { color = colors.green } })
+		end)
 	end)
 	sbar.exec("$CONFIG_DIR/helpers/menus/bin/menus -s 0")
 end)

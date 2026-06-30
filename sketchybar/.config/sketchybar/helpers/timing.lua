@@ -11,7 +11,7 @@ local M = {}
 M.FRAMES_PER_SECOND = 120
 
 -- 把帧数转换为秒（用于 sbar.delay）。
--- 用法: sbar.delay(M.frames_to_seconds(24), ...) -- 24 帧 = 200ms
+-- 用法: sbar.delay(M.frames_to_seconds(12), ...) -- 12 帧 = 100ms
 function M.frames_to_seconds(frames)
 	return frames / M.FRAMES_PER_SECOND
 end
@@ -20,9 +20,9 @@ end
 -- popup_utils.schedule_hide 和 spaces.lua 的 scheduleHide 都用这个值。
 M.POPUP_HIDE_DELAY_S = 0.2
 
--- 标准动画时长（200ms = 24 帧 @ 120Hz）。
+-- 标准动画时长（100ms = 12 帧 @ 120Hz）。
 -- 用于 popup 渐入/渐出、label 颜色渐变、drawing 切换等"通用 fade"。
--- 特殊的 bar 渐入（533ms）、stagger 间隔（33ms）等保留在各自模块里。
-M.STANDARD_DURATION_FRAMES = 24
+-- 特殊的 bar 渐入、stagger 间隔等保留在各自模块里。
+M.STANDARD_DURATION_FRAMES = 12
 
 return M
