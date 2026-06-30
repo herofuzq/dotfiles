@@ -921,8 +921,9 @@ sbar.exec(":", function()
 		end
 	end)
 
-	-- 显示器变化/唤醒：同步 bar、自动显隐区域与工作区所属屏幕
-	root:subscribe({ "display_change", "system_woke" }, function()
+	-- 显示器变化：同步 bar、自动显隐区域与工作区所属屏幕。
+	-- system_woke 不直接触发，避免睡眠唤醒但显示器未变化时整组 workspace 重绘。
+	root:subscribe("display_change", function()
 		scheduleDisplaySync()
 	end)
 

@@ -60,8 +60,9 @@ apple:subscribe("mouse.clicked", function()
 	sbar.exec("$CONFIG_DIR/helpers/menus/bin/menus -s 0")
 end)
 
--- 显示器切换时重新检测 Dock 宽度，动态调整 icon padding
-apple:subscribe({ "display_change", "system_woke" }, function()
+-- 显示器切换时重新检测 Dock 宽度，动态调整 icon padding。
+-- 只响应 display_change；普通唤醒不应触发整套显示器同步。
+apple:subscribe("display_change", function()
 	dock_sync_generation = dock_sync_generation + 1
 	local gen = dock_sync_generation
 	for _, delay in ipairs({ 0.25, 1.25 }) do
