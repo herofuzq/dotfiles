@@ -39,37 +39,196 @@ local _stateGeneration = 0
 -- 空闲自动切换回英文
 -- ============================================================
 local IDLE_TIMEOUT = 10
+local IDLE_TICK_INTERVAL = 1
+local KEY_RATE_WINDOW = 60
+local HUD_BAR_SLOTS = 10
+local HUD_WIDTH = 212
+local HUD_HEIGHT = 26
+local HUD_BOTTOM_OFFSET = 30
+local HUD_CORNER_RADIUS = 10
+local HUD_FADE_OUT_DURATION = 0.16
+local MOCHA_BASE = { red = 30 / 255, green = 30 / 255, blue = 46 / 255 }
+local MOCHA_SURFACE0 = { red = 49 / 255, green = 50 / 255, blue = 68 / 255 }
+local MOCHA_SUBTEXT1 = { red = 186 / 255, green = 194 / 255, blue = 222 / 255 }
+local MOCHA_RED = { red = 243 / 255, green = 139 / 255, blue = 168 / 255 }
+local HUD_BG = { red = MOCHA_BASE.red, green = MOCHA_BASE.green, blue = MOCHA_BASE.blue, alpha = 0.42 }
+local HUD_TEXT = { red = MOCHA_SUBTEXT1.red, green = MOCHA_SUBTEXT1.green, blue = MOCHA_SUBTEXT1.blue, alpha = 1.0 }
+local HUD_PROGRESS_FILL = { red = MOCHA_RED.red, green = MOCHA_RED.green, blue = MOCHA_RED.blue, alpha = 0.9 }
+local HUD_PROGRESS_EMPTY = { red = MOCHA_SURFACE0.red, green = MOCHA_SURFACE0.green, blue = MOCHA_SURFACE0.blue, alpha = 0.52 }
 
 local resetIdleTimer
+local hideInputHud
+local _idleDeadline = nil
+local _idleTickTimer = nil
+local _keyTimestamps = {}
+local _inputHud = nil
 
-local function stopIdleTimer()
+local function stopIdleTimer(fadeHud)
 	if _idleTimer then
 		_idleTimer:stop()
 		_idleTimer = nil
+	end
+	if _idleTickTimer then
+		_idleTickTimer:stop()
+		_idleTickTimer = nil
+	end
+	_idleDeadline = nil
+	if hideInputHud then
+		hideInputHud(fadeHud)
+	end
+end
+
+local function pruneKeyTimestamps(now)
+	local cutoff = now - KEY_RATE_WINDOW
+	while #_keyTimestamps > 0 and _keyTimestamps[1] < cutoff do
+		table.remove(_keyTimestamps, 1)
+	end
+end
+
+local function currentKpm(now)
+	pruneKeyTimestamps(now)
+	if #_keyTimestamps == 0 then
+		return 0
+	end
+	local elapsed = math.max(1, math.min(KEY_RATE_WINDOW, now - _keyTimestamps[1]))
+	return math.floor((#_keyTimestamps / elapsed) * 60 + 0.5)
+end
+
+local function countdownFilledSlots(remaining, total)
+	remaining = math.max(0, tonumber(remaining) or 0)
+	total = math.max(1, tonumber(total) or IDLE_TIMEOUT)
+	return math.max(0, math.min(HUD_BAR_SLOTS, math.ceil((remaining / total) * HUD_BAR_SLOTS)))
+end
+
+hideInputHud = function(fade)
+	if _inputHud then
+		local hud = _inputHud
+		_inputHud = nil
+		if fade then
+			pcall(function() hud:hide(HUD_FADE_OUT_DURATION) end)
+			hs.timer.doAfter(HUD_FADE_OUT_DURATION + 0.02, function()
+				pcall(function() hud:delete() end)
+			end)
+			return
+		end
+		hud:delete()
+	end
+end
+
+local function inputHudFrame()
+	local screen = hs.mouse.getCurrentScreen() or hs.screen.mainScreen()
+	local frame = screen:fullFrame()
+	return {
+		x = frame.x + math.floor((frame.w - HUD_WIDTH) / 2),
+		y = frame.y + frame.h - HUD_HEIGHT - HUD_BOTTOM_OFFSET,
+		w = HUD_WIDTH,
+		h = HUD_HEIGHT,
+	}
+end
+
+local function showInputHud(state, remaining, kpm)
+	if state ~= ZH or not isUsingFcitx5() then
+		hideInputHud()
+		return
+	end
+
+	local filledSlots = countdownFilledSlots(remaining, IDLE_TIMEOUT)
+	local elements = {
+		{
+			type = "rectangle",
+			action = "fill",
+			fillColor = HUD_BG,
+			roundedRectRadii = { xRadius = HUD_CORNER_RADIUS, yRadius = HUD_CORNER_RADIUS },
+			frame = { x = 0, y = 0, w = HUD_WIDTH, h = HUD_HEIGHT },
+		},
+		{
+			type = "text",
+			text = "中→英",
+			textFont = "SF Pro Text",
+			textSize = 13,
+			textColor = HUD_TEXT,
+			textAlignment = "left",
+			frame = { x = 12, y = 6, w = 42, h = 18 },
+		},
+		{
+			type = "text",
+			text = string.format("%d kpm", kpm),
+			textFont = "SF Pro Text",
+			textSize = 13,
+			textColor = HUD_TEXT,
+			textAlignment = "right",
+			frame = { x = 140, y = 6, w = 60, h = 18 },
+		},
+	}
+	local slotW = 6
+	local slotH = 8
+	local slotGap = 2
+	local slotX = 58
+	local slotY = 9
+	for i = 1, HUD_BAR_SLOTS do
+		local filled = i <= filledSlots
+		table.insert(elements, {
+			type = "rectangle",
+			action = "fill",
+			fillColor = filled and HUD_PROGRESS_FILL or HUD_PROGRESS_EMPTY,
+			roundedRectRadii = { xRadius = 2, yRadius = 2 },
+			frame = { x = slotX + (i - 1) * (slotW + slotGap), y = slotY, w = slotW, h = slotH },
+		})
+	end
+	hideInputHud()
+	_inputHud = hs.canvas.new(inputHudFrame())
+	if not _inputHud then
+		return
+	end
+	_inputHud:appendElements(table.unpack(elements))
+	_inputHud:level(hs.canvas.windowLevels.overlay)
+	_inputHud:behavior(hs.canvas.windowBehaviors.canJoinAllSpaces)
+	_inputHud:show()
+end
+
+local function updateInputHud(state)
+	local now = hs.timer.secondsSinceEpoch()
+	local fcitx5_active = isUsingFcitx5()
+	local remaining = 0
+	if state == ZH and fcitx5_active and _idleDeadline then
+		remaining = math.max(0, math.ceil(_idleDeadline - now))
+		if remaining <= 0 then
+			if _idleTickTimer then
+				_idleTickTimer:stop()
+				_idleTickTimer = nil
+			end
+			hideInputHud(true)
+			return
+		end
+	end
+	local kpm = currentKpm(now)
+	showInputHud(state, remaining, kpm)
+end
+
+local function notifySketchybarInputState(state)
+	local started, err = command.triggerSketchybar("input_method_change", function(exitCode, _, stderr)
+		if exitCode ~= 0 then
+			print("[Input] SketchyBar 状态通知失败: " .. tostring(stderr or exitCode))
+		end
+	end, {
+		FCITX5_ACTIVE = isUsingFcitx5() and "1" or "0",
+		FCITX5_MODE = (state == ZH) and "2" or "1",
+	})
+	if not started then
+		print("[Input] 无法通知 SketchyBar: " .. tostring(err))
 	end
 end
 
 local function applyState(state)
 	local changed = _zhState ~= state
 	_zhState = state
+	if changed then
+		notifySketchybarInputState(state)
+	end
 	if state == ZH then
 		resetIdleTimer()
 	else
-		stopIdleTimer()
-	end
-	if changed then
-		local fcitx5_active = isUsingFcitx5()
-		local started, err = command.triggerSketchybar("input_method_change", function(exitCode, _, stderr)
-			if exitCode ~= 0 then
-				print("[Input] SketchyBar 状态通知失败: " .. tostring(stderr or exitCode))
-			end
-		end, {
-			FCITX5_ACTIVE = fcitx5_active and "1" or "0",
-			FCITX5_MODE = (state == ZH) and "2" or "1",
-		})
-		if not started then
-			print("[Input] 无法通知 SketchyBar: " .. tostring(err))
-		end
+		stopIdleTimer(true)
 	end
 end
 
@@ -82,7 +241,7 @@ local function startTask(executable, args, callback, label)
 	return true
 end
 
-local function queryState(callback)
+local function queryState(callback, options)
 	local generation = _stateGeneration
 	return startTask(FCITX, {}, function(exitCode, stdout, stderr)
 		local raw = tonumber((stdout or ""):match("^%s*([012])%s*$"))
@@ -96,7 +255,9 @@ local function queryState(callback)
 			return
 		end
 		local state = raw == 2 and ZH or EN
-		applyState(state)
+		if not (options and options.apply == false) then
+			applyState(state)
+		end
 		if callback then callback(state) end
 	end, "fcitx5 状态查询")
 end
@@ -144,16 +305,39 @@ end
 resetIdleTimer = function()
 	stopIdleTimer()
 	if _zhState ~= ZH or not isUsingFcitx5() then return end
+	_idleDeadline = hs.timer.secondsSinceEpoch() + IDLE_TIMEOUT
+	updateInputHud(ZH)
+	_idleTickTimer = hs.timer.doEvery(IDLE_TICK_INTERVAL, function()
+		if _zhState == ZH and isUsingFcitx5() then
+			updateInputHud(ZH)
+		else
+			stopIdleTimer()
+		end
+	end)
 	_idleTimer = hs.timer.doAfter(IDLE_TIMEOUT, function()
 		_idleTimer = nil
 		queryState(function(state)
 			if state == ZH then
 				requestState(EN, function(success)
-					if success then hs.alert.show("⏱ 英文输入中", 0.4) end
+					-- HUD 已显示输入状态，切换提醒不再额外弹窗。
+					-- if success then hs.alert.show("⏱ 英文输入中", 0.4) end
 				end)
+			elseif state == EN then
+				applyState(EN)
 			end
-		end)
+		end, { apply = false })
 	end)
+end
+
+local function noteInputActivity()
+	local now = hs.timer.secondsSinceEpoch()
+	table.insert(_keyTimestamps, now)
+	pruneKeyTimestamps(now)
+	if _zhState == ZH and isUsingFcitx5() then
+		resetIdleTimer()
+	else
+		updateInputHud(_zhState or EN)
+	end
 end
 
 local function toggle()
@@ -167,7 +351,8 @@ local function toggle()
 				return
 			end
 			requestState(ZH, function(success)
-				if success then hs.alert.show("⌨ 中文输入中", 0.4) end
+				-- HUD 已显示输入状态，切换提醒不再额外弹窗。
+				-- if success then hs.alert.show("⌨ 中文输入中", 0.4) end
 			end)
 		end, "macism 输入源切换")
 		return
@@ -177,9 +362,10 @@ local function toggle()
 		if not state then return end
 		local target = state == ZH and EN or ZH
 		requestState(target, function(success)
-			if success then
-				hs.alert.show(target == ZH and "⌨ 中文输入中" or "⌨ 英文输入中", 0.4)
-			end
+			-- HUD 已显示输入状态，切换提醒不再额外弹窗。
+			-- if success then
+			-- 	hs.alert.show(target == ZH and "⌨ 中文输入中" or "⌨ 英文输入中", 0.4)
+			-- end
 		end)
 	end)
 end
@@ -287,14 +473,18 @@ _InputTap = hs.eventtap.new({
 	if etype == hs.eventtap.event.types.keyDown then
 		-- Hyper 组合键（如 Hyper+数字 切换工作区）不重置空闲
 		if not hyper_pressed then
-			-- 字母、数字、空格、标点、退格/删除 才重置空闲
+			-- 字母、数字、空格、标点、退格/删除、方向键才重置空闲
 			local char = event:getCharacters()
 			local kc = event:getKeyCode()
 			if (char and char:match("^[a-zA-Z0-9 %p]$"))
 				or kc == 51   -- Backspace (Delete)
 				or kc == 117  -- Forward Delete (fn+delete)
+				or kc == 123  -- Left
+				or kc == 124  -- Right
+				or kc == 125  -- Down
+				or kc == 126  -- Up
 			then
-				resetIdleTimer()
+				noteInputActivity()
 			end
 		end
 	end
