@@ -19,6 +19,10 @@ after-startup-command = [
 # Start AeroSpace at login
 start-at-login = true
 
+# Automatically reload this config after saving changes.
+# Requires one manual reload after toggling this option.
+auto-reload-config = true
+
 # Notify sketchybar that it needs to rerender when changing workspace
 exec-on-workspace-change = [
   "/bin/bash",
@@ -50,6 +54,9 @@ default-root-container-orientation = 'auto'
 # Fallback value (if you omit the key): on-focused-monitor-changed = []
 on-focused-monitor-changed = ['move-mouse monitor-lazy-center']
 # on-focus-changed = ['move-mouse window-lazy-center']
+
+# Focus the window under the mouse cursor.
+focus-follows-mouse.enabled = false
 
 # You can effectively turn off macOS "Hide application" (cmd-h) feature by toggling this flag
 # Useful if you don't use this macOS feature, but accidentally hit cmd-h or cmd-alt-h key
