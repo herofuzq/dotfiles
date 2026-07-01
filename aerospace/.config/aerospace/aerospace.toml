@@ -412,6 +412,10 @@ if.app-id = "app.zen-browser.zen"
 run = ["move-node-to-workspace 1̲Main --focus-follows-window"]
 
 [[on-window-detected]]
+if.app-id = "com.kagi.kagimacOS"
+run = ["move-node-to-workspace 1̲Main --focus-follows-window"]
+
+[[on-window-detected]]
 if.app-id = "net.imput.helium"
 run = ["move-node-to-workspace 1̲Main --focus-follows-window"]
 
