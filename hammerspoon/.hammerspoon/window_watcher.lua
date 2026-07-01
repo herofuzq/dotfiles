@@ -1,4 +1,4 @@
--- 窗口/应用变化监听 → 通知 sketchybar 更新工作区显示
+-- 窗口/应用变化监听 → 浮窗归位与可选 SketchyBar 销毁兜底
 -- AeroSpace subscribe 已接管 SketchyBar 刷新事件；这里保留浮窗归位。
 -- 若后续发现窗口关闭后图标残留，可重新打开 SKETCHYBAR_DESTROY_FALLBACK_ENABLED。
 --

@@ -219,26 +219,8 @@ local function updateInputHud(state)
 	showInputHud(state, remaining, kpm)
 end
 
-local function notifySketchybarInputState(state)
-	local started, err = command.triggerSketchybar("input_method_change", function(exitCode, _, stderr)
-		if exitCode ~= 0 then
-			print("[Input] SketchyBar 状态通知失败: " .. tostring(stderr or exitCode))
-		end
-	end, {
-		FCITX5_ACTIVE = isUsingFcitx5() and "1" or "0",
-		FCITX5_MODE = (state == ZH) and "2" or "1",
-	})
-	if not started then
-		print("[Input] 无法通知 SketchyBar: " .. tostring(err))
-	end
-end
-
 local function applyState(state)
-	local changed = _zhState ~= state
 	_zhState = state
-	if changed then
-		notifySketchybarInputState(state)
-	end
 	if state == ZH then
 		resetIdleTimer()
 	else

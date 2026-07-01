@@ -24,6 +24,9 @@ func waitSketchybar() -> String {
     }
 }
 let sketchybarPath = waitSketchybar()
+let fcitx5SourceID = "org.fcitx.inputmethod.Fcitx5.zhHans"
+let pollInterval: TimeInterval = 0.5
+var lastSignature = ""
 
 func firstExecutable(_ paths: [String]) -> String? {
     for path in paths where FileManager.default.isExecutableFile(atPath: path) {
@@ -64,14 +67,19 @@ func currentFcitxMode() -> String {
 
 func triggerInputMethodChange() {
     let inputSourceID = currentInputSourceID()
-    let isFcitx = inputSourceID == "org.fcitx.inputmethod.Fcitx5.zhHans"
+    let isFcitx = inputSourceID == fcitx5SourceID
+    let fcitxMode = isFcitx ? currentFcitxMode() : ""
+    let signature = "\(inputSourceID)|\(fcitxMode)"
+    guard signature != lastSignature else { return }
+    lastSignature = signature
+
     let task = Process()
     task.launchPath = sketchybarPath
     task.arguments = [
         "--trigger", "input_method_change",
         "IM_ID=\(inputSourceID)",
         "FCITX5_ACTIVE=\(isFcitx ? "1" : "0")",
-        "FCITX5_MODE=\(isFcitx ? currentFcitxMode() : "")",
+        "FCITX5_MODE=\(fcitxMode)",
     ]
     task.standardOutput = FileHandle.nullDevice
     task.standardError = FileHandle.nullDevice
@@ -88,6 +96,10 @@ let observer = center.addObserver(
 }
 
 triggerInputMethodChange()
+
+Timer.scheduledTimer(withTimeInterval: pollInterval, repeats: true) { _ in
+    triggerInputMethodChange()
+}
 
 // Graceful shutdown on SIGTERM (launchd stop)
 signal(SIGTERM, SIG_IGN)

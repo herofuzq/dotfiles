@@ -46,13 +46,13 @@ This is a highly modular and event-driven Sketchybar configuration written in Lu
 | Producer | Event | Consumer | Purpose |
 |----------|-------|----------|---------|
 | `aerospace_watch` | `aerospace_workspace_change` | `items/spaces.lua` | Immediate focus highlight and workspace refresh |
-| `aerospace_watch` + Hammerspoon | `space_windows_change` | `items/spaces.lua` | Refresh after a window is created or destroyed |
+| `aerospace_watch` | `space_windows_change` | `items/spaces.lua` | Refresh after workspace window changes |
 | `aerospace_watch` | `window_focus_change` | `items/spaces.lua` | Refresh cached fullscreen markers only when needed |
 | `aerospace_watch` | `aerospace_fullscreen_change` | `items/spaces.lua` | Refresh per-window fullscreen icon markers |
-| Swift watcher + Hammerspoon | `input_method_change` | `widgets/input_method.lua` | macOS source and fcitx5 internal mode changes |
+| `input_method_watch` | `input_method_change` | `widgets/input_method.lua` | macOS source and fcitx5 internal mode changes |
 | SketchyBar | `display_change` / `system_woke` | `items/spaces.lua` | Sync bar height, reveal zone, and workspace displays |
 
-Window focus and creation are owned by AeroSpace via `aerospace subscribe`. Hammerspoon fills the destroy/terminate gap and keeps floating utility windows out of the top safe area.
+Window focus and creation are owned by AeroSpace via `aerospace subscribe`. Hammerspoon keeps floating utility windows out of the top safe area; its SketchyBar destroy fallback is disabled by default.
 
 ### Setup on a New Machine
 
@@ -163,13 +163,13 @@ Hover the pill to see a popup with battery percentage and estimated time remaini
 | 发送方 | 事件 | 接收方 | 用途 |
 |--------|------|--------|------|
 | `aerospace_watch` | `aerospace_workspace_change` | `items/spaces.lua` | 立即更新焦点和工作区内容 |
-| `aerospace_watch` + Hammerspoon | `space_windows_change` | `items/spaces.lua` | 窗口创建或销毁后刷新内容 |
+| `aerospace_watch` | `space_windows_change` | `items/spaces.lua` | 工作区窗口变化后刷新内容 |
 | `aerospace_watch` | `window_focus_change` | `items/spaces.lua` | 仅在需要时刷新缓存中的全屏标记 |
 | `aerospace_watch` | `aerospace_fullscreen_change` | `items/spaces.lua` | 刷新单窗口全屏图标标记 |
-| Swift watcher + Hammerspoon | `input_method_change` | `widgets/input_method.lua` | 同步 macOS 输入源和 fcitx5 内部状态 |
+| `input_method_watch` | `input_method_change` | `widgets/input_method.lua` | 同步 macOS 输入源和 fcitx5 内部状态 |
 | SketchyBar | `display_change` / `system_woke` | `items/spaces.lua` | 同步 bar 高度、自动显隐区域和工作区屏幕 |
 
-窗口焦点和创建由 `aerospace subscribe` 负责；Hammerspoon 只补充窗口销毁/应用退出兜底，并继续处理浮窗顶部安全区归位。
+窗口焦点和创建由 `aerospace subscribe` 负责；Hammerspoon 继续处理浮窗顶部安全区归位，SketchyBar 销毁兜底默认关闭。
 
 ### 新机器部署
 
