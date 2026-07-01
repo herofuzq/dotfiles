@@ -902,10 +902,7 @@ sbar.exec(":", function()
 		updateWindows()
 	end)
 
-	-- aerospace_mode_change
-	root:subscribe("aerospace_mode_change", function(_)
-		sbar.exec("aerospace list-modes --current", function(result)
-			local is_service = (result or ""):match("service") ~= nil
+		local function set_mode_visibility(is_service)
 			if mode_visible == is_service then
 				return
 			end
@@ -943,6 +940,17 @@ sbar.exec(":", function()
 					})
 				end)
 			end
+		end
+
+		-- aerospace_mode_change
+		root:subscribe("aerospace_mode_change", function(env)
+			local mode = env and env.AEROSPACE_MODE
+			if mode then
+				set_mode_visibility(mode == "service")
+				return
+			end
+			sbar.exec("aerospace list-modes --current", function(result)
+				set_mode_visibility((result or ""):match("service") ~= nil)
 			end)
 		end)
 

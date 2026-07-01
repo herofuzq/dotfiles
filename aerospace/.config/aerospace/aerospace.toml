@@ -23,12 +23,9 @@ start-at-login = true
 # Requires one manual reload after toggling this option.
 auto-reload-config = true
 
-# Notify sketchybar that it needs to rerender when changing workspace
-exec-on-workspace-change = [
-  "/bin/bash",
-  "-c",
-  "sketchybar --trigger aerospace_workspace_change FOCUSED_WORKSPACE=$AEROSPACE_FOCUSED_WORKSPACE",
-]
+# Workspace/mode/focus changes are forwarded to SketchyBar by aerospace_watch
+# (`aerospace subscribe`) under sketchybar helpers.
+exec-on-workspace-change = []
 
 # Normalizations. See: https://nikitabobko.github.io/AeroSpace/guide#normalization
 enable-normalization-flatten-containers = true
@@ -72,7 +69,7 @@ persistent-workspaces = ["1̲Main", "2̲Sec", "3̲Chat", "4̲Work", "5̲Term", "
 # A callback that runs every time binding mode changes
 # See: https://nikitabobko.github.io/AeroSpace/guide#binding-modes
 # See: https://nikitabobko.github.io/AeroSpace/commands#mode
-on-mode-changed = ['exec-and-forget sketchybar --trigger aerospace_mode_change']
+on-mode-changed = []
 
 # Possible values: (qwerty|dvorak|colemak)
 # See https://nikitabobko.github.io/AeroSpace/guide#key-mapping
@@ -132,7 +129,7 @@ outer.right = 4
     # end tell'
     # '''
 
-    cmd-alt-ctrl-f = ['fullscreen', 'exec-and-forget sketchybar --trigger aerospace_fullscreen_change']
+    cmd-alt-ctrl-f = 'fullscreen'
     cmd-alt-ctrl-leftSquareBracket = 'workspace --wrap-around prev'
     cmd-alt-ctrl-rightSquareBracket = 'workspace --wrap-around next'
 

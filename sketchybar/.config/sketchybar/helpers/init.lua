@@ -43,6 +43,14 @@ local function helper_specs(cfg)
 			},
 		},
 		{
+			target = h .. "/event_providers/aerospace_watch/bin/aerospace_watch",
+			restart = true,
+			sources = {
+				h .. "/event_providers/aerospace_watch/aerospace_watch.swift",
+				h .. "/event_providers/aerospace_watch/makefile",
+			},
+		},
+		{
 			target = h .. "/event_providers/input_method/bin/input_method_watch",
 			restart = true,
 			sources = {
@@ -144,7 +152,8 @@ end
 
 local function restart_event_providers()
 	os.execute(
-		"launchctl kickstart -k gui/$(id -u)/com.fuzhuoqun.input_method_watch >/dev/null 2>&1; "
+		"launchctl kickstart -k gui/$(id -u)/com.fuzhuoqun.aerospace_watch >/dev/null 2>&1; "
+			.. "launchctl kickstart -k gui/$(id -u)/com.fuzhuoqun.input_method_watch >/dev/null 2>&1; "
 			.. "launchctl kickstart -k gui/$(id -u)/com.fuzhuoqun.media_watch >/dev/null 2>&1 &"
 	)
 end

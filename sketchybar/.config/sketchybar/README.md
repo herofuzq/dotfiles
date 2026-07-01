@@ -36,6 +36,7 @@ This is a highly modular and event-driven Sketchybar configuration written in Lu
 #### Advanced
 
 *   `helpers/borders.lua`: Focused workspace segment styling.
+*   `event_providers/aerospace_watch/`: Swift daemon — bridges `aerospace subscribe` events into SketchyBar triggers.
 *   `event_providers/input_method/`: Swift daemon — macOS input method change notifications.
 *   `event_providers/media_watch/`: Swift daemon — monitors media playback via `media-control stream` and triggers Lua UI updates in real time.
 *   `sketchybarrc`: Entry point and automatic reveal helper bootstrap.
@@ -44,14 +45,14 @@ This is a highly modular and event-driven Sketchybar configuration written in Lu
 
 | Producer | Event | Consumer | Purpose |
 |----------|-------|----------|---------|
-| AeroSpace | `aerospace_workspace_change` | `items/spaces.lua` | Immediate focus highlight and workspace refresh |
-| Hammerspoon | `space_windows_change` | `items/spaces.lua` | Refresh after a window is created or destroyed |
-| Hammerspoon | `window_focus_change` | `items/spaces.lua` | Refresh cached fullscreen markers only when needed |
-| AeroSpace | `aerospace_fullscreen_change` | `items/spaces.lua` | Refresh per-window fullscreen icon markers |
+| `aerospace_watch` | `aerospace_workspace_change` | `items/spaces.lua` | Immediate focus highlight and workspace refresh |
+| `aerospace_watch` + Hammerspoon | `space_windows_change` | `items/spaces.lua` | Refresh after a window is created or destroyed |
+| `aerospace_watch` | `window_focus_change` | `items/spaces.lua` | Refresh cached fullscreen markers only when needed |
+| `aerospace_watch` | `aerospace_fullscreen_change` | `items/spaces.lua` | Refresh per-window fullscreen icon markers |
 | Swift watcher + Hammerspoon | `input_method_change` | `widgets/input_method.lua` | macOS source and fcitx5 internal mode changes |
 | SketchyBar | `display_change` / `system_woke` | `items/spaces.lua` | Sync bar height, reveal zone, and workspace displays |
 
-Window focus is owned by AeroSpace. Hammerspoon only fills the create/destroy event gap: creation waits 250 ms for workspace routing, while window destruction and app termination use a 50 ms debounce.
+Window focus and creation are owned by AeroSpace via `aerospace subscribe`. Hammerspoon fills the destroy/terminate gap and keeps floating utility windows out of the top safe area.
 
 ### Setup on a New Machine
 
@@ -73,8 +74,10 @@ Window focus is owned by AeroSpace. Hammerspoon only fills the create/destroy ev
 
 4. **Register launchd services:**
    ```bash
+   ln -s ~/.config/sketchybar/helpers/event_providers/aerospace_watch/com.fuzhuoqun.aerospace_watch.plist ~/Library/LaunchAgents/
    ln -s ~/.config/sketchybar/helpers/event_providers/input_method/com.fuzhuoqun.input_method_watch.plist ~/Library/LaunchAgents/
    ln -s ~/.config/sketchybar/helpers/event_providers/media_watch/com.fuzhuoqun.media_watch.plist ~/Library/LaunchAgents/
+   launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.fuzhuoqun.aerospace_watch.plist
    launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.fuzhuoqun.input_method_watch.plist
    launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.fuzhuoqun.media_watch.plist
    ```
@@ -150,6 +153,7 @@ Hover the pill to see a popup with battery percentage and estimated time remaini
 #### 高级
 
 *   `helpers/borders.lua`: workspace 焦点分段样式。
+*   `event_providers/aerospace_watch/`: Swift 守护进程 — 将 `aerospace subscribe` 事件桥接成 SketchyBar trigger。
 *   `event_providers/input_method/`: Swift 守护进程 — macOS 输入法切换。
 *   `event_providers/media_watch/`: Swift 守护进程 — 监听媒体播放，并触发 Lua 实时更新 UI。
 *   `sketchybarrc`: 入口文件，并负责启动自动显隐 helper。
@@ -158,14 +162,14 @@ Hover the pill to see a popup with battery percentage and estimated time remaini
 
 | 发送方 | 事件 | 接收方 | 用途 |
 |--------|------|--------|------|
-| AeroSpace | `aerospace_workspace_change` | `items/spaces.lua` | 立即更新焦点和工作区内容 |
-| Hammerspoon | `space_windows_change` | `items/spaces.lua` | 窗口创建或销毁后刷新内容 |
-| Hammerspoon | `window_focus_change` | `items/spaces.lua` | 仅在需要时刷新缓存中的全屏标记 |
-| AeroSpace | `aerospace_fullscreen_change` | `items/spaces.lua` | 刷新单窗口全屏图标标记 |
+| `aerospace_watch` | `aerospace_workspace_change` | `items/spaces.lua` | 立即更新焦点和工作区内容 |
+| `aerospace_watch` + Hammerspoon | `space_windows_change` | `items/spaces.lua` | 窗口创建或销毁后刷新内容 |
+| `aerospace_watch` | `window_focus_change` | `items/spaces.lua` | 仅在需要时刷新缓存中的全屏标记 |
+| `aerospace_watch` | `aerospace_fullscreen_change` | `items/spaces.lua` | 刷新单窗口全屏图标标记 |
 | Swift watcher + Hammerspoon | `input_method_change` | `widgets/input_method.lua` | 同步 macOS 输入源和 fcitx5 内部状态 |
 | SketchyBar | `display_change` / `system_woke` | `items/spaces.lua` | 同步 bar 高度、自动显隐区域和工作区屏幕 |
 
-窗口焦点由 AeroSpace 负责；Hammerspoon 只补充窗口创建/销毁事件：创建等待 250ms 让工作区路由完成，窗口销毁和应用退出使用 50ms 防抖。
+窗口焦点和创建由 `aerospace subscribe` 负责；Hammerspoon 只补充窗口销毁/应用退出兜底，并继续处理浮窗顶部安全区归位。
 
 ### 新机器部署
 
@@ -187,8 +191,10 @@ Hover the pill to see a popup with battery percentage and estimated time remaini
 
 4. **注册 launchd 服务：**
    ```bash
+   ln -s ~/.config/sketchybar/helpers/event_providers/aerospace_watch/com.fuzhuoqun.aerospace_watch.plist ~/Library/LaunchAgents/
    ln -s ~/.config/sketchybar/helpers/event_providers/input_method/com.fuzhuoqun.input_method_watch.plist ~/Library/LaunchAgents/
    ln -s ~/.config/sketchybar/helpers/event_providers/media_watch/com.fuzhuoqun.media_watch.plist ~/Library/LaunchAgents/
+   launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.fuzhuoqun.aerospace_watch.plist
    launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.fuzhuoqun.input_method_watch.plist
    launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.fuzhuoqun.media_watch.plist
    ```

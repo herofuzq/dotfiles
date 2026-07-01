@@ -1,9 +1,8 @@
 -- 窗口/应用变化监听 → 通知 sketchybar 更新工作区显示
--- 触发窗口清单变化与焦点变化事件（由 sketchybar spaces.lua 订阅）
+-- AeroSpace subscribe 已接管窗口创建和焦点事件；这里保留销毁兜底与浮窗归位。
 --
 -- 注意：watcher 必须用全局变量持有，否则会被 Lua GC 回收（Hammerspoon #681）
 
-local CREATE_DELAY = 0.25
 local DESTROY_DELAY = 0.05
 local CREATED_PLACEMENT_DELAY = 0.30
 local CREATED_PLACEMENT_RETRY_DELAY = 0.20
@@ -208,15 +207,10 @@ end
 
 local function notify(window, _, event)
 	if event == hs.window.filter.windowFocused then
-		local windowID = window and window:id()
-		if windowID then
-			fireSketchybarTrigger("window_focus_change", { FOCUSED_WINDOW_ID = windowID })
-		end
 		scheduleTopRescue(window, RESCUE_MOVE_DELAY)
 		return
 	end
 	if event == hs.window.filter.windowCreated then
-		scheduleNotify(CREATE_DELAY, "created")
 		scheduleCreatedPlacement(window, CREATED_PLACEMENT_DELAY)
 		return
 	end
