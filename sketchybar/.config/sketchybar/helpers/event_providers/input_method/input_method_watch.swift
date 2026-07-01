@@ -24,9 +24,11 @@ func waitSketchybar() -> String {
     }
 }
 let sketchybarPath = waitSketchybar()
-let fcitx5SourceID = "org.fcitx.inputmethod.Fcitx5.zhHans"
-let pollInterval: TimeInterval = 0.5
+let fcitx5SourcePrefix = "org.fcitx.inputmethod.Fcitx5."
+let fcitxPollInterval: TimeInterval = 0.5
+let sourceFallbackInterval: TimeInterval = 5.0
 var lastSignature = ""
+var currentSourceID = ""
 
 func firstExecutable(_ paths: [String]) -> String? {
     for path in paths where FileManager.default.isExecutableFile(atPath: path) {
@@ -35,11 +37,37 @@ func firstExecutable(_ paths: [String]) -> String? {
     return nil
 }
 
-let fcitxRemotePath = firstExecutable([
-    "/Library/Input Methods/Fcitx5.app/Contents/bin/fcitx5-remote",
-    "/opt/homebrew/bin/fcitx5-remote",
-    "/usr/local/bin/fcitx5-remote",
-])
+let curlPath = firstExecutable(["/usr/bin/curl", "/opt/homebrew/bin/curl", "/usr/local/bin/curl"])
+
+struct BeastEndpoint {
+    let communication: String
+    let udsPath: String
+    let tcpPort: String
+}
+
+func configValue(_ key: String, in contents: String) -> String? {
+    for line in contents.split(separator: "\n") {
+        let parts = line.split(separator: "=", maxSplits: 1).map {
+            $0.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        if parts.count == 2 && parts[0] == key {
+            return parts[1]
+        }
+    }
+    return nil
+}
+
+func loadBeastEndpoint() -> BeastEndpoint {
+    let configPath = NSHomeDirectory() + "/.config/fcitx5/conf/beast.conf"
+    let contents = (try? String(contentsOfFile: configPath, encoding: .utf8)) ?? ""
+    return BeastEndpoint(
+        communication: configValue("Communication", in: contents) ?? "UDS",
+        udsPath: configValue("Path", in: contents) ?? "/tmp/fcitx5.sock",
+        tcpPort: configValue("Port", in: contents) ?? "32489"
+    )
+}
+
+let beastEndpoint = loadBeastEndpoint()
 
 func currentInputSourceID() -> String {
     guard let source = TISCopyCurrentKeyboardInputSource()?.takeRetainedValue(),
@@ -50,9 +78,14 @@ func currentInputSourceID() -> String {
 }
 
 func currentFcitxMode() -> String {
-    guard let fcitxRemotePath else { return "" }
+    guard let curlPath else { return "" }
     let task = Process()
-    task.launchPath = fcitxRemotePath
+    task.launchPath = curlPath
+    if beastEndpoint.communication == "TCP" {
+        task.arguments = ["-s", "-X", "POST", "http://127.0.0.1:\(beastEndpoint.tcpPort)/remote/"]
+    } else {
+        task.arguments = ["-s", "--unix-socket", beastEndpoint.udsPath, "-X", "POST", "http://fcitx/remote/"]
+    }
     let pipe = Pipe()
     task.standardOutput = pipe
     task.standardError = FileHandle.nullDevice
@@ -65,9 +98,8 @@ func currentFcitxMode() -> String {
     return output.trimmingCharacters(in: .whitespacesAndNewlines)
 }
 
-func triggerInputMethodChange() {
-    let inputSourceID = currentInputSourceID()
-    let isFcitx = inputSourceID == fcitx5SourceID
+func triggerInputMethodChange(inputSourceID: String) {
+    let isFcitx = inputSourceID.hasPrefix(fcitx5SourcePrefix)
     let fcitxMode = isFcitx ? currentFcitxMode() : ""
     let signature = "\(inputSourceID)|\(fcitxMode)"
     guard signature != lastSignature else { return }
@@ -87,18 +119,28 @@ func triggerInputMethodChange() {
     task.waitUntilExit()
 }
 
+func refreshInputSource() {
+    currentSourceID = currentInputSourceID()
+    triggerInputMethodChange(inputSourceID: currentSourceID)
+}
+
 let center = DistributedNotificationCenter.default()
 let observer = center.addObserver(
     forName: NSNotification.Name("com.apple.Carbon.TISNotifySelectedKeyboardInputSourceChanged"),
     object: nil, queue: .main
 ) { _ in
-    triggerInputMethodChange()
+    refreshInputSource()
 }
 
-triggerInputMethodChange()
+refreshInputSource()
 
-Timer.scheduledTimer(withTimeInterval: pollInterval, repeats: true) { _ in
-    triggerInputMethodChange()
+Timer.scheduledTimer(withTimeInterval: fcitxPollInterval, repeats: true) { _ in
+    guard currentSourceID.hasPrefix(fcitx5SourcePrefix) else { return }
+    triggerInputMethodChange(inputSourceID: currentSourceID)
+}
+
+Timer.scheduledTimer(withTimeInterval: sourceFallbackInterval, repeats: true) { _ in
+    refreshInputSource()
 }
 
 // Graceful shutdown on SIGTERM (launchd stop)
