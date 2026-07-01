@@ -151,15 +151,15 @@ outer.right = 4
 
     # See: https://nikitabobko.github.io/AeroSpace/commands#focus
 
-    cmd-alt-ctrl-left = 'focus left'
-    cmd-alt-ctrl-down = 'focus down'
-    cmd-alt-ctrl-up = 'focus up'
-    cmd-alt-ctrl-right = 'focus right'
+    cmd-alt-ctrl-left = 'focus --wrap-around left'
+    cmd-alt-ctrl-down = 'focus --wrap-around down'
+    cmd-alt-ctrl-up = 'focus --wrap-around up'
+    cmd-alt-ctrl-right = 'focus --wrap-around right'
 
-    cmd-alt-ctrl-h = 'focus left'
-    cmd-alt-ctrl-j = 'focus down'
-    cmd-alt-ctrl-k = 'focus up'
-    cmd-alt-ctrl-l = 'focus right'
+    cmd-alt-ctrl-h = 'focus --wrap-around left'
+    cmd-alt-ctrl-j = 'focus --wrap-around down'
+    cmd-alt-ctrl-k = 'focus --wrap-around up'
+    cmd-alt-ctrl-l = 'focus --wrap-around right'
 
     # See: https://nikitabobko.github.io/AeroSpace/commands#move
     cmd-alt-ctrl-shift-left = 'move left'
@@ -207,7 +207,8 @@ outer.right = 4
 # 'service' binding mode declaration.
 # See: https://nikitabobko.github.io/AeroSpace/guide#binding-modes
 [mode.service.binding]
-    esc = ['reload-config', 'mode main']
+    esc = ['reload-config --warnings-as-errors', 'mode main']
+    c = ['run-callback --for-every-window on-window-detected', 'mode main'] # reapply window rules
     r = ['flatten-workspace-tree', 'mode main'] # reset layout
     f = ['layout floating tiling', 'mode main'] # Toggle between floating and tiling layout
     backspace = ['close-all-windows-but-current', 'mode main']
