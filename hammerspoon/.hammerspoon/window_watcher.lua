@@ -1,5 +1,6 @@
 -- 窗口/应用变化监听 → 通知 sketchybar 更新工作区显示
--- AeroSpace subscribe 已接管窗口创建和焦点事件；这里保留销毁兜底与浮窗归位。
+-- AeroSpace subscribe 已接管 SketchyBar 刷新事件；这里保留浮窗归位。
+-- 若后续发现窗口关闭后图标残留，可重新打开 SKETCHYBAR_DESTROY_FALLBACK_ENABLED。
 --
 -- 注意：watcher 必须用全局变量持有，否则会被 Lua GC 回收（Hammerspoon #681）
 
@@ -7,6 +8,7 @@ local DESTROY_DELAY = 0.05
 local CREATED_PLACEMENT_DELAY = 0.30
 local CREATED_PLACEMENT_RETRY_DELAY = 0.20
 local CREATED_PLACEMENT_MAX_ATTEMPTS = 6
+local SKETCHYBAR_DESTROY_FALLBACK_ENABLED = false
 local RESCUE_MOVE_DELAY = 0.08
 local TOP_GUARD_HEIGHT = 34
 local VISIBLE_FRAME_PADDING = 4
@@ -35,6 +37,9 @@ local function fireSketchybarTrigger(name, fields)
 end
 
 local function scheduleNotify(delay, reason)
+	if not SKETCHYBAR_DESTROY_FALLBACK_ENABLED then
+		return
+	end
 	if debounceTimer then debounceTimer:stop() end
 	debounceTimer = hs.timer.doAfter(delay, function()
 		debounceTimer = nil
@@ -238,7 +243,7 @@ end
 
 _windowWatcher_filter:subscribe(windowEvents, notify)
 
--- 某些菜单栏/工具类应用不会产生可见的 windowDestroyed，退出事件作为兜底。
+-- 可选兜底：某些菜单栏/工具类应用不会产生可见的 windowDestroyed。
 _windowWatcher_app = hs.application.watcher.new(function(_, event)
 	if event == hs.application.watcher.terminated then
 		scheduleNotify(DESTROY_DELAY, "terminated")
@@ -246,4 +251,4 @@ _windowWatcher_app = hs.application.watcher.new(function(_, event)
 end)
 _windowWatcher_app:start()
 
-print("[window_watcher] window topology + focused window + top safe-area rescue + new floating center")
+print("[window_watcher] top safe-area rescue + new floating center; sketchybar destroy fallback disabled")
