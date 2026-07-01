@@ -13,6 +13,13 @@ config-version = 2
 # (改 appearance.lua 的 M.active) 时,如果想让窗口外框也同步,需要手动改这一行。
 after-startup-command = [
   # 'exec-and-forget borders active_color=0xfffab387 inactive_color=0x00000000 width=4.0 hidpi=on order=above',
+  # Per-workspace root layout defaults (AeroSpace v0.21+).
+  'layout --workspace 1̲Main --root accordion',
+  'layout --workspace 2̲Sec --root accordion',
+  'layout --workspace 3̲Chat --root tiles',
+  'layout --workspace 4̲Work --root accordion',
+  'layout --workspace 5̲Term --root tiles',
+  'layout --workspace 6̲Play --root accordion',
   'exec-and-forget /bin/bash -c "sleep 0.3 && sketchybar --trigger space_windows_change"',
 ] 
 
@@ -37,7 +44,9 @@ enable-normalization-opposite-orientation-for-nested-containers = true
 accordion-padding = 30
 
 # Possible values: tiles|accordion
-default-root-container-layout = 'accordion'
+# Global default is disabled; per-workspace root layout defaults are applied
+# by after-startup-command above and can be reapplied from service mode.
+# default-root-container-layout = 'accordion'
 
 # Possible values: horizontal|vertical|auto
 # 'auto' means: wide monitor (anything wider than high) gets horizontal orientation,
@@ -202,6 +211,17 @@ outer.right = 4
     # WARNING: 静默关闭所有空标题窗口（设计目的：清理不可见僵尸窗口）。
     # 入口需先 cmd-alt-ctrl-; 进 service mode，是双重确认机制的一部分。
     g = ['''exec-and-forget aerospace list-windows --all --json | jq -r '.[] | select(."window-title"=="") | ."window-id"' | xargs -n1 aerospace close --window-id''', 'mode main']
+
+    # Reapply per-workspace root layout defaults without switching workspaces.
+    p = [
+        'layout --workspace 1̲Main --root accordion',
+        'layout --workspace 2̲Sec --root accordion',
+        'layout --workspace 3̲Chat --root tiles',
+        'layout --workspace 4̲Work --root accordion',
+        'layout --workspace 5̲Term --root tiles',
+        'layout --workspace 6̲Play --root accordion',
+        'mode main',
+    ]
 
     # sticky is not yet supported https://github.com/nikitabobko/AeroSpace/issues/2
     #s = ['layout sticky tiling', 'mode main']
