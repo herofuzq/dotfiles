@@ -143,6 +143,9 @@ outer.right = 4
     cmd-alt-ctrl-rightSquareBracket = 'workspace --wrap-around next'
 
     # See: https://nikitabobko.github.io/AeroSpace/commands#layout
+    # Layout shortcuts for the focused container. If the focused window is in
+    # the workspace root container, the whole workspace layout will change.
+    # Workspace root defaults are managed by service mode "p".
     cmd-alt-ctrl-slash = 'layout tiles horizontal vertical'
     cmd-alt-ctrl-comma = 'layout accordion horizontal vertical'
 
@@ -251,94 +254,53 @@ run = 'layout floating'
 
 # 设定总是悬浮的程序
 [[on-window-detected]]
-if.app-id = "net.nutstore.NutstoreJavaBE"
+if = """test %{app-bundle-id} = net.nutstore.NutstoreJavaBE || \
+        test %{app-bundle-id} = org.fcitx.inputmethod.Fcitx5 || \
+        test %{app-bundle-id} = org.te4.T-Engine || \
+        test %{app-bundle-id} = com.openai.chat || \
+        test %{app-bundle-id} = com.sangfor.tray || \
+        test %{app-bundle-id} = com.Hyperart.Barbee || \
+        test %{app-bundle-id} = com.ibluebox.aqua-menu-bar || \
+        test %{app-bundle-id} = com.ayangweb.BongoCat || \
+        test %{app-bundle-id} = io.github.clash-verge-rev.clash-verge-rev || \
+        test %{app-bundle-id} = com.google.GeminiMacOS || \
+        test %{app-bundle-id} = iordv.Droppy || \
+        test %{app-bundle-id} = com.sindresorhus.Plash || \
+        test %{app-bundle-id} = net.nutstore.osxapp || \
+        test %{app-bundle-id} = com.apple.Preview || \
+        test %{app-bundle-id} = com.TickTick.task.mac || \
+        test %{app-bundle-id} = com.hegenberg.BetterTouchTool || \
+        test %{app-bundle-id} = com.raycast-x.macos || \
+        test %{app-bundle-id} = xyz.chatboxapp.app || \
+        test %{app-bundle-id} = com.bitwarden.desktop || \
+        test %{app-bundle-id} = com.apple.finder || \
+        test %{app-bundle-id} = com.HyperartFlow.Barbee.bb-agent || \
+        test %{app-bundle-id} = com.apple.printcenter || \
+        test %{app-bundle-id} = org.hammerspoon.Hammerspoon || \
+        test %{app-bundle-id} = com.futureshocksoftware.inethack2 || \
+        test %{app-bundle-id} = com.soundmindgames.GnollHack || \
+        test %{app-bundle-id} = com.blizzard.worldofwarcraft || \
+        test %{app-bundle-id} = com.daisydiskapp.DaisyDiskStandAlone || \
+        test %{app-bundle-id} = com.vlbor.ColorLinesNG || \
+        test %{app-bundle-id} = com.sleepyrhinosgames.popseven || \
+        test %{app-bundle-id} = com.tencent.flue.WeChatAppEx || \
+        test %{app-bundle-id} = com.superultra.Homerow || \
+        test %{app-bundle-id} = app.remixdesign.LaunchOS || \
+        test %{app-bundle-id} = com.objective-see.blockblock.helper || \
+        test %{app-bundle-id} = com.lwouis.alt-tab-macos || \
+        test %{app-bundle-id} = com.bjango.istatmenus.status"""
 run = 'layout floating'
 
 [[on-window-detected]]
-if.app-id = "org.fcitx.inputmethod.Fcitx5"
-run = 'layout floating'
-
-[[on-window-detected]]
-if.app-id = "org.te4.T-Engine"
-run = 'layout floating'
-
-[[on-window-detected]]
-if.app-id = "com.openai.chat"
-run = 'layout floating'
-
-[[on-window-detected]]
-if.app-id = "com.enlink.EnUES"
+if = 'test %{app-bundle-id} = com.enlink.EnUES'
 run = ["layout floating", "move-node-to-workspace 2̲Sec --focus-follows-window"]
 
 [[on-window-detected]]
-if.app-id = "com.sangfor.tray"
-run = 'layout floating'
-
-[[on-window-detected]]
-if.app-id = "com.Hyperart.Barbee"
-run = 'layout floating'
-
-[[on-window-detected]]
-if.app-id = "com.ibluebox.aqua-menu-bar"
-run = 'layout floating'
-
-[[on-window-detected]]
-if.app-id = "com.ayangweb.BongoCat"
-run = 'layout floating'
-
-[[on-window-detected]]
-if.app-id = "io.github.clash-verge-rev.clash-verge-rev"
-run = 'layout floating'
-
-[[on-window-detected]]
-if.app-id = "com.google.GeminiMacOS"
-run = 'layout floating'
-
-[[on-window-detected]]
-if.app-id = "iordv.Droppy"
-run = 'layout floating'
-
-[[on-window-detected]]
-if.app-id = "com.sindresorhus.Plash"
-run = 'layout floating'
-
-[[on-window-detected]]
-if.app-id = "net.nutstore.osxapp"
-run = 'layout floating'
-
-[[on-window-detected]]
-if.app-id = "com.apple.Preview"
-run = 'layout floating'
-
-[[on-window-detected]]
-if.app-id = "com.TickTick.task.mac"
-run = 'layout floating'
-
-[[on-window-detected]]
-if.app-id = "com.futureshocksoftware.inethack2"
-run = 'layout floating'
-
-[[on-window-detected]]
-if.app-id = "com.soundmindgames.GnollHack"
-run = 'layout floating'
-
-[[on-window-detected]]
-if.app-id = "cn.unisk.wohuiyi"
+if = """test %{app-bundle-id} = cn.unisk.wohuiyi || \
+        test %{app-bundle-id} = com.tencent.meeting"""
 run = ["layout floating",
        "move-node-to-workspace 3̲Chat --focus-follows-window"
       ]
-
-[[on-window-detected]] # BetterTouchTool
-if.app-id = "com.hegenberg.BetterTouchTool"
-run = 'layout floating'
-
-[[on-window-detected]] 
-if.app-id = "com.raycast-x.macos"
-run = 'layout floating'
-
-[[on-window-detected]] 
-if.app-id = "xyz.chatboxapp.app"
-run = 'layout floating'
 
 [[on-window-detected]] # 微信浮窗
 if.app-id = "com.tencent.xinWeChat"
@@ -361,168 +323,43 @@ run = ["layout floating",
        "move-node-to-workspace 6̲Play",
       ]
 
-[[on-window-detected]]
-if.app-id = "com.blizzard.worldofwarcraft"
-run = 'layout floating'
-
-[[on-window-detected]]
-if.app-id = "com.bitwarden.desktop"
-run = 'layout floating'
-
-[[on-window-detected]]
-if.app-id = "com.apple.finder"
-run = 'layout floating'
-
-[[on-window-detected]]
-if.app-id = "com.HyperartFlow.Barbee.bb-agent"
-run = 'layout floating'
-
-[[on-window-detected]]
-if.app-id = "com.apple.printcenter"
-run = 'layout floating'
-
-[[on-window-detected]]
-if.app-id = "org.hammerspoon.Hammerspoon"
-run = 'layout floating'
-
-[[on-window-detected]]
-if.app-id = "com.daisydiskapp.DaisyDiskStandAlone"
-run = 'layout floating'
-
-[[on-window-detected]]
-if.app-id = "com.vlbor.ColorLinesNG"
-run = 'layout floating'
-
-[[on-window-detected]]
-if.app-id = "com.sleepyrhinosgames.popseven"
-run = 'layout floating'
-
-[[on-window-detected]]
-if.app-id = "com.tencent.flue.WeChatAppEx"
-run = 'layout floating'
-
-[[on-window-detected]]
-if.app-id = "com.superultra.Homerow"
-run = 'layout floating'
-
-[[on-window-detected]]
-if.app-id = "app.remixdesign.LaunchOS"
-run = 'layout floating'
-
-[[on-window-detected]]
-if.app-id = "com.objective-see.blockblock.helper"
-run = 'layout floating'
-
-[[on-window-detected]]
-if.app-id = "com.lwouis.alt-tab-macos"
-run = 'layout floating'
-
-[[on-window-detected]]
-if.app-id = "com.bjango.istatmenus.status"
-run = 'layout floating'
-
 #根据程序自动设定工作区
 # Edge (Chromium) — AeroSpace #1562 已知 Electron 应用检测不可靠，备用手动快捷键 cmd-alt-ctrl-shift-b
 [[on-window-detected]]
-if.app-id = "com.microsoft.edgemac"
+if = """test %{app-bundle-id} = com.microsoft.edgemac || \
+        test %{app-bundle-id} = com.brave.Browser || \
+        test %{app-bundle-id} = app.zen-browser.zen || \
+        test %{app-bundle-id} = com.kagi.kagimacOS || \
+        test %{app-bundle-id} = net.imput.helium"""
 run = ["move-node-to-workspace 1̲Main --focus-follows-window"]
 
 [[on-window-detected]]
-if.app-id = "com.brave.Browser"
-run = ["move-node-to-workspace 1̲Main --focus-follows-window"]
-
-[[on-window-detected]]
-if.app-id = "app.zen-browser.zen"
-run = ["move-node-to-workspace 1̲Main --focus-follows-window"]
-
-[[on-window-detected]]
-if.app-id = "com.kagi.kagimacOS"
-run = ["move-node-to-workspace 1̲Main --focus-follows-window"]
-
-[[on-window-detected]]
-if.app-id = "net.imput.helium"
-run = ["move-node-to-workspace 1̲Main --focus-follows-window"]
-
-[[on-window-detected]]
-if.app-id = "com.kingsoft.wpsoffice.mac"
+if = """test %{app-bundle-id} = com.kingsoft.wpsoffice.mac || \
+        test %{app-bundle-id} = com.tableausoftware.tableaudesktop || \
+        test %{app-bundle-id} = md.obsidian || \
+        test %{app-bundle-id} = abnerworks.Typora || \
+        test %{app-bundle-id} = com.tencent.qclaw || \
+        test %{app-bundle-id} = com.emclient.mail.client || \
+        test %{app-bundle-id} = com.workreview.app"""
 run = ["move-node-to-workspace 4̲Work --focus-follows-window"]
 
 [[on-window-detected]]
-if.app-id = "com.tableausoftware.tableaudesktop"
-run = ["move-node-to-workspace 4̲Work --focus-follows-window"]
-
-[[on-window-detected]]
-if.app-id = "md.obsidian"
-run = ["move-node-to-workspace 4̲Work --focus-follows-window"]
-
-[[on-window-detected]]
-if.app-id = "abnerworks.Typora"
-run = ["move-node-to-workspace 4̲Work --focus-follows-window"]
-
-[[on-window-detected]]
-if.app-id = "com.tencent.qclaw"
-run = ["move-node-to-workspace 4̲Work --focus-follows-window"]
-
-[[on-window-detected]]
-if.app-id = "com.emclient.mail.client"
-run = ["move-node-to-workspace 4̲Work --focus-follows-window"]
-
-[[on-window-detected]]
-if.app-id = "com.workreview.app"
-run = ["move-node-to-workspace 4̲Work --focus-follows-window"]
-
-[[on-window-detected]]
-if.app-id = "com.jinghaoshe.qspace.pro"
-run = ["move-node-to-workspace 5̲Term --focus-follows-window"]
-
-[[on-window-detected]]
-if.app-id = "com.electron.ollama"
-run = ["move-node-to-workspace 5̲Term --focus-follows-window"]
-
-[[on-window-detected]]
-if.app-id = "ai.elementlabs.lmstudio"
-run = ["move-node-to-workspace 5̲Term --focus-follows-window"]
-
-[[on-window-detected]]
-if.app-id = "com.electron.dockerdesktop"
-run = ["move-node-to-workspace 5̲Term --focus-follows-window"]
-
-[[on-window-detected]]
-if.app-id = "com.parallels.desktop.console"
-run = ["move-node-to-workspace 2̲Sec --focus-follows-window"]
-
-[[on-window-detected]]
-if.app-id = "com.xiaomi.hyperConnect"
-run = ["move-node-to-workspace 2̲Sec --focus-follows-window"]
-
-[[on-window-detected]]
-if.app-id = "com.alienator88.Pearcleaner"
+if = """test %{app-bundle-id} = com.parallels.desktop.console || \
+        test %{app-bundle-id} = com.xiaomi.hyperConnect || \
+        test %{app-bundle-id} = com.alienator88.Pearcleaner"""
 run = ["move-node-to-workspace 2̲Sec --focus-follows-window"]
 
 [[on-window-detected]] # 微信主窗口兜底；浮窗规则在前面优先处理
-if.app-id = "com.tencent.xinWeChat"
-run = ["move-node-to-workspace 3̲Chat --focus-follows-window"]
-
-[[on-window-detected]] # 钉钉主窗口兜底；浮窗规则在前面优先处理
-if.app-id = "com.alibaba.DingTalkMac"
-run = ["move-node-to-workspace 3̲Chat --focus-follows-window"]
-
-[[on-window-detected]]
-if.app-id = "com.tencent.meeting"
-run = ["layout floating",
-       "move-node-to-workspace 3̲Chat --focus-follows-window"
-      ]
-
-[[on-window-detected]]
-if.app-id = "com.ltysp.phone"
+if = """test %{app-bundle-id} = com.tencent.xinWeChat || \
+        test %{app-bundle-id} = com.alibaba.DingTalkMac || \
+        test %{app-bundle-id} = com.ltysp.phone"""
 run = ["move-node-to-workspace 3̲Chat --focus-follows-window"]
 
 [[on-window-detected]] # VidHub 主窗口兜底；播放器浮窗规则在前面优先处理
-if.app-id = "com.mac.utility.media.hub"
-run = ["move-node-to-workspace 6̲Play --focus-follows-window"]
-
-[[on-window-detected]]
-if.app-id = "com.bilibili.bilibiliPC"
+if = """test %{app-bundle-id} = com.mac.utility.media.hub || \
+        test %{app-bundle-id} = com.bilibili.bilibiliPC || \
+        test %{app-bundle-id} = com.colliderli.iina || \
+        test %{app-bundle-id} = com.xnview.XnView"""
 run = ["move-node-to-workspace 6̲Play --focus-follows-window"]
 
 [[on-window-detected]]
@@ -531,43 +368,21 @@ if.app-name-regex-substring = 'QQ音乐'
 run = ["move-node-to-workspace 6̲Play --focus-follows-window"] 
 
 [[on-window-detected]]
-if.app-id = "com.colliderli.iina"
-run = ["move-node-to-workspace 6̲Play --focus-follows-window"]
-
-[[on-window-detected]]
-if.app-id = "com.xnview.XnView"
-run = ["move-node-to-workspace 6̲Play --focus-follows-window"]
-
-[[on-window-detected]]
-if.app-id = "com.googlecode.iterm2"
+if = """test %{app-bundle-id} = com.jinghaoshe.qspace.pro || \
+        test %{app-bundle-id} = com.electron.ollama || \
+        test %{app-bundle-id} = ai.elementlabs.lmstudio || \
+        test %{app-bundle-id} = com.electron.dockerdesktop || \
+        test %{app-bundle-id} = com.googlecode.iterm2 || \
+        test %{app-bundle-id} = com.mitchellh.ghostty || \
+        test %{app-bundle-id} = com.cmuxterm.app || \
+        test %{app-bundle-id} = net.kovidgoyal.kitty || \
+        test %{app-bundle-id} = com.ccswitch.desktop || \
+        test %{app-bundle-id} = com.openai.codex || \
+        test %{app-bundle-id} = com.minimax.agent.cn"""
 run = ["move-node-to-workspace 5̲Term --focus-follows-window"]
 
 [[on-window-detected]]
-if.app-id = "com.mitchellh.ghostty"
-run = ["move-node-to-workspace 5̲Term --focus-follows-window"]
-
-[[on-window-detected]]
-if.app-id = "com.cmuxterm.app"
-run = ["move-node-to-workspace 5̲Term --focus-follows-window"]
-
-[[on-window-detected]]
-if.app-id = "net.kovidgoyal.kitty"
-run = ["move-node-to-workspace 5̲Term --focus-follows-window"]
-
-[[on-window-detected]]
-if.app-id = "com.ccswitch.desktop"
-run = ["move-node-to-workspace 5̲Term --focus-follows-window"]
-
-[[on-window-detected]]
-if.app-id = "com.openai.codex"
-run = ["move-node-to-workspace 5̲Term --focus-follows-window"]
-
-[[on-window-detected]]
-if.app-id = "com.minimax.agent.cn"
-run = ["move-node-to-workspace 5̲Term --focus-follows-window"]
-
-[[on-window-detected]]
-if.app-id = "net.battle.app"
+if = 'test %{app-bundle-id} = net.battle.app'
 run = ["layout floating",
        "move-node-to-workspace 6̲Play",
       ]
