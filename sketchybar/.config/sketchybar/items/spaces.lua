@@ -1,6 +1,14 @@
--- ========== aerospace 工作区显示 ==========
--- 通过 aerospace CLI 查询窗口和屏幕信息，动态显示各工作区的应用图标
--- 工作区边框由 borders.lua 动态分配，空工作区隐藏 label、icon 居中
+-- ========== AeroSpace 工作区显示 ==========
+-- 这个模块只负责 SketchyBar UI 渲染：工作区编号、窗口图标、焦点分段和窗口 popup。
+--
+-- 数据流：
+--   1. AeroSpace / SketchyBar 事件只负责“提醒有变化”；
+--   2. 本模块收到需要刷新窗口内容的事件后，再查询一次 AeroSpace 完整快照；
+--   3. 边框和图标都基于同一份快照重画，避免 Swift helper 和 Lua 各维护一份 UI 状态。
+--
+-- 性能原则：
+--   - 工作区焦点变化只更新缓存和边框，不做完整窗口查询；
+--   - 窗口创建/销毁、全屏状态变化、显示器变化才刷新窗口快照。
 local appearance = require("appearance")
 local app_icons = require("helpers.app_icons")
 local borders = require("helpers.borders")
@@ -11,6 +19,8 @@ local sbar = require("sketchybar")
 local fonts = require("fonts")
 local settings = require("settings")
 local SPACE_ICONS = { "󰼏", "󰼐", "󰼑", "󰼒", "󰼓", "󰼔" }
+-- nf-cod-screen_full：用在工作区编号左侧，表示该工作区里有 macOS fullscreen 窗口。
+local FULLSCREEN_ICON = ""
 local APP_ICON_FONT = "sketchybar-app-font:Regular:14.0"
 local EMPTY_APP_FONT = appearance.font_label_bold()
 local REFRESH_TIMEOUT = 3.0
@@ -166,6 +176,11 @@ local function sort_windows_by_creation(wins)
 	end)
 end
 
+-- 统一采集本次渲染所需的 AeroSpace 状态。
+--
+-- 这里仍然走 Lua 的 `sbar.exec`，因为它拿的是完整窗口快照，
+-- 并且会和 SketchyBar 原生 `space_windows_change` 事件配合。
+-- Swift `aerospace_watch` 只做轻量触发和 fullscreen diff，不直接传 UI 数据。
 local function withWindows(f)
 	local results = {
 		open_windows = {},
@@ -261,23 +276,28 @@ local function app_icon_line(open_windows)
 		local app = win.app
 		local lookup = app_icons[app]
 		local icon = ((lookup == nil) and app_icons["Default"] or lookup)
-		if win.is_fullscreen then
-			icon = ":chevron_left:" .. icon .. ":chevron_right:"
-		end
 		icon_line = icon_line .. icon
 	end
 	return icon_line
 end
 
-local function snapshot_has_fullscreen_window()
-	for _, wins in pairs(window_snapshot) do
-		for _, win in ipairs(wins) do
-			if win.is_fullscreen then
-				return true
-			end
+local function workspace_has_fullscreen(open_windows)
+	for _, win in ipairs(open_windows or {}) do
+		if win.is_fullscreen then
+			return true
 		end
 	end
 	return false
+end
+
+-- 工作区级 fullscreen 标记。之前标在 app 图标上，但 fullscreen 后工作区通常只剩
+-- 这个窗口，所以标在工作区编号旁更稳定，也不会改动 app icon 字符串。
+local function workspace_icon_string(workspace_index, has_fullscreen)
+	local icon = SPACE_ICONS[tonumber(tostring(workspace_index):match("^(%d)"))] or workspace_index
+	if has_fullscreen then
+		return FULLSCREEN_ICON .. " " .. icon .. " >"
+	end
+	return icon .. " >"
 end
 
 local function snapshot_is_empty(snapshot)
@@ -323,7 +343,11 @@ local function show_empty_workspace(workspace_index, focused_workspace, visible_
 	end
 	local properties = {
 		drawing = monitor_id ~= nil or workspace_index == focused_workspace or always_show[workspace_index] == true,
-		icon = { padding_left = 10, padding_right = 2 },
+		icon = {
+			padding_left = 10,
+			padding_right = 2,
+			string = workspace_icon_string(workspace_index, false),
+		},
 		label = label,
 	}
 	if monitor_id then
@@ -332,7 +356,7 @@ local function show_empty_workspace(workspace_index, focused_workspace, visible_
 	workspaces[workspace_index]:set(properties)
 end
 
-local function show_workspace_apps(workspace_index, icon_line, label_color)
+local function show_workspace_apps(workspace_index, icon_line, has_fullscreen, label_color)
 	-- 注：高亮由 root subscribe("aerospace_workspace_change") 立即设置（env.FOCUSED_WORKSPACE），
 	-- 此处不重复设置，避免 aerospace CLI 偶尔失败时把高亮误清
 	local label = { drawing = true, string = icon_line, font = APP_ICON_FONT }
@@ -342,7 +366,11 @@ local function show_workspace_apps(workspace_index, icon_line, label_color)
 	end
 	workspaces[workspace_index]:set({
 		drawing = true,
-		icon = { padding_left = 10, padding_right = 2 },
+		icon = {
+			padding_left = 10,
+			padding_right = 2,
+			string = workspace_icon_string(workspace_index, has_fullscreen),
+		},
 		label = label,
 	})
 end
@@ -354,7 +382,7 @@ local function updateWindow(workspace_index, args)
 		if #open_windows == 0 then
 			show_empty_workspace(workspace_index, args.focused_workspace, args.visible_workspaces, label_color)
 		else
-			show_workspace_apps(workspace_index, app_icon_line(open_windows), label_color)
+			show_workspace_apps(workspace_index, app_icon_line(open_windows), workspace_has_fullscreen(open_windows), label_color)
 		end
 	end
 
@@ -858,6 +886,9 @@ sbar.exec(":", function()
 		end
 	end)
 
+	-- `space_windows_change` 有两个来源：
+	--   1. SketchyBar 原生事件：窗口创建/销毁后触发，负责关闭窗口的实时刷新；
+	--   2. aerospace_watch 自定义 trigger：AeroSpace 检测到新窗口后补一发 created。
 	root:subscribe("space_windows_change", function(env)
 		local event = env and env.WINDOW_EVENT
 		local delay = WINDOW_REFRESH_DELAY_DEFAULT
@@ -869,25 +900,20 @@ sbar.exec(":", function()
 		scheduleUpdateWindows(delay)
 	end)
 
-	-- 焦点变化不再触发 AeroSpace 窗口枚举，只重渲染已有快照以更新高亮色。
+	-- 焦点变化不再触发 AeroSpace 窗口枚举，只用已有快照更新 app 图标高亮色。
+	-- fullscreen 的真实变化由 aerospace_watch diff 后触发 `aerospace_fullscreen_change`。
 	root:subscribe("window_focus_change", function(env)
 		local focused_id = tonumber(env.FOCUSED_WINDOW_ID)
 		if not focused_id then
 			return
 		end
-		local needs_fullscreen_refresh = snapshot_has_fullscreen_window()
 		focused_window_id_cache = focused_id
 		local ws_idx = window_to_workspace[tostring(focused_id)]
 		if ws_idx and workspaces[ws_idx] then
 			local wins = window_snapshot[ws_idx]
 			if wins then
-				show_workspace_apps(ws_idx, app_icon_line(wins))
+				show_workspace_apps(ws_idx, app_icon_line(wins), workspace_has_fullscreen(wins))
 			end
-		end
-		-- AeroSpace may drop fullscreen when switching apps without emitting
-		-- aerospace_fullscreen_change, so refresh only while a stale marker is possible.
-		if needs_fullscreen_refresh then
-			scheduleUpdateWindows(0.15)
 		end
 	end)
 
@@ -897,7 +923,7 @@ sbar.exec(":", function()
 		scheduleDisplaySync()
 	end)
 
-	-- 全屏状态由完整窗口查询统一同步，用括号标记对应窗口图标。
+	-- 全屏状态变化后刷新完整快照，并把标记显示在对应工作区编号左侧。
 	root:subscribe("aerospace_fullscreen_change", function()
 		updateWindows()
 	end)
