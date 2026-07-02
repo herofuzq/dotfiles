@@ -84,9 +84,9 @@ local function doSwitch(target, label)
 	end
 end
 
-local function switchToExternal(retries, onExhausted)
+local function switchToExternal(retries, onExhausted, device)
 	retries = retries or RETRY_COUNT
-	local ext = findDevice(EXTERNAL_TRANSPORTS)
+	local ext = device or findDevice(EXTERNAL_TRANSPORTS)
 	if ext then
 		doSwitch(ext, "♪ → ")
 		return
@@ -130,8 +130,9 @@ end
 
 local function reconcileAudio()
 	_pendingTimer = nil
-	if hasExternalAudio() then
-		switchToExternal(0)
+	local ext = findDevice(EXTERNAL_TRANSPORTS)
+	if ext then
+		switchToExternal(0, nil, ext)
 	elseif hasExternalScreen() then
 		-- 外接音频设备可能比屏幕晚出现，短暂重试；耗尽后保持当前输出。
 		switchToExternal(RETRY_COUNT, function() end)

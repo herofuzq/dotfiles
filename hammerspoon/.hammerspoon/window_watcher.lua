@@ -1,51 +1,23 @@
--- 窗口/应用变化监听 → 浮窗归位与可选 SketchyBar 销毁兜底
--- AeroSpace subscribe 已接管 SketchyBar 刷新事件；这里保留浮窗归位。
--- 若后续发现窗口关闭后图标残留，可重新打开 SKETCHYBAR_DESTROY_FALLBACK_ENABLED。
+-- 窗口变化监听 → 浮窗安全区归位
+-- AeroSpace subscribe 已接管 SketchyBar 刷新事件；这里只保留几何修正。
 --
 -- 注意：watcher 必须用全局变量持有，否则会被 Lua GC 回收（Hammerspoon #681）
 
-local DESTROY_DELAY = 0.05
 local CREATED_PLACEMENT_DELAY = 0.30
 local CREATED_PLACEMENT_RETRY_DELAY = 0.20
 local CREATED_PLACEMENT_MAX_ATTEMPTS = 6
-local SKETCHYBAR_DESTROY_FALLBACK_ENABLED = false
 local RESCUE_MOVE_DELAY = 0.08
 local TOP_GUARD_HEIGHT = 34
 local VISIBLE_FRAME_PADDING = 4
 local MIN_RESCUE_WIDTH = 220
 local MIN_RESCUE_HEIGHT = 120
 local RESCUE_ANIMATION_DURATION = 0.20
-local debounceTimer = nil
 local rescueTimers = {}
 local createdPlacementTimers = {}
 local command = require("command")
 local SKIP_BUNDLE_IDS = {
 	["pl.maketheweb.cleanshotx"] = true,
 }
-
--- 每次创建新 hs.task 对象。hs.task 不能在前一个未结束时复用 start()，
--- 否则会刷 "task already launched" 警告并占用事件循环。
-local function fireSketchybarTrigger(name, fields)
-	local started, err = command.triggerSketchybar(name, function(exitCode, _, stderr)
-		if exitCode ~= 0 then
-			print("[window_watcher] sketchybar trigger 失败: " .. tostring(stderr or exitCode))
-		end
-	end, fields)
-	if not started then
-		print("[window_watcher] 无法启动 sketchybar trigger: " .. tostring(err))
-	end
-end
-
-local function scheduleNotify(delay, reason)
-	if not SKETCHYBAR_DESTROY_FALLBACK_ENABLED then
-		return
-	end
-	if debounceTimer then debounceTimer:stop() end
-	debounceTimer = hs.timer.doAfter(delay, function()
-		debounceTimer = nil
-		fireSketchybarTrigger("space_windows_change", { WINDOW_EVENT = reason or "changed" })
-	end)
-end
 
 local function safeTopForWindow(window)
 	local screen = window and window:screen()
@@ -221,9 +193,7 @@ local function notify(window, _, event)
 	end
 	if event == hs.window.filter.windowMoved then
 		scheduleTopRescue(window, RESCUE_MOVE_DELAY)
-		return
 	end
-	scheduleNotify(DESTROY_DELAY, "destroyed")
 end
 
 -- 窗口变化（用默认 filter）
@@ -234,7 +204,6 @@ _windowWatcher_filter:rejectApp("iStat Menus")
 
 local windowEvents = {
 	hs.window.filter.windowCreated,
-	hs.window.filter.windowDestroyed,
 	hs.window.filter.windowFocused,
 }
 if hs.window.filter.windowMoved then
@@ -243,12 +212,4 @@ end
 
 _windowWatcher_filter:subscribe(windowEvents, notify)
 
--- 可选兜底：某些菜单栏/工具类应用不会产生可见的 windowDestroyed。
-_windowWatcher_app = hs.application.watcher.new(function(_, event)
-	if event == hs.application.watcher.terminated then
-		scheduleNotify(DESTROY_DELAY, "terminated")
-	end
-end)
-_windowWatcher_app:start()
-
-print("[window_watcher] top safe-area rescue + new floating center; sketchybar destroy fallback disabled")
+print("[window_watcher] top safe-area rescue + new floating center")

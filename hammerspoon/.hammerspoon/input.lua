@@ -131,6 +131,11 @@ local function isInputActivityKey(event)
 		or kc == 126  -- Up
 end
 
+local function shouldCountKpm(event)
+	local kc = event:getKeyCode()
+	return kc ~= 51 and kc ~= 117
+end
+
 local function isBufferedZhSwitchKey(event)
 	local char = event:getCharacters()
 	local flags = event:getFlags()
@@ -405,10 +410,12 @@ resetIdleTimer = function()
 	end)
 end
 
-local function noteInputActivity()
+local function noteInputActivity(countKpm)
 	local now = hs.timer.secondsSinceEpoch()
-	table.insert(_keyTimestamps, now)
-	pruneKeyTimestamps(now)
+	if countKpm ~= false then
+		table.insert(_keyTimestamps, now)
+		pruneKeyTimestamps(now)
+	end
 	if _zhState == ZH and isUsingFcitx5() then
 		resetIdleTimer()
 	else
@@ -578,8 +585,8 @@ _InputTap = hs.eventtap.new({
 				return true
 			end
 			-- 字母、数字、空格、标点、退格/删除、方向键才重置空闲
-			if isInputActivityKey(event) then
-				noteInputActivity()
+			if _zhState == ZH and isInputActivityKey(event) then
+				noteInputActivity(shouldCountKpm(event))
 			end
 		end
 	end
