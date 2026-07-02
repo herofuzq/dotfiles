@@ -34,6 +34,9 @@ local _switchInFlight = false
 local _desiredState = nil
 local _desiredCallback = nil
 local _stateGeneration = 0
+local _zhSwitchKeyBufferUntil = 0
+local _zhBufferedKey = nil
+local _replayingBufferedKey = false
 
 -- ============================================================
 -- 空闲自动切换回英文
@@ -41,6 +44,8 @@ local _stateGeneration = 0
 local IDLE_TIMEOUT = 10
 local IDLE_TICK_INTERVAL = 1
 local KEY_RATE_WINDOW = 60
+local ZH_SWITCH_KEY_BUFFER_WINDOW = 0.18
+local ZH_SWITCH_KEY_REPLAY_DELAY = 0.03
 local HUD_BAR_SLOTS = 10
 local HUD_WIDTH = 212
 local HUD_HEIGHT = 26
@@ -112,6 +117,81 @@ local function progressSlotColor(index)
 		return HUD_PROGRESS_YELLOW
 	end
 	return HUD_PROGRESS_RED
+end
+
+local function isInputActivityKey(event)
+	local char = event:getCharacters()
+	local kc = event:getKeyCode()
+	return (char and char:match("^[a-zA-Z0-9 %p]$"))
+		or kc == 51   -- Backspace (Delete)
+		or kc == 117  -- Forward Delete (fn+delete)
+		or kc == 123  -- Left
+		or kc == 124  -- Right
+		or kc == 125  -- Down
+		or kc == 126  -- Up
+end
+
+local function isBufferedZhSwitchKey(event)
+	local char = event:getCharacters()
+	local flags = event:getFlags()
+	return char and char:match("^[a-zA-Z0-9 %p]$")
+		and not flags.cmd
+		and not flags.ctrl
+		and not flags.alt
+end
+
+local function clearZhSwitchKeyBuffer()
+	_zhSwitchKeyBufferUntil = 0
+	_zhBufferedKey = nil
+end
+
+local function modifiersFromEvent(event)
+	local flags = event:getFlags()
+	local modifiers = {}
+	if flags.shift then
+		modifiers[#modifiers + 1] = "shift"
+	end
+	if flags.fn then
+		modifiers[#modifiers + 1] = "fn"
+	end
+	return modifiers
+end
+
+local function armZhSwitchKeyBuffer()
+	_zhSwitchKeyBufferUntil = hs.timer.secondsSinceEpoch() + ZH_SWITCH_KEY_BUFFER_WINDOW
+	_zhBufferedKey = nil
+end
+
+local function maybeBufferZhSwitchKey(event)
+	if _replayingBufferedKey or _zhBufferedKey or not isBufferedZhSwitchKey(event) then
+		return false
+	end
+	if hs.timer.secondsSinceEpoch() > _zhSwitchKeyBufferUntil then
+		return false
+	end
+	_zhBufferedKey = {
+		keyCode = event:getKeyCode(),
+		modifiers = modifiersFromEvent(event),
+	}
+	return true
+end
+
+local function flushZhSwitchKeyBuffer()
+	local bufferedKey = _zhBufferedKey
+	clearZhSwitchKeyBuffer()
+	if not bufferedKey then
+		return
+	end
+	hs.timer.doAfter(ZH_SWITCH_KEY_REPLAY_DELAY, function()
+		_replayingBufferedKey = true
+		local ok, err = pcall(function()
+			hs.eventtap.keyStroke(bufferedKey.modifiers, bufferedKey.keyCode, 1000)
+		end)
+		_replayingBufferedKey = false
+		if not ok then
+			print("[Input] 重放中文首键失败: " .. tostring(err))
+		end
+	end)
 end
 
 hideInputHud = function(fade)
@@ -336,17 +416,42 @@ local function noteInputActivity()
 	end
 end
 
+local function requestToggleFromState(state)
+	if state ~= ZH and state ~= EN then
+		return false
+	end
+	local target = state == ZH and EN or ZH
+	if target == ZH then
+		armZhSwitchKeyBuffer()
+	else
+		clearZhSwitchKeyBuffer()
+	end
+	requestState(target, function(success)
+		if target == ZH then
+			flushZhSwitchKeyBuffer()
+		end
+		-- HUD 已显示输入状态，切换提醒不再额外弹窗。
+		-- if success then
+		-- 	hs.alert.show(target == ZH and "⌨ 中文输入中" or "⌨ 英文输入中", 0.4)
+		-- end
+	end)
+	return true
+end
+
 local function toggle()
 	_toggled = hs.timer.secondsSinceEpoch()
 
 	-- 如果当前输入源是 ABC（非 fcitx5），先切输入源，再显式启用中文引擎。
 	if not isUsingFcitx5() then
+		armZhSwitchKeyBuffer()
 		startTask(MACISM_BIN, { FCITX5_SRC, "150" }, function(exitCode, _, stderr)
 			if exitCode ~= 0 then
+				clearZhSwitchKeyBuffer()
 				print("[Input] 切换输入源失败: " .. tostring(stderr or exitCode))
 				return
 			end
 			requestState(ZH, function(success)
+				flushZhSwitchKeyBuffer()
 				-- HUD 已显示输入状态，切换提醒不再额外弹窗。
 				-- if success then hs.alert.show("⌨ 中文输入中", 0.4) end
 			end)
@@ -354,15 +459,15 @@ local function toggle()
 		return
 	end
 
+	-- 在 Fcitx5 内部切换时优先信任缓存状态，少一次 fcitx5-remote 查询，
+	-- 降低 Hyper 后第一个按键落在旧输入状态里的概率。
+	if requestToggleFromState(_zhState) then
+		return
+	end
+
 	queryState(function(state)
 		if not state then return end
-		local target = state == ZH and EN or ZH
-		requestState(target, function(success)
-			-- HUD 已显示输入状态，切换提醒不再额外弹窗。
-			-- if success then
-			-- 	hs.alert.show(target == ZH and "⌨ 中文输入中" or "⌨ 英文输入中", 0.4)
-			-- end
-		end)
+		requestToggleFromState(state)
 	end)
 end
 
@@ -469,17 +574,11 @@ _InputTap = hs.eventtap.new({
 	if etype == hs.eventtap.event.types.keyDown then
 		-- Hyper 组合键（如 Hyper+数字 切换工作区）不重置空闲
 		if not hyper_pressed then
+			if maybeBufferZhSwitchKey(event) then
+				return true
+			end
 			-- 字母、数字、空格、标点、退格/删除、方向键才重置空闲
-			local char = event:getCharacters()
-			local kc = event:getKeyCode()
-			if (char and char:match("^[a-zA-Z0-9 %p]$"))
-				or kc == 51   -- Backspace (Delete)
-				or kc == 117  -- Forward Delete (fn+delete)
-				or kc == 123  -- Left
-				or kc == 124  -- Right
-				or kc == 125  -- Down
-				or kc == 126  -- Up
-			then
+			if isInputActivityKey(event) then
 				noteInputActivity()
 			end
 		end
