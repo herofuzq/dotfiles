@@ -94,8 +94,8 @@ on-mode-changed = []
 #                 See:
 #                 https://nikitabobko.github.io/AeroSpace/guide#assign-workspaces-to-monitors
 [gaps]
-inner.horizontal = 6
-inner.vertical = 6
+inner.horizontal = 4
+inner.vertical = 4
 outer.left = 4
 outer.bottom = 4
 outer.top = [
