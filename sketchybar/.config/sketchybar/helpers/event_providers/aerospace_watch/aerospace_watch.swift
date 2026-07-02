@@ -15,7 +15,13 @@ let aerospace = waitPath("aerospace", candidates: ["/opt/homebrew/bin/aerospace"
 
 let eventQueue = DispatchQueue(label: "com.fuzhuoqun.aerospace_watch.events")
 let processQueue = DispatchQueue(label: "com.fuzhuoqun.aerospace_watch.sketchybar")
+let fullscreenQueue = DispatchQueue(label: "com.fuzhuoqun.aerospace_watch.fullscreen")
 var shouldRun = true
+var fullscreenCheckScheduled = false
+var fullscreenCheckInFlight = false
+var fullscreenCheckPending = false
+var fullscreenSnapshotInitialized = false
+var lastFullscreenSignature = ""
 
 func stringValue(_ value: Any?) -> String? {
     switch value {
@@ -56,6 +62,88 @@ func triggerFullscreenRefresh() {
     }
 }
 
+func boolValue(_ value: Any?) -> Bool {
+    switch value {
+    case let value as Bool:
+        return value
+    case let value as NSNumber:
+        return value.boolValue
+    case let value as String:
+        return value == "true" || value == "1"
+    default:
+        return false
+    }
+}
+
+func fullscreenSignature(from data: Data) -> String? {
+    guard let json = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] else {
+        return nil
+    }
+
+    var fullscreenWindowIds: [String] = []
+    for window in json {
+        guard boolValue(window["window-is-fullscreen"]),
+              let windowId = stringValue(window["window-id"]) else {
+            continue
+        }
+        fullscreenWindowIds.append(windowId)
+    }
+    return fullscreenWindowIds.sorted().joined(separator: "|")
+}
+
+func runFullscreenStateCheck() {
+    if fullscreenCheckInFlight {
+        fullscreenCheckPending = true
+        return
+    }
+
+    fullscreenCheckInFlight = true
+    let task = Process()
+    task.launchPath = aerospace
+    task.arguments = [
+        "list-windows",
+        "--monitor",
+        "all",
+        "--format",
+        "%{window-id}%{window-is-fullscreen}",
+        "--json",
+    ]
+    let pipe = Pipe()
+    task.standardOutput = pipe
+    task.standardError = FileHandle.nullDevice
+
+    if (try? task.run()) != nil {
+        task.waitUntilExit()
+        let data = pipe.fileHandleForReading.readDataToEndOfFile()
+        if task.terminationStatus == 0, let signature = fullscreenSignature(from: data) {
+            if fullscreenSnapshotInitialized && signature != lastFullscreenSignature {
+                triggerFullscreenRefresh()
+            }
+            lastFullscreenSignature = signature
+            fullscreenSnapshotInitialized = true
+        }
+    }
+
+    fullscreenCheckInFlight = false
+    if fullscreenCheckPending {
+        fullscreenCheckPending = false
+        runFullscreenStateCheck()
+    }
+}
+
+func scheduleFullscreenStateCheck(delay: TimeInterval = 0.18) {
+    fullscreenQueue.async {
+        if fullscreenCheckScheduled {
+            return
+        }
+        fullscreenCheckScheduled = true
+        fullscreenQueue.asyncAfter(deadline: .now() + delay) {
+            fullscreenCheckScheduled = false
+            runFullscreenStateCheck()
+        }
+    }
+}
+
 func handleEvent(_ json: [String: Any]) {
     guard let event = json["_event"] as? String else { return }
 
@@ -70,6 +158,7 @@ func handleEvent(_ json: [String: Any]) {
             fields["PREV_WORKSPACE"] = prevWorkspace
         }
         trigger("aerospace_workspace_change", fields: fields)
+        scheduleFullscreenStateCheck()
 
     case "focus-changed":
         guard let windowId = stringValue(json["windowId"]) else { return }
@@ -81,6 +170,7 @@ func handleEvent(_ json: [String: Any]) {
             fields["FOCUSED_WORKSPACE"] = workspace
         }
         trigger("window_focus_change", fields: fields)
+        scheduleFullscreenStateCheck()
 
     case "mode-changed":
         guard let mode = stringValue(json["mode"]) else { return }
@@ -107,11 +197,10 @@ func handleEvent(_ json: [String: Any]) {
             fields["APP_NAME"] = appName
         }
         trigger("space_windows_change", fields: fields)
+        scheduleFullscreenStateCheck(delay: 0.30)
 
     case "binding-triggered":
-        if stringValue(json["binding"]) == "cmd-alt-ctrl-f" {
-            triggerFullscreenRefresh()
-        }
+        scheduleFullscreenStateCheck()
 
     default:
         return
@@ -170,6 +259,7 @@ sigtermSource.setEventHandler {
 sigtermSource.resume()
 
 DispatchQueue.global().async {
+    scheduleFullscreenStateCheck()
     while shouldRun {
         runSubscribeOnce()
         if shouldRun {
