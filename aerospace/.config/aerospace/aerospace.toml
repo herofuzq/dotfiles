@@ -12,7 +12,7 @@ config-version = 2
 # appearance.lua 的 P.peach 同源。borders CLI 颜色无法读取 sketchybar 主题,所以切主题
 # (改 appearance.lua 的 M.active) 时,如果想让窗口外框也同步,需要手动改这一行。
 after-startup-command = [
-  # 'exec-and-forget borders active_color=0xfffab387 inactive_color=0x00000000 width=4.0 hidpi=on order=above',
+  'exec-and-forget borders active_color=0xfffab387 inactive_color=0x00000000 width=4.0 hidpi=on order=above',
   # Per-workspace root layout defaults (AeroSpace v0.21+).
   'layout --workspace 1̲Main --root accordion',
   'layout --workspace 2̲Sec --root accordion',
@@ -94,17 +94,17 @@ on-mode-changed = []
 #                 See:
 #                 https://nikitabobko.github.io/AeroSpace/guide#assign-workspaces-to-monitors
 [gaps]
-inner.horizontal = 4
-inner.vertical = 4
-outer.left = 4
-outer.bottom = 4
+inner.horizontal = 6
+inner.vertical = 6
+outer.left = 6
+outer.bottom = 6
 outer.top = [
-  { monitor."Built-in Retina Display" = 4 },
-  { monitor."VG271U" = 34 },
-  { monitor."Mi Monitor" = 34 },
-  34,
+  { monitor."Built-in Retina Display" = 6 },
+  { monitor."VG271U" = 36 },
+  { monitor."Mi Monitor" = 36 },
+  36,
 ]
-outer.right = 4
+outer.right = 6
 # 'main' binding mode declaration
 # See: https://nikitabobko.github.io/AeroSpace/guide#binding-modes
 # 'main' binding mode must be always presented
