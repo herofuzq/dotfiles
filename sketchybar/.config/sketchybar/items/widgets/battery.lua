@@ -29,13 +29,7 @@ local battery = sbar.add("item", "widgets.battery", {
 	background = appearance.pill_bg(),
 	popup = {
 		align = "center",
-		background = {
-			color = appearance.with_alpha(colors.pill_bg, 0.85),
-			corner_radius = 12,
-			border_width = 2,
-			border_color = colors.border,
-			shadow = { drawing = false },
-		},
+		background = appearance.popup_bg(),
 		blur_radius = 30,
 		height = 30,
 	},
@@ -61,7 +55,7 @@ local last_state
 local last_battery_signature
 local battery_popup = popup_animation.new(battery, {
 	background_color = function()
-		return appearance.with_alpha(colors.pill_bg, 0.85)
+		return appearance.popup_bg().color
 	end,
 	on_hidden = function()
 		batt_info:set({ drawing = false })

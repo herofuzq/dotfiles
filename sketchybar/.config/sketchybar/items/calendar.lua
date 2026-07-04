@@ -28,13 +28,7 @@ local cal = sbar.add("item", "calendar", {
 	},
 	popup = {
 		align = "right",
-		background = {
-			color = appearance.with_alpha(colors.pill_bg, 0.85),
-			corner_radius = 12,
-			border_width = 2,
-			border_color = colors.border,
-			shadow = { drawing = false },
-		},
+		background = appearance.popup_bg(),
 		blur_radius = 30,
 		height = 30,
 	},
@@ -52,7 +46,7 @@ end
 
 cal_popup = popup_animation.new(cal, {
 	background_color = function()
-		return appearance.with_alpha(colors.pill_bg, 0.85)
+		return appearance.popup_bg().color
 	end,
 })
 

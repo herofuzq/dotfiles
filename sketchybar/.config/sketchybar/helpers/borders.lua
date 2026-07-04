@@ -24,23 +24,25 @@ local workspace_style = {
 workspace_style.segment_height = workspace_style.bracket_height - 2 * workspace_style.bracket_border_width
 workspace_style.segment_radius = workspace_style.bracket_radius - 1
 
--- workspace.1 (1̲Main) 和 workspace.6 (6̲Play) 是 brackets 的左右端点,
--- focus 高亮的圆角比 bracket 内沿圆角多 1px,导致焦点段两端和 bracket 边距错位。
--- 这里给两端各 ±2px 的水平偏移补偿,让高亮段贴合 bracket 内部。
+-- bracket 左右端点的 focus 高亮圆角比 bracket 内沿圆角多 1px,
+-- 导致焦点段两端和 bracket 边距错位。给两端各 ±2px 水平偏移补偿。
 -- 中间 workspace 不需要补偿。
--- 注意: 若改 aerospace.toml 的 persistent-workspaces 顺序,让 1 不在左端或 6 不在
--- 右端,这里要相应调整 (例如改成最后一个 workspace 的索引)。
-local function segment_x_offset(name)
-	if name == "workspace.1" or name:match("^workspace%.1%.") then
+local function segment_x_offset(name, workspace_order)
+	if #workspace_order == 0 then
+		return 0
+	end
+	local first = workspace_order[1]
+	local last = workspace_order[#workspace_order]
+	if name == "workspace." .. first or name:match("^workspace%." .. first:gsub("([^%w])", "%%%1") .. "%.") then
 		return 2
 	end
-	if name == "workspace.6" or name:match("^workspace%.6%.") then
+	if name == "workspace." .. last or name:match("^workspace%." .. last:gsub("([^%w])", "%%%1") .. "%.") then
 		return -2
 	end
 	return 0
 end
 
-local function set_segment_geometry(name)
+local function set_segment_geometry(name, workspace_order)
 	sbar.set(name, {
 		background = {
 			drawing = true,
@@ -49,7 +51,7 @@ local function set_segment_geometry(name)
 			corner_radius = workspace_style.segment_radius,
 			padding_left = 0,
 			padding_right = 0,
-			x_offset = segment_x_offset(name),
+			x_offset = segment_x_offset(name, workspace_order),
 		},
 	})
 end
@@ -70,10 +72,10 @@ local function set_inactive(name)
 	})
 end
 
-local function distribute(visible_workspace_names, focused_name, animated)
+local function distribute(visible_workspace_names, focused_name, animated, workspace_order)
 	-- 第一步：segment 几何在 animation 之外一次设好（不被插值，避免 x_offset 跳 1px）
 	for i, name in ipairs(visible_workspace_names) do
-		set_segment_geometry(name)
+		set_segment_geometry(name, workspace_order)
 	end
 
 	-- 第二步：颜色（bg + icon/label）走 sbar.animate 同步插值

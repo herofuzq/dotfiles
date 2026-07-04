@@ -121,6 +121,19 @@ function M.pill_bg()
 	}
 end
 
+-- 标准 popup 背景。统一 alpha 0.85 / 圆角 12 / 边框 2，
+-- 避免各 widget 散落不同的 alpha/圆角值。
+-- 用法: popup = { background = appearance.popup_bg(), ... }
+function M.popup_bg()
+	return {
+		color = M.with_alpha(M.colors.pill_bg, 0.85),
+		corner_radius = 12,
+		border_width = 2,
+		border_color = M.colors.border,
+		shadow = { drawing = false },
+	}
+end
+
 -- 标准 icon 字体（Bold），size 可选，默认用 fonts.font_icon.size。
 -- 用法: icon = { ..., font = appearance.font_icon_bold() }
 function M.font_icon_bold(size)

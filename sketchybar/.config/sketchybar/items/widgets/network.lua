@@ -270,9 +270,10 @@ sbar.add("bracket", "widgets.system", {
 --   公式 = max(包裹item宽度) + 两侧bracket_border
 --        = network_down(33+4+13+2+2=54) + 2 + 2 = 58
 --   改 network_down 字体/宽度或 bracket border 时请同步更新此处
+local SPACER_WIDTH = 58
 sbar.add("item", "widgets.system_bracket_spacer", {
 	position = "right",
-	width = 58,
+	width = SPACER_WIDTH,
 	padding_left = 0,
 	padding_right = 0,
 	background = { drawing = false },

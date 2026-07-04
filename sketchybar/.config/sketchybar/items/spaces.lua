@@ -511,7 +511,7 @@ local function distribute_cached_borders(focused_workspace, animated)
 		return
 	end
 	_border_signature = signature
-	borders.distribute(visible_names, focused_name, animated)
+	borders.distribute(visible_names, focused_name, animated, workspace_order)
 end
 
 local function distribute_borders_if_changed(visible_names, focused_name, animated)
@@ -520,7 +520,7 @@ local function distribute_borders_if_changed(visible_names, focused_name, animat
 		return
 	end
 	_border_signature = signature
-	borders.distribute(visible_names, focused_name, animated)
+	borders.distribute(visible_names, focused_name, animated, workspace_order)
 end
 
 -- ========== 更新所有工作区 + 分段状态 ==========
@@ -724,13 +724,7 @@ for _, ws in ipairs(initial_workspaces) do
 		},
 		popup = {
 			align = "left",
-			background = {
-				color = appearance.colors.pill_bg,
-				corner_radius = 10,
-				border_width = 2,
-				border_color = appearance.colors.border,
-				shadow = { drawing = false },
-			},
+			background = appearance.popup_bg(),
 			blur_radius = 30,
 		},
 	})
@@ -928,57 +922,57 @@ sbar.exec(":", function()
 		updateWindows()
 	end)
 
-		local function set_mode_visibility(is_service)
-			if mode_visible == is_service then
-				return
-			end
-			mode_visible = is_service
-			mode_generation = mode_generation + 1
-			local gen = mode_generation
-			if is_service then
-				mode_item:set({
-					drawing = true,
-					width = "dynamic",
-					padding_left = 2,
-					padding_right = 2,
-					label = { color = transparent(appearance.colors.sapphire) },
-				})
-			end
-			-- 退出 service 时,动画结束后收起 drawing,避免空 item 占位
-			sbar.animate("linear", timing.STANDARD_DURATION_FRAMES, function()
-				mode_item:set({
-					label = {
-						color = is_service and appearance.colors.sapphire
-							or transparent(appearance.colors.sapphire),
-					},
-				})
-			end)
-			if not is_service then
-				sbar.delay(timing.frames_to_seconds(timing.STANDARD_DURATION_FRAMES), function()
-					if mode_generation ~= gen or mode_visible then
-						return
-					end
-					mode_item:set({
-						drawing = false,
-						width = 0,
-						padding_left = 0,
-						padding_right = 0,
-					})
-				end)
-			end
+	local function set_mode_visibility(is_service)
+		if mode_visible == is_service then
+			return
 		end
-
-		-- aerospace_mode_change
-		root:subscribe("aerospace_mode_change", function(env)
-			local mode = env and env.AEROSPACE_MODE
-			if mode then
-				set_mode_visibility(mode == "service")
-				return
-			end
-			sbar.exec("aerospace list-modes --current", function(result)
-				set_mode_visibility((result or ""):match("service") ~= nil)
-			end)
+		mode_visible = is_service
+		mode_generation = mode_generation + 1
+		local gen = mode_generation
+		if is_service then
+			mode_item:set({
+				drawing = true,
+				width = "dynamic",
+				padding_left = 2,
+				padding_right = 2,
+				label = { color = transparent(appearance.colors.sapphire) },
+			})
+		end
+		-- 退出 service 时,动画结束后收起 drawing,避免空 item 占位
+		sbar.animate("linear", timing.STANDARD_DURATION_FRAMES, function()
+			mode_item:set({
+				label = {
+					color = is_service and appearance.colors.sapphire
+						or transparent(appearance.colors.sapphire),
+				},
+			})
 		end)
+		if not is_service then
+			sbar.delay(timing.frames_to_seconds(timing.STANDARD_DURATION_FRAMES), function()
+				if mode_generation ~= gen or mode_visible then
+					return
+				end
+				mode_item:set({
+					drawing = false,
+					width = 0,
+					padding_left = 0,
+					padding_right = 0,
+				})
+			end)
+		end
+	end
+
+	-- aerospace_mode_change
+	root:subscribe("aerospace_mode_change", function(env)
+		local mode = env and env.AEROSPACE_MODE
+		if mode then
+			set_mode_visibility(mode == "service")
+			return
+		end
+		sbar.exec("aerospace list-modes --current", function(result)
+			set_mode_visibility((result or ""):match("service") ~= nil)
+		end)
+	end)
 
 	-- 初始 focus
 	sbar.exec("aerospace list-workspaces --focused", function(focused_workspace)

@@ -60,13 +60,7 @@ local sys = sbar.add("item", "widgets.sys", {
 	background = appearance.pill_bg(),
 	popup = {
 		align = "center",
-		background = {
-			color = appearance.with_alpha(colors.pill_bg, 0.9),
-			corner_radius = 12,
-			border_width = 2,
-			border_color = colors.border,
-			shadow = { drawing = false },
-		},
+		background = appearance.popup_bg(),
 		blur_radius = 30,
 		height = 30,
 	},
@@ -143,7 +137,7 @@ end
 
 local sys_popup = popup_animation.new(sys, {
 	background_color = function()
-		return appearance.with_alpha(colors.pill_bg, 0.9)
+		return appearance.popup_bg().color
 	end,
 	on_hidden = function()
 		set_popup_items(false)
