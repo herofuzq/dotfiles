@@ -11,7 +11,7 @@ local settings = require("settings")
 
 local clash_tun = sbar.add("item", "widgets.clash_tun", {
 	position = "right",
-	update_freq = 31, -- 与其他外部轮询错峰
+	update_freq = 30, -- 与其他外部轮询错峰
 	padding_left = 0,
 	padding_right = 2,
 	icon = {

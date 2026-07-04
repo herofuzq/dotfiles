@@ -12,26 +12,11 @@ SOCKET="${CLASH_SOCKET:-/tmp/verge/verge-mihomo.sock}"
 # Clash Verge 未运行
 [ -S "$SOCKET" ] || { echo "nod"; exit 0; }
 
-# 查找可用的 Python 解释器
-PYTHON=""
-if command -v python3 &>/dev/null; then
-	PYTHON="python3"
-elif command -v python &>/dev/null; then
-	PYTHON="python"
-fi
-
-if [ -n "$PYTHON" ]; then
+TUN_STATE="off"
+if command -v jq &>/dev/null; then
 	TUN_STATE=$(curl -s --max-time 2 --unix-socket "$SOCKET" \
 		http://localhost/configs 2>/dev/null \
-		| $PYTHON -c "
-import sys, json
-try:
-    print('on' if json.load(sys.stdin)['tun']['enable'] else 'off')
-except Exception:
-    print('off')
-" 2>/dev/null)
-else
-	TUN_STATE="off"
+		| jq -r '.tun.enable // false | if . then "on" else "off" end' 2>/dev/null)
 fi
 
 # 系统代理状态: HTTP 或 HTTPS 任一开启即视为系统代理开启
