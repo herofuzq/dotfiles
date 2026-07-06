@@ -379,6 +379,7 @@ if = """test %{app-bundle-id} = com.jinghaoshe.qspace.pro || \
         test %{app-bundle-id} = net.kovidgoyal.kitty || \
         test %{app-bundle-id} = com.ccswitch.desktop || \
         test %{app-bundle-id} = com.openai.codex || \
+        test %{app-bundle-id} = com.nousresearch.hermes || \
         test %{app-bundle-id} = com.minimax.agent.cn"""
 run = ["move-node-to-workspace 5̲Term --focus-follows-window"]
 
