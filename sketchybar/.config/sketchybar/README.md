@@ -71,7 +71,7 @@ When debugging live behavior, inspect `~/.config/sketchybar` first. Source edits
 
 `items/spaces.lua` is the only renderer for workspace UI. It keeps a cached AeroSpace window snapshot and redraws workspaces from that snapshot.
 
-- Multiple windows from the same app intentionally render multiple app icons.
+- The bar renders one icon per app; the popup still lists every window.
 - Focus changes are cheap: they update caches and redraw the affected workspace from the existing snapshot.
 - Window create/destroy and fullscreen changes refresh the full snapshot.
 - Fullscreen is marked at workspace level with ` <workspace>`, not around the app icon.
@@ -192,7 +192,7 @@ helper 的编译产物不进 git，而是在实际运行路径里生成，例如
 
 `items/spaces.lua` 是工作区 UI 的唯一渲染点。它维护一份 AeroSpace 窗口快照，并基于这份快照重画工作区。
 
-- 同一个 app 有多个窗口时，会显示多个 app 图标。
+- 主条每个 app 只显示一个图标；popup 仍然逐个显示该工作区的每个窗口。
 - 焦点变化走轻量路径：更新缓存，并用已有快照重画相关工作区。
 - 窗口创建/销毁、全屏状态变化才刷新完整快照。
 - fullscreen 标记显示在工作区编号旁：` <workspace>`，不再包住 app 图标。

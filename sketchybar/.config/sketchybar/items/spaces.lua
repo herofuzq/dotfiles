@@ -229,7 +229,7 @@ local function withWindows(f)
 			local app = entry["app-name"]
 			local window_id = entry["window-id"]
 
-			-- 每个窗口独立统计，允许同一应用多个窗口显示多个图标
+			-- 快照保留窗口粒度：主条按 app 去重渲染，popup 仍按窗口逐个显示。
 			if not processed_windows[window_id] then
 				processed_windows[window_id] = true
 
@@ -272,11 +272,15 @@ end
 -- ========== 更新单个工作区 ==========
 local function app_icon_line(open_windows)
 	local icon_line = ""
+	local seen_apps = {}
 	for _, win in ipairs(open_windows) do
-		local app = win.app
-		local lookup = app_icons[app]
-		local icon = ((lookup == nil) and app_icons["Default"] or lookup)
-		icon_line = icon_line .. icon
+		local app = win.app or "Default"
+		if not seen_apps[app] then
+			seen_apps[app] = true
+			local lookup = app_icons[app]
+			local icon = ((lookup == nil) and app_icons["Default"] or lookup)
+			icon_line = icon_line .. icon
+		end
 	end
 	return icon_line
 end
@@ -815,12 +819,6 @@ sbar.exec(":", function()
 			togglePopup(ws, w, true)
 		end)
 		w:subscribe("mouse.exited", function()
-			scheduleHide(ws, w)
-		end)
-		w:subscribe("mouse.exited.global", function()
-			_popup_hovering[ws] = false
-			-- 不在 SketchyBar 的全局 mouse event 回调里直接触发 popup 动画。
-			-- sample 显示这条路径可能和 Lua delay/animate 同步发 Mach 消息形成互等。
 			scheduleHide(ws, w)
 		end)
 		w:subscribe("mouse.clicked", function()

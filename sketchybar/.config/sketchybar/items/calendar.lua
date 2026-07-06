@@ -144,7 +144,7 @@ local function updatePopupContent()
 end
 
 cal:subscribe(
-	{ "forced", "routine", "system_woke", "mouse.entered", "mouse.exited", "mouse.clicked", "mouse.exited.global" },
+	{ "forced", "routine", "system_woke", "mouse.entered", "mouse.exited", "mouse.clicked" },
 	function(env)
 		local s = env.SENDER
 		if s == "forced" or s == "routine" or s == "system_woke" then
@@ -162,11 +162,6 @@ cal:subscribe(
 			if popup_state.pinned then
 				cal_popup:show()
 			else
-				cal_popup:hide(true)
-			end
-		elseif s == "mouse.exited.global" then
-			popup_state.exit_gen = popup_state.exit_gen + 1
-			if not popup_state.pinned then
 				cal_popup:hide(true)
 			end
 		end
