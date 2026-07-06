@@ -818,10 +818,10 @@ sbar.exec(":", function()
 			scheduleHide(ws, w)
 		end)
 		w:subscribe("mouse.exited.global", function()
-			_popup_exit_gen[ws] = (_popup_exit_gen[ws] or 0) + 1
-			if not _popup_pinned[ws] then
-				hide_popup(ws, w, true)
-			end
+			_popup_hovering[ws] = false
+			-- 不在 SketchyBar 的全局 mouse event 回调里直接触发 popup 动画。
+			-- sample 显示这条路径可能和 Lua delay/animate 同步发 Mach 消息形成互等。
+			scheduleHide(ws, w)
 		end)
 		w:subscribe("mouse.clicked", function()
 			sbar.exec("aerospace list-workspaces --focused", function(focused)

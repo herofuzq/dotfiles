@@ -2,8 +2,15 @@
 -- 启动时检查 helpers/event_providers/ 下各 Swift/C helper 源码是否比编译产物新，
 -- 是的话跑 make 重建。bin/ 不在 dotfiles 里 stow（避免每次 make 都触发 git diff）。
 
--- Add the sketchybar module to the package cpath
-package.cpath = package.cpath .. ";" .. os.getenv("HOME") .. "/.local/share/sketchybar_lua/?.so"
+local home = os.getenv("HOME")
+local config_dir = os.getenv("CONFIG_DIR") or (home and (home .. "/.config/sketchybar")) or "."
+
+-- Lua modules should resolve from the live SketchyBar config directory, not
+-- from whatever working directory launchd / sketchybar happens to use.
+package.path = config_dir .. "/?.lua;" .. config_dir .. "/?/init.lua;" .. package.path
+if home then
+	package.cpath = package.cpath .. ";" .. home .. "/.local/share/sketchybar_lua/?.so"
+end
 
 -- 立即加载 sketchybar 并把 bar 设为完全透明:
 -- sketchybarrc 启动时(冷启动)到 init.lua 跑之间有一段 ~100ms 窗口,
