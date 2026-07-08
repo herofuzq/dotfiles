@@ -15,10 +15,10 @@ require("bar")
 require("items")
 sbar.end_config()
 
--- Bar 颜色渐入:从透明到目标颜色 (24 帧 ≈ 400ms)
+-- Bar 恢复到目标颜色
 enter_animation.run_bar()
 
--- Item 渐入:每个登记的 item 从 -2px 滑到 0,stagger 1 帧
+-- Item 恢复可见
 enter_animation.run()
 
 -- 启动事件循环（必须！否则所有回调函数不会执行）

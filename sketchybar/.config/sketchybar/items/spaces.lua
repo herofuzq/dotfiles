@@ -423,6 +423,15 @@ local function hide_popup(ws_index, workspace, animated)
 	animation:hide(animated)
 end
 
+local function hide_popup_async(ws_index, workspace)
+	local animation = _popup_animations[ws_index]
+	if animations_ready and animation and animation.hide_async then
+		animation:hide_async()
+		return
+	end
+	workspace:set({ popup = { drawing = false } })
+end
+
 local function scheduleHide(ws_index, workspace)
 	if _popup_pinned[ws_index] then
 		return
@@ -436,7 +445,7 @@ local function scheduleHide(ws_index, workspace)
 		if _popup_hovering[ws_index] or _popup_pinned[ws_index] then
 			return
 		end
-		hide_popup(ws_index, workspace, true)
+		hide_popup_async(ws_index, workspace)
 	end)
 end
 
@@ -855,7 +864,7 @@ sbar.exec(":", function()
 					if win_id then
 						sbar.exec("aerospace focus --window-id " .. win_id)
 					end
-					hide_popup(ws, w, true)
+					hide_popup_async(ws, w)
 				end
 			end)
 		end

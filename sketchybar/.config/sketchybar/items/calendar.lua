@@ -40,7 +40,7 @@ local cal_popup
 
 local function scheduleHide()
 	popup_utils.schedule_hide(popup_state, function()
-		cal_popup:hide(true)
+		cal_popup:hide_async()
 	end)
 end
 
@@ -162,7 +162,7 @@ cal:subscribe(
 			if popup_state.pinned then
 				cal_popup:show()
 			else
-				cal_popup:hide(true)
+				cal_popup:hide_async()
 			end
 		end
 	end

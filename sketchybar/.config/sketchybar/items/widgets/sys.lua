@@ -167,7 +167,7 @@ local function show_popup()
 end
 
 local function hide_popup()
-	sys_popup:hide(true)
+	sys_popup:hide_async()
 end
 
 local function schedule_hide()

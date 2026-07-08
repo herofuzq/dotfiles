@@ -8,11 +8,21 @@
 local appearance = require("appearance")
 local timing = require("helpers.timing")
 local sbar = require("sketchybar")
+local shell_quote = require("helpers.utils").shell_quote
 
 local M = {}
 
 -- 统一动画帧数：12 帧 @ 120Hz = 100ms
 local DEFAULT_FRAMES = timing.STANDARD_DURATION_FRAMES
+local SKETCHYBAR_BIN = os.getenv("SKETCHYBAR_BIN") or "/opt/homebrew/bin/sketchybar"
+
+local function hide_popup_via_cli(parent)
+	if not parent or not parent.name then
+		return false
+	end
+	sbar.exec(SKETCHYBAR_BIN .. " --set " .. shell_quote(parent.name) .. " popup.drawing=off >/dev/null 2>&1")
+	return true
+end
 
 function M.new(parent, options)
 	options = options or {}
@@ -73,40 +83,25 @@ function M.new(parent, options)
 
 	function controller:hide(animated)
 		generation = generation + 1
-		local current_generation = generation
-		if not animated then
-			visible = false
-			parent:set({ popup = { drawing = false } })
-			if options.on_hidden then
-				options.on_hidden()
-			end
+		visible = false
+		if animated and hide_popup_via_cli(parent) then
 			return
 		end
+		parent:set({ popup = { drawing = false } })
+		if options.on_hidden then
+			options.on_hidden()
+		end
+	end
 
-		local color = background_color()
-		sbar.animate("linear", frames, function()
-			if generation ~= current_generation then
-				return
-			end
-			parent:set({
-				popup = {
-					background = { color = appearance.with_alpha(color, 0) },
-				},
-			})
-			if options.on_hide then
-				options.on_hide()
-			end
-		end)
-		sbar.delay(timing.frames_to_seconds(frames), function()
-			if generation ~= current_generation then
-				return
-			end
-			visible = false
+	-- 鼠标离开触发的延迟隐藏在 Lua timer 里运行；如果此时 SketchyBar 正在派发
+	-- routine / mouse 事件，同步 parent:set 可能形成双向 IPC 等待。
+	-- 这里改走外部 CLI 的异步 --set，让 Lua 回调立即返回，优先保证稳定。
+	function controller:hide_async()
+		generation = generation + 1
+		visible = false
+		if not hide_popup_via_cli(parent) then
 			parent:set({ popup = { drawing = false } })
-			if options.on_hidden then
-				options.on_hidden()
-			end
-		end)
+		end
 	end
 
 	function controller:is_visible()

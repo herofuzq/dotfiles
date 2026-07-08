@@ -64,7 +64,7 @@ local battery_popup = popup_animation.new(battery, {
 
 local function scheduleHide()
 	popup_utils.schedule_hide(popup_state, function()
-		battery_popup:hide(true)
+		battery_popup:hide_async()
 	end)
 end
 
@@ -163,7 +163,7 @@ end)
 battery:subscribe("mouse.clicked", function()
 	if popup_state.pinned then
 		popup_state.pinned = false
-		battery_popup:hide(true)
+		battery_popup:hide_async()
 	else
 		popup_state.pinned = true
 		update_batt_info(last_state)
