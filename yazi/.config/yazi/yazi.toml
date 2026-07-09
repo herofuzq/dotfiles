@@ -57,7 +57,11 @@ image = [
 	{ run = 'open -a XnViewMP %s', desc = "XnView MP", for = "macos", orphan = true },
 ]
 open_terminal = [
-	{ run = "open -a Terminal %s", desc = "Terminal", for = "macos" },
+	{ run = 'open -a Terminal "$(dirname "%s")"', desc = "Terminal", for = "macos" },
+]
+browser = [
+	{ run = "xdg-open %s", desc = "Browser", for = "linux" },
+	{ run = "open %s", desc = "Browser", for = "macos" },
 ]
 extract = [{ run = "ya pub extract --list %s", desc = "Extract here" }]
 extract_rar = [{ run = 'unar -output-directory %d %s', desc = "Extract RAR with unar", for = "unix" }]
@@ -70,6 +74,8 @@ download = [
 rules = [
 	# Folder
 	{ url = "*/", use = ["edit", "open", "reveal"] },
+	# HTML
+	{ url = "*.{html,htm}", use = ["browser", "open", "edit", "reveal"] },
 	# Text
 	{ url = "*.sh",  use = ["open", "open_terminal", "edit", "reveal"] },
 	{ url = "*.csv", use = ["open", "edit", "reveal"] },
@@ -163,7 +169,7 @@ previewers = [
 	# Code
 	# HTML 必须放在 text/* 之前：previewers 按序匹配第一个命中
 	# 否则 text/* 会先用 code previewer（语法高亮），不是 w3m 渲染结果
-	{ mime = "text/html", run = 'w3m -dump -I UTF-8 -O UTF-8 -T text/html {}' },
+	{ mime = "text/html", run = 'piper --format=url -- w3m -dump -I UTF-8 -O UTF-8 -T text/html "$1"' },
 	{ mime = "text/*", run = "code" },
 	{ mime = "application/{mbox,javascript,wine-extension-ini}", run = "code" },
 	# JSON
