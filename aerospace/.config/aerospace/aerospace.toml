@@ -97,12 +97,12 @@ on-mode-changed = []
 inner.horizontal = 6
 inner.vertical = 6
 outer.left = 6
-outer.bottom = 6
+outer.bottom = 5
 outer.top = [
-  { monitor."Built-in Retina Display" = 6 },
-  { monitor."VG271U" = 36 },
-  { monitor."Mi Monitor" = 36 },
-  36,
+  { monitor."Built-in Retina Display" = 5 },
+  { monitor."VG271U" = 35 },
+  { monitor."Mi Monitor" = 35 },
+  35,
 ]
 outer.right = 6
 # 'main' binding mode declaration
