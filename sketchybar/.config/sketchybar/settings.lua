@@ -88,7 +88,7 @@ local function detect_dock_width()
 	local fallback = 55
 	local cfg = os.getenv("CONFIG_DIR")
 	if cfg then
-		local f = io.popen(shell_quote(cfg .. '/helpers/dock_width/bin/dock_width') .. ' 2>/dev/null')
+		local f = io.popen(shell_quote(cfg .. '/helpers/dock_width/bin/dock_width') .. " 2>/dev/null")
 		if f then
 			local output = f:read("*a")
 			f:close()

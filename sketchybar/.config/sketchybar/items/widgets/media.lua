@@ -219,7 +219,9 @@ play_pause:subscribe("mouse.clicked", function()
 	local q = play_pause:query()
 	local cur = q and q.icon and q.icon.value or ICON_PLAY
 	local optimistic_playing = cur == ICON_PLAY
-	last_playing = optimistic_playing
+	-- last_playing 由 apply_state 统一管理，不在此处乐观更新。
+	-- 否则 media_update 事件在 toggle 完成前触发时可能用旧状态覆盖乐观值，
+	-- 导致 icon 闪回旧图标再切回新图标（肉眼可见 flicker）。
 	play_pause:set({ icon = { string = optimistic_playing and ICON_PAUSE or ICON_PLAY } })
 	sbar.exec('"' .. MEDIA .. '" toggle-play-pause', function()
 		schedule_fallback_refresh()

@@ -54,6 +54,9 @@ function M.new(parent, options)
 					background = { color = color },
 				},
 			})
+			if options.on_prepare_show then
+				options.on_prepare_show()
+			end
 			if options.on_show then
 				options.on_show()
 			end

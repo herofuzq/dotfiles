@@ -55,6 +55,7 @@ local _popup_pinned = {} -- { [ws_name] = true/false } 记录点击固定状态�
 local _popup_hovering = {} -- { [ws_name] = true/false } 鼠标当前是否在 popup 子项上
 local _popup_exit_gen = {} -- { [ws_name] = gen } 延迟隐藏的代数，进入 popup 时作废旧延迟
 local _popup_animations = {}
+local _popup_cached_gen = {} -- { [ws_name] = snapshot_generation } popup 数据缓存版本号
 local _border_signature
 local animations_ready = false
 local front_app_generation = 0
@@ -162,6 +163,7 @@ local refresh_generation = 0
 local display_sync_generation = 0
 local window_snapshot = {}
 local window_to_workspace = {} -- window_id → workspace_index 反向索引，O(1)
+local snapshot_generation = 0   -- 窗口快照版本号，用于 popup 数据缓存去重
 
 -- ========== 公共排序：按创建时间倒序 ==========
 -- 注意：
@@ -207,6 +209,7 @@ local function withWindows(f)
 	sbar.delay(5.0, function()
 		if not completed then
 			completed = true
+			io.stderr:write("sketchybar: workspace snapshot timed out (5s), using partial/previous data\n")
 			f(results)
 		end
 	end)
@@ -456,23 +459,35 @@ local function togglePopup(ws_index, workspace_item, force_show)
 		return
 	end
 
-	local windows = {}
-	for _, win in ipairs(window_snapshot[ws_index] or {}) do
-		windows[#windows + 1] = {
-			id = win.window_id,
-			app = win.app or "?",
-			title = (win.title and #win.title > 0 and win.title) or win.app or "Untitled",
-			window_id = win.window_id,
-		}
-	end
-	sort_windows_by_creation(windows)
-
-	_popup_windows[ws_index] = {}
-	for i, win in ipairs(windows) do
-		if i > MAX_POPUP_SLOTS then
-			break
+	-- 快照未变化时复用缓存，避免每次 hover 都重建完整窗口表（大工作区 >20 窗口场景收益明显）
+	local windows
+	if _popup_cached_gen[ws_index] == snapshot_generation and _popup_windows[ws_index] then
+		-- 缓存命中：从 _popup_windows 还原 windows（仅用于空判断，O(MAX_POPUP_SLOTS) 可忽略）
+		windows = {}
+		for i = 1, MAX_POPUP_SLOTS do
+			local w = _popup_windows[ws_index][i]
+			if w then windows[#windows + 1] = w end
 		end
-		_popup_windows[ws_index][i] = win
+	else
+		_popup_cached_gen[ws_index] = snapshot_generation
+		windows = {}
+		for _, win in ipairs(window_snapshot[ws_index] or {}) do
+			windows[#windows + 1] = {
+				id = win.window_id,
+				app = win.app or "?",
+				title = (win.title and #win.title > 0 and win.title) or win.app or "Untitled",
+				window_id = win.window_id,
+			}
+		end
+		sort_windows_by_creation(windows)
+
+		_popup_windows[ws_index] = {}
+		for i, win in ipairs(windows) do
+			if i > MAX_POPUP_SLOTS then
+				break
+			end
+			_popup_windows[ws_index][i] = win
+		end
 	end
 
 	if #windows == 0 then
@@ -583,6 +598,7 @@ local function updateWindows(opts)
 				args.open_windows = window_snapshot
 			else
 				window_snapshot = args.open_windows
+				snapshot_generation = snapshot_generation + 1
 				rebuild_window_index(window_snapshot)
 			end
 		else

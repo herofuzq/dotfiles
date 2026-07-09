@@ -266,10 +266,12 @@ sbar.add("bracket", "widgets.system", {
 	background = appearance.pill_bg(),
 })
 
--- spacer：system bracket 与 social bracket 之间的水平间隙
+-- spacer：system bracket 与 social bracket 之间的水平间隙。
 --   公式 = max(包裹item宽度) + 两侧bracket_border
---        = network_down(33+4+13+2+2=54) + 2 + 2 = 58
---   改 network_down 字体/宽度或 bracket border 时请同步更新此处
+--        = network_down(width=33 + padding_left=4 + icon=13 + padding_left=2 + padding_right=2 = 54) + border_left=2 + border_right=2 = 58
+-- ⚠️ 脆弱点：SPACER_WIDTH 硬编码，依赖 network_down 的 font-size / icon-size / padding 和 bracket border_width。
+--   改 network_down 字体/宽度或 appearance.pill_bg() 的 border_width 时，必须同步更新此值。
+--   暂不改动（纯视觉间距问题，动态化引入复杂度 > 收益），保留现状并加注释。
 local SPACER_WIDTH = 58
 sbar.add("item", "widgets.system_bracket_spacer", {
 	position = "right",

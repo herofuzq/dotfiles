@@ -188,7 +188,14 @@ sys:subscribe("mouse.clicked", function()
 	end
 end)
 
-popup_utils.bind_popup_hover({ info, table.unpack(process_items) }, popup_state, schedule_hide)
+-- 手动展开 process_items 表，避免依赖 table.unpack（Lua 5.1 全局 unpack / 5.4 移除等版本差异）
+do
+	local all_items = { info }
+	for _, item in ipairs(process_items) do
+		all_items[#all_items + 1] = item
+	end
+	popup_utils.bind_popup_hover(all_items, popup_state, schedule_hide)
+end
 
 stop_watcher()
 
