@@ -19,7 +19,7 @@ return {
 	services = {
 		docker = "\u{F21F}",
 	},
-	git = "\u{F1D3}",
+	git = "\u{F02A2}",
 	network = {
 		wifi = "\u{F05A9}",
 		ethernet = "\u{F0200}",
