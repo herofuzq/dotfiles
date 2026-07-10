@@ -210,7 +210,7 @@ local popup_pinned = false; local popup_hovering = false; local popup_exit_gen =
 local inflight = false; local pending = false
 
 local function count_color(status, running, total)
-	if status == "error" or total <= 0 then return colors.overlay1 end
+	if status == "error" or total <= 0 then return colors.red end
 	if running >= total then return colors.green end
 	if running > 0 then return colors.yellow end
 	return colors.red
