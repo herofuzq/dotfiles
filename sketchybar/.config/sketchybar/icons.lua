@@ -16,6 +16,9 @@ return {
 	clash = {
 		tun = "\u{F0582}",
 	},
+	services = {
+		docker = "\u{F21F}",
+	},
 	network = {
 		wifi = "\u{F05A9}",
 		ethernet = "\u{F0200}",

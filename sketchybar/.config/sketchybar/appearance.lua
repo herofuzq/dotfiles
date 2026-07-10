@@ -97,6 +97,7 @@ local function build_colors(P)
 		subtext1 = P.subtext1,
 		surface1 = P.surface1,
 		overlay0 = P.overlay0,
+		overlay1 = P.overlay1,
 		crust = P.crust,
 	}
 end

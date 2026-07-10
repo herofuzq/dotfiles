@@ -25,4 +25,14 @@ return {
 			["Black"] = "Black",
 		},
 	},
+	-- popup 行专用：统一字体确保 box-drawing / Nerd Font 图标 / 文字等宽渲染
+	popup = {
+		text = "Hack Nerd Font",
+		size = 11.0,
+		style_map = {
+			["Regular"] = "Regular",
+			["Semibold"] = "Semibold",
+			["Bold"] = "Bold",
+		},
+	},
 }

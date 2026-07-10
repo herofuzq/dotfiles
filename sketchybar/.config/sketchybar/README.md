@@ -15,6 +15,7 @@ This repository is the source copy. After `stow --no-folding sketchybar`, the ac
 Compiled helper binaries are not stored in git. They are built under the active runtime path, for example:
 
 - `~/.config/sketchybar/helpers/event_providers/aerospace_watch/bin/aerospace_watch`
+- `~/.config/sketchybar/helpers/event_providers/docker_watch/bin/docker_watch`
 - `~/.config/sketchybar/helpers/event_providers/input_method/bin/input_method_watch`
 - `~/.config/sketchybar/helpers/event_providers/media_watch/bin/media_watch`
 
@@ -160,13 +161,18 @@ helper 的编译产物不进 git，而是在实际运行路径里生成，例如
 | `icons.lua` | 共享图标定义 |
 | `bar.lua` | bar 几何、模糊、背景 |
 | `items/init.lua` | item 加载顺序 |
+| `items/services.lua` | Notch 左侧 Docker Dock：数字按运行服务数变色，popup 提供 Docker/group/service 控制 |
 | `items/spaces.lua` | AeroSpace 工作区渲染、app 图标、焦点分段、窗口 popup |
 | `items/widgets/input_method.lua` | 输入源和 fcitx5 状态 |
 | `items/widgets/media.lua` | 媒体标题和上一首/播放/下一首控制 |
 | `helpers/init.lua` | helper 编译 freshness 检查和 event provider 重启 |
 | `helpers/borders.lua` | 工作区焦点分段样式 |
 | `helpers/timing.lua` | 共享动画时间常量 |
+| `helpers/services/config.lua` | 服务组配置（Docker Compose 项目、服务和端口） |
+| `helpers/services/status.lua` | 服务状态快照脚本，按 Compose label 查询容器状态 |
+| `helpers/services/control.lua` | 服务控制脚本，统一执行 Docker Desktop 和 Compose start/stop/pause/resume |
 | `helpers/event_providers/aerospace_watch/` | AeroSpace subscribe 桥接和 fullscreen diff 监听 |
+| `helpers/event_providers/docker_watch/` | Docker events 桥接，触发 `services_change` |
 | `helpers/event_providers/input_method/` | 原生输入法监听 |
 | `helpers/event_providers/media_watch/` | `media-control stream` 监听 |
 | `helpers/event_providers/cpu_load/` | CPU 百分比 event provider |
@@ -187,6 +193,7 @@ helper 的编译产物不进 git，而是在实际运行路径里生成，例如
 | `aerospace_watch` | `aerospace_mode_change` | `items/spaces.lua` | 显示或隐藏 AeroSpace service mode 指示器 |
 | `input_method_watch` | `input_method_change` | `items/widgets/input_method.lua` | 同步 macOS 输入源和 fcitx5 内部状态 |
 | `media_watch` | `media_update` | `items/widgets/media.lua` | 推送媒体标题和播放状态变化 |
+| `docker_watch` | `services_change` | `items/services.lua` | Docker 容器生命周期变化后刷新服务状态灯 |
 
 ### Spaces Widget
 
