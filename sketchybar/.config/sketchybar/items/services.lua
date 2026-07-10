@@ -252,7 +252,8 @@ local function apply_status(output)
 		end
 	end
 
-	services_item:set({ label = { string = tostring(sum.running), color = count_color(sum.status, sum.running, sum.total) } })
+	local c = count_color(sum.status, sum.running, sum.total)
+	services_item:set({ icon = { color = c }, label = { string = tostring(sum.running), color = c } })
 
 	for gid, g in pairs(grps) do
 		local entry = text_rows["group." .. gid]
