@@ -93,7 +93,7 @@ local function text_row(key, depth, is_last, opts)
 			color = opts.label_color or colors.text,
 			padding_left = 8, padding_right = 14,
 		},
-		background = { drawing = false, border_width = 0 },
+		background = { drawing = false, height = 18, border_width = 0 },
 	}))
 	text_rows[key] = { item = item, prefix = prefix }
 	return item
@@ -114,7 +114,7 @@ local function btn_row(btn_id, depth, is_last, action, scope, gid, sid)
 			color = def.color,
 			padding_left = 8, padding_right = 14,
 		},
-		background = { drawing = false, height = 17, border_width = 0 },
+		background = { drawing = false, height = 18, border_width = 0 },
 	}))
 	actions_list[#actions_list + 1] = {
 		scope = scope, group_id = gid, service_id = sid,
@@ -161,7 +161,7 @@ status_row = sbar.add("item", "services.popup.status", {
 	padding_left = 0, padding_right = 0,
 	icon = { drawing = false },
 	label = { string = "", font = pf(), color = colors.surface1, padding_left = 8, padding_right = 14 },
-	background = { drawing = false, border_width = 0 },
+	background = { drawing = false, height = 18, border_width = 0 },
 })
 track(status_row)
 
