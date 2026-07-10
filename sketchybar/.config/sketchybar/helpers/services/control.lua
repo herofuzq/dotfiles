@@ -12,6 +12,7 @@ local shell_quote = require("helpers.utils").shell_quote
 local find_binary = require("helpers.find_binary").find
 
 local scope = arg[1] or ""
+local lua_bin = find_binary({ "/opt/homebrew/bin/lua", "/usr/local/bin/lua" }, "lua")
 local docker = find_binary({ "/opt/homebrew/bin/docker", "/usr/local/bin/docker" }, "docker")
 local sketchybar = find_binary({ "/opt/homebrew/bin/sketchybar", "/usr/local/bin/sketchybar" }, "sketchybar")
 
@@ -37,19 +38,60 @@ local function trigger_refresh()
 	os.execute(shell_quote(sketchybar) .. " --trigger services_change SOURCE=services_control >/dev/null 2>&1")
 end
 
+local function exec_silent(command)
+	return os.execute(command .. " >/dev/null 2>&1")
+end
+
 local function run(command)
-	local ok = os.execute(command .. " >/dev/null 2>&1")
+	local ok = exec_silent(command)
 	trigger_refresh()
 	return ok
+end
+
+local function run_async(command)
+	local ok = os.execute("(" .. command .. ") >/dev/null 2>&1 &")
+	trigger_refresh()
+	return ok
+end
+
+local function compose_command(group)
+	return shell_quote(docker) .. " compose -f " .. shell_quote(group.compose_file)
+end
+
+local function stop_managed_groups()
+	for _, group in ipairs(config.groups or {}) do
+		if group.kind == "docker_compose" and group.compose_file then
+			exec_silent(compose_command(group) .. " stop --timeout 10")
+		end
+	end
+end
+
+local function quit_docker_desktop()
+	stop_managed_groups()
+	local ok = exec_silent(shell_quote(docker) .. " desktop stop --detach --timeout 30")
+	trigger_refresh()
+	return ok
+end
+
+local function quit_docker_desktop_async()
+	return run_async(table.concat({
+		shell_quote(lua_bin or "lua"),
+		shell_quote(config_dir .. "/helpers/services/control.lua"),
+		"docker",
+		"quit-now",
+	}, " "))
 end
 
 if scope == "docker" then
 	local action = arg[2] or ""
 	if action == "start" then
-		run("open -g -a Docker")
+		run(shell_quote(docker) .. " desktop start --detach --timeout 30")
 		os.exit(0)
 	elseif action == "quit" then
-		run("osascript -e " .. shell_quote('tell application "Docker Desktop" to quit'))
+		quit_docker_desktop_async()
+		os.exit(0)
+	elseif action == "quit-now" then
+		quit_docker_desktop()
 		os.exit(0)
 	end
 
@@ -77,7 +119,7 @@ if scope == "group" or scope == "service" then
 		os.exit(1)
 	end
 
-	local compose = shell_quote(docker) .. " compose -f " .. shell_quote(group.compose_file)
+	local compose = compose_command(group)
 	local target = scope == "service" and (" " .. shell_quote(service_id)) or ""
 	if action == "start" then
 		run(compose .. " up -d" .. target)
