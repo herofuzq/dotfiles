@@ -2,6 +2,7 @@
 -- Popup 树形布局：树形线+图标+文字都在 label，同字体等宽无偏移。
 local sbar = require("sketchybar")
 local appearance = require("appearance")
+local popup_animation = require("helpers.popup_animation")
 local icons = require("icons")
 local fonts = require("fonts")
 local timing = require("helpers.timing")
@@ -17,9 +18,6 @@ local sketchybar_bin = find_binary({ "/opt/homebrew/bin/sketchybar", "/usr/local
 local lua_bin = find_binary({ "/opt/homebrew/bin/lua", "/usr/local/bin/lua" }, "lua")
 local status_script = config_dir .. "/helpers/services/status.lua"
 local control_script = config_dir .. "/helpers/services/control.lua"
-
-local popup_bg = appearance.popup_bg()
-popup_bg.border_width = 0
 
 local services_item = sbar.add("item", item_name, {
 	position = "q", display = "active",
@@ -37,7 +35,13 @@ local services_item = sbar.add("item", item_name, {
 		padding_left = 0, padding_right = 2,
 	},
 	background = { drawing = false, border_width = 0 },
-	popup = { align = "center", background = popup_bg, blur_radius = 30, y_offset = 4 },
+	popup = { align = "center", background = appearance.popup_bg(), blur_radius = 30, y_offset = 4 },
+})
+
+local services_anim = popup_animation.new(services_item, {
+	background_color = function()
+		return appearance.popup_bg().color
+	end,
 })
 
 local BTN = {
@@ -286,10 +290,10 @@ end
 -- ========== hover ==========
 local function show()
 	popup_exit_gen = popup_exit_gen + 1; refresh()
-	services_item:set({ popup = { drawing = true } })
+	services_anim:show()
 end
 local function hide()
-	sbar.exec(shell_quote(sketchybar_bin) .. " --set " .. shell_quote(item_name) .. " popup.drawing=off >/dev/null 2>&1")
+	services_anim:hide_async()
 end
 local function schedule_hide()
 	if popup_pinned then return end
