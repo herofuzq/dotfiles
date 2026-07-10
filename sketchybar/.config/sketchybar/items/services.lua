@@ -312,5 +312,8 @@ end
 services_item:subscribe({ "services_change", "system_woke" }, refresh)
 refresh()
 
+-- 覆盖 popup 行高（bar 默认 ~29px 钳制了 popup item 高度）
+services_item:set({ popup = { height = 16 } })
+
 local enter_animation = require("helpers.enter_animation")
 enter_animation.register(item_name)
