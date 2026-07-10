@@ -49,7 +49,7 @@ if scope == "docker" then
 		run("open -g -a Docker")
 		os.exit(0)
 	elseif action == "quit" then
-		run("osascript -e " .. shell_quote('quit app "Docker"'))
+		run("osascript -e " .. shell_quote('tell application "Docker" to quit'))
 		os.exit(0)
 	end
 

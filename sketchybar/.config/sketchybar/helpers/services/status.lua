@@ -32,21 +32,27 @@ local function emit(...)
 end
 
 local function docker_compose_states(group)
-	if os.execute("pgrep -q Docker 2>/dev/null") ~= 0 then
+	if not os.execute("pgrep -q Docker 2>/dev/null") then
 		docker_error = "docker not running"
 		return nil
 	end
-	local template = '{{.Label "com.docker.compose.service"}}\t{{.State}}\t{{.Status}}'
-	local cmd = table.concat({
-		shell_quote(docker),
-		"ps",
-		"-a",
-		"--filter",
-		"label=com.docker.compose.project=" .. shell_quote(group.project),
-		"--format",
-		shell_quote(template),
-		"2>/dev/null",
-	}, " ")
+
+	local info_cmd = shell_quote(docker) .. " info 2>/dev/null"
+	local info_script = "( " .. info_cmd .. " & PID=$!; ( sleep 3; kill -9 $PID 2>/dev/null )& wait $PID 2>/dev/null )"
+	local info_f = io.popen("sh -c " .. shell_quote(info_script))
+	if not info_f then
+		docker_error = "docker unavailable"
+		return nil
+	end
+	if not info_f:close() then
+		docker_error = "docker unavailable"
+		return nil
+	end
+
+	local template = '{{.Label "com.docker.compose.service"}}\t{{.Label "com.docker.compose.project"}}\t{{.State}}\t{{.Status}}'
+	local inner_cmd = shell_quote(docker) .. " ps -a --format " .. shell_quote(template) .. " 2>/dev/null"
+	local timeout_script = "( " .. inner_cmd .. " & PID=$!; ( sleep 3; kill -9 $PID 2>/dev/null )& wait $PID 2>/dev/null )"
+	local cmd = "sh -c " .. shell_quote(timeout_script)
 
 	local f = io.popen(cmd)
 	if not f then
@@ -63,8 +69,8 @@ local function docker_compose_states(group)
 
 	local states = {}
 	for line in output:gmatch("[^\n]+") do
-		local service_id, state, status = line:match("^([^\t]*)\t([^\t]*)\t(.*)$")
-		if service_id and service_id ~= "" then
+		local service_id, project, state, status = line:match("^([^\t]*)\t([^\t]*)\t([^\t]*)\t(.*)$")
+		if service_id and service_id ~= "" and project and project == group.project then
 			if status:find("Paused", 1, true) then
 				state = "paused"
 			end

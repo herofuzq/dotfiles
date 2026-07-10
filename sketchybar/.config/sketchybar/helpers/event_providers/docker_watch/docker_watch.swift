@@ -75,8 +75,10 @@ func runEventsOnce() {
         sleep(5)
         return
     }
+    scheduleTrigger()
     task.waitUntilExit()
     pipe.fileHandleForReading.readabilityHandler = nil
+    scheduleTrigger()
 }
 
 signal(SIGTERM, SIG_IGN)
