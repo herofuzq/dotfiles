@@ -32,6 +32,10 @@ local function emit(...)
 end
 
 local function docker_compose_states(group)
+	if os.execute("pgrep -q Docker 2>/dev/null") ~= 0 then
+		docker_error = "docker not running"
+		return nil
+	end
 	local template = '{{.Label "com.docker.compose.service"}}\t{{.State}}\t{{.Status}}'
 	local cmd = table.concat({
 		shell_quote(docker),
