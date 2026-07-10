@@ -32,7 +32,7 @@ local git_item = sbar.add("item", item_name, {
 		padding_left = 0, padding_right = 2,
 	},
 	background = { drawing = false, border_width = 0 },
-	popup = { align = "center", background = appearance.popup_bg(), blur_radius = 30, y_offset = 4 },
+	popup = { align = "center", background = appearance.popup_bg(), blur_radius = 30 },
 })
 
 local git_anim = popup_animation.new(git_item, {
