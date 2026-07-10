@@ -25,10 +25,10 @@ return {
 			["Black"] = "Black",
 		},
 	},
-	-- popup 行专用：统一字体确保 box-drawing / Nerd Font 图标 / 文字等宽渲染
+	-- popup 行专用：与 calendar 等 popup 统一字体
 	popup = {
-		text = "Hack Nerd Font",
-		size = 12.0,
+		text = "JetBrains Maple Mono",
+		size = 13.0,
 		style_map = {
 			["Regular"] = "Regular",
 			["Semibold"] = "Semibold",
