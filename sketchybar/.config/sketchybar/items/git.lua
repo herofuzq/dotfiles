@@ -28,7 +28,7 @@ local git_item = sbar.add("item", item_name, {
 	label = {
 		string = "0",
 		font = { family = fonts.font.text, style = fonts.font.style_map["Bold"], size = 12.0 },
-		color = colors.surface1,
+		color = colors.green,
 		padding_left = 0, padding_right = 2,
 	},
 	background = { drawing = false, border_width = 0 },
@@ -130,7 +130,7 @@ local function apply_status(output)
 		e.row:set({ label = { string = icons.git .. "  " .. pad_label .. pad_branch .. e.info, color = e.color } })
 	end
 
-	local bar_color = total_dirty > 0 and colors.yellow or colors.surface1
+	local bar_color = total_dirty > 0 and colors.yellow or colors.green
 	git_item:set({ label = { string = tostring(total_dirty), color = bar_color } })
 end
 
