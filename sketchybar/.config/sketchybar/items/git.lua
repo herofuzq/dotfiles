@@ -72,6 +72,12 @@ for ri, repo in ipairs(config.repos or {}) do
 	repo_rows[repo.path] = item
 end
 
+local max_label_len = 0
+for _, repo in ipairs(config.repos or {}) do
+	local l = #(repo.label or repo.path)
+	if l > max_label_len then max_label_len = l end
+end
+
 local function spl(line)
 	local f = {}; line = line .. "\t"
 	for v in line:gmatch("([^\t]*)\t") do f[#f+1] = v end
@@ -86,6 +92,7 @@ end
 
 local function apply_status(output)
 	local total_dirty = 0
+	local entries, max_branch_len = {}, 0
 
 	for line in tostring(output or ""):gmatch("[^\n]+") do
 		local f = spl(line)
@@ -110,9 +117,17 @@ local function apply_status(output)
 				local b = tonumber(behind)
 				if b and b > 0 then info = info .. "  ↓" .. behind end
 
-				row:set({ label = { string = icons.git .. "  " .. label .. "    " .. branch .. "    " .. info, color = color } })
+				entries[#entries + 1] = { row = row, label = label, branch = branch, color = color, info = info }
+				if #branch > max_branch_len then max_branch_len = #branch end
 			end
 		end
+	end
+
+
+	for _, e in ipairs(entries) do
+		local pad_label = e.label .. string.rep(" ", max_label_len - #e.label + 2)
+		local pad_branch = e.branch .. string.rep(" ", max_branch_len - #e.branch + 2)
+		e.row:set({ label = { string = icons.git .. "  " .. pad_label .. pad_branch .. e.info, color = e.color } })
 	end
 
 	local bar_color = total_dirty > 0 and colors.yellow or colors.surface1
