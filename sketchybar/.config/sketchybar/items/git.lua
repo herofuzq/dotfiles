@@ -92,7 +92,7 @@ end
 
 local function apply_status(output)
 	local total_dirty = 0
-	local entries, max_branch_len = {}, 0
+	local entries, max_branch_len, max_info_len = {}, 0, 0
 
 	for line in tostring(output or ""):gmatch("[^\n]+") do
 		local f = spl(line)
@@ -119,6 +119,7 @@ local function apply_status(output)
 
 				entries[#entries + 1] = { row = row, label = label, branch = branch, color = color, info = info, path = path }
 				if #branch > max_branch_len then max_branch_len = #branch end
+				if #info > max_info_len then max_info_len = #info end
 			end
 		end
 	end
@@ -127,7 +128,8 @@ local function apply_status(output)
 	for _, e in ipairs(entries) do
 		local pad_label = e.label .. string.rep(" ", max_label_len - #e.label + 2)
 		local pad_branch = e.branch .. string.rep(" ", max_branch_len - #e.branch + 2)
-		e.row:set({ label = { string = icons.git .. "  " .. pad_label .. pad_branch .. e.info .. "  " .. e.path:gsub("^" .. os.getenv("HOME"), "~"), color = e.color } })
+		local pad_info = e.info .. string.rep(" ", max_info_len - #e.info + 2)
+		e.row:set({ label = { string = icons.git .. "  " .. pad_label .. pad_branch .. pad_info .. e.path:gsub("^" .. os.getenv("HOME"), "~"), color = e.color } })
 	end
 
 	local bar_color = total_dirty > 0 and colors.yellow or colors.green
