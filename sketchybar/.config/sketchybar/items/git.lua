@@ -58,7 +58,7 @@ local repo_rows = {}
 for ri, repo in ipairs(config.repos or {}) do
 	local item = track(sbar.add("item", item_name .. ".popup.repo." .. ri, {
 		position = "popup." .. item_name,
-		drawing = true, width = 460,
+		drawing = true, width = 560,
 		padding_left = 0, padding_right = 0,
 		icon = { drawing = false },
 		label = {
