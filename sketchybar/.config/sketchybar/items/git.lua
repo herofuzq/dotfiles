@@ -58,7 +58,7 @@ local repo_rows = {}
 for ri, repo in ipairs(config.repos or {}) do
 	local item = track(sbar.add("item", item_name .. ".popup.repo." .. ri, {
 		position = "popup." .. item_name,
-		drawing = true, width = 300,
+		drawing = true, width = 460,
 		padding_left = 0, padding_right = 0,
 		icon = { drawing = false },
 		label = {
@@ -117,7 +117,7 @@ local function apply_status(output)
 				local b = tonumber(behind)
 				if b and b > 0 then info = info .. "  ↓" .. behind end
 
-				entries[#entries + 1] = { row = row, label = label, branch = branch, color = color, info = info }
+				entries[#entries + 1] = { row = row, label = label, branch = branch, color = color, info = info, path = path }
 				if #branch > max_branch_len then max_branch_len = #branch end
 			end
 		end
@@ -127,7 +127,7 @@ local function apply_status(output)
 	for _, e in ipairs(entries) do
 		local pad_label = e.label .. string.rep(" ", max_label_len - #e.label + 2)
 		local pad_branch = e.branch .. string.rep(" ", max_branch_len - #e.branch + 2)
-		e.row:set({ label = { string = icons.git .. "  " .. pad_label .. pad_branch .. e.info, color = e.color } })
+		e.row:set({ label = { string = icons.git .. "  " .. pad_label .. pad_branch .. e.info .. "  " .. e.path:gsub("^" .. os.getenv("HOME"), "~"), color = e.color } })
 	end
 
 	local bar_color = total_dirty > 0 and colors.yellow or colors.green
