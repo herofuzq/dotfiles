@@ -8,6 +8,13 @@ local shell_quote = require("helpers.utils").shell_quote
 local find_binary = require("helpers.find_binary").find
 local config = require("helpers.git.config")
 
+local vlen = utf8 and utf8.len or function(s)
+	local n = 0
+	for _, _ in s:gmatch("()[\0-\127]") do n = n + 1 end
+	for _, _ in s:gmatch("()[\194-\244][\128-\191]+") do n = n + 1 end
+	return n
+end
+
 local colors = appearance.colors
 local item_name = (config.item or {}).name or "git_status"
 local config_dir = os.getenv("CONFIG_DIR") or ((os.getenv("HOME") or "") .. "/.config/sketchybar")
@@ -74,7 +81,7 @@ end
 
 local max_label_len = 0
 for _, repo in ipairs(config.repos or {}) do
-	local l = #(repo.label or repo.path)
+	local l = vlen(repo.label or repo.path)
 	if l > max_label_len then max_label_len = l end
 end
 
@@ -118,17 +125,17 @@ local function apply_status(output)
 				if b and b > 0 then info = info .. "  ↓" .. behind end
 
 				entries[#entries + 1] = { row = row, label = label, branch = branch, color = color, info = info, path = path }
-				if #branch > max_branch_len then max_branch_len = #branch end
-				if #info > max_info_len then max_info_len = #info end
+				if vlen(branch) > max_branch_len then max_branch_len = vlen(branch) end
+				if vlen(info) > max_info_len then max_info_len = vlen(info) end
 			end
 		end
 	end
 
 
 	for _, e in ipairs(entries) do
-		local pad_label = e.label .. string.rep(" ", max_label_len - #e.label + 2)
-		local pad_branch = e.branch .. string.rep(" ", max_branch_len - #e.branch + 2)
-		local pad_info = e.info .. string.rep(" ", max_info_len - #e.info + 2)
+		local pad_label = e.label .. string.rep(" ", max_label_len - vlen(e.label) + 2)
+		local pad_branch = e.branch .. string.rep(" ", max_branch_len - vlen(e.branch) + 2)
+		local pad_info = e.info .. string.rep(" ", max_info_len - vlen(e.info) + 2)
 		e.row:set({ label = { string = icons.git .. "  " .. pad_label .. pad_branch .. pad_info .. e.path:gsub("^" .. os.getenv("HOME"), "~"), color = e.color } })
 	end
 
