@@ -16,8 +16,9 @@ mouse_events = ["click", "scroll", "drag"]
 [preview]
 wrap = "no"
 tab_size = 2
-max_width = 1200
-max_height = 1200
+# Higher ceiling so zoom.yazi can enlarge previews further
+max_width = 2400
+max_height = 2400
 cache_dir = ""
 image_delay = 30
 image_filter = "triangle"
@@ -27,8 +28,7 @@ ueberzug_offset = [0, 0, 0, 0]
 
 [opener]
 edit = [
-  #	{ run = 'nvim "$@"', block = true, desc = "Neovim" },
-	{ run = "${EDITOR:-nvim} %s", desc = "$EDITOR", for = "unix", block = true },
+	{ run = "nvim %s", desc = "Edit", for = "unix", block = true },
 	{ run = "code %s", desc = "code", for = "windows", orphan = true },
 	{ run = "code -w %s", desc = "code (block)", for = "windows", block = true },
 ]
@@ -57,11 +57,8 @@ image = [
 	{ run = 'open -a XnViewMP %s', desc = "XnView MP", for = "macos", orphan = true },
 ]
 open_terminal = [
-	{ run = 'open -a Terminal "$(dirname "%s")"', desc = "Terminal", for = "macos" },
-]
-browser = [
-	{ run = "xdg-open %s", desc = "Browser", for = "linux" },
-	{ run = "open %s", desc = "Browser", for = "macos" },
+	# %d1 = dirname of first selected file (= CWD when browsing a directory listing)
+	{ run = "kitty --directory %d1", desc = "Terminal", for = "unix", orphan = true },
 ]
 extract = [{ run = "ya pub extract --list %s", desc = "Extract here" }]
 extract_rar = [{ run = 'unar -output-directory %d %s', desc = "Extract RAR with unar", for = "unix" }]
@@ -73,33 +70,33 @@ download = [
 [open]
 rules = [
 	# Folder
-	{ url = "*/", use = ["edit", "open", "reveal"] },
-	# HTML
-	{ url = "*.{html,htm}", use = ["browser", "open", "edit", "reveal"] },
-	# Text
-	{ url = "*.sh",  use = ["open", "open_terminal", "edit", "reveal"] },
-	{ url = "*.csv", use = ["open", "edit", "reveal"] },
-	{ mime = "text/x-shellscript", use = ["open", "open_terminal", "edit", "reveal"] },
-	{ mime = "text/csv",           use = ["open", "edit", "reveal"] },
-	{ mime = "text/*", use = ["edit", "reveal"] },
+	{ url = "*/", use = ["edit", "open", "open_terminal", "reveal"] },
+	# HTML — Edit first, macOS association second
+	{ url = "*.{html,htm}", use = ["edit", "open", "open_terminal", "reveal"] },
+	# Text — Edit (nvim) first, macOS file association second, Terminal in this dir
+	{ url = "*.sh",  use = ["edit", "open", "open_terminal", "reveal"] },
+	{ url = "*.csv", use = ["edit", "open", "open_terminal", "reveal"] },
+	{ mime = "text/x-shellscript", use = ["edit", "open", "open_terminal", "reveal"] },
+	{ mime = "text/csv",           use = ["edit", "open", "open_terminal", "reveal"] },
+	{ mime = "text/*", use = ["edit", "open", "open_terminal", "reveal"] },
 	# Image
-	{ mime = "image/*", use = ["image", "open", "reveal"] },
+	{ mime = "image/*", use = ["image", "open", "open_terminal", "reveal"] },
 	# Media
-	{ mime = "{audio,video}/*", use = ["play", "reveal"] },
+	{ mime = "{audio,video}/*", use = ["play", "open_terminal", "reveal"] },
 	# OFD
-	{ url = "*.ofd", use = ["open", "reveal"] },
+	{ url = "*.ofd", use = ["open", "open_terminal", "reveal"] },
 	# Archive
-	{ mime = "application/rar", use = ["extract_rar", "reveal"] },
-	{ mime = "application/{zip,7z*,tar,gzip,xz,zstd,bzip*,lzma,compress,archive,cpio,arj,xar,ms-cab*}", use = ["extract", "reveal"] },
-	# JSON
-	{ mime = "application/{json,ndjson}", use = ["edit", "reveal"] },
-	{ mime = "*/javascript", use = ["edit", "reveal"] },
+	{ mime = "application/rar", use = ["extract_rar", "open_terminal", "reveal"] },
+	{ mime = "application/{zip,7z*,tar,gzip,xz,zstd,bzip*,lzma,compress,archive,cpio,arj,xar,ms-cab*}", use = ["extract", "open_terminal", "reveal"] },
+	# JSON / JS
+	{ mime = "application/{json,ndjson}", use = ["edit", "open", "open_terminal", "reveal"] },
+	{ mime = "*/javascript", use = ["edit", "open", "open_terminal", "reveal"] },
 	# Empty file
-	{ mime = "inode/empty", use = ["edit", "reveal"] },
+	{ mime = "inode/empty", use = ["edit", "open", "open_terminal", "reveal"] },
 	# Virtual file system
 	{ mime = "vfs/{absent,stale}", use = "download" },
-	# Fallback
-	{ url = "*", use = ["open", "reveal"] },
+	# Fallback — Open first (Office/binary etc.), Edit second
+	{ url = "*", use = ["open", "edit", "open_terminal", "reveal"] },
 ]
 
 [tasks]
