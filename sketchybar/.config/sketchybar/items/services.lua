@@ -14,7 +14,6 @@ local colors = appearance.colors
 local item_config = config.item or {}
 local item_name = item_config.name or "services"
 local config_dir = os.getenv("CONFIG_DIR") or ((os.getenv("HOME") or "") .. "/.config/sketchybar")
-local sketchybar_bin = find_binary({ "/opt/homebrew/bin/sketchybar", "/usr/local/bin/sketchybar" }, "sketchybar")
 local lua_bin = find_binary({ "/opt/homebrew/bin/lua", "/usr/local/bin/lua" }, "lua")
 local status_script = config_dir .. "/helpers/services/status.lua"
 local control_script = config_dir .. "/helpers/services/control.lua"

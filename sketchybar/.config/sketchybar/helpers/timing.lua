@@ -24,11 +24,9 @@ M.POPUP_HIDE_DELAY_S = 0.2
 -- 用于 popup 渐入/渐出、label 颜色渐变等"通用 fade"。
 M.STANDARD_DURATION_FRAMES = 12
 
--- 启动 bar 渐隐（约 250ms = 30 帧 @ 120Hz）。
+-- 启动 bar 揭开相关（当前 run_bar 为瞬时 unhide；保留常量便于以后恢复 bar alpha 渐入）。
 M.ENTER_BAR_FADE_FRAMES = 30
--- 启动 item 渐隐（约 500ms = 60 帧）——略慢于 bar，更容易看清。
+-- 启动 item 渐隐（约 500ms = 60 帧 @ 120Hz）。
 M.ENTER_ITEM_FADE_FRAMES = 60
--- 兼容旧名（取 item 时长）
-M.ENTER_FADE_FRAMES = M.ENTER_ITEM_FADE_FRAMES
 
 return M

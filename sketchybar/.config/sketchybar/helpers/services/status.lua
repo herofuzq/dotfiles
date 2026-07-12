@@ -32,12 +32,7 @@ local function emit(...)
 end
 
 local function docker_compose_states(group)
-	-- 快速预检：Docker Desktop 进程是否存在
-	if not os.execute("pgrep -q Docker 2>/dev/null") then
-		docker_error = "docker not running"
-		return nil
-	end
-
+	-- 以 daemon 是否可响应为准，不依赖 "Docker" 进程名（Desktop 进程名会变）
 	local template = '{{.Label "com.docker.compose.service"}}\t{{.State}}\t{{.Status}}'
 	local cmd = table.concat({
 		shell_quote(docker),

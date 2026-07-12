@@ -18,7 +18,6 @@ end
 local colors = appearance.colors
 local item_name = (config.item or {}).name or "git_status"
 local config_dir = os.getenv("CONFIG_DIR") or ((os.getenv("HOME") or "") .. "/.config/sketchybar")
-local sketchybar_bin = find_binary({ "/opt/homebrew/bin/sketchybar", "/usr/local/bin/sketchybar" }, "sketchybar")
 local lua_bin = find_binary({ "/opt/homebrew/bin/lua", "/usr/local/bin/lua" }, "lua")
 local status_script = config_dir .. "/helpers/git/status.lua"
 

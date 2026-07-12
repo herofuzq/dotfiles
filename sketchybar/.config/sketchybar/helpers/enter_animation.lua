@@ -2,10 +2,10 @@
 --
 -- 仅改颜色 alpha：无 y_offset、不强行 drawing=true、无 stagger。
 --
--- init.lua 流程（必须在 end_config 之后）:
---   prepare()   -- query 最终主条 item 状态并铺透明
---   run_bar()   -- bar 背景/边框渐入
---   run()       -- item 一次 animate 渐入
+-- init.lua 流程（必须在 end_config 之后，且顺序不可颠倒）:
+--   1) prepare()  -- query 最终主条状态并铺透明（bar 仍 hidden）
+--   2) run_bar()  -- 取消 hidden，写出最终 bar 样式
+--   3) run()      -- item 一次 animate 渐入
 --
 -- 为何 end_config 之后再 snapshot:
 --   多个 widget 会在 add 之后 sbar.set 调整 background（并入 bracket）。
@@ -26,6 +26,7 @@ local SKETCHYBAR = find_binary(
 )
 
 local _pending = {}
+local _prepare_ok = false
 
 -- 名称级排除（popup 子项还会用 position 再滤一层）
 local SKIP_NAMES = {
@@ -37,11 +38,11 @@ local function should_skip_name(name)
 	if not name or name == "" or SKIP_NAMES[name] then
 		return true
 	end
-	-- 名称含 popup，或明确的 popup 行命名约定
 	if name:find("popup", 1, true) then
 		return true
 	end
-	if name:find("%.cal_", 1, true) or name:find("%.process%.", 1, true) or name:match("%.info$") then
+	-- plain find：第三个参数 true 时不要写 Lua pattern 转义
+	if name:find(".cal_", 1, true) or name:find(".process.", 1, true) or name:match("%.info$") then
 		return true
 	end
 	return false
@@ -83,7 +84,7 @@ end
 local function list_bar_items()
 	local raw = cli_query("bar")
 	if not raw then
-		return {}
+		return nil -- 与 {} 区分：query 失败
 	end
 	local items_block = raw:match('"items"%s*:%s*(%b[])')
 	if not items_block then
@@ -105,7 +106,6 @@ local function snapshot_item(name)
 	local geometry = raw:match('"geometry"%s*:%s*(%b{})')
 	local icon = raw:match('"icon"%s*:%s*(%b{})')
 	local label = raw:match('"label"%s*:%s*(%b{})')
-	-- 必须用 geometry.background，不能 match 到 icon.background
 	local geo_bg = geometry and geometry:match('"background"%s*:%s*(%b{})')
 
 	local position = block_field(geometry, "position")
@@ -136,7 +136,6 @@ local function apply(entry, alpha)
 		props.label = { color = appearance.with_alpha(entry.label, alpha) }
 	end
 	if entry.background then
-		-- 只改 color，保留 corner_radius / border / drawing
 		props.background = { color = appearance.with_alpha(entry.background, alpha) }
 	end
 	sbar.set(entry.name, props)
@@ -144,7 +143,15 @@ end
 
 function M.prepare()
 	_pending = {}
-	for _, name in ipairs(list_bar_items()) do
+	_prepare_ok = false
+
+	local names = list_bar_items()
+	if names == nil then
+		io.stderr:write("sketchybar: enter_animation prepare: bar query failed, skip item fade\n")
+		return
+	end
+
+	for _, name in ipairs(names) do
 		if not should_skip_name(name) then
 			local entry = snapshot_item(name)
 			if entry then
@@ -153,10 +160,15 @@ function M.prepare()
 			end
 		end
 	end
+
+	_prepare_ok = true
+	if #_pending == 0 then
+		io.stderr:write("sketchybar: enter_animation prepare: 0 fade targets (ok if bar empty)\n")
+	end
 end
 
 function M.run()
-	if #_pending == 0 then
+	if not _prepare_ok or #_pending == 0 then
 		return
 	end
 	sbar.animate("linear", ITEM_FADE_FRAMES, function()
@@ -167,8 +179,8 @@ function M.run()
 end
 
 function M.run_bar()
-	-- 配置期 bar 为 hidden + height=0；揭开时同一帧写上正确高度与最终样式，
-	-- 避免「先以默认/错误高度显示，再被改高」的二次跳变。
+	-- 配置期 bar 为 hidden；揭开时同一帧写上正确高度与最终样式。
+	-- 须在 prepare() 之后调用，避免 bar 先可见、item 仍是实色的一帧闪烁。
 	local settings = require("settings")
 	local h = settings.detect_bar_height()
 	if h and h > 0 then
@@ -183,6 +195,5 @@ function M.run_bar()
 		blur_radius = 15,
 	})
 end
-
 
 return M

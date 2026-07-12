@@ -54,7 +54,7 @@ local function helper_specs(cfg)
 		},
 		{
 			target = h .. "/event_providers/aerospace_watch/bin/aerospace_watch",
-			restart = true,
+			restart_label = "com.fuzhuoqun.aerospace_watch",
 			sources = {
 				h .. "/event_providers/aerospace_watch/aerospace_watch.swift",
 				h .. "/event_providers/aerospace_watch/makefile",
@@ -62,7 +62,7 @@ local function helper_specs(cfg)
 		},
 		{
 			target = h .. "/event_providers/docker_watch/bin/docker_watch",
-			restart = true,
+			restart_label = "com.fuzhuoqun.docker_watch",
 			sources = {
 				h .. "/event_providers/docker_watch/docker_watch.swift",
 				h .. "/event_providers/docker_watch/makefile",
@@ -70,7 +70,7 @@ local function helper_specs(cfg)
 		},
 		{
 			target = h .. "/event_providers/input_method/bin/input_method_watch",
-			restart = true,
+			restart_label = "com.fuzhuoqun.input_method_watch",
 			sources = {
 				h .. "/event_providers/input_method/input_method_watch.swift",
 				h .. "/event_providers/input_method/makefile",
@@ -78,7 +78,7 @@ local function helper_specs(cfg)
 		},
 		{
 			target = h .. "/event_providers/media_watch/bin/media_watch",
-			restart = true,
+			restart_label = "com.fuzhuoqun.media_watch",
 			sources = {
 				h .. "/event_providers/media_watch/media_watch.swift",
 				h .. "/event_providers/media_watch/makefile",
@@ -154,38 +154,39 @@ local function run_make(cfg, specs)
 		f:close()
 	end
 
-	-- 重建后任一 binary 的 mtime 变了 → 视为 changed（触发 event provider restart）。
-	-- mtime 粒度到秒，几乎不存在"重建后 mtime 完全相同"的边界 case。
-	local restart_needed = false
+	-- 只收集「有 restart_label 且 mtime 真变了」的 agent，避免无关 watcher 被连带踢掉。
+	local restart_labels = {}
 	for _, spec in ipairs(specs) do
 		local after = stat_mtime(spec.target)
-		if spec.restart and before[spec.target] ~= after then
-			restart_needed = true
-			break
+		if spec.restart_label and before[spec.target] ~= after then
+			restart_labels[#restart_labels + 1] = spec.restart_label
 		end
 	end
 
-	return tonumber(exit_code) or 1, log_path, restart_needed
+	return tonumber(exit_code) or 1, log_path, restart_labels
 end
 
-local function restart_event_providers()
-	os.execute(
-		"launchctl kickstart -k gui/$(id -u)/com.fuzhuoqun.aerospace_watch >/dev/null 2>&1; "
-			.. "launchctl kickstart -k gui/$(id -u)/com.fuzhuoqun.docker_watch >/dev/null 2>&1; "
-			.. "launchctl kickstart -k gui/$(id -u)/com.fuzhuoqun.input_method_watch >/dev/null 2>&1; "
-			.. "launchctl kickstart -k gui/$(id -u)/com.fuzhuoqun.media_watch >/dev/null 2>&1 &"
-	)
+local function restart_event_providers(labels)
+	if not labels or #labels == 0 then
+		return
+	end
+	local parts = {}
+	for _, label in ipairs(labels) do
+		-- label 来自本文件常量，非用户输入
+		parts[#parts + 1] = "launchctl kickstart -k gui/$(id -u)/" .. label .. " >/dev/null 2>&1"
+	end
+	os.execute(table.concat(parts, "; ") .. " &")
 end
 
 local cfg = os.getenv("CONFIG_DIR")
 if cfg then
 	local specs = helper_specs(cfg)
 	if needs_make(specs) then
-		local exit_code, log_path, restart_needed = run_make(cfg, specs)
+		local exit_code, log_path, restart_labels = run_make(cfg, specs)
 		if exit_code ~= 0 then
 			io.stderr:write("sketchybar: helper compile failed (exit " .. exit_code .. "), see " .. log_path .. "\n")
-		elseif restart_needed then
-			restart_event_providers()
+		else
+			restart_event_providers(restart_labels)
 		end
 	end
 end

@@ -12,11 +12,12 @@ require("bar")
 require("items")
 sbar.end_config()
 
--- end_config 之后:
---   1) run_bar：写出最终 bar 样式并取消 hidden（配置期 hidden，避免透明条闪）
---   2) prepare/run items：主条 item 颜色 alpha 渐入
-enter_animation.run_bar()
+-- end_config 之后（顺序固定，不可颠倒）:
+--   1) prepare：bar 仍 hidden，把主条 item 铺成透明
+--   2) run_bar：取消 hidden，写出最终 bar 样式
+--   3) run：item alpha 渐入
 enter_animation.prepare()
+enter_animation.run_bar()
 enter_animation.run()
 
 -- 启动事件循环（必须！否则所有回调函数不会执行）
