@@ -5,7 +5,8 @@
 --   dock_width: 本地编译产物 helpers/dock_width/bin/dock_width (Swift, autostart-on-stale)
 --   sketchybar-toggle: brew 安装 (随 sketchybar cask 一起),由 ensure_toggle() 启动,
 --                      实现"鼠标接近顶部自动显示 / 远离自动隐藏"bar 的行为
-local BAR_HEIGHT_CACHE = "/tmp/sketchybar_bar_height.cache"
+local tmp_path = require("helpers.utils").tmp_path
+local BAR_HEIGHT_CACHE = tmp_path("sketchybar_bar_height.cache")
 local TOGGLE_PIDNAME = "sketchybar_toggle.pid"
 local TOGGLE_CONFIGNAME = "sketchybar_toggle.config"
 local TOGGLE_TRIGGER_ZONE = 2

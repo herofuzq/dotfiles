@@ -9,12 +9,17 @@ local appearance = require("appearance")
 local timing = require("helpers.timing")
 local sbar = require("sketchybar")
 local shell_quote = require("helpers.utils").shell_quote
+local find_binary = require("helpers.find_binary").find
 
 local M = {}
 
 -- 统一动画帧数：12 帧 @ 120Hz = 100ms
 local DEFAULT_FRAMES = timing.STANDARD_DURATION_FRAMES
-local SKETCHYBAR_BIN = os.getenv("SKETCHYBAR_BIN") or "/opt/homebrew/bin/sketchybar"
+local SKETCHYBAR_BIN = os.getenv("SKETCHYBAR_BIN")
+	or find_binary(
+		{ "/opt/homebrew/bin/sketchybar", "/usr/local/bin/sketchybar" },
+		"/opt/homebrew/bin/sketchybar"
+	)
 
 local function hide_popup_via_cli(parent)
 	if not parent or not parent.name then
@@ -22,6 +27,12 @@ local function hide_popup_via_cli(parent)
 	end
 	sbar.exec(SKETCHYBAR_BIN .. " --set " .. shell_quote(parent.name) .. " popup.drawing=off >/dev/null 2>&1")
 	return true
+end
+
+local function fire_on_hidden(options)
+	if options and options.on_hidden then
+		options.on_hidden()
+	end
 end
 
 function M.new(parent, options)
@@ -88,12 +99,12 @@ function M.new(parent, options)
 		generation = generation + 1
 		visible = false
 		if animated and hide_popup_via_cli(parent) then
+			-- CLI 异步关 popup 也要跑清理钩子（如 sys 停 watcher）
+			fire_on_hidden(options)
 			return
 		end
 		parent:set({ popup = { drawing = false } })
-		if options.on_hidden then
-			options.on_hidden()
-		end
+		fire_on_hidden(options)
 	end
 
 	-- 鼠标离开触发的延迟隐藏在 Lua timer 里运行；如果此时 SketchyBar 正在派发
@@ -105,6 +116,8 @@ function M.new(parent, options)
 		if not hide_popup_via_cli(parent) then
 			parent:set({ popup = { drawing = false } })
 		end
+		-- 与 hide() 一致：关 popup 后总是调用 on_hidden（sys_watch 停进程等）
+		fire_on_hidden(options)
 	end
 
 	function controller:is_visible()

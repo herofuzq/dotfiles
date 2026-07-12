@@ -24,7 +24,7 @@ local status_script = config_dir .. "/helpers/git/status.lua"
 
 local git_item = sbar.add("item", item_name, {
 	position = "e", display = "active",
-	update_freq = 60,
+	update_freq = 120,
 	padding_left = 0, padding_right = 0,
 	icon = {
 		string = icons.git,
@@ -181,7 +181,7 @@ for _, r in ipairs(hover_items) do
 	r:subscribe("mouse.exited", function() popup_hovering = false; schedule_hide() end)
 end
 
-git_item:subscribe("system_woke", refresh)
+git_item:subscribe({ "routine", "system_woke" }, refresh)
 refresh()
 
 git_item:set({ popup = { height = 16 } })

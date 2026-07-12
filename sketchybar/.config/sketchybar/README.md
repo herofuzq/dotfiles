@@ -59,7 +59,7 @@ When debugging live behavior, inspect `~/.config/sketchybar` first. Source edits
 | Producer | Event | Consumer | Purpose |
 |----------|-------|----------|---------|
 | `aerospace_watch` | `aerospace_workspace_change` | `items/spaces.lua` | Update focused workspace cache and border with no full window query |
-| `aerospace_watch` | `window_focus_change` | `items/spaces.lua` | Repaint the cached workspace icons for active-window highlight |
+| `aerospace_watch` | `window_focus_change` | _(unused)_ | Still emitted; spaces only highlight at workspace level, not per-window app icons |
 | SketchyBar | `space_windows_change` | `items/spaces.lua` | Refresh the full window snapshot after native window create/destroy |
 | `aerospace_watch` | `space_windows_change` | `items/spaces.lua` | Refresh after AeroSpace reports a newly detected window |
 | `aerospace_watch` | `aerospace_fullscreen_change` | `items/spaces.lua` | Refresh the full snapshot and show the fullscreen marker on the workspace number |
@@ -185,7 +185,7 @@ helper 的编译产物不进 git，而是在实际运行路径里生成，例如
 | 发送方 | 事件 | 接收方 | 用途 |
 |--------|------|--------|------|
 | `aerospace_watch` | `aerospace_workspace_change` | `items/spaces.lua` | 更新焦点工作区缓存和边框，不做完整窗口查询 |
-| `aerospace_watch` | `window_focus_change` | `items/spaces.lua` | 用已有快照重画对应工作区 app 图标高亮 |
+| `aerospace_watch` | `window_focus_change` | （未订阅） | 仍会触发；spaces 只做工作区级高亮，不做当前窗口 app 高亮 |
 | SketchyBar | `space_windows_change` | `items/spaces.lua` | 原生窗口创建/销毁后刷新完整窗口快照 |
 | `aerospace_watch` | `space_windows_change` | `items/spaces.lua` | AeroSpace 检测到新窗口后补一次刷新 |
 | `aerospace_watch` | `aerospace_fullscreen_change` | `items/spaces.lua` | 刷新完整快照，并在工作区编号旁显示 fullscreen 标记 |

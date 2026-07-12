@@ -56,10 +56,12 @@ for _, repo in ipairs(config.repos or {}) do
 					first = false
 					local rest = line:match("^## (.+)$")
 					if rest then
-						local branch_part = rest:match("^([^%.]+)")
-						branch = branch_part or rest
-						ahead = rest:match("%[ahead (%d+)%]") or "0"
-						behind = rest:match("%[behind (%d+)%]") or "0"
+						-- 跟踪分支形如 "main...origin/main [ahead 1, behind 2]"
+						-- 取 "..." 前一段为本地分支名；无远程时取第一个非空白/非 [ 词。
+						branch = rest:match("^(.-)%.%.%.") or rest:match("^([^%s%[]+)") or rest
+						-- 宽松匹配：同时有 ahead/behind 时也能解析
+						ahead = rest:match("ahead (%d+)") or "0"
+						behind = rest:match("behind (%d+)") or "0"
 					end
 				else
 					dirty_count = dirty_count + 1

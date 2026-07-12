@@ -10,8 +10,9 @@ local settings = require("settings")
 
 local CONFIG_DIR = os.getenv("CONFIG_DIR") or ""
 local WATCHER = CONFIG_DIR .. "/helpers/event_providers/sys_watch/bin/sys_watch"
-local WATCHER_PIDFILE = "/tmp/sketchybar_sys_watch.pid"
-local SENSOR_CACHE = "/tmp/sketchybar_sys_sensors.json"
+local tmp_path = require("helpers.utils").tmp_path
+local WATCHER_PIDFILE = tmp_path("sketchybar_sys_watch.pid")
+local SENSOR_CACHE = tmp_path("sketchybar_sys_sensors.json")
 
 local find_binary = require("helpers.find_binary").find
 

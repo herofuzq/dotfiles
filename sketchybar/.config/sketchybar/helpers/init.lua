@@ -23,6 +23,7 @@ require("sketchybar").bar({
 })
 
 local shell_quote = require("helpers.utils").shell_quote
+local tmp_path = require("helpers.utils").tmp_path
 
 -- bin 位于实际 CONFIG_DIR，不由 stow 管理。启动时先用 mtime 快速判断
 -- helper 是否 stale；只有缺 binary 或源码更新时才同步跑 make。
@@ -133,7 +134,7 @@ local function needs_make(specs)
 end
 
 local function run_make(cfg, specs)
-	local log_path = "/tmp/sketchybar_make.log"
+	local log_path = tmp_path("sketchybar_make.log")
 	local before = {}
 	for _, spec in ipairs(specs) do
 		before[spec.target] = stat_mtime(spec.target)
