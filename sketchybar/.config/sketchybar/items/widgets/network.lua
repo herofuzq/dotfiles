@@ -8,7 +8,7 @@ local find_binary = require("helpers.find_binary").find
 local shell_quote = require("helpers.utils").shell_quote
 local colors = appearance.colors
 local NETWORK_SAMPLE_INTERVAL = 3
-local INTERFACE_REFRESH_INTERVAL = 61
+local INTERFACE_REFRESH_INTERVAL = 60
 local MAX_CONSECUTIVE_FAILURES = 2
 
 -- ========== ↑ 上传（上排，y_offset 偏下）==========
@@ -278,4 +278,3 @@ sbar.add("item", "widgets.system_bracket_spacer", {
 	padding_right = 0,
 	background = { drawing = false },
 })
-
