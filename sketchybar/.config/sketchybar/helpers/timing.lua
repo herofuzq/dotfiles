@@ -7,7 +7,7 @@
 local M = {}
 
 -- ProMotion 设备的刷新率。所有 frame↔seconds 转换都基于此。
--- 60Hz 设备看起来稍慢但稳定（详见 enter_animation.lua 头部注释）。
+-- 60Hz 设备看起来稍慢但稳定。
 M.FRAMES_PER_SECOND = 120
 
 -- 把帧数转换为秒（用于 sbar.delay）。

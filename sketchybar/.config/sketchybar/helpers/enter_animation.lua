@@ -1,12 +1,15 @@
--- ========== Bar/Item 启动渐隐（统一、基于最终状态快照）==========
+-- ========== 启动渐隐（startup fade）==========
 --
--- init.lua:
---   begin_config → items → end_config
---   prepare()  -- query bar 上最终 item（含 sbar.set 补丁后状态）
---   run_bar() / run()  -- 一次 linear alpha 渐入
+-- 仅改颜色 alpha：无 y_offset、不强行 drawing=true、无 stagger。
 --
--- 只改颜色 alpha；不改 y_offset；不强行 drawing=true。
--- 只动画「当前 drawing=on」的 icon/label/geometry.background。
+-- init.lua 流程（必须在 end_config 之后）:
+--   prepare()   -- query 最终主条 item 状态并铺透明
+--   run_bar()   -- bar 背景/边框渐入
+--   run()       -- item 一次 animate 渐入
+--
+-- 为何 end_config 之后再 snapshot:
+--   多个 widget 会在 add 之后 sbar.set 调整 background（并入 bracket）。
+--   必须用最终状态，否则会把已关掉的 pill 背景又画回来。
 local sbar = require("sketchybar")
 local appearance = require("appearance")
 local timing = require("helpers.timing")
@@ -24,21 +27,21 @@ local SKETCHYBAR = find_binary(
 
 local _pending = {}
 
+-- 名称级排除（popup 子项还会用 position 再滤一层）
+local SKIP_NAMES = {
+	["spaces.root"] = true,
+	["aerospace_mode"] = true,
+}
+
 local function should_skip_name(name)
-	if not name or name == "" then
+	if not name or name == "" or SKIP_NAMES[name] then
 		return true
 	end
-	if name == "spaces.root" or name == "aerospace_mode" then
-		return true
-	end
+	-- 名称含 popup，或明确的 popup 行命名约定
 	if name:find("popup", 1, true) then
 		return true
 	end
-	-- 日历/系统 popup 行不叫 popup，但也不应进主条渐隐
-	if name:find("%.cal_", 1, true) or name:find("%.process%.", 1, true) then
-		return true
-	end
-	if name:match("%.info$") then
+	if name:find("%.cal_", 1, true) or name:find("%.process%.", 1, true) or name:match("%.info$") then
 		return true
 	end
 	return false
@@ -52,10 +55,7 @@ local function parse_color(value)
 		return nil
 	end
 	local hex = value:match("^0x(%x+)$") or value:match("^(%x+)$")
-	if not hex then
-		return nil
-	end
-	return tonumber(hex, 16)
+	return hex and tonumber(hex, 16) or nil
 end
 
 local function is_on(value)
@@ -69,10 +69,7 @@ local function cli_query(name)
 	end
 	local raw = f:read("*a") or ""
 	f:close()
-	if raw == "" then
-		return nil
-	end
-	return raw
+	return (raw ~= "" and raw) or nil
 end
 
 local function block_field(block, key)
@@ -108,7 +105,7 @@ local function snapshot_item(name)
 	local geometry = raw:match('"geometry"%s*:%s*(%b{})')
 	local icon = raw:match('"icon"%s*:%s*(%b{})')
 	local label = raw:match('"label"%s*:%s*(%b{})')
-	-- 注意: 必须用 geometry 内的 background，不能 match 到 icon.background
+	-- 必须用 geometry.background，不能 match 到 icon.background
 	local geo_bg = geometry and geometry:match('"background"%s*:%s*(%b{})')
 
 	local position = block_field(geometry, "position")
@@ -116,37 +113,22 @@ local function snapshot_item(name)
 		return nil
 	end
 
-	local item_drawing = block_field(geometry, "drawing")
-	local icon_drawing = block_field(icon, "drawing")
-	local label_drawing = block_field(label, "drawing")
-	local bg_drawing = block_field(geo_bg, "drawing")
-
-	local icon_c = parse_color(block_field(icon, "color"))
-	local label_c = parse_color(block_field(label, "color"))
-	local bg_c = parse_color(block_field(geo_bg, "color"))
-
 	local entry = {
 		name = name,
-		was_drawing = is_on(item_drawing),
-		icon = is_on(icon_drawing) and icon_c or nil,
-		label = is_on(label_drawing) and label_c or nil,
-		background = is_on(bg_drawing) and bg_c or nil,
+		was_drawing = is_on(block_field(geometry, "drawing")),
+		icon = is_on(block_field(icon, "drawing")) and parse_color(block_field(icon, "color")) or nil,
+		label = is_on(block_field(label, "drawing")) and parse_color(block_field(label, "color")) or nil,
+		background = is_on(block_field(geo_bg, "drawing")) and parse_color(block_field(geo_bg, "color")) or nil,
 	}
 
 	if not entry.icon and not entry.label and not entry.background then
 		return nil
 	end
-	-- 完全没画在主条上的跳过
-	if not entry.was_drawing and not entry.background then
-		-- workspace 可能 drawing=off 暂存；若 icon 也在仍可记，但 prepare 不要强行 drawing on
-	end
 	return entry
 end
 
 local function apply(entry, alpha)
-	local props = {
-		drawing = entry.was_drawing,
-	}
+	local props = { drawing = entry.was_drawing }
 	if entry.icon then
 		props.icon = { color = appearance.with_alpha(entry.icon, alpha) }
 	end
@@ -154,6 +136,7 @@ local function apply(entry, alpha)
 		props.label = { color = appearance.with_alpha(entry.label, alpha) }
 	end
 	if entry.background then
+		-- 只改 color，保留 corner_radius / border / drawing
 		props.background = { color = appearance.with_alpha(entry.background, alpha) }
 	end
 	sbar.set(entry.name, props)
@@ -192,10 +175,5 @@ function M.run_bar()
 		})
 	end)
 end
-
--- 兼容旧调用（已废弃）
-function M.install() end
-function M.register() end
-function M.spawn() end
 
 return M
