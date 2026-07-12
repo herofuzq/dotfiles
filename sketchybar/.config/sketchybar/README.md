@@ -32,7 +32,8 @@ When debugging live behavior, inspect `~/.config/sketchybar` first. Source edits
 
 | Step | Module | Behavior |
 |------|--------|----------|
-| `prepare()` | `enter_animation` | After `end_config`, `sketchybar --query` each main-bar item; set icon/label/`geometry.background` colors to alpha 0 when those channels are drawing (bar still hidden) |
+| `install()` | `enter_animation` | Before `begin_config`, wrap `sbar.add` and record main-bar item names (skip popup rows) |
+| `prepare()` | same | After `end_config`, `sketchybar --query` **only tracked names**; set drawing-on icon/label/`geometry.background` to alpha 0 (bar still hidden) |
 | `run_bar()` | same | **Instant** unhide + final height/color/border (not a color-alpha animation) |
 | `run()` | same | Single linear alpha animate for all snapped items (~500ms) |
 
@@ -41,6 +42,8 @@ When debugging live behavior, inspect `~/.config/sketchybar` first. Source edits
 - Item timing: `helpers/timing.lua` → `ENTER_ITEM_FADE_FRAMES`. `ENTER_BAR_FADE_FRAMES` is reserved if bar alpha fade is re-enabled later.
 
 Snapshot must run **after** `end_config` because some widgets `sbar.set` backgrounds after `add` (e.g. into a shared bracket). Fading from creation-time props would re-show those backgrounds.
+
+**Pitfall — wrapping `sbar.add`:** always forward with `raw_add(...)`. Never call `raw_add(kind, name, props, nil)` for a 3-arg `add("item", name, props)`. Passing an explicit `nil` 4th argument makes SbarLua mis-parse the call (treats it like a 4-arg form); popup items can lose `position = "popup.…"` and appear as normal bar items (Docker/Git popup rows flooding the bar). The `install()` wrapper uses varargs on purpose.
 
 ### File Map
 
@@ -184,7 +187,8 @@ helper 的编译产物不进 git，而是在实际运行路径里生成，例如
 
 | 步骤 | 模块 | 行为 |
 |------|------|------|
-| `prepare()` | `enter_animation` | `end_config` 后 query 主条 item；对 drawing=on 的 icon/label/`geometry.background` 设 alpha=0（bar 仍 hidden） |
+| `install()` | `enter_animation` | `begin_config` 前劫持 `sbar.add`，只登记主条 item 名（跳过 popup） |
+| `prepare()` | 同上 | `end_config` 后 **只 query 已登记名**；对 drawing=on 的 icon/label/`geometry.background` 设 alpha=0（bar 仍 hidden） |
 | `run_bar()` | 同上 | **瞬时** unhide + 最终 height/color/border（不是 color alpha 动画） |
 | `run()` | 同上 | 所有快照 item 一次 linear alpha 渐入（约 500ms） |
 
@@ -193,6 +197,9 @@ helper 的编译产物不进 git，而是在实际运行路径里生成，例如
 - item 时长：`helpers/timing.lua` 的 `ENTER_ITEM_FADE_FRAMES`。`ENTER_BAR_FADE_FRAMES` 留给以后若恢复 bar alpha 渐入。
 
 必须在 **end_config 之后** snapshot：部分 widget 会在 `add` 后再 `sbar.set` 关掉 background 以并入 bracket；用创建时 props 渐入会把背景错误地画回来。
+
+**坑：包装 `sbar.add` 时必须用 `raw_add(...)` 原样转发。**  
+不要对 3 参数的 `add("item", name, props)` 写成 `raw_add(kind, name, props, nil)`。多传的 `nil` 会让 SbarLua 按 4 参形态误解析，popup item 的 `position = "popup.…"` 丢失，Docker/Git 等 popup 行会整排铺到主条上。`install()` 故意用可变参数 `...`，改这段时务必保留。
 
 ### 文件地图
 

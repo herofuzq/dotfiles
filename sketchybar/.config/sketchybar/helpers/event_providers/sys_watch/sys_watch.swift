@@ -88,10 +88,23 @@ var lastRows = Array(repeating: "", count: 10)
     task.waitUntilExit()
 }
 
+/// Drop control characters so --set label=... is not split/corrupted by sketchybar parsing.
+@Sendable func sanitizeLabel(_ value: String, maxLen: Int = 64) -> String {
+    var out = String()
+    out.reserveCapacity(min(value.count, maxLen))
+    for scalar in value.unicodeScalars {
+        if scalar.value < 0x20 || scalar.value == 0x7F { continue }
+        if out.count >= maxLen { break }
+        out.unicodeScalars.append(scalar)
+    }
+    return out
+}
+
 func setHeader(_ label: String) {
-    guard label != lastHeader else { return }
-    lastHeader = label
-    runSketchybar(["--set", "widgets.sys.info", "label=\(label)"])
+    let safe = sanitizeLabel(label, maxLen: 80)
+    guard safe != lastHeader else { return }
+    lastHeader = safe
+    runSketchybar(["--set", "widgets.sys.info", "label=\(safe)"])
 }
 
 func header(for cache: SensorCache) -> String {
@@ -139,9 +152,10 @@ func setApps(_ apps: [AppUsage]) {
         } else {
             label = " "
         }
-        if label != lastRows[index] {
-            lastRows[index] = label
-            arguments += ["--set", "widgets.sys.process.\(index + 1)", "label=\(label)"]
+        let safe = sanitizeLabel(label, maxLen: 48)
+        if safe != lastRows[index] {
+            lastRows[index] = safe
+            arguments += ["--set", "widgets.sys.process.\(index + 1)", "label=\(safe)"]
         }
     }
     if !arguments.isEmpty {

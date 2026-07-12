@@ -37,12 +37,24 @@ func runSketchybar(arguments: [String]) {
     }
 }
 
+/// Strip control chars / newlines and cap length so --trigger KEY=value stays parseable.
+func sanitizeField(_ value: String, maxLen: Int = 180) -> String {
+    var out = String()
+    out.reserveCapacity(min(value.count, maxLen))
+    for scalar in value.unicodeScalars {
+        if scalar.value < 0x20 || scalar.value == 0x7F { continue }
+        if out.count >= maxLen { break }
+        out.unicodeScalars.append(scalar)
+    }
+    return out
+}
+
 func applyUpdate(_ state: MediaState) {
     runSketchybar(arguments: [
         "--trigger", "media_update",
-        "TITLE=\(state.title)",
-        "ARTIST=\(state.artist)",
-        "ALBUM=\(state.album)",
+        "TITLE=\(sanitizeField(state.title))",
+        "ARTIST=\(sanitizeField(state.artist))",
+        "ALBUM=\(sanitizeField(state.album))",
         "PLAYING=\(state.playing ? "1" : "0")",
     ])
 }

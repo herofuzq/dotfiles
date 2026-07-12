@@ -2,19 +2,20 @@
 local sbar = require("sketchybar")
 local enter_animation = require("helpers.enter_animation")
 
--- bar 透明已在 helpers/init.lua 最早设过一次；这里不再重复 sbar.bar，
--- 避免 reload 路径上多次改 bar 属性造成可见闪烁。
+-- bar hidden 已在 helpers/init.lua 最早设过；这里不再重复 sbar.bar。
 
--- 将所有初始化配置打包成一条消息发给 sketchybar，提高启动效率
+-- 登记主条 item 名（供 prepare 只 query 这些 name，不扫 bar 上全部 popup）
+enter_animation.install()
+
 sbar.begin_config()
 require("appearance").install_defaults()
 require("bar")
 require("items")
 sbar.end_config()
 
--- end_config 之后（顺序固定，不可颠倒）:
---   1) prepare：bar 仍 hidden，把主条 item 铺成透明
---   2) run_bar：取消 hidden，写出最终 bar 样式
+-- end_config 之后（顺序固定）:
+--   1) prepare：bar 仍 hidden，query 已登记 item 并铺透明
+--   2) run_bar：瞬时 unhide
 --   3) run：item alpha 渐入
 enter_animation.prepare()
 enter_animation.run_bar()
