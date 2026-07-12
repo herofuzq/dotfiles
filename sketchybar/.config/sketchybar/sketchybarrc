@@ -4,7 +4,4 @@
 package.loaded["helpers"] = nil
 require("helpers")
 
-local settings = require("settings")
-settings.ensure_toggle(settings.height)
-
 require("init")

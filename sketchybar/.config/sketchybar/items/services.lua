@@ -83,7 +83,6 @@ local function track(item)
 end
 
 -- 文本行：树形线 + 图标字形 + 空格 + 文字，全部画在 label（等宽对齐）。
--- 有意不用独立 icon 通道，因此 opts.icon_color 不会生效；颜色只用 label_color。
 local function text_row(key, depth, is_last, opts)
 	local prefix = tree:prefix(depth, is_last)
 	local item = track(sbar.add("item", "services.popup." .. key, {
@@ -129,7 +128,7 @@ end
 
 -- ========== 构建 ==========
 text_row("docker", 0, false, {
-	icon = icons.services.docker, icon_color = colors.green,
+	icon = icons.services.docker,
 	label = "Docker", label_color = colors.subtext1,
 })
 btn_row("services.popup.docker.btn.start", 1, false, "start", "docker", nil, nil)
@@ -140,7 +139,7 @@ for gi, group in ipairs(config.groups or {}) do
 	local is_last_group = (gi == #(config.groups or {}))
 
 	text_row("group." .. gid, 1, is_last_group, {
-		icon = icons.services.docker, icon_color = colors.green,
+		icon = icons.services.docker,
 		label = group.label or gid, label_color = colors.subtext1,
 	})
 	local ga = { "start", "stop", "pause", "resume" }
@@ -150,7 +149,7 @@ for gi, group in ipairs(config.groups or {}) do
 	for si, svc in ipairs(group.services or {}) do
 		local is_last_svc = (si == #(group.services or {}))
 		text_row(gid .. "." .. svc.id, 2, is_last_svc, {
-			icon = "•", icon_color = colors.surface1,
+			icon = "•",
 			label = (svc.label or svc.id),
 		})
 		local sa = { "start", "stop", "pause", "resume" }
@@ -206,13 +205,6 @@ local function count_color(status, running, total)
 	if running >= total then return colors.green end
 	if running > 0 then return colors.yellow end
 	return colors.red
-end
-
-local function st_color(state)
-	if state == "running" then return colors.green end
-	if state == "paused" then return colors.yellow end
-	if state == "exited" or state == "dead" or state == "missing" then return colors.red end
-	return colors.surface1
 end
 
 local function st_text(state)

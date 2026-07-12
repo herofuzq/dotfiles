@@ -667,7 +667,6 @@ local function syncDisplayState()
 	if h and h > 0 then
 		sbar.bar({ height = h })
 		settings.height = h
-		settings.ensure_toggle(h)
 	end
 
 	-- Display/wake can leave the focused workspace cache stale while AeroSpace
@@ -771,13 +770,6 @@ for _, ws in ipairs(initial_workspaces) do
 		end,
 		on_show = function()
 			set_popup_item_colors(workspace_index, appearance.colors.pill_fg, appearance.colors.text)
-		end,
-		on_hide = function()
-			set_popup_item_colors(
-				workspace_index,
-				transparent(appearance.colors.pill_fg),
-				transparent(appearance.colors.text)
-			)
 		end,
 	})
 end

@@ -39,7 +39,7 @@ When debugging live behavior, inspect `~/.config/sketchybar` first. Source edits
 
 - Item fade only: no `y_offset`, no stagger, does not force `drawing=true`.
 - Popup rows are skipped (`position` starts with `popup`, or names containing `popup` / calendar grid / sys process rows).
-- Item timing: `helpers/timing.lua` → `ENTER_ITEM_FADE_FRAMES`. `ENTER_BAR_FADE_FRAMES` is reserved if bar alpha fade is re-enabled later.
+- Item timing: `helpers/timing.lua` → `ENTER_ITEM_FADE_FRAMES`.
 
 Snapshot must run **after** `end_config` because some widgets `sbar.set` backgrounds after `add` (e.g. into a shared bracket). Fading from creation-time props would re-show those backgrounds.
 
@@ -67,7 +67,7 @@ Snapshot must run **after** `end_config` because some widgets `sbar.set` backgro
 |------|---------|
 | `sketchybarrc` | Entry: helpers + settings + `init` |
 | `init.lua` | `begin_config` / startup fade / `event_loop` |
-| `settings.lua` | Bar height, default spacing, reveal-zone helper setup |
+| `settings.lua` | Bar height, Dock-width detection, and default spacing |
 | `appearance.lua` | Catppuccin palette, semantic colors, global defaults |
 | `fonts.lua` | Font families and styles |
 | `icons.lua` | Shared icon definitions |
@@ -81,7 +81,7 @@ Snapshot must run **after** `end_config` because some widgets `sbar.set` backgro
 | `items/calendar.lua` | Date/time + month popup |
 | `items/widgets/*` | Right-side pills (sys, battery, network, media, …) |
 | `helpers/init.lua` | Helper build freshness check and event-provider restart |
-| `helpers/enter_animation.lua` | Reload startup alpha fade (bar + items) |
+| `helpers/enter_animation.lua` | Reload startup alpha fade for main-bar items |
 | `helpers/popup_animation.lua` | Popup show/hide alpha helpers |
 | `helpers/popup_utils.lua` | Shared pin / hover / delayed hide for single popups |
 | `helpers/borders.lua` | Focused workspace segment styling |
@@ -179,7 +179,7 @@ launchctl print gui/$(id -u)/com.fuzhuoqun.aerospace_watch
 sketchybar --reload
 ```
 
-Fade speed: edit `ENTER_BAR_FADE_FRAMES` / `ENTER_ITEM_FADE_FRAMES` in `helpers/timing.lua`.
+Fade speed: edit `ENTER_ITEM_FADE_FRAMES` in `helpers/timing.lua`.
 
 ---
 
@@ -218,7 +218,7 @@ helper 的编译产物不进 git，而是在实际运行路径里生成，例如
 
 - 仅 item 走颜色 alpha：不改 `y_offset`、不做 stagger、不强行 `drawing=true`。
 - 跳过 popup 行（`position` 以 `popup` 开头，或名称含 `popup` / 月历格 / sys 进程行）。
-- item 时长：`helpers/timing.lua` 的 `ENTER_ITEM_FADE_FRAMES`。`ENTER_BAR_FADE_FRAMES` 留给以后若恢复 bar alpha 渐入。
+- item 时长：`helpers/timing.lua` 的 `ENTER_ITEM_FADE_FRAMES`。
 
 必须在 **end_config 之后** snapshot：部分 widget 会在 `add` 后再 `sbar.set` 关掉 background 以并入 bracket；用创建时 props 渐入会把背景错误地画回来。
 
@@ -359,4 +359,4 @@ launchctl print gui/$(id -u)/com.fuzhuoqun.aerospace_watch
 sketchybar --reload
 ```
 
-item 渐入快慢：改 `helpers/timing.lua` 里的 `ENTER_ITEM_FADE_FRAMES`（bar 当前为瞬时 unhide，不读 `ENTER_BAR_FADE_FRAMES`）。
+item 渐入快慢：改 `helpers/timing.lua` 里的 `ENTER_ITEM_FADE_FRAMES`（bar 当前为瞬时 unhide）。

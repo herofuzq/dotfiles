@@ -24,9 +24,6 @@ M.POPUP_HIDE_DELAY_S = 0.2
 -- 用于 popup 渐入/渐出、label 颜色渐变等"通用 fade"。
 M.STANDARD_DURATION_FRAMES = 12
 
--- 启动 bar：当前实现为瞬时 unhide（见 enter_animation.run_bar），不读此常量。
--- 若以后要对 bar color/border 做 alpha 渐入，用此帧数即可。
-M.ENTER_BAR_FADE_FRAMES = 30
 -- 启动 item 颜色 alpha 渐入（约 300ms = 36 帧 @ 120Hz）。
 -- 曾用 60 帧(~500ms) 偏慢、12–30 帧偏快；300ms 折中，且仍覆盖全部主条 item。
 M.ENTER_ITEM_FADE_FRAMES = 36

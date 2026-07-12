@@ -3,8 +3,6 @@
 -- 外部依赖说明（哪些是 brew 装、哪些是本地编译）:
 --   bar_height: 本地编译产物 helpers/bar_height/bin/bar_height (Swift, autostart-on-stale)
 --   dock_width: 本地编译产物 helpers/dock_width/bin/dock_width (Swift, autostart-on-stale)
---   sketchybar-toggle: brew 安装 (随 sketchybar cask 一起),由 ensure_toggle() 启动,
---                      实现"鼠标接近顶部自动显示 / 远离自动隐藏"bar 的行为
 local tmp_path = require("helpers.utils").tmp_path
 local BAR_HEIGHT_CACHE = tmp_path("sketchybar_bar_height.cache")
 
@@ -93,15 +91,10 @@ local function detect_dock_width()
 	return fallback, 0, 0
 end
 
--- 曾试验 sketchybar-toggle 鼠标靠近自动显隐 bar，体验不佳后永久关闭。
--- 保留 no-op 入口，避免 display_sync 等调用方报错；需要时再恢复实现。
-local function ensure_toggle(_bar_height) end
-
 return {
 	height = detect_bar_height(),
 	detect_bar_height = detect_bar_height,
 	detect_dock_width = detect_dock_width,
-	ensure_toggle = ensure_toggle,
 	default_padding = 8,
 	item_padding = {
 		icon_label_item = {
