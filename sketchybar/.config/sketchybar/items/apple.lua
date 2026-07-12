@@ -6,7 +6,6 @@ local icons = require("icons")
 local fonts = require("fonts")
 local colors = require("appearance").colors
 local settings = require("settings")
-local enter_animation = require("helpers.enter_animation")
 local timing = require("helpers.timing")
 
 local border_width = 0 -- 无背景无边框
@@ -74,5 +73,3 @@ apple:subscribe("display_change", function()
 		end)
 	end
 end)
-
-enter_animation.register("apple")

@@ -13,7 +13,6 @@ local appearance = require("appearance")
 local app_icons = require("helpers.app_icons")
 local borders = require("helpers.borders")
 local popup_animation = require("helpers.popup_animation")
-local enter_animation = require("helpers.enter_animation")
 local timing = require("helpers.timing")
 local sbar = require("sketchybar")
 local fonts = require("fonts")
@@ -748,10 +747,6 @@ for _, ws in ipairs(initial_workspaces) do
 	workspaces[ws] = workspace
 	table.insert(workspace_order, ws)
 
-	-- reload 时动态 add 的 workspace 也要走"从上往下"渐入,
-	-- 不然跟其他已登记 item 视觉不一致
-	enter_animation.spawn("workspace." .. ws)
-
 	_popup_items[ws] = {}
 	for i = 1, MAX_POPUP_SLOTS do
 		local popup_item = sbar.add("item", "workspace." .. ws .. ".popup." .. i, {
@@ -984,9 +979,5 @@ sbar.exec(":", function()
 	end)
 end)
 
--- 渐入:只登记真正可见的同步 add item。
--- mode_item 默认 drawing=false,等 aerospace_mode_change 才显示,不登记。
--- spaces.root 只负责事件订阅,必须始终保持 drawing=false。
--- workspaces 是在 sbar.exec 回调里动态 add 的,这里 register 不到;
--- 它们在 run() 之后才出现,自带 generation 防护,初始就 drawing=false 也可接受。
-enter_animation.register("front_app")
+-- 启动渐隐由 enter_animation.install() 在 sbar.add 时自动收集；
+-- spaces.root / aerospace_mode / popup 子项在 skip 名单里，不会进渐隐。

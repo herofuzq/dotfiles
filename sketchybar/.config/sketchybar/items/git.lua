@@ -185,6 +185,3 @@ git_item:subscribe({ "routine", "system_woke" }, refresh)
 refresh()
 
 git_item:set({ popup = { height = 16 } })
-
-local enter_animation = require("helpers.enter_animation")
-enter_animation.register(item_name)

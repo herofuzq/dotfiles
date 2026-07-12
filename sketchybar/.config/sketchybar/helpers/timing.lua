@@ -21,8 +21,14 @@ end
 M.POPUP_HIDE_DELAY_S = 0.2
 
 -- 标准动画时长（100ms = 12 帧 @ 120Hz）。
--- 用于 popup 渐入/渐出、label 颜色渐变、drawing 切换等"通用 fade"。
--- 特殊的 bar 渐入、stagger 间隔等保留在各自模块里。
+-- 用于 popup 渐入/渐出、label 颜色渐变等"通用 fade"。
 M.STANDARD_DURATION_FRAMES = 12
+
+-- 启动 bar 渐隐（约 250ms = 30 帧 @ 120Hz）。
+M.ENTER_BAR_FADE_FRAMES = 30
+-- 启动 item 渐隐（约 500ms = 60 帧）——略慢于 bar，更容易看清。
+M.ENTER_ITEM_FADE_FRAMES = 60
+-- 兼容旧名（取 item 时长）
+M.ENTER_FADE_FRAMES = M.ENTER_ITEM_FADE_FRAMES
 
 return M

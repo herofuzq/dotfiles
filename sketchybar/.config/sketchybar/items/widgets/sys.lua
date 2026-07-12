@@ -4,7 +4,6 @@ local icons = require("icons")
 local fonts = require("fonts")
 local appearance = require("appearance")
 local popup_animation = require("helpers.popup_animation")
-local enter_animation = require("helpers.enter_animation")
 local colors = appearance.colors
 local settings = require("settings")
 
@@ -217,5 +216,3 @@ sys:subscribe("cpu_update", function(env)
 		label = { string = string.format("%d%%", cpu_load), color = colors.pill_fg },
 	})
 end)
-
-enter_animation.register("widgets.sys")

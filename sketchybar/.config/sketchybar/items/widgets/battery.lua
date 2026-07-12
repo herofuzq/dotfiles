@@ -4,7 +4,6 @@ local icons = require("icons")
 local fonts = require("fonts")
 local appearance = require("appearance")
 local popup_animation = require("helpers.popup_animation")
-local enter_animation = require("helpers.enter_animation")
 local parsers = require("helpers.widget_parsers")
 local colors = appearance.colors
 local BATTERY_UPDATE_INTERVAL = 37 -- 与其他外部轮询错峰
@@ -233,5 +232,3 @@ end
 battery:subscribe({ "routine", "power_source_change", "system_woke" }, update_battery)
 update_battery()
 
--- batt_info 默认 drawing=false,等数据来了才显示,这里不登记
-enter_animation.register("widgets.battery")

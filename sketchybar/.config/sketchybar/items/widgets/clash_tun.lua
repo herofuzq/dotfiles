@@ -83,6 +83,3 @@ end
 
 clash_tun:subscribe({ "routine", "system_woke" }, check_status)
 check_status()
-
-local enter_animation = require("helpers.enter_animation")
-enter_animation.register("widgets.clash_tun")

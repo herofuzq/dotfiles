@@ -2,7 +2,6 @@
 local sbar = require("sketchybar")
 local fonts = require("fonts")
 local appearance = require("appearance")
-local enter_animation = require("helpers.enter_animation")
 local timing = require("helpers.timing")
 local find_binary = require("helpers.find_binary").find
 local colors = appearance.colors
@@ -264,10 +263,3 @@ sbar.exec('"' .. MEDIA .. '" get 2>/dev/null', function(info)
 	apply_state(info, false)
 end)
 
--- media_label 创建时就有默认内容("未播放"+ 图标),drawing 默认 on,
--- 实际是"立即可见"的 item,需要登记走渐入。
--- update_label 第一次调用时不要动 y_offset,留给 enter_animation。
-enter_animation.register("widgets.media_label")
-enter_animation.register("widgets.media_previous")
-enter_animation.register("widgets.media_play_pause")
-enter_animation.register("widgets.media_next")

@@ -15,10 +15,10 @@ require("bar")
 require("items")
 sbar.end_config()
 
--- Bar 恢复到目标颜色
+-- 必须在 end_config 之后：按 bar 最终状态 query 快照，再 alpha 渐入
+-- （此时 social/system bracket 的 sbar.set 补丁已经生效）
+enter_animation.prepare()
 enter_animation.run_bar()
-
--- Item 恢复可见
 enter_animation.run()
 
 -- 启动事件循环（必须！否则所有回调函数不会执行）

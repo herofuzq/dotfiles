@@ -3,7 +3,6 @@ local sbar = require("sketchybar")
 local fonts = require("fonts")
 local appearance = require("appearance")
 local popup_animation = require("helpers.popup_animation")
-local enter_animation = require("helpers.enter_animation")
 local colors = appearance.colors
 
 local cal = sbar.add("item", "calendar", {
@@ -167,5 +166,3 @@ cal:subscribe(
 		end
 	end
 )
-
-enter_animation.register("calendar")

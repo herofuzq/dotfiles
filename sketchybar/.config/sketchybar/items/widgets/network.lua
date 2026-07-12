@@ -4,7 +4,6 @@ local icons = require("icons")
 local fonts = require("fonts")
 local appearance = require("appearance")
 local parsers = require("helpers.widget_parsers")
-local enter_animation = require("helpers.enter_animation")
 local find_binary = require("helpers.find_binary").find
 local colors = appearance.colors
 local NETWORK_SAMPLE_INTERVAL = 3
@@ -281,5 +280,3 @@ sbar.add("item", "widgets.system_bracket_spacer", {
 	background = { drawing = false },
 })
 
-enter_animation.register("widgets.network_up")
-enter_animation.register("widgets.network_down")

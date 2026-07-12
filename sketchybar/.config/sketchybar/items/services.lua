@@ -195,17 +195,8 @@ local function feedback(item, c)
 	end)
 end
 
-for _, entry in ipairs(actions_list) do
-	local e = entry
-	entry.row:subscribe("mouse.clicked", function()
-		local c = (BTN[e.action] or BTN.start).color
-		feedback(e.row, c)
-		status_row:set({ drawing = true, label = { string = e.action .. " " .. target_name(e) .. "...", color = colors.yellow } })
-		sbar.exec(cmd(e), function() refresh() end)
-	end)
-end
-
 -- ========== 状态刷新 ==========
+-- 必须先于按钮 subscribe 定义 refresh，否则闭包会解析到全局 nil refresh。
 local popup_pinned = false; local popup_hovering = false; local popup_exit_gen = 0
 local inflight = false; local pending = false
 
@@ -288,6 +279,16 @@ local function refresh()
 	end)
 end
 
+for _, entry in ipairs(actions_list) do
+	local e = entry
+	entry.row:subscribe("mouse.clicked", function()
+		local c = (BTN[e.action] or BTN.start).color
+		feedback(e.row, c)
+		status_row:set({ drawing = true, label = { string = e.action .. " " .. target_name(e) .. "...", color = colors.yellow } })
+		sbar.exec(cmd(e), function() refresh() end)
+	end)
+end
+
 -- ========== hover ==========
 local function show()
 	popup_exit_gen = popup_exit_gen + 1; refresh()
@@ -319,6 +320,3 @@ refresh()
 
 -- 覆盖 popup 行高（bar 默认 ~29px 钳制了 popup item 高度）
 services_item:set({ popup = { height = 16 } })
-
-local enter_animation = require("helpers.enter_animation")
-enter_animation.register(item_name)
