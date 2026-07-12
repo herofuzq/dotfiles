@@ -35,7 +35,7 @@ When debugging live behavior, inspect `~/.config/sketchybar` first. Source edits
 | `install()` | `enter_animation` | Before `begin_config`, wrap `sbar.add` and record main-bar item names (skip popup rows) |
 | `prepare()` | same | After `end_config`, `sketchybar --query` **only tracked names**; set drawing-on icon/label/`geometry.background` to alpha 0 (bar still hidden) |
 | `run_bar()` | same | **Instant** unhide + final height/color/border (not a color-alpha animation) |
-| `run()` | same | Single linear alpha animate for all snapped items (~500ms) |
+| `run()` | same | Single linear alpha animate for all snapped items (~300ms) |
 
 - Item fade only: no `y_offset`, no stagger, does not force `drawing=true`.
 - Popup rows are skipped (`position` starts with `popup`, or names containing `popup` / calendar grid / sys process rows).
@@ -190,7 +190,7 @@ helper 的编译产物不进 git，而是在实际运行路径里生成，例如
 | `install()` | `enter_animation` | `begin_config` 前劫持 `sbar.add`，只登记主条 item 名（跳过 popup） |
 | `prepare()` | 同上 | `end_config` 后 **只 query 已登记名**；对 drawing=on 的 icon/label/`geometry.background` 设 alpha=0（bar 仍 hidden） |
 | `run_bar()` | 同上 | **瞬时** unhide + 最终 height/color/border（不是 color alpha 动画） |
-| `run()` | 同上 | 所有快照 item 一次 linear alpha 渐入（约 500ms） |
+| `run()` | 同上 | 所有快照 item 一次 linear alpha 渐入（约 300ms） |
 
 - 仅 item 走颜色 alpha：不改 `y_offset`、不做 stagger、不强行 `drawing=true`。
 - 跳过 popup 行（`position` 以 `popup` 开头，或名称含 `popup` / 月历格 / sys 进程行）。

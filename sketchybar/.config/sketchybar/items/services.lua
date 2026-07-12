@@ -197,7 +197,8 @@ end
 
 -- ========== 状态刷新 ==========
 -- 必须先于按钮 subscribe 定义 refresh，否则闭包会解析到全局 nil refresh。
-local popup_pinned = false; local popup_hovering = false; local popup_exit_gen = 0
+local popup_utils = require("helpers.popup_utils")
+local popup_state = popup_utils.new_state()
 local inflight = false; local pending = false
 
 local function count_color(status, running, total)
@@ -289,31 +290,31 @@ for _, entry in ipairs(actions_list) do
 	end)
 end
 
--- ========== hover ==========
+-- ========== hover（与 battery/calendar 共用 popup_utils）==========
 local function show()
-	popup_exit_gen = popup_exit_gen + 1; refresh()
+	popup_state.exit_gen = popup_state.exit_gen + 1
+	refresh()
 	services_anim:show()
 end
 local function hide()
 	services_anim:hide_async()
 end
 local function schedule_hide()
-	if popup_pinned then return end
-	popup_exit_gen = popup_exit_gen + 1; local g = popup_exit_gen
-	sbar.delay(timing.POPUP_HIDE_DELAY_S, function()
-		if popup_exit_gen ~= g or popup_hovering or popup_pinned then return end
-		hide()
-	end)
+	popup_utils.schedule_hide(popup_state, hide)
 end
 
 services_item:subscribe("mouse.entered", show)
 services_item:subscribe("mouse.exited", schedule_hide)
-services_item:subscribe("mouse.clicked", function() popup_pinned = not popup_pinned; if popup_pinned then show() else hide() end end)
+services_item:subscribe("mouse.clicked", function()
+	popup_state.pinned = not popup_state.pinned
+	if popup_state.pinned then
+		show()
+	else
+		hide()
+	end
+end)
 
-for _, r in ipairs(hover_items) do
-	r:subscribe("mouse.entered", function() popup_exit_gen = popup_exit_gen + 1; popup_hovering = true end)
-	r:subscribe("mouse.exited", function() popup_hovering = false; schedule_hide() end)
-end
+popup_utils.bind_popup_hover(hover_items, popup_state, schedule_hide)
 
 services_item:subscribe({ "services_change", "system_woke" }, refresh)
 refresh()

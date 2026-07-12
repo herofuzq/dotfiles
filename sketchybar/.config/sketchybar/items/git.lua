@@ -3,7 +3,6 @@ local appearance = require("appearance")
 local popup_animation = require("helpers.popup_animation")
 local icons = require("icons")
 local fonts = require("fonts")
-local timing = require("helpers.timing")
 local shell_quote = require("helpers.utils").shell_quote
 local find_binary = require("helpers.find_binary").find
 local config = require("helpers.git.config")
@@ -153,32 +152,33 @@ local function refresh()
 	end)
 end
 
-local popup_pinned = false; local popup_hovering = false; local popup_exit_gen = 0
+local popup_utils = require("helpers.popup_utils")
+local popup_state = popup_utils.new_state()
 
 local function show()
-	popup_exit_gen = popup_exit_gen + 1; refresh()
+	popup_state.exit_gen = popup_state.exit_gen + 1
+	refresh()
 	git_anim:show()
 end
 local function hide()
 	git_anim:hide_async()
 end
 local function schedule_hide()
-	if popup_pinned then return end
-	popup_exit_gen = popup_exit_gen + 1; local g = popup_exit_gen
-	sbar.delay(timing.POPUP_HIDE_DELAY_S, function()
-		if popup_exit_gen ~= g or popup_hovering or popup_pinned then return end
-		hide()
-	end)
+	popup_utils.schedule_hide(popup_state, hide)
 end
 
 git_item:subscribe("mouse.entered", show)
 git_item:subscribe("mouse.exited", schedule_hide)
-git_item:subscribe("mouse.clicked", function() popup_pinned = not popup_pinned; if popup_pinned then show() else hide() end end)
+git_item:subscribe("mouse.clicked", function()
+	popup_state.pinned = not popup_state.pinned
+	if popup_state.pinned then
+		show()
+	else
+		hide()
+	end
+end)
 
-for _, r in ipairs(hover_items) do
-	r:subscribe("mouse.entered", function() popup_exit_gen = popup_exit_gen + 1; popup_hovering = true end)
-	r:subscribe("mouse.exited", function() popup_hovering = false; schedule_hide() end)
-end
+popup_utils.bind_popup_hover(hover_items, popup_state, schedule_hide)
 
 git_item:subscribe({ "routine", "system_woke" }, refresh)
 refresh()

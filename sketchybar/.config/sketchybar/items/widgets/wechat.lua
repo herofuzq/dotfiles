@@ -1,7 +1,7 @@
--- ========== 微信未读消息数 ==========
+-- ========== 微信未读消息数 + social bracket ==========
+-- dingtalk 须在 widgets/init.lua 里先于本文件 require。
 local sbar = require("sketchybar")
 local appearance = require("appearance")
-local colors = appearance.colors
 local status_widget = require("status_widget")
 
 status_widget({
@@ -13,23 +13,16 @@ status_widget({
 	icon_inactive_color = "green",
 	label_color = "green",
 	label_inactive_color = "text",
-})
-
--- ========== social bracket（dingtalk + wechat）==========
-sbar.set("widgets.dingtalk", {
-	background = { drawing = false },
-	padding_left = 0,
-	padding_right = 4,
-	icon = { padding_left = 0, padding_right = 2, font = "sketchybar-app-font:Regular:13.0" },
-	label = { padding_left = 2, padding_right = 2 },
-})
-sbar.set("widgets.wechat", {
-	background = { drawing = false },
+	shared_bracket = true,
 	padding_left = 4,
 	padding_right = 0,
-	icon = { padding_left = 2, padding_right = 2, font = "sketchybar-app-font:Regular:13.0" },
-	label = { padding_left = 2, padding_right = 2 },
+	icon_padding_left = 2,
+	icon_padding_right = 2,
+	icon_font = "sketchybar-app-font:Regular:13.0",
+	label_padding_left = 2,
+	label_padding_right = 2,
 })
+
 sbar.add("bracket", "widgets.social", { "widgets.dingtalk", "widgets.wechat" }, {
 	position = "right",
 	background = appearance.pill_bg(),

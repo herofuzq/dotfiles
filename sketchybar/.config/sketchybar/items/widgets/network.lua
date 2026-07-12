@@ -250,11 +250,10 @@ end)
 
 update_network(true)
 
--- ========== system bracket（clash_tun + network）==========
--- widget.clash_tun 在 clash_tun.lua 创建，此处覆写其 background + padding
--- 使 clash_tun 和 network_up/down 共享同一个 system bracket 背景。
--- 此耦合依赖 widgets/init.lua 的 require 顺序：clash_tun 在 network 之前加载。
-sbar.set("widgets.clash_tun", { background = { drawing = false }, padding_left = 1, padding_right = 0 })
+-- ========== system bracket（clash_tun + network_up/down）==========
+-- clash_tun 在创建时已 background.drawing=false；network_up/down 同理。
+-- 依赖 widgets/init.lua：clash_tun 在 network 之前 require。
+-- widgets.network 是 up/down 的子 bracket，关掉其自身 bg，只保留 system 外层 pill。
 sbar.set("widgets.network", { background = { drawing = false } })
 sbar.add("bracket", "widgets.system", {
 	"widgets.clash_tun",
@@ -265,12 +264,8 @@ sbar.add("bracket", "widgets.system", {
 	background = appearance.pill_bg(),
 })
 
--- spacer：system bracket 与 social bracket 之间的水平间隙。
---   公式 = max(包裹item宽度) + 两侧bracket_border
---        = network_down(width=33 + padding_left=4 + icon=13 + padding_left=2 + padding_right=2 = 54) + border_left=2 + border_right=2 = 58
--- ⚠️ 脆弱点：SPACER_WIDTH 硬编码，依赖 network_down 的 font-size / icon-size / padding 和 bracket border_width。
---   改 network_down 字体/宽度或 appearance.pill_bg() 的 border_width 时，必须同步更新此值。
---   暂不改动（纯视觉间距问题，动态化引入复杂度 > 收益），保留现状并加注释。
+-- spacer：system bracket 与 social bracket 之间的水平间隙（硬编码，改 network 字号/padding 时需同步）。
+-- 公式约 = network_down 可视宽度 + system bracket 左右 border。
 local SPACER_WIDTH = 58
 sbar.add("item", "widgets.system_bracket_spacer", {
 	position = "right",

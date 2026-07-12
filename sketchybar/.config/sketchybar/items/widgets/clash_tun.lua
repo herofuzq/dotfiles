@@ -1,10 +1,8 @@
 -- ========== Clash TUN 代理状态 ==========
--- background 由 network.lua 统一管理（widgets.system bracket）。
--- 这里设置的 background 在 network.lua 加载后被 drawing=false 覆盖，
--- 仅作为 network.lua 尚未 require 时的 fallback 初始值。
+-- 自身不画 pill；背景由 network.lua 的 widgets.system bracket 统一提供。
+-- 须在 widgets/init.lua 里先于 network 加载。
 local sbar = require("sketchybar")
 local icons = require("icons")
-local fonts = require("fonts")
 local appearance = require("appearance")
 local colors = appearance.colors
 local settings = require("settings")
@@ -12,8 +10,8 @@ local settings = require("settings")
 local clash_tun = sbar.add("item", "widgets.clash_tun", {
 	position = "right",
 	update_freq = 30, -- 与其他外部轮询错峰
-	padding_left = 0,
-	padding_right = 2,
+	padding_left = 1,
+	padding_right = 0,
 	icon = {
 		font = appearance.font_icon_bold(),
 		padding_left = 2,
@@ -26,7 +24,7 @@ local clash_tun = sbar.add("item", "widgets.clash_tun", {
 		padding_right = settings.item_padding.icon_label_item.label.padding_right,
 		color = colors.pill_fg,
 	},
-	background = appearance.pill_bg(),
+	background = { drawing = false },
 })
 
 local function color_for(state)

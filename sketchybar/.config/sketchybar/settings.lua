@@ -7,16 +7,6 @@
 --                      实现"鼠标接近顶部自动显示 / 远离自动隐藏"bar 的行为
 local tmp_path = require("helpers.utils").tmp_path
 local BAR_HEIGHT_CACHE = tmp_path("sketchybar_bar_height.cache")
-local TOGGLE_PIDNAME = "sketchybar_toggle.pid"
-local TOGGLE_CONFIGNAME = "sketchybar_toggle.config"
-local TOGGLE_TRIGGER_ZONE = 2
-local TOGGLE_DEBOUNCE_MS = 150
-
--- sketchybar-toggle 总开关：永久禁用。
--- 早期试验过 mouse-triggered auto-hide，体验不如预期，决定关闭。
--- false 时 ensure_toggle() 立即返回,不会启动新 toggle,也不会清理已运行的 toggle
--- （如需立即停掉正在跑的 toggle,手动 `pkill -x sketchybar-toggle`）
-local TOGGLE_ENABLED = false
 
 local shell_quote = require("helpers.utils").shell_quote
 
@@ -103,38 +93,9 @@ local function detect_dock_width()
 	return fallback, 0, 0
 end
 
-local function ensure_toggle(bar_height)
-	if not TOGGLE_ENABLED then
-		return
-	end
-	bar_height = math.floor(tonumber(bar_height) or 0)
-	if bar_height <= 0 then
-		return
-	end
-
-	local menu_bar_height = bar_height + 5
-	local signature = string.format("%d:%d:%d", TOGGLE_TRIGGER_ZONE, menu_bar_height, TOGGLE_DEBOUNCE_MS)
-	local command = table.concat({
-		'pidfile="${TMPDIR:-/tmp}/' .. TOGGLE_PIDNAME .. '"',
-		'configfile="${TMPDIR:-/tmp}/' .. TOGGLE_CONFIGNAME .. '"',
-		'expected="' .. signature .. '"',
-		'old="$(cat "$pidfile" 2>/dev/null)"',
-		'case "$old" in ""|*[!0-9]*) old="" ;; esac',
-		'current="$(cat "$configfile" 2>/dev/null)"',
-		'is_toggle() { [ -n "$old" ] && ps -p "$old" -o args= 2>/dev/null | grep -Fq "sketchybar-toggle --trigger-zone"; }',
-		'if is_toggle && [ "$current" = "$expected" ]; then exit 0; fi',
-		'if is_toggle; then kill "$old" 2>/dev/null; else pkill -x sketchybar-toggle 2>/dev/null; fi',
-		string.format(
-			"sketchybar-toggle --trigger-zone %d --menu-bar-height %d --debounce %d >/dev/null 2>&1 &",
-			TOGGLE_TRIGGER_ZONE,
-			menu_bar_height,
-			TOGGLE_DEBOUNCE_MS
-		),
-		'echo $! > "$pidfile"',
-		'printf %s "$expected" > "$configfile"',
-	}, "\n")
-	os.execute(command)
-end
+-- 曾试验 sketchybar-toggle 鼠标靠近自动显隐 bar，体验不佳后永久关闭。
+-- 保留 no-op 入口，避免 display_sync 等调用方报错；需要时再恢复实现。
+local function ensure_toggle(_bar_height) end
 
 return {
 	height = detect_bar_height(),
