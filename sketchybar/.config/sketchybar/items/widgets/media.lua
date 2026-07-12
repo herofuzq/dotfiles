@@ -4,14 +4,17 @@ local fonts = require("fonts")
 local appearance = require("appearance")
 local timing = require("helpers.timing")
 local find_binary = require("helpers.find_binary").find
+local shell_quote = require("helpers.utils").shell_quote
 local colors = appearance.colors
 
--- 保留历史 fallback 行为：找不到时返回 Apple Silicon 路径
--- (Intel mac 上这个 fallback 是错的，但属于已知行为，未来如要修请单独评估)
+-- 找不到则回退 PATH 上的 media-control（避免写死 /opt/homebrew 在 Intel 上指错）
 local MEDIA = find_binary(
 	{ "/opt/homebrew/bin/media-control", "/usr/local/bin/media-control" },
-	"/opt/homebrew/bin/media-control"
+	"media-control"
 )
+local function media_exec(args_suffix, callback)
+	sbar.exec(shell_quote(MEDIA) .. " " .. args_suffix, callback)
+end
 
 -- Nerd Font 媒体控制图标
 local ICON_PLAY = "\u{f04b}"
@@ -124,7 +127,7 @@ local function refresh(env)
 		apply_state(info, true)
 		return
 	end
-	sbar.exec('"' .. MEDIA .. '" get 2>/dev/null', function(info)
+	media_exec("get 2>/dev/null", function(info)
 		apply_state(info, true)
 	end)
 end
@@ -201,14 +204,14 @@ end
 -- 按钮按下立即切换图标，消除 shell click_script 的延迟
 next_item:subscribe("mouse.clicked", function()
 	press_feedback(next_item)
-	sbar.exec('"' .. MEDIA .. '" next-track', function()
+	media_exec("next-track", function()
 		schedule_fallback_refresh()
 	end)
 end)
 
 previous_item:subscribe("mouse.clicked", function()
 	press_feedback(previous_item)
-	sbar.exec('"' .. MEDIA .. '" previous-track', function()
+	media_exec("previous-track", function()
 		schedule_fallback_refresh()
 	end)
 end)
@@ -222,7 +225,7 @@ play_pause:subscribe("mouse.clicked", function()
 	-- 否则 media_update 事件在 toggle 完成前触发时可能用旧状态覆盖乐观值，
 	-- 导致 icon 闪回旧图标再切回新图标（肉眼可见 flicker）。
 	play_pause:set({ icon = { string = optimistic_playing and ICON_PAUSE or ICON_PLAY } })
-	sbar.exec('"' .. MEDIA .. '" toggle-play-pause', function()
+	media_exec("toggle-play-pause", function()
 		schedule_fallback_refresh()
 	end)
 end)
@@ -259,7 +262,7 @@ label = sbar.add("item", "widgets.media_label", {
 label:subscribe("media_update", refresh)
 
 -- 初始查询：reload 后首次显示（不恢复轮询）
-sbar.exec('"' .. MEDIA .. '" get 2>/dev/null', function(info)
+media_exec("get 2>/dev/null", function(info)
 	apply_state(info, false)
 end)
 

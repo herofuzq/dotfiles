@@ -161,6 +161,9 @@ local refresh_generation = 0
 local display_sync_generation = 0
 local window_snapshot = {}
 local snapshot_generation = 0   -- 窗口快照版本号，用于 popup 数据缓存去重
+-- AeroSpace 不可用时 snapshot 会 5s 超时；限制 stderr 刷屏（首败 + 之后每 60s 最多一条）
+local snapshot_fail_streak = 0
+local last_snapshot_timeout_log = 0
 
 -- ========== 公共排序：按创建时间倒序 ==========
 -- 注意：
@@ -201,11 +204,21 @@ local function withWindows(f)
 		end
 	end
 
-	-- 超时保护：若 sbar.exec 回调丢失，5s 后强制完成，避免 refresh_in_flight 永久卡住
+	-- 超时保护：若 sbar.exec 回调丢失/AeroSpace 挂掉，5s 后强制完成，避免 refresh_in_flight 卡住。
+	-- 与 check_done 共用 completed；超时后仍可能有晚到的 exec 回调，但不会再次调 f。
 	sbar.delay(5.0, function()
 		if not completed then
 			completed = true
-			io.stderr:write("sketchybar: workspace snapshot timed out (5s), using partial/previous data\n")
+			snapshot_fail_streak = snapshot_fail_streak + 1
+			local now = os.time()
+			if snapshot_fail_streak <= 1 or (now - last_snapshot_timeout_log) >= 60 then
+				last_snapshot_timeout_log = now
+				io.stderr:write(
+					"sketchybar: workspace snapshot timed out (5s), using partial/previous data"
+						.. (snapshot_fail_streak > 1 and (" [streak=" .. snapshot_fail_streak .. "]") or "")
+						.. "\n"
+				)
+			end
 			f(results)
 		end
 	end)
@@ -221,6 +234,7 @@ local function withWindows(f)
 			return
 		end
 		results.snapshot_ok = true
+		snapshot_fail_streak = 0
 		local processed_windows = {} -- 去重用：记录已处理的窗口 ID
 
 		for _, entry in ipairs(workspace_and_windows) do
@@ -899,9 +913,8 @@ sbar.exec(":", function()
 		scheduleUpdateWindows(delay)
 	end)
 
-	-- 主条只高亮工作区段，不做「当前 focus 窗口 → app 图标」高亮。
-	-- 因此不订阅 window_focus_change（重画同一串图标无可见效果）。
-	-- fullscreen 变化由 aerospace_watch diff 后触发 `aerospace_fullscreen_change`。
+	-- fullscreen 变化由 aerospace_watch 在 focus/workspace 等事件后 diff，触发 aerospace_fullscreen_change。
+	-- 不再使用 window_focus_change（主条只高亮工作区段）。
 
 	-- 显示器变化：同步 bar、自动显隐区域与工作区所属屏幕。
 	-- system_woke 不直接触发，避免睡眠唤醒但显示器未变化时整组 workspace 重绘。

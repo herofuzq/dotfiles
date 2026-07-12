@@ -336,15 +336,8 @@ func handleEvent(_ json: [String: Any]) {
         scheduleFullscreenStateCheck()
 
     case "focus-changed":
-        guard let windowId = stringValue(json["windowId"]) else { return }
-        var fields = [
-            "FOCUSED_WINDOW_ID": windowId,
-            "SOURCE": "aerospace_watch",
-        ]
-        if let workspace = stringValue(json["workspace"]) {
-            fields["FOCUSED_WORKSPACE"] = workspace
-        }
-        trigger("window_focus_change", fields: fields)
+        // Lua no longer subscribes to window_focus_change (bar only highlights
+        // workspace segments). Still run fullscreen diff: focus can change FS state.
         scheduleFullscreenStateCheck()
 
     case "mode-changed":

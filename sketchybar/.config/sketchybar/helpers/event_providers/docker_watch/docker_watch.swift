@@ -75,7 +75,7 @@ func runEventsOnce() {
         sleep(5)
         return
     }
-    scheduleTrigger()
+    // 仅在有真实 container event 或 stream 结束时 refresh；不在 stream 刚启动时空刷一次
     task.waitUntilExit()
     pipe.fileHandleForReading.readabilityHandler = nil
     scheduleTrigger()

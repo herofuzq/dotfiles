@@ -76,17 +76,25 @@ Snapshot must run **after** `end_config` because some widgets `sbar.set` backgro
 | `helpers/event_providers/docker_watch/` | Docker events → `services_change` |
 | `helpers/event_providers/input_method/` | Input-method watcher |
 | `helpers/event_providers/media_watch/` | `media-control stream` watcher |
-| `helpers/event_providers/cpu_load/` | CPU percentage event provider |
-| `helpers/event_providers/sys_watch/` | System sensors while sys popup is open |
+| `helpers/event_providers/cpu_load/` | CPU % (host_statistics); started from `sys.lua` with pidfile |
+| `helpers/event_providers/sys_watch/` | System sensors while sys popup is open (on-demand from `sys.lua`) |
 | `helpers/bar_height/` | Native bar-height helper |
 | `helpers/dock_width/` | Native Dock-width helper for Apple item spacing |
+
+### Process lifecycle (who starts / who kills)
+
+| Process | How it starts | How it stops / restarts |
+|---------|---------------|-------------------------|
+| `sketchybar` | brew service / manual / login | `sketchybar --reload` restarts the Lua config process |
+| `aerospace_watch`, `docker_watch`, `input_method_watch`, `media_watch` | launchd LaunchAgents (`KeepAlive`) | `helpers/init.lua` `launchctl kickstart` only for binaries whose mtime changed after `make` |
+| `cpu_load` | `items/widgets/sys.lua` on config load (pidfile under `$TMPDIR`) | killed/replaced on next reload of `sys.lua` |
+| `sys_watch` | only while sys popup is open | stopped in popup `on_hidden` |
 
 ### Desktop Event Flow
 
 | Producer | Event | Consumer | Purpose |
 |----------|-------|----------|---------|
 | `aerospace_watch` | `aerospace_workspace_change` | `items/spaces.lua` | Update focused workspace cache and segment border (no full window query) |
-| `aerospace_watch` | `window_focus_change` | _(unused)_ | Still emitted; bar only highlights the **workspace segment**, not the focused app icon |
 | SketchyBar | `space_windows_change` | `items/spaces.lua` | Refresh full window snapshot after native window create/destroy |
 | `aerospace_watch` | `space_windows_change` | `items/spaces.lua` | Refresh after AeroSpace reports a newly detected window |
 | `aerospace_watch` | `aerospace_fullscreen_change` | `items/spaces.lua` | Full snapshot + fullscreen mark on the workspace number |
@@ -232,17 +240,25 @@ helper 的编译产物不进 git，而是在实际运行路径里生成，例如
 | `helpers/event_providers/docker_watch/` | Docker events → `services_change` |
 | `helpers/event_providers/input_method/` | 原生输入法监听 |
 | `helpers/event_providers/media_watch/` | `media-control stream` 监听 |
-| `helpers/event_providers/cpu_load/` | CPU 百分比 event provider |
-| `helpers/event_providers/sys_watch/` | sys popup 打开期间的传感器 |
+| `helpers/event_providers/cpu_load/` | CPU%（host_statistics）；由 `sys.lua` 用 pidfile 拉起 |
+| `helpers/event_providers/sys_watch/` | sys popup 打开期间的传感器（按需） |
 | `helpers/bar_height/` | 原生 bar 高度 helper |
 | `helpers/dock_width/` | Apple item 用的 Dock 宽度 helper |
+
+### 进程生命周期（谁启动 / 谁杀掉）
+
+| 进程 | 如何启动 | 如何停止 / 重启 |
+|------|----------|-----------------|
+| `sketchybar` | brew service / 手动 / 登录项 | `sketchybar --reload` 重跑 Lua 配置进程 |
+| `aerospace_watch` / `docker_watch` / `input_method_watch` / `media_watch` | launchd LaunchAgents（`KeepAlive`） | `helpers/init.lua` 仅在对应 binary 重建后 `launchctl kickstart` |
+| `cpu_load` | `items/widgets/sys.lua` 加载时（pidfile 在 `$TMPDIR`） | 下次 reload `sys.lua` 时 kill 旧进程再起 |
+| `sys_watch` | 仅在 sys popup 打开期间 | popup `on_hidden` 时停止 |
 
 ### 桌面事件流
 
 | 发送方 | 事件 | 接收方 | 用途 |
 |--------|------|--------|------|
 | `aerospace_watch` | `aerospace_workspace_change` | `items/spaces.lua` | 更新焦点工作区缓存和分段边框（不做完整窗口查询） |
-| `aerospace_watch` | `window_focus_change` | （未订阅） | 仍会触发；主条只高亮**工作区段**，不按当前窗口高亮 app 图标 |
 | SketchyBar | `space_windows_change` | `items/spaces.lua` | 原生窗口创建/销毁后刷新完整窗口快照 |
 | `aerospace_watch` | `space_windows_change` | `items/spaces.lua` | AeroSpace 检测到新窗口后补一次刷新 |
 | `aerospace_watch` | `aerospace_fullscreen_change` | `items/spaces.lua` | 完整快照 + 工作区编号旁 fullscreen 标记 |

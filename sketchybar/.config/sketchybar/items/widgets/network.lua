@@ -5,6 +5,7 @@ local fonts = require("fonts")
 local appearance = require("appearance")
 local parsers = require("helpers.widget_parsers")
 local find_binary = require("helpers.find_binary").find
+local shell_quote = require("helpers.utils").shell_quote
 local colors = appearance.colors
 local NETWORK_SAMPLE_INTERVAL = 3
 local INTERFACE_REFRESH_INTERVAL = 61
@@ -158,35 +159,38 @@ local function sample_network()
 		show_unavailable()
 		return
 	end
-	sbar.exec('"' .. IFSTAT .. '" -i ' .. net_iface .. " -b 0.1 1 2>/dev/null", function(raw)
-		-- ifstat 输出 N 行 header + 1 行数据，取最后非空行避免依赖 header 行数
-		local data = ""
-		for line in (raw or ""):gmatch("[^\n]+") do
-			if #line > 0 and not line:match("^%s*$") then
-				data = line
+	sbar.exec(
+		shell_quote(IFSTAT) .. " -i " .. shell_quote(net_iface) .. " -b 0.1 1 2>/dev/null",
+		function(raw)
+			-- ifstat 输出 N 行 header + 1 行数据，取最后非空行避免依赖 header 行数
+			local data = ""
+			for line in (raw or ""):gmatch("[^\n]+") do
+				if #line > 0 and not line:match("^%s*$") then
+					data = line
+				end
 			end
-		end
-		local down_raw, up_raw = data:match("%s*(%S+)%s+(%S+)")
-		if not tonumber(down_raw) or not tonumber(up_raw) then
-			consecutive_failures = consecutive_failures + 1
-			if consecutive_failures >= MAX_CONSECUTIVE_FAILURES then
-				show_unavailable()
+			local down_raw, up_raw = data:match("%s*(%S+)%s+(%S+)")
+			if not tonumber(down_raw) or not tonumber(up_raw) then
+				consecutive_failures = consecutive_failures + 1
+				if consecutive_failures >= MAX_CONSECUTIVE_FAILURES then
+					show_unavailable()
+				end
+				return
 			end
-			return
-		end
 
-		consecutive_failures = 0
-		local up_str = "↑" .. format_speed(up_raw)
-		local down_str = "↓" .. format_speed(down_raw)
-		-- dedup: 上下行速度和上次一样就不 set
-		if up_str == last_up_str and down_str == last_down_str then
-			return
+			consecutive_failures = 0
+			local up_str = "↑" .. format_speed(up_raw)
+			local down_str = "↓" .. format_speed(down_raw)
+			-- dedup: 上下行速度和上次一样就不 set
+			if up_str == last_up_str and down_str == last_down_str then
+				return
+			end
+			last_up_str = up_str
+			last_down_str = down_str
+			up:set({ label = up_str })
+			down:set({ label = down_str })
 		end
-		last_up_str = up_str
-		last_down_str = down_str
-		up:set({ label = up_str })
-		down:set({ label = down_str })
-	end)
+	)
 end
 
 local function update_network(force_interface_check)
