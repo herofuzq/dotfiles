@@ -161,9 +161,6 @@ local refresh_generation = 0
 local display_sync_generation = 0
 local window_snapshot = {}
 local snapshot_generation = 0   -- 窗口快照版本号，用于 popup 数据缓存去重
--- AeroSpace 不可用时 snapshot 会 5s 超时；限制 stderr 刷屏（首败 + 之后每 60s 最多一条）
-local snapshot_fail_streak = 0
-local last_snapshot_timeout_log = 0
 
 -- ========== 公共排序：按创建时间倒序 ==========
 -- 注意：
@@ -188,7 +185,7 @@ local function withWindows(f)
 		open_windows = {},
 		snapshot_ok = false,
 		focused_workspace = focused_workspace_cache,
-		visible_workspaces = nil,
+		visible_workspaces = {},
 	}
 	local pending = focused_workspace_cache and 2 or 3
 	local completed = false
@@ -204,25 +201,6 @@ local function withWindows(f)
 		end
 	end
 
-	-- 超时保护：若 sbar.exec 回调丢失/AeroSpace 挂掉，5s 后强制完成，避免 refresh_in_flight 卡住。
-	-- 与 check_done 共用 completed；超时后仍可能有晚到的 exec 回调，但不会再次调 f。
-	sbar.delay(5.0, function()
-		if not completed then
-			completed = true
-			snapshot_fail_streak = snapshot_fail_streak + 1
-			local now = os.time()
-			if snapshot_fail_streak <= 1 or (now - last_snapshot_timeout_log) >= 60 then
-				last_snapshot_timeout_log = now
-				io.stderr:write(
-					"sketchybar: workspace snapshot timed out (5s), using partial/previous data"
-						.. (snapshot_fail_streak > 1 and (" [streak=" .. snapshot_fail_streak .. "]") or "")
-						.. "\n"
-				)
-			end
-			f(results)
-		end
-	end)
-
 	local get_windows =
 		"aerospace list-windows --monitor all --format '%{workspace}%{app-name}%{window-id}%{window-is-fullscreen}%{window-title}' --json"
 	local query_visible_workspaces =
@@ -234,7 +212,6 @@ local function withWindows(f)
 			return
 		end
 		results.snapshot_ok = true
-		snapshot_fail_streak = 0
 		local processed_windows = {} -- 去重用：记录已处理的窗口 ID
 
 		for _, entry in ipairs(workspace_and_windows) do

@@ -9,6 +9,7 @@ local shell_quote = require("helpers.utils").shell_quote
 local colors = appearance.colors
 local NETWORK_SAMPLE_INTERVAL = 3
 local INTERFACE_REFRESH_INTERVAL = 60
+local OFFLINE_RETRY_INTERVAL = 15
 local MAX_CONSECUTIVE_FAILURES = 2
 
 -- ========== ↑ 上传（上排，y_offset 偏下）==========
@@ -195,10 +196,10 @@ end
 
 local function update_network(force_interface_check)
 	local now = os.time()
+	local interface_refresh_interval = net_iface and INTERFACE_REFRESH_INTERVAL or OFFLINE_RETRY_INTERVAL
 	local needs_interface_check = force_interface_check
-		or not net_iface
 		or not last_interface_check
-		or now - last_interface_check >= INTERFACE_REFRESH_INTERVAL
+		or now - last_interface_check >= interface_refresh_interval
 	if not needs_interface_check then
 		sample_network()
 		return
@@ -219,7 +220,7 @@ local function update_network(force_interface_check)
 		if not interface_check_in_flight or interface_check_generation ~= generation then
 			return
 		end
-		last_interface_check = nil
+		last_interface_check = os.time()
 		interface_check_in_flight = false
 		if interface_check_pending then
 			interface_check_pending = false
