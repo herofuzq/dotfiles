@@ -979,5 +979,5 @@ sbar.exec(":", function()
 	end)
 end)
 
--- 启动渐隐由 enter_animation.install() 在 sbar.add 时自动收集；
--- spaces.root / aerospace_mode / popup 子项在 skip 名单里，不会进渐隐。
+-- 启动渐隐：init.lua 在 end_config 之后 enter_animation.prepare/run_bar/run。
+-- spaces.root / aerospace_mode / popup 子项在 enter_animation 的 skip 名单里，不参与渐隐。

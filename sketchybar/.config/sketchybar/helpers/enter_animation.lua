@@ -18,7 +18,7 @@ local find_binary = require("helpers.find_binary").find
 
 local M = {}
 
-local BAR_FADE_FRAMES = timing.ENTER_BAR_FADE_FRAMES or 30
+-- bar 当前为瞬时 unhide（见 run_bar），不用 BAR 帧数；仅 item 走 alpha animate。
 local ITEM_FADE_FRAMES = timing.ENTER_ITEM_FADE_FRAMES or 60
 local SKETCHYBAR = find_binary(
 	{ "/opt/homebrew/bin/sketchybar", "/usr/local/bin/sketchybar" },
@@ -179,7 +179,8 @@ function M.run()
 end
 
 function M.run_bar()
-	-- 配置期 bar 为 hidden；揭开时同一帧写上正确高度与最终样式。
+	-- 配置期 bar 为 hidden；此处瞬时 unhide（不是 color alpha 渐入）。
+	-- 视觉上的「渐入感」主要来自随后 run() 的 item alpha 动画。
 	-- 须在 prepare() 之后调用，避免 bar 先可见、item 仍是实色的一帧闪烁。
 	local settings = require("settings")
 	local h = settings.detect_bar_height()

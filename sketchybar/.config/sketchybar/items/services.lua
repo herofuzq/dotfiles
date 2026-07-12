@@ -82,7 +82,8 @@ local function track(item)
 	return item
 end
 
--- 文本行：树形线 + 图标 + 空格 + 文字，全在 label
+-- 文本行：树形线 + 图标字形 + 空格 + 文字，全部画在 label（等宽对齐）。
+-- 有意不用独立 icon 通道，因此 opts.icon_color 不会生效；颜色只用 label_color。
 local function text_row(key, depth, is_last, opts)
 	local prefix = tree:prefix(depth, is_last)
 	local item = track(sbar.add("item", "services.popup." .. key, {

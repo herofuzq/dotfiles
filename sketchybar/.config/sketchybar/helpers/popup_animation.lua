@@ -1,11 +1,9 @@
--- ========== Popup 弹出/收起：纯渐隐，无位移 ==========
--- 统一规范：所有内容切换动画跟随 timing.STANDARD_DURATION_FRAMES
---   - 不用 tanh：tanh 曲线在"长动画 + alpha 渐隐"场景下前 80% 时间几乎不可见，后 20% 突然"长出来"
---   - 不用 y_offset：只要渐隐感
---
--- hide 走 CLI 异步是为了避免 mouse/timer 回调里同步 parent:set 与 SketchyBar 事件互等（#794）。
--- 用 generation 协调 show/hide：若 hide CLI 完成时 generation 已变（用户又 hover 回来），
--- 则重新把 popup 打开，避免「晚到的 hide」关掉刚显示的 popup。
+-- ========== Popup 弹出/收起 ==========
+-- show：背景 color alpha 线性渐入（无 y_offset）。
+-- hide / hide_async：瞬时关闭（CLI 异步 popup.drawing=off），没有渐出动画。
+--   原因：timer/mouse 回调里同步 parent:set 可能与 SketchyBar 事件 IPC 互等（#794）。
+-- generation：hide CLI 完成时若 generation 已变（用户又 show），则把 popup 拉回，
+--   避免「晚到的 hide」关掉刚显示的 popup。on_hidden 在 hide 路径校验 generation 后触发。
 local appearance = require("appearance")
 local timing = require("helpers.timing")
 local sbar = require("sketchybar")

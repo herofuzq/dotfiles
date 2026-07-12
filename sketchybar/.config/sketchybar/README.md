@@ -23,22 +23,22 @@ When debugging live behavior, inspect `~/.config/sketchybar` first. Source edits
 
 ### How It Works
 
-1. `sketchybarrc` loads `helpers/` first (compile stale Swift/C helpers if needed, clear default bar chrome), then starts `init.lua`.
-2. `init.lua` sets the bar fully transparent, then `begin_config` → appearance defaults, `bar.lua`, `items/`.
-3. After `end_config`, `helpers/enter_animation.lua` snapshots final item colors and fades the bar + items in (color alpha only).
+1. `sketchybarrc` loads `helpers/` first (compile stale Swift/C helpers if needed; bar starts `hidden` to avoid default-height flash), then starts `init.lua`.
+2. `init.lua` runs `begin_config` → appearance defaults, `bar.lua` (still hidden), `items/`.
+3. After `end_config`, `helpers/enter_animation.lua`: `prepare` (item colors → alpha 0) → `run_bar` (instant unhide with final height/colors) → `run` (item alpha fade).
 4. `sbar.event_loop()` receives SketchyBar native events and custom triggers from helper daemons.
 
 ### Startup fade
 
 | Step | Module | Behavior |
 |------|--------|----------|
-| `prepare()` | `enter_animation` | After `end_config`, `sketchybar --query` each main-bar item; set icon/label/`geometry.background` colors to alpha 0 when those channels are drawing |
-| `run_bar()` | same | Linear fade bar background + border (~250ms) |
-| `run()` | same | Single linear animate for all snapped items (~500ms) |
+| `prepare()` | `enter_animation` | After `end_config`, `sketchybar --query` each main-bar item; set icon/label/`geometry.background` colors to alpha 0 when those channels are drawing (bar still hidden) |
+| `run_bar()` | same | **Instant** unhide + final height/color/border (not a color-alpha animation) |
+| `run()` | same | Single linear alpha animate for all snapped items (~500ms) |
 
-- No `y_offset`, no stagger delays, does not force `drawing=true`.
+- Item fade only: no `y_offset`, no stagger, does not force `drawing=true`.
 - Popup rows are skipped (`position` starts with `popup`, or names containing `popup` / calendar grid / sys process rows).
-- Timings: `helpers/timing.lua` → `ENTER_BAR_FADE_FRAMES`, `ENTER_ITEM_FADE_FRAMES`.
+- Item timing: `helpers/timing.lua` → `ENTER_ITEM_FADE_FRAMES`. `ENTER_BAR_FADE_FRAMES` is reserved if bar alpha fade is re-enabled later.
 
 Snapshot must run **after** `end_config` because some widgets `sbar.set` backgrounds after `add` (e.g. into a shared bracket). Fading from creation-time props would re-show those backgrounds.
 
@@ -175,22 +175,22 @@ helper 的编译产物不进 git，而是在实际运行路径里生成，例如
 
 ### 工作流程
 
-1. `sketchybarrc` 先加载 `helpers/`（必要时编译 helper、清掉 bar 默认红边），再进入 `init.lua`。
-2. `init.lua` 把 bar 设为全透明，然后 `begin_config` → 外观默认、`bar.lua`、`items/`。
-3. `end_config` 之后，`helpers/enter_animation.lua` 按最终 item 状态做颜色 alpha 快照，并渐入 bar 与主条 item。
+1. `sketchybarrc` 先加载 `helpers/`（必要时编译 helper；bar 先 `hidden` 避免默认高度闪一下），再进入 `init.lua`。
+2. `init.lua` 执行 `begin_config` → 外观默认、`bar.lua`（仍 hidden）、`items/`。
+3. `end_config` 之后：`prepare`（item 颜色 alpha→0）→ `run_bar`（瞬时 unhide + 最终高度/颜色）→ `run`（item alpha 渐入）。
 4. `sbar.event_loop()` 接收 SketchyBar 原生事件和 helper 守护进程的自定义 trigger。
 
 ### 启动渐隐
 
 | 步骤 | 模块 | 行为 |
 |------|------|------|
-| `prepare()` | `enter_animation` | `end_config` 后 query 主条 item；对 drawing=on 的 icon/label/`geometry.background` 设 alpha=0 |
-| `run_bar()` | 同上 | bar 背景/边框 linear 渐入（约 250ms） |
-| `run()` | 同上 | 所有快照 item 一次 linear 渐入（约 500ms） |
+| `prepare()` | `enter_animation` | `end_config` 后 query 主条 item；对 drawing=on 的 icon/label/`geometry.background` 设 alpha=0（bar 仍 hidden） |
+| `run_bar()` | 同上 | **瞬时** unhide + 最终 height/color/border（不是 color alpha 动画） |
+| `run()` | 同上 | 所有快照 item 一次 linear alpha 渐入（约 500ms） |
 
-- 不改 `y_offset`、不做 stagger、不强行 `drawing=true`。
+- 仅 item 走颜色 alpha：不改 `y_offset`、不做 stagger、不强行 `drawing=true`。
 - 跳过 popup 行（`position` 以 `popup` 开头，或名称含 `popup` / 月历格 / sys 进程行）。
-- 时长：`helpers/timing.lua` 的 `ENTER_BAR_FADE_FRAMES`、`ENTER_ITEM_FADE_FRAMES`。
+- item 时长：`helpers/timing.lua` 的 `ENTER_ITEM_FADE_FRAMES`。`ENTER_BAR_FADE_FRAMES` 留给以后若恢复 bar alpha 渐入。
 
 必须在 **end_config 之后** snapshot：部分 widget 会在 `add` 后再 `sbar.set` 关掉 background 以并入 bracket；用创建时 props 渐入会把背景错误地画回来。
 
@@ -304,4 +304,4 @@ launchctl print gui/$(id -u)/com.fuzhuoqun.aerospace_watch
 sketchybar --reload
 ```
 
-渐入快慢：改 `helpers/timing.lua` 里的 `ENTER_BAR_FADE_FRAMES` / `ENTER_ITEM_FADE_FRAMES`。
+item 渐入快慢：改 `helpers/timing.lua` 里的 `ENTER_ITEM_FADE_FRAMES`（bar 当前为瞬时 unhide，不读 `ENTER_BAR_FADE_FRAMES`）。

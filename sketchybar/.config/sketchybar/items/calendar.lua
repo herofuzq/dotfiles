@@ -76,7 +76,7 @@ for i = 1, CAL_LINES do
 	})
 	cal_items[i] = item
 end
-	popup_utils.bind_popup_hover(cal_items, popup_state, scheduleHide)
+popup_utils.bind_popup_hover(cal_items, popup_state, scheduleHide)
 
 local function updatePopupContent()
 	local t = os.date("*t")
