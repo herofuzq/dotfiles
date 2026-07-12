@@ -329,6 +329,7 @@ run = ["layout floating",
 [[on-window-detected]]
 if = """test %{app-bundle-id} = com.microsoft.edgemac || \
         test %{app-bundle-id} = com.brave.Browser || \
+        test %{app-bundle-id} = com.google.Chrome || \
         test %{app-bundle-id} = app.zen-browser.zen || \
         test %{app-bundle-id} = com.kagi.kagimacOS || \
         test %{app-bundle-id} = net.imput.helium"""
