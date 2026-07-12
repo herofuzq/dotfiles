@@ -244,8 +244,12 @@ local function apply_status(output)
 		end
 	end
 
-	local c = count_color(sum.status, sum.running, sum.total)
-	services_item:set({ icon = { color = c }, label = { string = tostring(sum.running), color = c } })
+	local icon_color = sum.status == "error" and colors.red or colors.green
+	local count_color_value = count_color(sum.status, sum.running, sum.total)
+	services_item:set({
+		icon = { color = icon_color },
+		label = { string = tostring(sum.running), color = count_color_value },
+	})
 
 	for gid, g in pairs(grps) do
 		local entry = text_rows["group." .. gid]
