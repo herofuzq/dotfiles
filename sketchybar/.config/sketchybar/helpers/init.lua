@@ -1,6 +1,10 @@
 -- ========== Helper 二进制编译管理 ==========
--- 启动时检查 helpers/event_providers/ 下各 Swift/C helper 源码是否比编译产物新，
--- 是的话跑 make 重建。bin/ 不在 dotfiles 里 stow（避免每次 make 都触发 git diff）。
+-- 启动时检查 helpers 下 Swift/C 源码是否比 bin/ 产物新，是则在 **CONFIG_DIR** 下 make。
+--
+-- 重要：产物必须写在 ~/.config/sketchybar/helpers/**/bin/（运行目录）。
+-- 不要在 ~/dotfiles/... 树里 make——那会生成第二份 gitignored 的 bin/，
+-- launchd 仍执行 $HOME/.config/.../bin/，等于没更新运行中的 daemon。
+-- 详见 README「Pitfall — helper bin/」。
 
 local home = os.getenv("HOME")
 local config_dir = os.getenv("CONFIG_DIR") or (home and (home .. "/.config/sketchybar")) or "."

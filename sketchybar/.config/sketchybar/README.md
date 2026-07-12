@@ -45,6 +45,22 @@ Snapshot must run **after** `end_config` because some widgets `sbar.set` backgro
 
 **Pitfall — wrapping `sbar.add`:** always forward with `raw_add(...)`. Never call `raw_add(kind, name, props, nil)` for a 3-arg `add("item", name, props)`. Passing an explicit `nil` 4th argument makes SbarLua mis-parse the call (treats it like a 4-arg form); popup items can lose `position = "popup.…"` and appear as normal bar items (Docker/Git popup rows flooding the bar). The `install()` wrapper uses varargs on purpose.
 
+**Pitfall — helper `bin/` lives only under the live config dir, not in the git tree:**
+
+| Path | Role |
+|------|------|
+| `~/dotfiles/sketchybar/...` (repo) | Source: `.lua`, `.swift`, `makefile`, plists (stowed as symlinks) |
+| `~/.config/sketchybar` (runtime) | What SketchyBar / launchd actually run; `CONFIG_DIR` points here |
+| `~/.config/sketchybar/helpers/**/bin/` | **Compiled binaries only here** (gitignore `bin`; stow does not manage them) |
+
+- Makefiles write to relative `bin/` based on **cwd**. They are not “wrong files”; the bug is running `make` in the **repo** path.
+- Correct builds:
+  - preferred: `sketchybar --reload` → `helpers/init.lua` does `cd $CONFIG_DIR/helpers && make` when sources are newer than binaries;
+  - manual: `cd ~/.config/sketchybar/helpers && make` (or `make -C ~/.config/sketchybar/helpers/event_providers/<name>`).
+- **Wrong:** `make -C ~/dotfiles/sketchybar/.config/sketchybar/helpers/...` — creates a **second** `bin/` under the repo tree. That binary is **not** what launchd loads (`exec $HOME/.config/sketchybar/helpers/.../bin/...`).
+- If `bin/` exists under the **dotfiles** checkout, treat it as a mistake: delete those `helpers/**/bin` dirs (they are gitignored) and rebuild under `~/.config`.
+- After editing Swift/C: confirm `ls -l ~/.config/sketchybar/helpers/**/bin/` mtimes, then `launchctl kickstart -k gui/$(id -u)/com.fuzhuoqun.<agent>` if needed.
+
 ### File Map
 
 | Path | Purpose |
@@ -208,6 +224,22 @@ helper 的编译产物不进 git，而是在实际运行路径里生成，例如
 
 **坑：包装 `sbar.add` 时必须用 `raw_add(...)` 原样转发。**  
 不要对 3 参数的 `add("item", name, props)` 写成 `raw_add(kind, name, props, nil)`。多传的 `nil` 会让 SbarLua 按 4 参形态误解析，popup item 的 `position = "popup.…"` 丢失，Docker/Git 等 popup 行会整排铺到主条上。`install()` 故意用可变参数 `...`，改这段时务必保留。
+
+**坑：helper 的 `bin/` 只应出现在运行目录，不应出现在 dotfiles 仓库树里。**
+
+| 路径 | 角色 |
+|------|------|
+| `~/dotfiles/sketchybar/...`（仓库） | 源码：`.lua` / `.swift` / `makefile` / plist（stow 成 symlink） |
+| `~/.config/sketchybar`（运行） | SketchyBar / launchd 实际使用；`CONFIG_DIR` 指向这里 |
+| `~/.config/sketchybar/helpers/**/bin/` | **编译产物只放这里**（`.gitignore` 的 `bin`；stow 不管） |
+
+- makefile 里是相对路径 `bin/`，跟 **当前 cwd** 走，不是 makefile「写错路径」。
+- 正确编译：
+  - 推荐：`sketchybar --reload` → `helpers/init.lua` 在 binary 过期时 `cd $CONFIG_DIR/helpers && make`；
+  - 手动：`cd ~/.config/sketchybar/helpers && make`。
+- **错误：** `make -C ~/dotfiles/sketchybar/.config/sketchybar/helpers/...` — 会在**仓库树**下再生成一份 `bin/`，launchd 仍加载 `$HOME/.config/.../bin/...`，改了等于白改。
+- 若在 **dotfiles 检出目录**里看到 `helpers/**/bin`：当作误编译，删掉这些目录（本来就不进 git），再到 `~/.config` 下重编。
+- 改 Swift/C 后：看 `~/.config/sketchybar/helpers/**/bin/` 的 mtime，必要时 `launchctl kickstart -k gui/$(id -u)/com.fuzhuoqun.<agent>`。
 
 ### 文件地图
 
