@@ -167,13 +167,22 @@ function M.run()
 end
 
 function M.run_bar()
-	sbar.animate("linear", BAR_FADE_FRAMES, function()
-		sbar.bar({
-			color = appearance.colors.bar_bg,
-			border_color = appearance.colors.border,
-			border_width = 2,
-		})
-	end)
+	-- 配置期 bar 为 hidden + height=0；揭开时同一帧写上正确高度与最终样式，
+	-- 避免「先以默认/错误高度显示，再被改高」的二次跳变。
+	local settings = require("settings")
+	local h = settings.detect_bar_height()
+	if h and h > 0 then
+		settings.height = h
+	end
+	sbar.bar({
+		hidden = "off",
+		height = settings.height,
+		color = appearance.colors.bar_bg,
+		border_color = appearance.colors.border,
+		border_width = 2,
+		blur_radius = 15,
+	})
 end
+
 
 return M

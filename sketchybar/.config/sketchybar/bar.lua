@@ -4,12 +4,13 @@ local settings = require("settings")
 local sbar = require("sketchybar")
 
 sbar.bar({
-	-- 初始完全透明:reload 时如果遇到 internal default fallback 窗口,
-	-- bar 不会用一个不对的灰色短暂显示,而是直接是透明的,看不到任何东西。
-	-- 颜色和边框由 enter_animation.run_bar() 渐入到目标值。
-	color = appearance.with_alpha(appearance.colors.bar_bg, 0),
+	-- 配置期保持 hidden；高度先写对（仍不可见），揭开时 run_bar 会再确认一次。
+	-- 不用默认高度，避免 unhide 瞬间用错 height。
+	hidden = "on",
+	color = 0x00000000,
 	border_width = 0,
-	border_color = appearance.with_alpha(appearance.colors.border, 0),
+	border_color = 0x00000000,
+	blur_radius = 0,
 	margin = 4,
 	corner_radius = 12,
 	height = settings.height,
@@ -19,5 +20,4 @@ sbar.bar({
 	topmost = "window",
 	position = "top",
 	shadow = "off",
-	blur_radius = 15,
 })

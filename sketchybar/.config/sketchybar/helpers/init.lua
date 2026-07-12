@@ -12,14 +12,16 @@ if home then
 	package.cpath = package.cpath .. ";" .. home .. "/.local/share/sketchybar_lua/?.so"
 end
 
--- 立即加载 sketchybar 并把 bar 设为完全透明:
--- sketchybarrc 启动时(冷启动)到 init.lua 跑之间有一段 ~100ms 窗口,
--- bar 默认会用 internal default (红色边框纯黑) 显示。
--- 在 helpers init 阶段(最早的代码)就把它设成透明,缩短 default 状态窗口。
+-- 最早把 bar 藏起来，并把 height 压到 0：
+-- reload 后 internal default 常用错误高度（如 25/32）先画一帧，再被配置改掉，
+-- 看起来就是「先闪一条高度不对的 bar」。hidden + height=0 把这条默认条掐掉。
 require("sketchybar").bar({
+	hidden = "on",
+	height = 0,
 	color = 0x00000000,
 	border_color = 0x00000000,
 	border_width = 0,
+	blur_radius = 0,
 })
 
 local shell_quote = require("helpers.utils").shell_quote
