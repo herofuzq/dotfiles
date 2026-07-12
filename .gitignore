@@ -10,6 +10,11 @@
 .reasonix/
 .skillhub/
 
+# planning-with-files-zh session files
+task_plan.md
+findings.md
+progress.md
+
 # macOS
 .DS_Store
 **/.DS_Store
