@@ -150,9 +150,13 @@ end
 
 battery:subscribe("mouse.entered", function()
 	popup_state.exit_gen = popup_state.exit_gen + 1
-	update_batt_info(last_state)
-	batt_info:set({ drawing = true })
-	battery_popup:show()
+	local gen = popup_state.exit_gen
+	popup_utils.defer(function()
+		if popup_state.exit_gen ~= gen then return end
+		update_batt_info(last_state)
+		batt_info:set({ drawing = true })
+		battery_popup:show()
+	end)
 end)
 
 battery:subscribe("mouse.exited", function()
@@ -165,9 +169,13 @@ battery:subscribe("mouse.clicked", function()
 		battery_popup:hide_async()
 	else
 		popup_state.pinned = true
-		update_batt_info(last_state)
-		batt_info:set({ drawing = true })
-		battery_popup:show()
+		local gen = popup_state.exit_gen
+		popup_utils.defer(function()
+			if popup_state.exit_gen ~= gen or not popup_state.pinned then return end
+			update_batt_info(last_state)
+			batt_info:set({ drawing = true })
+			battery_popup:show()
+		end)
 	end
 end)
 
@@ -231,4 +239,3 @@ end
 
 battery:subscribe({ "routine", "power_source_change", "system_woke" }, update_battery)
 update_battery()
-

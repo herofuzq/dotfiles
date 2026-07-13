@@ -8,6 +8,12 @@ function M.new_state()
 	return { pinned = false, hovering = false, hovered_items = {}, exit_gen = 0 }
 end
 
+-- Mouse callbacks arrive synchronously over SbarLua's Mach channel. Return
+-- before sending UI mutations back to SketchyBar to avoid upstream deadlock #794.
+function M.defer(callback)
+	sbar.delay(0, callback)
+end
+
 function M.schedule_hide(state, hide_fn)
 	if state.pinned then
 		return

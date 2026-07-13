@@ -147,23 +147,27 @@ local sys_popup = popup_animation.new(sys, {
 
 local function show_popup()
 	popup_state.exit_gen = popup_state.exit_gen + 1
-	set_popup_items(true)
-	sys_popup:show()
-	if not MACTOP then
-		info:set({ label = "请安装 mactop" })
-		for _, item in ipairs(process_items) do
-			item:set({ drawing = false })
+	local gen = popup_state.exit_gen
+	popup_utils.defer(function()
+		if popup_state.exit_gen ~= gen then return end
+		set_popup_items(true)
+		sys_popup:show()
+		if not MACTOP then
+			info:set({ label = "请安装 mactop" })
+			for _, item in ipairs(process_items) do
+				item:set({ drawing = false })
+			end
+			return
 		end
-		return
-	end
-	if not WATCHER_EXECUTABLE or not SKETCHYBAR then
-		info:set({ label = "系统信息不可用" })
-		for _, item in ipairs(process_items) do
-			item:set({ drawing = false })
+		if not WATCHER_EXECUTABLE or not SKETCHYBAR then
+			info:set({ label = "系统信息不可用" })
+			for _, item in ipairs(process_items) do
+				item:set({ drawing = false })
+			end
+			return
 		end
-		return
-	end
-	start_watcher()
+		start_watcher()
+	end)
 end
 
 local function hide_popup()

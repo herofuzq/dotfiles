@@ -148,21 +148,31 @@ cal:subscribe(
 		local s = env.SENDER
 		if s == "forced" or s == "routine" or s == "system_woke" then
 			local t = os.date("*t")
-			cal:set({ icon = string.format("%d月%d日", t.month, t.day), label = string.format(" %02d:%02d", t.hour, t.min) })
+			popup_utils.defer(function()
+				cal:set({ icon = string.format("%d月%d日", t.month, t.day), label = string.format(" %02d:%02d", t.hour, t.min) })
+			end)
 		elseif s == "mouse.entered" then
 			popup_state.exit_gen = popup_state.exit_gen + 1
-			updatePopupContent()
-			cal_popup:show()
+			local gen = popup_state.exit_gen
+			popup_utils.defer(function()
+				if popup_state.exit_gen ~= gen then return end
+				updatePopupContent()
+				cal_popup:show()
+			end)
 		elseif s == "mouse.exited" then
 			scheduleHide()
 		elseif s == "mouse.clicked" then
 			popup_state.pinned = not popup_state.pinned
-			updatePopupContent()
-			if popup_state.pinned then
-				cal_popup:show()
-			else
-				cal_popup:hide_async()
-			end
+			local pinned = popup_state.pinned
+			popup_utils.defer(function()
+				if popup_state.pinned ~= pinned then return end
+				updatePopupContent()
+				if pinned then
+					cal_popup:show()
+				else
+					cal_popup:hide_async()
+				end
+			end)
 		end
 	end
 )

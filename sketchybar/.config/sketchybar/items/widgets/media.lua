@@ -203,28 +203,30 @@ end
 
 -- 按钮按下立即切换图标，消除 shell click_script 的延迟
 next_item:subscribe("mouse.clicked", function()
-	press_feedback(next_item)
+	sbar.delay(0, function() press_feedback(next_item) end)
 	media_exec("next-track", function()
 		schedule_fallback_refresh()
 	end)
 end)
 
 previous_item:subscribe("mouse.clicked", function()
-	press_feedback(previous_item)
+	sbar.delay(0, function() press_feedback(previous_item) end)
 	media_exec("previous-track", function()
 		schedule_fallback_refresh()
 	end)
 end)
 
 play_pause:subscribe("mouse.clicked", function()
-	press_feedback(play_pause)
-	local q = play_pause:query()
-	local cur = q and q.icon and q.icon.value or ICON_PLAY
-	local optimistic_playing = cur == ICON_PLAY
-	-- last_playing 由 apply_state 统一管理，不在此处乐观更新。
-	-- 否则 media_update 事件在 toggle 完成前触发时可能用旧状态覆盖乐观值，
-	-- 导致 icon 闪回旧图标再切回新图标（肉眼可见 flicker）。
-	play_pause:set({ icon = { string = optimistic_playing and ICON_PAUSE or ICON_PLAY } })
+	sbar.delay(0, function()
+		press_feedback(play_pause)
+		local q = play_pause:query()
+		local cur = q and q.icon and q.icon.value or ICON_PLAY
+		local optimistic_playing = cur == ICON_PLAY
+		-- last_playing 由 apply_state 统一管理，不在此处乐观更新。
+		-- 否则 media_update 事件在 toggle 完成前触发时可能用旧状态覆盖乐观值，
+		-- 导致 icon 闪回旧图标再切回新图标（肉眼可见 flicker）。
+		play_pause:set({ icon = { string = optimistic_playing and ICON_PAUSE or ICON_PLAY } })
+	end)
 	media_exec("toggle-play-pause", function()
 		schedule_fallback_refresh()
 	end)
@@ -265,4 +267,3 @@ label:subscribe("media_update", refresh)
 media_exec("get 2>/dev/null", function(info)
 	apply_state(info, false)
 end)
-

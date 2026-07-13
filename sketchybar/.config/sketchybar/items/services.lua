@@ -279,9 +279,11 @@ end
 for _, entry in ipairs(actions_list) do
 	local e = entry
 	entry.row:subscribe("mouse.clicked", function()
-		local c = (BTN[e.action] or BTN.start).color
-		feedback(e.row, c)
-		status_row:set({ drawing = true, label = { string = e.action .. " " .. target_name(e) .. "...", color = colors.yellow } })
+		popup_utils.defer(function()
+			local c = (BTN[e.action] or BTN.start).color
+			feedback(e.row, c)
+			status_row:set({ drawing = true, label = { string = e.action .. " " .. target_name(e) .. "...", color = colors.yellow } })
+		end)
 		sbar.exec(cmd(e), function() refresh() end)
 	end)
 end
