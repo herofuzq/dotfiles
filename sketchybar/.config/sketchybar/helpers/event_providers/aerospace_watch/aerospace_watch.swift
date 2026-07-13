@@ -41,6 +41,28 @@ struct CommandResult {
     let stderr: String
 }
 
+let commandTimeout: TimeInterval = 1.0
+
+func waitForProcess(_ task: Process, timeout: TimeInterval) -> Bool {
+    let finished = DispatchSemaphore(value: 0)
+    task.terminationHandler = { _ in finished.signal() }
+
+    guard finished.wait(timeout: .now() + timeout) == .timedOut else {
+        task.terminationHandler = nil
+        return true
+    }
+
+    if task.isRunning {
+        task.terminate()
+    }
+    if finished.wait(timeout: .now() + 0.2) == .timedOut,
+       task.isRunning {
+        kill(task.processIdentifier, SIGKILL)
+    }
+    task.terminationHandler = nil
+    return false
+}
+
 func stringValue(_ value: Any?) -> String? {
     switch value {
     case let value as String:
@@ -62,7 +84,7 @@ func runSketchybar(arguments: [String]) {
         task.standardOutput = FileHandle.nullDevice
         task.standardError = FileHandle.nullDevice
         guard (try? task.run()) != nil else { return }
-        task.waitUntilExit()
+        _ = waitForProcess(task, timeout: commandTimeout)
     }
 }
 
@@ -146,6 +168,12 @@ func connectAeroSpaceSocket() -> Int32? {
     let fd = socket(AF_UNIX, SOCK_STREAM, 0)
     guard fd >= 0 else { return nil }
 
+    var timeout = timeval(tv_sec: 1, tv_usec: 0)
+    withUnsafePointer(to: &timeout) { pointer in
+        _ = setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, pointer, socklen_t(MemoryLayout<timeval>.size))
+        _ = setsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, pointer, socklen_t(MemoryLayout<timeval>.size))
+    }
+
     var address = sockaddr_un()
     address.sun_family = sa_family_t(AF_UNIX)
     let path = aerospaceSocketPath()
@@ -198,6 +226,7 @@ func runAeroSpaceSocketCommand(arguments: [String]) -> CommandResult? {
           writeAll(fd: fd, data: payload),
           let lengthData = readExact(fd: fd, count: MemoryLayout<UInt32>.size),
           let length = uint32FromLittleEndianData(lengthData),
+          length <= 1_000_000,
           let answerData = readExact(fd: fd, count: Int(length)),
           let answer = try? JSONSerialization.jsonObject(with: answerData) as? [String: Any] else {
         return nil
@@ -231,7 +260,9 @@ func runAeroSpaceProcessCommand(arguments: [String]) -> CommandResult? {
     task.standardError = stderrPipe
 
     guard (try? task.run()) != nil else { return nil }
-    task.waitUntilExit()
+    guard waitForProcess(task, timeout: commandTimeout) else {
+        return nil
+    }
 
     let stdout = String(data: stdoutPipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
     let stderr = String(data: stderrPipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""

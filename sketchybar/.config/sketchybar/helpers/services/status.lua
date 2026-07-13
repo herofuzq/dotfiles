@@ -31,15 +31,15 @@ local function emit(...)
 	io.write(table.concat(parts, "\t"), "\n")
 end
 
-local function docker_compose_states(group)
+local function docker_compose_states()
 	-- 以 daemon 是否可响应为准，不依赖 "Docker" 进程名（Desktop 进程名会变）
-	local template = '{{.Label "com.docker.compose.service"}}\t{{.State}}\t{{.Status}}'
+	-- 一次列出所有 compose 容器，再在 Lua 内按 project/service 分组。
+	-- 避免每个 group 都启动一次 docker CLI。
+	local template = '{{.Label "com.docker.compose.project"}}\t{{.Label "com.docker.compose.service"}}\t{{.State}}\t{{.Status}}'
 	local cmd = table.concat({
 		shell_quote(docker),
 		"ps",
 		"-a",
-		"--filter",
-		"label=com.docker.compose.project=" .. shell_quote(group.project),
 		"--format",
 		shell_quote(template),
 		"2>/dev/null",
@@ -60,12 +60,13 @@ local function docker_compose_states(group)
 
 	local states = {}
 	for line in output:gmatch("[^\n]+") do
-		local service_id, state, status = line:match("^([^\t]*)\t([^\t]*)\t(.*)$")
-		if service_id and service_id ~= "" then
+		local project, service_id, state, status = line:match("^([^\t]*)\t([^\t]*)\t([^\t]*)\t(.*)$")
+		if project and project ~= "" and service_id and service_id ~= "" then
 			if status:find("Paused", 1, true) then
 				state = "paused"
 			end
-			states[service_id] = {
+			states[project] = states[project] or {}
+			states[project][service_id] = {
 				state = state ~= "" and state or "unknown",
 				status = status ~= "" and status or state,
 			}
@@ -77,6 +78,14 @@ end
 local total_count = 0
 local running_count = 0
 local group_results = {}
+local has_compose_groups = false
+for _, group in ipairs(config.groups or {}) do
+	if group.kind == "docker_compose" then
+		has_compose_groups = true
+		break
+	end
+end
+local all_states = has_compose_groups and (docker_compose_states() or {}) or {}
 
 for _, group in ipairs(config.groups or {}) do
 	local group_total = #(group.services or {})
@@ -85,7 +94,7 @@ for _, group in ipairs(config.groups or {}) do
 
 	local states
 	if group.kind == "docker_compose" then
-		states = docker_compose_states(group)
+		states = all_states[group.project] or {}
 	end
 
 	local services = {}

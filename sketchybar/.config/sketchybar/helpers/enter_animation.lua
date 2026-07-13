@@ -3,29 +3,22 @@
 -- 仅改颜色 alpha：无 y_offset、不强行 drawing=true、无 stagger。
 --
 -- init.lua 流程（必须在 end_config 之后，且顺序不可颠倒）:
---   1) prepare()  -- 对登记的主条 item query 最终色并铺透明（bar 仍 hidden）
+--   1) prepare()  -- 使用登记的 icon/label 颜色铺透明（bar 仍 hidden）
 --   2) run_bar()  -- 取消 hidden，写出最终 bar 样式
 --   3) run()      -- item 一次 animate 渐入
 --
--- 登记方式：install() 劫持 sbar.add，只记主条 name（不记颜色）。
--- prepare 只 query 这些 name，避免 --query bar 拉出上百 popup 再过滤。
--- 颜色仍 end_config 后 query：因为 add 之后还有 sbar.set 关 bg 并入 bracket。
+-- 登记方式：install() 劫持 sbar.add，记录主条 name 和声明的 icon/label props。
+-- prepare 不再逐项 --query；动态运行时设置的 background 不参与启动渐入。
 local sbar = require("sketchybar")
 local appearance = require("appearance")
 local timing = require("helpers.timing")
-local shell_quote = require("helpers.utils").shell_quote
-local find_binary = require("helpers.find_binary").find
 
 local M = {}
 
 local ITEM_FADE_FRAMES = timing.ENTER_ITEM_FADE_FRAMES or 60
-local SKETCHYBAR = find_binary(
-	{ "/opt/homebrew/bin/sketchybar", "/usr/local/bin/sketchybar" },
-	"/opt/homebrew/bin/sketchybar"
-)
-
 local _names = {} -- 有序 name 列表（install 期间收集）
 local _name_set = {}
+local _props = {} -- add 时声明的 props；避免启动阶段逐项 --query
 local _installed = false
 local _closed = false -- prepare 起不再登记
 local _pending = {}
@@ -65,6 +58,7 @@ local function track_name(name, props)
 		return
 	end
 	_name_set[name] = true
+	_props[name] = props
 	_names[#_names + 1] = name
 end
 
@@ -102,50 +96,23 @@ local function parse_color(value)
 	return hex and tonumber(hex, 16) or nil
 end
 
-local function is_on(value)
-	return value == true or value == "on" or value == "true" or value == 1
-end
-
-local function cli_query(name)
-	local f = io.popen(shell_quote(SKETCHYBAR) .. " --query " .. shell_quote(name) .. " 2>/dev/null")
-	if not f then
-		return nil
-	end
-	local raw = f:read("*a") or ""
-	f:close()
-	return (raw ~= "" and raw) or nil
-end
-
-local function block_field(block, key)
-	if not block then
-		return nil
-	end
-	return block:match('"' .. key .. '"%s*:%s*"([^"]*)"')
-		or block:match('"' .. key .. '"%s*:%s*([%d%.]+)')
-end
-
 local function snapshot_item(name)
-	local raw = cli_query(name)
-	if not raw then
+	local props = _props[name]
+	if type(props) ~= "table" then
 		return nil
 	end
 
-	local geometry = raw:match('"geometry"%s*:%s*(%b{})')
-	local icon = raw:match('"icon"%s*:%s*(%b{})')
-	local label = raw:match('"label"%s*:%s*(%b{})')
-	local geo_bg = geometry and geometry:match('"background"%s*:%s*(%b{})')
-
-	local position = block_field(geometry, "position")
-	if position and position:find("^popup", 1) then
-		return nil
-	end
+	local icon = type(props.icon) == "table" and props.icon or nil
+	local label = type(props.label) == "table" and props.label or nil
 
 	local entry = {
 		name = name,
-		was_drawing = is_on(block_field(geometry, "drawing")),
-		icon = is_on(block_field(icon, "drawing")) and parse_color(block_field(icon, "color")) or nil,
-		label = is_on(block_field(label, "drawing")) and parse_color(block_field(label, "color")) or nil,
-		background = is_on(block_field(geo_bg, "drawing")) and parse_color(block_field(geo_bg, "color")) or nil,
+		was_drawing = props.drawing ~= false,
+		icon = icon and icon.drawing ~= false and parse_color(icon.color) or nil,
+		label = label and label.drawing ~= false and parse_color(label.color) or nil,
+		-- Background colors are often changed after add() to join a bracket.
+		-- Do not animate a stale creation-time value.
+		background = nil,
 	}
 
 	if not entry.icon and not entry.label and not entry.background then
@@ -189,7 +156,7 @@ function M.prepare()
 	end
 
 	if not ok_any then
-		io.stderr:write("sketchybar: enter_animation prepare: all item queries failed, skip fade\n")
+		io.stderr:write("sketchybar: enter_animation prepare: no declared item colors, skip fade\n")
 		return
 	end
 

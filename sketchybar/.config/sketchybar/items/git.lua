@@ -113,6 +113,8 @@ local function apply_status(output)
 				elseif status == "dirty" then
 					info = dirty .. " dirty"
 					total_dirty = total_dirty + (tonumber(dirty) or 0)
+				elseif status == "error" then
+					info = "unavailable"
 				else
 					info = "missing"
 				end

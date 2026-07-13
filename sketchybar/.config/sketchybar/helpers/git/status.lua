@@ -43,7 +43,7 @@ for _, repo in ipairs(config.repos or {}) do
 		local cmd = shell_quote(git) .. " -C " .. shell_quote(path) .. " status --porcelain -b 2>/dev/null"
 		local h = io.popen(cmd)
 		if not h then
-			emit("repo", path, label, "-", "missing", "-", "-", "-")
+			emit("repo", path, label, "-", "error", "-", "-", "-")
 		else
 			local branch = "-"
 			local ahead = "0"
@@ -70,10 +70,10 @@ for _, repo in ipairs(config.repos or {}) do
 
 			local ok = h:close()
 			local status_keyword
-			if ok then
+			if ok and not first then
 				status_keyword = dirty_count > 0 and "dirty" or "ok"
 			else
-				status_keyword = "missing"
+				status_keyword = "error"
 				branch = "-"
 				ahead = "-"
 				behind = "-"

@@ -68,6 +68,27 @@ func loadBeastEndpoint() -> BeastEndpoint {
 }
 
 let beastEndpoint = loadBeastEndpoint()
+let commandTimeout: TimeInterval = 1.0
+
+func waitForProcess(_ task: Process, timeout: TimeInterval) -> Bool {
+    let finished = DispatchSemaphore(value: 0)
+    task.terminationHandler = { _ in finished.signal() }
+
+    guard finished.wait(timeout: .now() + timeout) == .timedOut else {
+        task.terminationHandler = nil
+        return true
+    }
+
+    if task.isRunning {
+        task.terminate()
+    }
+    if finished.wait(timeout: .now() + 0.2) == .timedOut,
+       task.isRunning {
+        kill(task.processIdentifier, SIGKILL)
+    }
+    task.terminationHandler = nil
+    return false
+}
 
 func currentInputSourceID() -> String {
     guard let source = TISCopyCurrentKeyboardInputSource()?.takeRetainedValue(),
@@ -90,7 +111,7 @@ func currentFcitxMode() -> String {
     task.standardOutput = pipe
     task.standardError = FileHandle.nullDevice
     guard (try? task.run()) != nil else { return "" }
-    task.waitUntilExit()
+    guard waitForProcess(task, timeout: commandTimeout) else { return "" }
     guard task.terminationStatus == 0,
           let output = String(data: pipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) else {
         return ""
@@ -115,8 +136,12 @@ func triggerInputMethodChange(inputSourceID: String) {
     ]
     task.standardOutput = FileHandle.nullDevice
     task.standardError = FileHandle.nullDevice
-    try? task.run()
-    task.waitUntilExit()
+    guard (try? task.run()) != nil else { return }
+    // The watcher must not wait for SketchyBar; a slow reload should not delay
+    // input-source notifications on the main run loop.
+    DispatchQueue.global().async {
+        _ = waitForProcess(task, timeout: commandTimeout)
+    }
 }
 
 func refreshInputSource() {
