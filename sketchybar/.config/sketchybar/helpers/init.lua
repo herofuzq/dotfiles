@@ -19,14 +19,7 @@ end
 -- 最早把 bar 藏起来，并把 height 压到 0：
 -- reload 后 internal default 常用错误高度（如 25/32）先画一帧，再被配置改掉，
 -- 看起来就是「先闪一条高度不对的 bar」。hidden + height=0 把这条默认条掐掉。
-require("sketchybar").bar({
-	hidden = "on",
-	height = 0,
-	color = 0x00000000,
-	border_color = 0x00000000,
-	border_width = 0,
-	blur_radius = 0,
-})
+require("helpers.startup").hide()
 
 local shell_quote = require("helpers.utils").shell_quote
 local tmp_path = require("helpers.utils").tmp_path

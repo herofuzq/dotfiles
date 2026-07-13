@@ -3,8 +3,8 @@
 -- 仅改颜色 alpha：无 y_offset、不强行 drawing=true、无 stagger。
 --
 -- init.lua 流程（必须在 end_config 之后，且顺序不可颠倒）:
---   1) prepare()  -- 使用登记的 icon/label 颜色铺透明（bar 仍 hidden）
---   2) run_bar()  -- 取消 hidden，写出最终 bar 样式
+--   1) prepare()  -- 收集已登记的原色（bar 仍 hidden）
+--   2) startup.reveal() -- 取消 hidden
 --   3) run()      -- item 一次 animate 渐入
 --
 -- 登记方式：install() 劫持 sbar.add，记录主条 name 和声明的 icon/label props。
@@ -50,16 +50,55 @@ local function should_skip_props(props)
 	return type(pos) == "string" and pos:find("^popup", 1) ~= nil
 end
 
+local function parse_color(value)
+	if type(value) == "number" then
+		return value
+	end
+	if type(value) ~= "string" or value == "" or value == "(null)" then
+		return nil
+	end
+	local hex = value:match("^0x(%x+)$") or value:match("^(%x+)$")
+	return hex and tonumber(hex, 16) or nil
+end
+
 local function track_name(name, props)
 	if _closed or should_skip_name(name) or should_skip_props(props) then
-		return
+		return false
 	end
 	if _name_set[name] then
-		return
+		return true
 	end
 	_name_set[name] = true
 	_props[name] = props
 	_names[#_names + 1] = name
+	return true
+end
+
+local function faded_props(props)
+	if type(props) ~= "table" then
+		return props
+	end
+
+	local copy
+	for _, key in ipairs({ "icon", "label" }) do
+		local section = props[key]
+		local color = type(section) == "table" and parse_color(section.color) or nil
+		if color and section.drawing ~= false then
+			if not copy then
+				copy = {}
+				for k, value in pairs(props) do
+					copy[k] = value
+				end
+			end
+			local section_copy = {}
+			for k, value in pairs(section) do
+				section_copy[k] = value
+			end
+			section_copy.color = appearance.with_alpha(color, 0)
+			copy[key] = section_copy
+		end
+	end
+	return copy or props
 end
 
 -- 在任何 sbar.add 之前调用（init.lua begin_config 前）
@@ -72,28 +111,25 @@ function M.install()
 	-- 必须用 ... 原样转发。若 3 参 add 却传入 nil 第 4 参，SbarLua 会误解析，
 	-- popup item 丢失 position，全部铺到主条上。
 	sbar.add = function(...)
-		local item = raw_add(...)
-		local kind, a, b, c = ...
-		if type(a) == "string" then
-			if kind == "bracket" and type(b) == "table" and type(c) == "table" then
-				track_name(a, c)
-			elseif type(b) == "table" then
-				track_name(a, b)
-			end
+		local args = { ... }
+		local kind, a, b, c = table.unpack(args)
+		local props_index
+		local props
+		if kind == "bracket" and type(b) == "table" and type(c) == "table" then
+			props_index, props = 4, c
+		elseif type(b) == "table" then
+			props_index, props = 3, b
 		end
-		return item
-	end
-end
 
-local function parse_color(value)
-	if type(value) == "number" then
-		return value
+		local tracked = false
+		if type(a) == "string" then
+			tracked = props_index and track_name(a, props) or false
+		end
+		if tracked then
+			args[props_index] = faded_props(props)
+		end
+		return raw_add(table.unpack(args))
 	end
-	if type(value) ~= "string" or value == "" or value == "(null)" then
-		return nil
-	end
-	local hex = value:match("^0x(%x+)$") or value:match("^(%x+)$")
-	return hex and tonumber(hex, 16) or nil
 end
 
 local function snapshot_item(name)
@@ -151,7 +187,6 @@ function M.prepare()
 		if entry then
 			ok_any = true
 			_pending[#_pending + 1] = entry
-			apply(entry, 0)
 		end
 	end
 
@@ -172,24 +207,6 @@ function M.run()
 			apply(entry, 1)
 		end
 	end)
-end
-
-function M.run_bar()
-	-- 配置期 bar 为 hidden；此处瞬时 unhide（不是 color alpha 渐入）。
-	-- 须在 prepare() 之后调用。
-	local settings = require("settings")
-	local h = settings.detect_bar_height()
-	if h and h > 0 then
-		settings.height = h
-	end
-	sbar.bar({
-		hidden = "off",
-		height = settings.height,
-		color = appearance.colors.bar_bg,
-		border_color = appearance.colors.border,
-		border_width = 2,
-		blur_radius = 15,
-	})
 end
 
 return M

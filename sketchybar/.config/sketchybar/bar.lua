@@ -4,7 +4,7 @@ local settings = require("settings")
 local sbar = require("sketchybar")
 
 sbar.bar({
-	-- 配置期保持 hidden；高度先写对（仍不可见），揭开时 run_bar 会再确认一次。
+	-- 配置期保持 hidden；高度先写对，startup.reveal() 会在 end_config 后揭示。
 	-- 不用默认高度，避免 unhide 瞬间用错 height。
 	hidden = "on",
 	color = 0x00000000,

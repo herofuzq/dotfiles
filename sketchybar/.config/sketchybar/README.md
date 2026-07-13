@@ -25,7 +25,7 @@ When debugging live behavior, inspect `~/.config/sketchybar` first. Source edits
 
 1. `sketchybarrc` loads `helpers/` first (compile stale Swift/C helpers if needed; bar starts `hidden` to avoid default-height flash), then starts `init.lua`.
 2. `init.lua` runs `begin_config` → appearance defaults, `bar.lua` (still hidden), `items/`.
-3. After `end_config`, `helpers/enter_animation.lua`: `prepare` (item colors → alpha 0) → `run_bar` (instant unhide with final height/colors) → `run` (item alpha fade).
+3. After `end_config`, `helpers/enter_animation.lua` records the fade set; `helpers/startup.lua` reveals the bar immediately, then items fade to their declared colors.
 4. `sbar.event_loop()` receives SketchyBar native events and custom triggers from helper daemons.
 
 ### Startup fade
@@ -34,14 +34,14 @@ When debugging live behavior, inspect `~/.config/sketchybar` first. Source edits
 |------|--------|----------|
 | `install()` | `enter_animation` | Before `begin_config`, wrap `sbar.add` and record main-bar item names (skip popup rows) |
 | `prepare()` | same | After `end_config`, use declared icon/label colors for tracked main-bar items and set them to alpha 0 (bar still hidden) |
-| `run_bar()` | same | **Instant** unhide + final height/color/border (not a color-alpha animation) |
+| `startup.reveal()` | `startup` | **Instant** unhide + final height/color/border (not a color-alpha animation) |
 | `run()` | same | Single linear alpha animate for all items with declared colors (~300ms) |
 
 - Item fade only: no `y_offset`, no stagger, does not force `drawing=true`.
 - Popup rows are skipped (`position` starts with `popup`, or names containing `popup` / calendar grid / sys process rows).
 - Item timing: `helpers/timing.lua` → `ENTER_ITEM_FADE_FRAMES`.
 
-Snapshot must run **after** `end_config` because some widgets `sbar.set` backgrounds after `add` (e.g. into a shared bracket). Fading from creation-time props would re-show those backgrounds.
+Main-bar icon/label colors are made transparent at `sbar.add` time. Dynamic backgrounds are excluded because some widgets change them after `add` to join a shared bracket.
 
 **Pitfall — wrapping `sbar.add`:** always forward with `raw_add(...)`. Never call `raw_add(kind, name, props, nil)` for a 3-arg `add("item", name, props)`. Passing an explicit `nil` 4th argument makes SbarLua mis-parse the call (treats it like a 4-arg form); popup items can lose `position = "popup.…"` and appear as normal bar items (Docker/Git popup rows flooding the bar). The `install()` wrapper uses varargs on purpose.
 
@@ -67,6 +67,7 @@ Snapshot must run **after** `end_config` because some widgets `sbar.set` backgro
 |------|---------|
 | `sketchybarrc` | Entry: helpers + settings + `init` |
 | `init.lua` | `begin_config` / startup fade / `event_loop` |
+| `helpers/startup.lua` | Startup hide, batched configuration, and reveal timing |
 | `settings.lua` | Bar height, Dock-width detection, and default spacing |
 | `appearance.lua` | Catppuccin palette, semantic colors, global defaults |
 | `fonts.lua` | Font families and styles |
@@ -204,7 +205,7 @@ helper 的编译产物不进 git，而是在实际运行路径里生成，例如
 
 1. `sketchybarrc` 先加载 `helpers/`（必要时编译 helper；bar 先 `hidden` 避免默认高度闪一下），再进入 `init.lua`。
 2. `init.lua` 执行 `begin_config` → 外观默认、`bar.lua`（仍 hidden）、`items/`。
-3. `end_config` 之后：`prepare`（item 颜色 alpha→0）→ `run_bar`（瞬时 unhide + 最终高度/颜色）→ `run`（item alpha 渐入）。
+3. `end_config` 之后：`prepare` 记录渐入 item，`helpers/startup.lua` 立即 unhide，随后 item 渐入到声明颜色。
 4. `sbar.event_loop()` 接收 SketchyBar 原生事件和 helper 守护进程的自定义 trigger。
 
 ### 启动渐隐
@@ -213,7 +214,7 @@ helper 的编译产物不进 git，而是在实际运行路径里生成，例如
 |------|------|------|
 | `install()` | `enter_animation` | `begin_config` 前劫持 `sbar.add`，只登记主条 item 名（跳过 popup） |
 | `prepare()` | 同上 | `end_config` 后使用登记的 icon/label 颜色；对主条 item 设 alpha=0（bar 仍 hidden） |
-| `run_bar()` | 同上 | **瞬时** unhide + 最终 height/color/border（不是 color alpha 动画） |
+| `startup.reveal()` | `startup` | **瞬时** unhide + 最终 height/color/border（不是 color alpha 动画） |
 | `run()` | 同上 | 所有声明了颜色的主条 item 一次 linear alpha 渐入（约 300ms） |
 
 - 仅 item 走颜色 alpha：不改 `y_offset`、不做 stagger、不强行 `drawing=true`。
@@ -261,7 +262,8 @@ helper 的编译产物不进 git，而是在实际运行路径里生成，例如
 | `items/calendar.lua` | 日期时间 + 月历 popup |
 | `items/widgets/*` | 右侧 pills（sys、battery、network、media 等） |
 | `helpers/init.lua` | helper 编译 freshness 检查和 event provider 重启 |
-| `helpers/enter_animation.lua` | reload 启动 alpha 渐入（bar + item） |
+| `helpers/startup.lua` | reload 启动阶段协调：隐藏、批量配置、揭示 |
+| `helpers/enter_animation.lua` | reload 启动 item alpha 渐入 |
 | `helpers/popup_animation.lua` | popup 显隐 alpha |
 | `helpers/popup_utils.lua` | 单 popup 的 pin / hover / 延迟隐藏 |
 | `helpers/borders.lua` | 工作区焦点分段样式 |

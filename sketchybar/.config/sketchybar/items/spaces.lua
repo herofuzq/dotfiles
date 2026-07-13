@@ -961,5 +961,5 @@ sbar.exec(":", function()
 	end)
 end)
 
--- 启动渐隐：init.lua 在 end_config 之后 enter_animation.prepare/run_bar/run。
+-- 启动渐隐：startup 在 end_config 之后揭示 bar，enter_animation 负责 item 渐入。
 -- spaces.root / aerospace_mode / popup 子项在 enter_animation 的 skip 名单里，不参与渐隐。
