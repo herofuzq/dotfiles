@@ -26,6 +26,7 @@ local REFRESH_TIMEOUT = 3.0
 local WINDOW_REFRESH_DELAY_DEFAULT = 0.30
 local WINDOW_REFRESH_DELAY_CREATED = 0.30
 local WINDOW_REFRESH_DELAY_DESTROYED = 0.05
+local WINDOW_REFRESH_DELAY_TITLE = 0.10
 
 local shell_quote = require("helpers.utils").shell_quote
 
@@ -930,9 +931,10 @@ sbar.exec(":", function()
 		end
 	end)
 
-	-- `space_windows_change` 有两个来源：
+	-- `space_windows_change` 有三个来源：
 	--   1. SketchyBar 原生事件：窗口创建/销毁后触发，负责关闭窗口的实时刷新；
 	--   2. aerospace_watch 自定义 trigger：AeroSpace 检测到新窗口后补一发 created。
+	--   3. Hammerspoon 的 AXTitleChanged：同步 WPS 标签页等窗口标题变化。
 	root:subscribe("space_windows_change", function(env)
 		local event = env and env.WINDOW_EVENT
 		local delay = WINDOW_REFRESH_DELAY_DEFAULT
@@ -940,6 +942,8 @@ sbar.exec(":", function()
 			delay = WINDOW_REFRESH_DELAY_CREATED
 		elseif event == "destroyed" or event == "terminated" then
 			delay = WINDOW_REFRESH_DELAY_DESTROYED
+		elseif event == "title_changed" then
+			delay = WINDOW_REFRESH_DELAY_TITLE
 		end
 		scheduleUpdateWindows(delay)
 	end)

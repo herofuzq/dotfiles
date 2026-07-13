@@ -12,8 +12,11 @@ local VISIBLE_FRAME_PADDING = 4
 local MIN_RESCUE_WIDTH = 220
 local MIN_RESCUE_HEIGHT = 120
 local RESCUE_ANIMATION_DURATION = 0.20
+local TITLE_REFRESH_DEBOUNCE = 0.12
 local rescueTimers = {}
 local createdPlacementTimers = {}
+local titleRefreshTimer
+local titleRefreshGeneration = 0
 local command = require("command")
 local SKIP_BUNDLE_IDS = {
 	["pl.maketheweb.cleanshotx"] = true,
@@ -182,7 +185,35 @@ local function scheduleTopRescue(window, delay)
 	end)
 end
 
+-- AeroSpace 没有公开“窗口标题变化”事件；例如 WPS 关闭标签页时，
+-- 窗口本身没有销毁，只会通过 macOS Accessibility 发出 AXTitleChanged。
+-- 合并同一批标题变化，避免应用连续更新标题时重复查询 SketchyBar。
+local function scheduleTitleRefresh()
+	titleRefreshGeneration = titleRefreshGeneration + 1
+	local generation = titleRefreshGeneration
+	if titleRefreshTimer then
+		titleRefreshTimer:stop()
+	end
+	titleRefreshTimer = hs.timer.doAfter(TITLE_REFRESH_DEBOUNCE, function()
+		titleRefreshTimer = nil
+		if generation ~= titleRefreshGeneration then
+			return
+		end
+		local started, err = command.triggerSketchybar("space_windows_change", nil, {
+			WINDOW_EVENT = "title_changed",
+			SOURCE = "hammerspoon",
+		})
+		if not started then
+			print("[window_watcher] 无法触发标题刷新: " .. tostring(err))
+		end
+	end)
+end
+
 local function notify(window, _, event)
+	if event == hs.window.filter.windowTitleChanged then
+		scheduleTitleRefresh()
+		return
+	end
 	if event == hs.window.filter.windowFocused then
 		scheduleTopRescue(window, RESCUE_MOVE_DELAY)
 		return
@@ -197,7 +228,8 @@ local function notify(window, _, event)
 end
 
 -- 窗口变化（用默认 filter）
--- 注：原订阅 windowNotVisible（噪音大：minimize/hide/occlusion 都会触发），已移除
+-- 注：原订阅 windowNotVisible（噪音大：minimize/hide/occlusion 都会触发），已移除。
+-- titleChanged 是事件通知，不是轮询，用来同步 WPS 等多标签应用的窗口标题。
 
 _windowWatcher_filter = hs.window.filter.new()
 _windowWatcher_filter:rejectApp("iStat Menus")
@@ -208,6 +240,9 @@ local windowEvents = {
 }
 if hs.window.filter.windowMoved then
 	table.insert(windowEvents, hs.window.filter.windowMoved)
+end
+if hs.window.filter.windowTitleChanged then
+	table.insert(windowEvents, hs.window.filter.windowTitleChanged)
 end
 
 _windowWatcher_filter:subscribe(windowEvents, notify)
