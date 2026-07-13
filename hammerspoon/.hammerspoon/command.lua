@@ -53,12 +53,4 @@ function M.aerospace(args, callback)
 	return M.start(aerospace, args, callback)
 end
 
-function M.triggerSketchybar(event, callback, fields)
-	local args = { "--trigger", event }
-	for key, value in pairs(fields or {}) do
-		args[#args + 1] = tostring(key) .. "=" .. tostring(value)
-	end
-	return M.sketchybar(args, callback)
-end
-
 return M

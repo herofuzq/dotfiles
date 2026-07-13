@@ -49,7 +49,7 @@ local batt_info = sbar.add("item", "widgets.battery.info", {
 })
 
 local popup_utils = require("helpers.popup_utils")
-local popup_state = popup_utils.new_state()
+local popup_visible = false
 local last_state
 local last_battery_signature
 local battery_popup = popup_animation.new(battery, {
@@ -60,12 +60,6 @@ local battery_popup = popup_animation.new(battery, {
 		batt_info:set({ drawing = false })
 	end,
 })
-
-local function scheduleHide()
-	popup_utils.schedule_hide(popup_state, function()
-		battery_popup:hide_async()
-	end)
-end
 
 local function parse_battery(raw)
 	raw = raw or ""
@@ -148,38 +142,20 @@ local function update_batt_info(state)
 	batt_info:set({ label = info })
 end
 
-battery:subscribe("mouse.entered", function()
-	popup_state.exit_gen = popup_state.exit_gen + 1
-	local gen = popup_state.exit_gen
-	popup_utils.defer(function()
-		if popup_state.exit_gen ~= gen then return end
-		update_batt_info(last_state)
-		batt_info:set({ drawing = true })
-		battery_popup:show()
-	end)
-end)
-
-battery:subscribe("mouse.exited", function()
-	scheduleHide()
-end)
-
 battery:subscribe("mouse.clicked", function()
-	if popup_state.pinned then
-		popup_state.pinned = false
+	popup_visible = not popup_visible
+	local visible = popup_visible
+	if not visible then
 		battery_popup:hide_async()
 	else
-		popup_state.pinned = true
-		local gen = popup_state.exit_gen
 		popup_utils.defer(function()
-			if popup_state.exit_gen ~= gen or not popup_state.pinned then return end
+			if not popup_visible then return end
 			update_batt_info(last_state)
 			batt_info:set({ drawing = true })
 			battery_popup:show()
 		end)
 	end
 end)
-
-popup_utils.bind_popup_hover({ batt_info }, popup_state, scheduleHide)
 
 -- ========== 电池状态更新 ==========
 local function update_battery_display(state)
@@ -232,8 +208,7 @@ local function update_battery()
 	sbar.exec("ioreg -rn AppleSmartBattery", function(raw)
 		last_state = parse_battery(raw)
 		update_battery_display(last_state)
-		-- popup 内容由 mouse.entered / mouse.clicked 直接触发 update_batt_info,
-		-- 这里不必再判断 popup 可见性 (旧代码引用了从未定义的 _popup_visible)。
+		-- popup 内容由点击打开时直接刷新，这里只维护主条状态。
 	end)
 end
 

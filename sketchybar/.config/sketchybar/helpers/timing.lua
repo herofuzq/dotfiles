@@ -16,10 +16,6 @@ function M.frames_to_seconds(frames)
 	return frames / M.FRAMES_PER_SECOND
 end
 
--- Popup 隐藏延迟（用户移开鼠标后多久开始隐藏）。
--- popup_utils.schedule_hide 和 spaces.lua 的 scheduleHide 都用这个值。
-M.POPUP_HIDE_DELAY_S = 0.2
-
 -- 标准动画时长（100ms = 12 帧 @ 120Hz）。
 -- 用于 popup 渐入、label 颜色渐变等"通用 fade"；popup 隐藏目前是即时关闭。
 M.STANDARD_DURATION_FRAMES = 12

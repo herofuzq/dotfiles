@@ -1,6 +1,5 @@
 -- ========== 日期时间显示 ==========
 local sbar = require("sketchybar")
-local fonts = require("fonts")
 local appearance = require("appearance")
 local popup_animation = require("helpers.popup_animation")
 local colors = appearance.colors
@@ -34,14 +33,8 @@ local cal = sbar.add("item", "calendar", {
 })
 
 local popup_utils = require("helpers.popup_utils")
-local popup_state = popup_utils.new_state()
+local popup_visible = false
 local cal_popup
-
-local function scheduleHide()
-	popup_utils.schedule_hide(popup_state, function()
-		cal_popup:hide_async()
-	end)
-end
 
 cal_popup = popup_animation.new(cal, {
 	background_color = function()
@@ -76,7 +69,6 @@ for i = 1, CAL_LINES do
 	})
 	cal_items[i] = item
 end
-popup_utils.bind_popup_hover(cal_items, popup_state, scheduleHide)
 
 local function updatePopupContent()
 	local t = os.date("*t")
@@ -143,7 +135,7 @@ local function updatePopupContent()
 end
 
 cal:subscribe(
-	{ "forced", "routine", "system_woke", "mouse.entered", "mouse.exited", "mouse.clicked" },
+	{ "forced", "routine", "system_woke", "mouse.clicked" },
 	function(env)
 		local s = env.SENDER
 		if s == "forced" or s == "routine" or s == "system_woke" then
@@ -151,23 +143,13 @@ cal:subscribe(
 			popup_utils.defer(function()
 				cal:set({ icon = string.format("%d月%d日", t.month, t.day), label = string.format(" %02d:%02d", t.hour, t.min) })
 			end)
-		elseif s == "mouse.entered" then
-			popup_state.exit_gen = popup_state.exit_gen + 1
-			local gen = popup_state.exit_gen
-			popup_utils.defer(function()
-				if popup_state.exit_gen ~= gen then return end
-				updatePopupContent()
-				cal_popup:show()
-			end)
-		elseif s == "mouse.exited" then
-			scheduleHide()
 		elseif s == "mouse.clicked" then
-			popup_state.pinned = not popup_state.pinned
-			local pinned = popup_state.pinned
+			popup_visible = not popup_visible
+			local visible = popup_visible
 			popup_utils.defer(function()
-				if popup_state.pinned ~= pinned then return end
-				updatePopupContent()
-				if pinned then
+				if popup_visible ~= visible then return end
+				if visible then
+					updatePopupContent()
 					cal_popup:show()
 				else
 					cal_popup:hide_async()

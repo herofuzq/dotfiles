@@ -26,7 +26,6 @@ local REFRESH_TIMEOUT = 3.0
 local WINDOW_REFRESH_DELAY_DEFAULT = 0.30
 local WINDOW_REFRESH_DELAY_CREATED = 0.30
 local WINDOW_REFRESH_DELAY_DESTROYED = 0.05
-local WINDOW_REFRESH_DELAY_TITLE = 0.10
 
 local shell_quote = require("helpers.utils").shell_quote
 
@@ -51,14 +50,10 @@ local workspace_order = {} -- 工作区创建顺序（保持显示顺序一致�
 local MAX_POPUP_SLOTS = 8
 local _popup_items = {} -- { [ws_name] = { item1, ..., item8 } }
 local _popup_windows = {} -- { [ws_name] = { {id, app, title}, ... } }
-local _popup_pinned = {} -- { [ws_name] = true/false } 记录点击固定状态，固定后鼠标离开不隐藏
-local _popup_hovering = {} -- { [ws_name] = true/false } 鼠标当前是否在 popup 子项上
-local _popup_exit_gen = {} -- { [ws_name] = gen } 延迟隐藏的代数，进入 popup 时作废旧延迟
+local _popup_pinned = {} -- { [ws_name] = true/false } 当前工作区 popup 是否由点击打开
 local _popup_render_gen = {} -- { [ws_name] = gen } 延迟渲染的代数，避免旧鼠标事件覆盖新内容
-local _popup_color_gen = {} -- { [ws_name] = { [item_index] = gen } } 延迟颜色更新的代数
-local _popup_item_hovering = {} -- { [ws_name] = { [item_index] = true/false } } 子项独立悬浮状态
+local _popup_query_gen = {} -- { [ws_name] = gen } 丢弃关闭 popup 后才返回的旧查询
 local _popup_animations = {}
-local _popup_cached_gen = {} -- { [ws_name] = snapshot_generation } popup 数据缓存版本号
 local _border_signature
 local animations_ready = false
 local front_app_generation = 0
@@ -164,7 +159,6 @@ local refresh_schedule_generation = 0
 local refresh_generation = 0
 local display_sync_generation = 0
 local window_snapshot = {}
-local snapshot_generation = 0   -- 窗口快照版本号，用于 popup 数据缓存去重
 
 -- ========== 公共排序：按创建时间倒序 ==========
 -- 注意：
@@ -380,41 +374,12 @@ local function updateWindow(workspace_index, args)
 	apply_content(final_color)
 end
 
-local function set_popup_item_colors(ws_index, icon_color, label_color)
-	for i = 1, MAX_POPUP_SLOTS do
-		local item = _popup_items[ws_index] and _popup_items[ws_index][i]
-		local win = _popup_windows[ws_index] and _popup_windows[ws_index][i]
-		if item and win then
-			item:set({ icon = { color = icon_color }, label = { color = label_color } })
-		end
-	end
-end
-
 local function defer_popup_render(ws_index, callback)
 	local gen = (_popup_render_gen[ws_index] or 0) + 1
 	_popup_render_gen[ws_index] = gen
 	sbar.delay(0, function()
 		if _popup_render_gen[ws_index] == gen then
 			callback()
-		end
-	end)
-end
-
-local function defer_popup_item_colors(ws_index, item_index, icon_color, label_color, hovering)
-	_popup_color_gen[ws_index] = _popup_color_gen[ws_index] or {}
-	local gen = (_popup_color_gen[ws_index][item_index] or 0) + 1
-	_popup_color_gen[ws_index][item_index] = gen
-	sbar.delay(0, function()
-		if _popup_color_gen[ws_index][item_index] ~= gen then
-			return
-		end
-		if hovering ~= nil
-			and ((_popup_item_hovering[ws_index] or {})[item_index] or false) ~= hovering then
-			return
-		end
-		local item = _popup_items[ws_index] and _popup_items[ws_index][item_index]
-		if item then
-			item:set({ icon = { color = icon_color }, label = { color = label_color } })
 		end
 	end)
 end
@@ -446,62 +411,55 @@ local function hide_popup_async(ws_index, workspace)
 	workspace:set({ popup = { drawing = false } })
 end
 
-local function scheduleHide(ws_index, workspace)
-	if _popup_pinned[ws_index] then
-		return
+local function popup_windows_from_snapshot(ws_index)
+	local windows = {}
+	for _, win in ipairs(window_snapshot[ws_index] or {}) do
+		windows[#windows + 1] = {
+			id = win.window_id,
+			app = win.app or "?",
+			title = (win.title and #win.title > 0 and win.title) or win.app or "Untitled",
+			window_id = win.window_id,
+		}
 	end
-	local gen = (_popup_exit_gen[ws_index] or 0) + 1
-	_popup_exit_gen[ws_index] = gen
-	sbar.delay(timing.POPUP_HIDE_DELAY_S, function()
-		if _popup_exit_gen[ws_index] ~= gen then
-			return
-		end
-		if _popup_hovering[ws_index] or _popup_pinned[ws_index] then
-			return
-		end
-		hide_popup_async(ws_index, workspace)
-	end)
+	return windows
 end
 
--- ========== Popup：展示/切换工作区窗口列表 ==========
--- force_show=true 用于 hover（总是展示，不 toggle），留空则是 toggle（点击切换）
-local function togglePopup(ws_index, workspace_item, force_show)
-	if not workspace_item then
-		return
+local function popup_windows_from_query(entries)
+	if type(entries) ~= "table" then
+		return nil
 	end
 
-	-- 快照未变化时复用缓存，避免每次 hover 都重建完整窗口表（大工作区 >20 窗口场景收益明显）
-	local windows
-	if _popup_cached_gen[ws_index] == snapshot_generation and _popup_windows[ws_index] then
-		-- 缓存命中：从 _popup_windows 还原 windows（仅用于空判断，O(MAX_POPUP_SLOTS) 可忽略）
-		windows = {}
-		for i = 1, MAX_POPUP_SLOTS do
-			local w = _popup_windows[ws_index][i]
-			if w then windows[#windows + 1] = w end
-		end
-	else
-		_popup_cached_gen[ws_index] = snapshot_generation
-		windows = {}
-		for _, win in ipairs(window_snapshot[ws_index] or {}) do
+	local windows = {}
+	local seen_ids = {}
+	for _, entry in ipairs(entries) do
+		local window_id = entry["window-id"]
+		if window_id and not seen_ids[window_id] then
+			seen_ids[window_id] = true
+			local app = entry["app-name"] or "?"
+			local title = entry["window-title"]
 			windows[#windows + 1] = {
-				id = win.window_id,
-				app = win.app or "?",
-				title = (win.title and #win.title > 0 and win.title) or win.app or "Untitled",
-				window_id = win.window_id,
+				id = window_id,
+				app = app,
+				title = (title and #title > 0 and title) or app or "Untitled",
+				window_id = window_id,
 			}
 		end
-		sort_windows_by_creation(windows)
+	end
+	return windows
+end
 
-		_popup_windows[ws_index] = {}
-		for i, win in ipairs(windows) do
-			if i > MAX_POPUP_SLOTS then
-				break
-			end
-			_popup_windows[ws_index][i] = win
+local function render_popup(ws_index, workspace_item, windows)
+	sort_windows_by_creation(windows)
+	_popup_windows[ws_index] = {}
+	for i, win in ipairs(windows) do
+		if i > MAX_POPUP_SLOTS then
+			break
 		end
+		_popup_windows[ws_index][i] = win
 	end
 
 	if #windows == 0 then
+		_popup_pinned[ws_index] = false
 		defer_popup_render(ws_index, function()
 			for i = 1, MAX_POPUP_SLOTS do
 				local item = _popup_items[ws_index] and _popup_items[ws_index][i]
@@ -514,11 +472,6 @@ local function togglePopup(ws_index, workspace_item, force_show)
 		return
 	end
 
-	for other_index, ws in pairs(workspaces) do
-		if ws ~= workspace_item then
-			hide_popup(other_index, ws, false)
-		end
-	end
 	defer_popup_render(ws_index, function()
 		for i = 1, MAX_POPUP_SLOTS do
 			local item = _popup_items[ws_index] and _popup_items[ws_index][i]
@@ -535,11 +488,47 @@ local function togglePopup(ws_index, workspace_item, force_show)
 				end
 			end
 		end
-		if force_show or _popup_pinned[ws_index] then
+		if _popup_pinned[ws_index] then
 			show_popup(ws_index, workspace_item)
 		else
 			hide_popup(ws_index, workspace_item, true)
 		end
+	end)
+end
+
+local function invalidate_popup_query(ws_index)
+	_popup_query_gen[ws_index] = (_popup_query_gen[ws_index] or 0) + 1
+end
+
+local function close_popups(except_ws)
+	for ws_index, workspace in pairs(workspaces) do
+		if ws_index ~= except_ws then
+			_popup_pinned[ws_index] = false
+			invalidate_popup_query(ws_index)
+			hide_popup(ws_index, workspace, false)
+		end
+	end
+end
+
+-- ========== Popup：点击当前工作区时查询并展示最新窗口列表 ==========
+local function open_popup(ws_index, workspace_item)
+	if not workspace_item then
+		return
+	end
+
+	close_popups(ws_index)
+
+	invalidate_popup_query(ws_index)
+	local generation = _popup_query_gen[ws_index]
+	local command = "aerospace list-windows --workspace " .. shell_quote(ws_index)
+		.. " --format '%{app-name}%{window-id}%{window-title}' --json"
+	sbar.exec(command, function(entries)
+		if _popup_query_gen[ws_index] ~= generation or not _popup_pinned[ws_index] then
+			return
+		end
+		-- AeroSpace 查询失败时沿用主条快照；空表则代表工作区确实已无窗口。
+		local windows = popup_windows_from_query(entries) or popup_windows_from_snapshot(ws_index)
+		render_popup(ws_index, workspace_item, windows)
 	end)
 end
 
@@ -613,7 +602,6 @@ local function updateWindows(opts)
 				args.open_windows = window_snapshot
 			else
 				window_snapshot = args.open_windows
-				snapshot_generation = snapshot_generation + 1
 			end
 		else
 			args.open_windows = window_snapshot
@@ -813,18 +801,7 @@ for _, ws in ipairs(initial_workspaces) do
 		_popup_items[ws][i] = popup_item
 	end
 	local workspace_index = ws
-	_popup_animations[workspace_index] = popup_animation.new(workspace, {
-		on_prepare_show = function()
-			set_popup_item_colors(
-				workspace_index,
-				transparent(appearance.colors.pill_fg),
-				transparent(appearance.colors.text)
-			)
-		end,
-		on_show = function()
-			set_popup_item_colors(workspace_index, appearance.colors.pill_fg, appearance.colors.text)
-		end,
-	})
+	_popup_animations[workspace_index] = popup_animation.new(workspace)
 end
 
 local workspace_names = {}
@@ -857,50 +834,27 @@ sbar.exec(":", function()
 	for _, ws in ipairs(workspace_order) do
 		local w = workspaces[ws]
 
-		w:subscribe("mouse.entered", function()
-			_popup_exit_gen[ws] = (_popup_exit_gen[ws] or 0) + 1
-			togglePopup(ws, w, true)
-		end)
-		w:subscribe("mouse.exited", function()
-			scheduleHide(ws, w)
-		end)
 		w:subscribe("mouse.clicked", function()
 			sbar.exec("aerospace list-workspaces --focused", function(focused)
 				focused = focused and focused:match("^%s*(.-)%s*$")
 				if focused == ws then
-					_popup_pinned[ws] = not _popup_pinned[ws]
-					togglePopup(ws, w)
-				else
-					for k, _ in pairs(_popup_pinned) do
-						_popup_pinned[k] = false
+					if _popup_pinned[ws] then
+						_popup_pinned[ws] = false
+						invalidate_popup_query(ws)
+						hide_popup_async(ws, w)
+					else
+						_popup_pinned[ws] = true
+						open_popup(ws, w)
 					end
-					sbar.exec("aerospace workspace " .. shell_quote(ws))
+					else
+						close_popups()
+						sbar.exec("aerospace workspace " .. shell_quote(ws))
 				end
 			end)
 		end)
 
 		for i = 1, MAX_POPUP_SLOTS do
 			local pi = _popup_items[ws][i]
-			pi:subscribe("mouse.entered", function()
-				_popup_exit_gen[ws] = (_popup_exit_gen[ws] or 0) + 1
-				_popup_item_hovering[ws] = _popup_item_hovering[ws] or {}
-				_popup_item_hovering[ws][i] = true
-				_popup_hovering[ws] = true
-				defer_popup_item_colors(ws, i, appearance.colors.red, appearance.colors.red, true)
-			end)
-			pi:subscribe("mouse.exited", function()
-				_popup_item_hovering[ws] = _popup_item_hovering[ws] or {}
-				_popup_item_hovering[ws][i] = false
-				_popup_hovering[ws] = false
-				for _, hovering in pairs(_popup_item_hovering[ws]) do
-					if hovering then
-						_popup_hovering[ws] = true
-						break
-					end
-				end
-				defer_popup_item_colors(ws, i, appearance.colors.pill_fg, appearance.colors.text, false)
-				scheduleHide(ws, w)
-			end)
 			pi:subscribe("mouse.clicked", function()
 				local win = _popup_windows[ws] and _popup_windows[ws][i]
 				if win then
@@ -908,6 +862,8 @@ sbar.exec(":", function()
 					if win_id then
 						sbar.exec("aerospace focus --window-id " .. win_id)
 					end
+					_popup_pinned[ws] = false
+					invalidate_popup_query(ws)
 					hide_popup_async(ws, w)
 				end
 			end)
@@ -924,17 +880,15 @@ sbar.exec(":", function()
 		local focused = env.FOCUSED_WORKSPACE
 		if focused then
 			focused_workspace_cache = focused
-			for k, _ in pairs(_popup_pinned) do _popup_pinned[k] = false end
-			for k, _ in pairs(_popup_hovering) do _popup_hovering[k] = false end
+			close_popups()
 			-- 使用已有快照一次性清除旧背景并点亮当前工作区，不触发窗口查询。
 			distribute_cached_borders(focused, animations_ready)
 		end
 	end)
 
-	-- `space_windows_change` 有三个来源：
+	-- `space_windows_change` 有两个来源：
 	--   1. SketchyBar 原生事件：窗口创建/销毁后触发，负责关闭窗口的实时刷新；
 	--   2. aerospace_watch 自定义 trigger：AeroSpace 检测到新窗口后补一发 created。
-	--   3. Hammerspoon 的 AXTitleChanged：同步 WPS 标签页等窗口标题变化。
 	root:subscribe("space_windows_change", function(env)
 		local event = env and env.WINDOW_EVENT
 		local delay = WINDOW_REFRESH_DELAY_DEFAULT
@@ -942,8 +896,6 @@ sbar.exec(":", function()
 			delay = WINDOW_REFRESH_DELAY_CREATED
 		elseif event == "destroyed" or event == "terminated" then
 			delay = WINDOW_REFRESH_DELAY_DESTROYED
-		elseif event == "title_changed" then
-			delay = WINDOW_REFRESH_DELAY_TITLE
 		end
 		scheduleUpdateWindows(delay)
 	end)

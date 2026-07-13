@@ -51,17 +51,10 @@ local function pf()
 	return { family = PF.text, style = PF.style_map["Bold"], size = PF.size }
 end
 
-local hover_items = {}
-
-local function track(item)
-	hover_items[#hover_items + 1] = item
-	return item
-end
-
 local repo_rows = {}
 
 for ri, repo in ipairs(config.repos or {}) do
-	local item = track(sbar.add("item", item_name .. ".popup.repo." .. ri, {
+	local item = sbar.add("item", item_name .. ".popup.repo." .. ri, {
 		position = "popup." .. item_name,
 		drawing = true, width = 560,
 		padding_left = 0, padding_right = 0,
@@ -73,7 +66,7 @@ for ri, repo in ipairs(config.repos or {}) do
 			padding_left = 8, padding_right = 14,
 		},
 		background = { drawing = false, height = 18, border_width = 0 },
-	}))
+	})
 	repo_rows[repo.path] = item
 end
 
@@ -154,33 +147,23 @@ local function refresh()
 	end)
 end
 
-local popup_utils = require("helpers.popup_utils")
-local popup_state = popup_utils.new_state()
+local popup_visible = false
 
 local function show()
-	popup_state.exit_gen = popup_state.exit_gen + 1
 	refresh()
 	git_anim:show()
 end
 local function hide()
 	git_anim:hide_async()
 end
-local function schedule_hide()
-	popup_utils.schedule_hide(popup_state, hide)
-end
-
-git_item:subscribe("mouse.entered", show)
-git_item:subscribe("mouse.exited", schedule_hide)
 git_item:subscribe("mouse.clicked", function()
-	popup_state.pinned = not popup_state.pinned
-	if popup_state.pinned then
+	popup_visible = not popup_visible
+	if popup_visible then
 		show()
 	else
 		hide()
 	end
 end)
-
-popup_utils.bind_popup_hover(hover_items, popup_state, schedule_hide)
 
 git_item:subscribe({ "routine", "system_woke" }, refresh)
 refresh()

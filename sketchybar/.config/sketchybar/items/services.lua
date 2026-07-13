@@ -70,22 +70,16 @@ end
 
 local text_rows    = {}
 local actions_list = {}
-local hover_items  = {}
 local status_row   = nil
 
 local function service_key(gid, sid)
 	return gid .. "\0" .. sid
 end
 
-local function track(item)
-	hover_items[#hover_items + 1] = item
-	return item
-end
-
 -- 文本行：树形线 + 图标字形 + 空格 + 文字，全部画在 label（等宽对齐）。
 local function text_row(key, depth, is_last, opts)
 	local prefix = tree:prefix(depth, is_last)
-	local item = track(sbar.add("item", "services.popup." .. key, {
+	local item = sbar.add("item", "services.popup." .. key, {
 		position = "popup." .. item_name,
 		drawing = true, width = 240,
 		padding_left = 0, padding_right = 0,
@@ -97,7 +91,7 @@ local function text_row(key, depth, is_last, opts)
 			padding_left = 8, padding_right = 14,
 		},
 		background = { drawing = false, height = 18, border_width = 0 },
-	}))
+	})
 	text_rows[key] = { item = item, prefix = prefix }
 	return item
 end
@@ -106,7 +100,7 @@ end
 local function btn_row(btn_id, depth, is_last, action, scope, gid, sid)
 	local def = BTN[action] or BTN.start
 	local prefix = tree:prefix(depth, is_last)
-	local item = track(sbar.add("item", btn_id, {
+	local item = sbar.add("item", btn_id, {
 		position = "popup." .. item_name,
 		drawing = true, width = 240,
 		padding_left = 0, padding_right = 0,
@@ -118,7 +112,7 @@ local function btn_row(btn_id, depth, is_last, action, scope, gid, sid)
 			padding_left = 8, padding_right = 14,
 		},
 		background = { drawing = false, height = 18, border_width = 0 },
-	}))
+	})
 	actions_list[#actions_list + 1] = {
 		scope = scope, group_id = gid, service_id = sid,
 		action = action, row = item,
@@ -166,7 +160,6 @@ status_row = sbar.add("item", "services.popup.status", {
 	label = { string = "", font = pf(), color = colors.surface1, padding_left = 8, padding_right = 14 },
 	background = { drawing = false, height = 18, border_width = 0 },
 })
-track(status_row)
 
 -- ========== 按钮点击 ==========
 local function target_name(entry)
@@ -197,7 +190,7 @@ end
 -- ========== 状态刷新 ==========
 -- 必须先于按钮 subscribe 定义 refresh，否则闭包会解析到全局 nil refresh。
 local popup_utils = require("helpers.popup_utils")
-local popup_state = popup_utils.new_state()
+local popup_visible = false
 local inflight = false; local pending = false
 
 local function count_color(status, running, total)
@@ -288,31 +281,21 @@ for _, entry in ipairs(actions_list) do
 	end)
 end
 
--- ========== hover（与 battery/calendar 共用 popup_utils）==========
 local function show()
-	popup_state.exit_gen = popup_state.exit_gen + 1
 	refresh()
 	services_anim:show()
 end
 local function hide()
 	services_anim:hide_async()
 end
-local function schedule_hide()
-	popup_utils.schedule_hide(popup_state, hide)
-end
-
-services_item:subscribe("mouse.entered", show)
-services_item:subscribe("mouse.exited", schedule_hide)
 services_item:subscribe("mouse.clicked", function()
-	popup_state.pinned = not popup_state.pinned
-	if popup_state.pinned then
+	popup_visible = not popup_visible
+	if popup_visible then
 		show()
 	else
 		hide()
 	end
 end)
-
-popup_utils.bind_popup_hover(hover_items, popup_state, schedule_hide)
 
 services_item:subscribe({ "services_change", "system_woke" }, refresh)
 refresh()

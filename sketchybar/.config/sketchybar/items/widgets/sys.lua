@@ -92,7 +92,7 @@ for i = 1, 10 do
 end
 
 local popup_utils = require("helpers.popup_utils")
-local popup_state = popup_utils.new_state()
+local popup_visible = false
 local _watching = false
 
 local function stop_watcher()
@@ -146,10 +146,8 @@ local sys_popup = popup_animation.new(sys, {
 })
 
 local function show_popup()
-	popup_state.exit_gen = popup_state.exit_gen + 1
-	local gen = popup_state.exit_gen
 	popup_utils.defer(function()
-		if popup_state.exit_gen ~= gen then return end
+		if not popup_visible then return end
 		set_popup_items(true)
 		sys_popup:show()
 		if not MACTOP then
@@ -173,33 +171,14 @@ end
 local function hide_popup()
 	sys_popup:hide_async()
 end
-
-local function schedule_hide()
-	popup_utils.schedule_hide(popup_state, function()
-		hide_popup()
-	end)
-end
-
-sys:subscribe("mouse.entered", show_popup)
-sys:subscribe("mouse.exited", schedule_hide)
 sys:subscribe("mouse.clicked", function()
-	if popup_state.pinned then
-		popup_state.pinned = false
+	popup_visible = not popup_visible
+	if not popup_visible then
 		hide_popup()
 	else
-		popup_state.pinned = true
 		show_popup()
 	end
 end)
-
--- 手动展开 process_items 表，避免依赖 table.unpack（Lua 5.1 全局 unpack / 5.4 移除等版本差异）
-do
-	local all_items = { info }
-	for _, item in ipairs(process_items) do
-		all_items[#all_items + 1] = item
-	end
-	popup_utils.bind_popup_hover(all_items, popup_state, schedule_hide)
-end
 
 stop_watcher()
 
