@@ -47,64 +47,90 @@ function M.new(parent, options)
 			return
 		end
 		-- CLI 异步执行；完成回调里校验 generation，避免与 show 竞态
-		sbar.exec(
-			SKETCHYBAR_BIN .. " --set " .. shell_quote(parent.name) .. " popup.drawing=off >/dev/null 2>&1",
-			function()
-				if generation ~= gen then
-					-- 期间已 show：把可能被 CLI 关掉的 popup 拉回来
-					local color = background_color()
-					parent:set({
-						popup = {
-							drawing = true,
-							background = { color = color },
-						},
-					})
-					return
-				end
-				fire_on_hidden(options)
+			sbar.exec(
+				SKETCHYBAR_BIN .. " --set " .. shell_quote(parent.name) .. " popup.drawing=off >/dev/null 2>&1",
+				function()
+					if generation ~= gen then
+						if not visible then
+							-- 更晚的 hide 已经接管状态；旧 CLI 完成后不能把 popup 重新打开。
+							return
+						end
+						-- 期间已 show：把可能被 CLI 关掉的 popup 拉回来
+						local color = background_color()
+						local restore_generation = generation
+						sbar.delay(0, function()
+							if generation ~= restore_generation then
+								return
+							end
+							visible = true
+							parent:set({
+								popup = {
+									drawing = true,
+									background = { color = color },
+								},
+							})
+						end)
+						return
+					end
+					fire_on_hidden(options)
 			end
 		)
 	end
 
 	local controller = {}
 
+	local function defer_set(gen, props, callback)
+		sbar.delay(0, function()
+			if generation ~= gen then
+				return
+			end
+			parent:set(props)
+			if callback then
+				callback()
+			end
+		end)
+	end
+
 	function controller:show()
 		generation = generation + 1
 		local current_generation = generation
 		local color = background_color()
 		if visible then
-			parent:set({
+			defer_set(current_generation, {
 				popup = {
 					drawing = true,
 					background = { color = color },
 				},
-			})
-			if options.on_prepare_show then
-				options.on_prepare_show()
-			end
-			if options.on_show then
-				options.on_show()
-			end
+			}, function()
+				if options.on_prepare_show then
+					options.on_prepare_show()
+				end
+				if options.on_show then
+					options.on_show()
+				end
+			end)
 			return
 		end
 		visible = true
-		parent:set({
+		defer_set(current_generation, {
 			popup = {
 				drawing = true,
 				background = { color = appearance.with_alpha(color, 0) },
 			},
-		})
-		if options.on_prepare_show then
-			options.on_prepare_show()
-		end
+		}, function()
+			if options.on_prepare_show then
+				options.on_prepare_show()
+			end
+		end)
 		sbar.animate("linear", frames, function()
 			if generation ~= current_generation then
 				return
 			end
-			parent:set({ popup = { background = { color = color } } })
-			if options.on_show then
-				options.on_show()
-			end
+			defer_set(current_generation, { popup = { background = { color = color } } }, function()
+				if options.on_show then
+					options.on_show()
+				end
+			end)
 		end)
 	end
 
@@ -116,8 +142,9 @@ function M.new(parent, options)
 			hide_via_cli_async(generation)
 			return
 		end
-		parent:set({ popup = { drawing = false } })
-		fire_on_hidden(options)
+		defer_set(generation, { popup = { drawing = false } }, function()
+			fire_on_hidden(options)
+		end)
 	end
 
 	function controller:hide_async()
