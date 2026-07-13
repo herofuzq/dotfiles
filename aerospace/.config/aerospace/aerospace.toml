@@ -255,7 +255,8 @@ run = 'layout floating'
 
 # 设定总是悬浮的程序
 [[on-window-detected]]
-if = """test %{app-bundle-id} = net.nutstore.NutstoreJavaBE || \
+if = """test %{app-bundle-id} ~= '^com[.]apple[.]' || \
+        test %{app-bundle-id} = net.nutstore.NutstoreJavaBE || \
         test %{app-bundle-id} = org.fcitx.inputmethod.Fcitx5 || \
         test %{app-bundle-id} = org.te4.T-Engine || \
         test %{app-bundle-id} = com.openai.chat || \
@@ -268,15 +269,12 @@ if = """test %{app-bundle-id} = net.nutstore.NutstoreJavaBE || \
         test %{app-bundle-id} = iordv.Droppy || \
         test %{app-bundle-id} = com.sindresorhus.Plash || \
         test %{app-bundle-id} = net.nutstore.osxapp || \
-        test %{app-bundle-id} = com.apple.Preview || \
         test %{app-bundle-id} = com.TickTick.task.mac || \
         test %{app-bundle-id} = com.hegenberg.BetterTouchTool || \
         test %{app-bundle-id} = com.raycast-x.macos || \
         test %{app-bundle-id} = xyz.chatboxapp.app || \
         test %{app-bundle-id} = com.bitwarden.desktop || \
-        test %{app-bundle-id} = com.apple.finder || \
         test %{app-bundle-id} = com.HyperartFlow.Barbee.bb-agent || \
-        test %{app-bundle-id} = com.apple.printcenter || \
         test %{app-bundle-id} = org.hammerspoon.Hammerspoon || \
         test %{app-bundle-id} = com.futureshocksoftware.inethack2 || \
         test %{app-bundle-id} = com.soundmindgames.GnollHack || \
