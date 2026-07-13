@@ -269,6 +269,7 @@ if = """test %{app-bundle-id} ~= '^com[.]apple[.]' || \
         test %{app-bundle-id} = iordv.Droppy || \
         test %{app-bundle-id} = com.sindresorhus.Plash || \
         test %{app-bundle-id} = net.nutstore.osxapp || \
+        test %{app-bundle-id} = now.typeless.desktop || \
         test %{app-bundle-id} = com.TickTick.task.mac || \
         test %{app-bundle-id} = com.hegenberg.BetterTouchTool || \
         test %{app-bundle-id} = com.raycast-x.macos || \
