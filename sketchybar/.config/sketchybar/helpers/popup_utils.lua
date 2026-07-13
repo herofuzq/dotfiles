@@ -5,7 +5,7 @@ local timing = require("helpers.timing")
 local M = {}
 
 function M.new_state()
-	return { pinned = false, hovering = false, exit_gen = 0 }
+	return { pinned = false, hovering = false, hovered_items = {}, exit_gen = 0 }
 end
 
 function M.schedule_hide(state, hide_fn)
@@ -33,10 +33,14 @@ function M.bind_popup_hover(items, state, scheduleHide_fn)
 	for _, item in ipairs(items) do
 		item:subscribe("mouse.entered", function()
 			state.exit_gen = state.exit_gen + 1
+			if not state.hovered_items[item] then
+				state.hovered_items[item] = true
+			end
 			state.hovering = true
 		end)
 		item:subscribe("mouse.exited", function()
-			state.hovering = false
+			state.hovered_items[item] = nil
+			state.hovering = next(state.hovered_items) ~= nil
 			scheduleHide_fn()
 		end)
 	end

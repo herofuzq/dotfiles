@@ -1,6 +1,6 @@
 #!/usr/bin/env lua
 
--- 输出 tab-separated git 状态，供 items/git_status.lua 解析。
+-- 输出 tab-separated git 状态，供 items/git.lua 解析。
 -- 格式：
 --   repo <path> <label> <branch> <status_keyword> <dirty_count> <ahead> <behind>
 

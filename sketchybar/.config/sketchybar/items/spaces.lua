@@ -67,8 +67,8 @@ local mode_visible = false
 local mode_generation = 0
 
 -- 内容切换动画帧数:统一规范，跟随 timing.lua 的标准 fade 时长。
--- Workspace app 图标是一整串 label；内容变化时直接切换到最终反显色，
--- 避免高亮背景上的 alpha 过渡看起来像闪烁。
+-- front_app 是一整串 label；名称变化时先淡出、替换文字、再淡入，
+-- 避免短名称切换时出现左右移动感。
 -- UI 反馈类动画(apple click、media button click)另算，不是入场动画。
 local CONTENT_FADE_FRAMES = timing.STANDARD_DURATION_FRAMES
 
@@ -671,10 +671,13 @@ local function scheduleUpdateWindows(delay)
 end
 
 -- ========== 多显示器支持：更新工作区所属显示器 ==========
-local function updateWorkspaceMonitor()
+local workspace_monitor_signature
+
+local function updateWorkspaceMonitor(on_complete)
 	local workspace_monitor = {}
 	sbar.exec(query_workspaces, function(workspaces_and_monitors)
 		if not workspaces_and_monitors then
+			if on_complete then on_complete(false) end
 			return
 		end
 		local has_monitor_data = false
@@ -688,18 +691,28 @@ local function updateWorkspaceMonitor()
 			end
 		end
 		if not has_monitor_data then
+			if on_complete then on_complete(false) end
 			return
 		end
+		local signature_parts = {}
+		for _, workspace_index in ipairs(workspace_order) do
+			signature_parts[#signature_parts + 1] = workspace_index .. "=" .. tostring(workspace_monitor[workspace_index] or "")
+		end
+		local signature = table.concat(signature_parts, "\0")
+		local changed = signature ~= workspace_monitor_signature
+		workspace_monitor_signature = signature
 		for workspace_index, _ in pairs(workspaces) do
 			workspaces[workspace_index]:set({
 				display = workspace_monitor[workspace_index],
 			})
 		end
+		if on_complete then on_complete(changed) end
 	end)
 end
 
-local function syncDisplayState()
+local function syncDisplayState(refresh_windows)
 	local h = settings.detect_bar_height()
+	local height_changed = h and h > 0 and h ~= settings.height
 	if h and h > 0 then
 		sbar.bar({ height = h })
 		settings.height = h
@@ -708,17 +721,20 @@ local function syncDisplayState()
 	-- Display/wake can leave the focused workspace cache stale while AeroSpace
 	-- is still settling. Force the next window snapshot to query the real focus.
 	focused_workspace_cache = nil
-	updateWorkspaceMonitor()
-	updateWindows({ protect_empty_snapshot = true })
+	updateWorkspaceMonitor(function(monitor_changed)
+		if refresh_windows or height_changed or monitor_changed then
+			updateWindows({ protect_empty_snapshot = true })
+		end
+	end)
 end
 
 local function scheduleDisplaySync()
 	display_sync_generation = display_sync_generation + 1
 	local gen = display_sync_generation
-	for _, delay in ipairs({ 0.25, 1.25 }) do
+	for index, delay in ipairs({ 0.25, 1.25 }) do
 		sbar.delay(delay, function()
 			if display_sync_generation == gen then
-				syncDisplayState()
+				syncDisplayState(index == 1)
 			end
 		end)
 	end
@@ -875,6 +891,12 @@ sbar.exec(":", function()
 				_popup_item_hovering[ws] = _popup_item_hovering[ws] or {}
 				_popup_item_hovering[ws][i] = false
 				_popup_hovering[ws] = false
+				for _, hovering in pairs(_popup_item_hovering[ws]) do
+					if hovering then
+						_popup_hovering[ws] = true
+						break
+					end
+				end
 				defer_popup_item_colors(ws, i, appearance.colors.pill_fg, appearance.colors.text, false)
 				scheduleHide(ws, w)
 			end)

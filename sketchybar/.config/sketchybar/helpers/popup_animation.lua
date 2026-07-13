@@ -1,23 +1,15 @@
 -- ========== Popup 弹出/收起 ==========
 -- show：背景 color alpha 线性渐入（无 y_offset）。
--- hide / hide_async：瞬时关闭（CLI 异步 popup.drawing=off），没有渐出动画。
+-- hide / hide_async：瞬时关闭，没有渐出动画；通过下一事件循环提交状态。
 --   原因：timer/mouse 回调里同步 parent:set 可能与 SketchyBar 事件 IPC 互等（#794）。
--- generation：hide CLI 完成时若 generation 已变（用户又 show），则把 popup 拉回，
---   避免「晚到的 hide」关掉刚显示的 popup。on_hidden 在 hide 路径校验 generation 后触发。
+-- generation：延迟提交前校验代数，避免旧 hide 关掉刚显示的 popup。
 local appearance = require("appearance")
 local timing = require("helpers.timing")
 local sbar = require("sketchybar")
-local shell_quote = require("helpers.utils").shell_quote
-local find_binary = require("helpers.find_binary").find
 
 local M = {}
 
 local DEFAULT_FRAMES = timing.STANDARD_DURATION_FRAMES
-local SKETCHYBAR_BIN = os.getenv("SKETCHYBAR_BIN")
-	or find_binary(
-		{ "/opt/homebrew/bin/sketchybar", "/usr/local/bin/sketchybar" },
-		"/opt/homebrew/bin/sketchybar"
-	)
 
 local function fire_on_hidden(options)
 	if options and options.on_hidden then
@@ -36,45 +28,6 @@ function M.new(parent, options)
 			return options.background_color()
 		end
 		return options.background_color or appearance.colors.pill_bg
-	end
-
-	local function hide_via_cli_async(gen)
-		if not parent or not parent.name then
-			if generation == gen then
-				parent:set({ popup = { drawing = false } })
-				fire_on_hidden(options)
-			end
-			return
-		end
-		-- CLI 异步执行；完成回调里校验 generation，避免与 show 竞态
-			sbar.exec(
-				SKETCHYBAR_BIN .. " --set " .. shell_quote(parent.name) .. " popup.drawing=off >/dev/null 2>&1",
-				function()
-					if generation ~= gen then
-						if not visible then
-							-- 更晚的 hide 已经接管状态；旧 CLI 完成后不能把 popup 重新打开。
-							return
-						end
-						-- 期间已 show：把可能被 CLI 关掉的 popup 拉回来
-						local color = background_color()
-						local restore_generation = generation
-						sbar.delay(0, function()
-							if generation ~= restore_generation then
-								return
-							end
-							visible = true
-							parent:set({
-								popup = {
-									drawing = true,
-									background = { color = color },
-								},
-							})
-						end)
-						return
-					end
-					fire_on_hidden(options)
-			end
-		)
 	end
 
 	local controller = {}
@@ -134,14 +87,9 @@ function M.new(parent, options)
 		end)
 	end
 
-	function controller:hide(animated)
+	function controller:hide(_use_cli)
 		generation = generation + 1
 		visible = false
-		if animated then
-			-- 名称保留 animated；实际为即时 CLI 关（避免 timer 内同步 set 死锁）
-			hide_via_cli_async(generation)
-			return
-		end
 		defer_set(generation, { popup = { drawing = false } }, function()
 			fire_on_hidden(options)
 		end)
@@ -150,7 +98,9 @@ function M.new(parent, options)
 	function controller:hide_async()
 		generation = generation + 1
 		visible = false
-		hide_via_cli_async(generation)
+		defer_set(generation, { popup = { drawing = false } }, function()
+			fire_on_hidden(options)
+		end)
 	end
 
 	function controller:is_visible()

@@ -21,7 +21,7 @@ end
 M.POPUP_HIDE_DELAY_S = 0.2
 
 -- 标准动画时长（100ms = 12 帧 @ 120Hz）。
--- 用于 popup 渐入/渐出、label 颜色渐变等"通用 fade"。
+-- 用于 popup 渐入、label 颜色渐变等"通用 fade"；popup 隐藏目前是即时关闭。
 M.STANDARD_DURATION_FRAMES = 12
 
 -- 启动 bar 与 item 同步 alpha 渐入（约 500ms = 60 帧 @ 120Hz）。

@@ -28,7 +28,7 @@ local tmp_path = require("helpers.utils").tmp_path
 -- helper 是否 stale；只有缺 binary 或源码更新时才同步跑 make。
 local function stat_mtime(path)
 	-- BSD stat: -f %m 输出 mtime epoch。文件不存在时输出空，tonumber 返回 nil。
-	local f = io.popen("stat -f %m " .. shell_quote(path) .. " 2>/dev/null")
+	local f = io.popen("stat -L -f %m " .. shell_quote(path) .. " 2>/dev/null")
 	if not f then
 		return nil
 	end
@@ -113,23 +113,19 @@ local function helper_specs(cfg)
 end
 
 local function needs_make(specs)
-	local tests = {}
 	for _, spec in ipairs(specs) do
-		local target = shell_quote(spec.target)
-		table.insert(tests, "[ ! -e " .. target .. " ]")
+		local target_mtime = stat_mtime(spec.target)
+		if not target_mtime then
+			return true
+		end
 		for _, source in ipairs(spec.sources) do
-			table.insert(tests, "[ ! -e " .. shell_quote(source) .. " ]")
-			table.insert(tests, "[ " .. shell_quote(source) .. " -nt " .. target .. " ]")
+			local source_mtime = stat_mtime(source)
+			if not source_mtime or source_mtime > target_mtime then
+				return true
+			end
 		end
 	end
-
-	local f = io.popen("if " .. table.concat(tests, " || ") .. "; then printf 1; else printf 0; fi")
-	if not f then
-		return true
-	end
-	local stale = f:read("*a") == "1"
-	f:close()
-	return stale
+	return false
 end
 
 local function run_make(cfg, specs)
@@ -141,7 +137,7 @@ local function run_make(cfg, specs)
 
 	local cmd = "cd "
 		.. shell_quote(cfg .. "/helpers")
-		.. " && make > "
+		.. " && make -B > "
 		.. shell_quote(log_path)
 		.. " 2>&1; printf '\\n%s' \"$?\""
 	local f = io.popen(cmd)

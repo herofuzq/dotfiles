@@ -34,6 +34,7 @@ var fullscreenCheckInFlight = false
 var fullscreenCheckPending = false
 var fullscreenSnapshotInitialized = false
 var lastFullscreenSignature = ""
+var fullscreenTriggerScheduled = false
 
 struct CommandResult {
     let exitCode: Int32
@@ -99,8 +100,15 @@ func trigger(_ event: String, fields: [String: String] = [:]) {
 func triggerFullscreenRefresh() {
     // AeroSpace sometimes settles fullscreen state just after the focus event.
     // A tiny delay lets spaces.lua query the final state once instead of racing it.
-    DispatchQueue.global().asyncAfter(deadline: .now() + 0.15) {
-        trigger("aerospace_fullscreen_change", fields: ["SOURCE": "aerospace_watch"])
+    fullscreenQueue.async {
+        if fullscreenTriggerScheduled {
+            return
+        }
+        fullscreenTriggerScheduled = true
+        fullscreenQueue.asyncAfter(deadline: .now() + 0.15) {
+            fullscreenTriggerScheduled = false
+            trigger("aerospace_fullscreen_change", fields: ["SOURCE": "aerospace_watch"])
+        }
     }
 }
 
