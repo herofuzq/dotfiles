@@ -4,6 +4,7 @@
 local sbar = require("sketchybar")
 local appearance = require("appearance")
 local settings = require("settings")
+local timing = require("helpers.timing")
 
 local M = {}
 
@@ -27,14 +28,23 @@ end
 function M.reveal()
 	-- 普通 reload 复用 settings.lua 首次读取的高度；显示器/唤醒事件
 	-- 由 spaces.lua 的 display sync 单独重新检测，避免每次 reload 重复 fork。
+	local bar_color = appearance.colors.bar_bg
+	local border_color = appearance.colors.border
 	sbar.bar({
 		hidden = "off",
 		height = settings.height,
-		color = appearance.colors.bar_bg,
-		border_color = appearance.colors.border,
+		color = appearance.with_alpha(bar_color, 0),
+		border_color = appearance.with_alpha(border_color, 0),
 		border_width = 2,
 		blur_radius = 15,
 	})
+
+	sbar.animate("linear", timing.ENTER_BAR_FADE_FRAMES, function()
+		sbar.bar({
+			color = bar_color,
+			border_color = border_color,
+		})
+	end)
 end
 
 return M

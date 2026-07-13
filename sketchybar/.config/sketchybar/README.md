@@ -34,12 +34,12 @@ When debugging live behavior, inspect `~/.config/sketchybar` first. Source edits
 |------|--------|----------|
 | `install()` | `enter_animation` | Before `begin_config`, wrap `sbar.add` and record main-bar item names (skip popup rows) |
 | `prepare()` | same | After `end_config`, use declared icon/label colors for tracked main-bar items and set them to alpha 0 (bar still hidden) |
-| `startup.reveal()` | `startup` | **Instant** unhide + final height/color/border (not a color-alpha animation) |
-| `run()` | same | Single linear alpha animate for all items with declared colors (~300ms) |
+| `startup.reveal()` | `startup` | Unhide with transparent bar colors, then animate bar background/border to final alpha (~500ms) |
+| `run()` | same | Single linear alpha animate for all items with declared colors (~500ms, synchronized with bar) |
 
 - Item fade only: no `y_offset`, no stagger, does not force `drawing=true`.
 - Popup rows are skipped (`position` starts with `popup`, or names containing `popup` / calendar grid / sys process rows).
-- Item timing: `helpers/timing.lua` → `ENTER_ITEM_FADE_FRAMES`.
+- Bar/item timing: `helpers/timing.lua` → `ENTER_BAR_FADE_FRAMES` / `ENTER_ITEM_FADE_FRAMES` (both 60 frames).
 
 Main-bar icon/label colors are made transparent at `sbar.add` time. Dynamic backgrounds are excluded because some widgets change them after `add` to join a shared bracket.
 
@@ -180,7 +180,7 @@ launchctl print gui/$(id -u)/com.fuzhuoqun.aerospace_watch
 sketchybar --reload
 ```
 
-Fade speed: edit `ENTER_ITEM_FADE_FRAMES` in `helpers/timing.lua`.
+Fade speed: edit `ENTER_BAR_FADE_FRAMES` / `ENTER_ITEM_FADE_FRAMES` in `helpers/timing.lua`.
 
 ---
 
@@ -214,12 +214,12 @@ helper 的编译产物不进 git，而是在实际运行路径里生成，例如
 |------|------|------|
 | `install()` | `enter_animation` | `begin_config` 前劫持 `sbar.add`，只登记主条 item 名（跳过 popup） |
 | `prepare()` | 同上 | `end_config` 后使用登记的 icon/label 颜色；对主条 item 设 alpha=0（bar 仍 hidden） |
-| `startup.reveal()` | `startup` | **瞬时** unhide + 最终 height/color/border（不是 color alpha 动画） |
-| `run()` | 同上 | 所有声明了颜色的主条 item 一次 linear alpha 渐入（约 300ms） |
+| `startup.reveal()` | `startup` | 以透明 bar 背景/边框 unhide，再渐入到最终 alpha（约 500ms） |
+| `run()` | 同上 | 所有声明了颜色的主条 item 一次 linear alpha 渐入（约 500ms，与 bar 同步） |
 
 - 仅 item 走颜色 alpha：不改 `y_offset`、不做 stagger、不强行 `drawing=true`。
 - 跳过 popup 行（`position` 以 `popup` 开头，或名称含 `popup` / 月历格 / sys 进程行）。
-- item 时长：`helpers/timing.lua` 的 `ENTER_ITEM_FADE_FRAMES`。
+- bar/item 时长：`helpers/timing.lua` 的 `ENTER_BAR_FADE_FRAMES` / `ENTER_ITEM_FADE_FRAMES`，当前均为 60 帧（约 500ms）。
 
 必须在 **end_config 之后** snapshot：部分 widget 会在 `add` 后再 `sbar.set` 关掉 background 以并入 bracket；用创建时 props 渐入会把背景错误地画回来。
 
@@ -361,4 +361,4 @@ launchctl print gui/$(id -u)/com.fuzhuoqun.aerospace_watch
 sketchybar --reload
 ```
 
-item 渐入快慢：改 `helpers/timing.lua` 里的 `ENTER_ITEM_FADE_FRAMES`（bar 当前为瞬时 unhide）。
+bar 和 item 渐入快慢：改 `helpers/timing.lua` 里的 `ENTER_BAR_FADE_FRAMES` / `ENTER_ITEM_FADE_FRAMES`。
