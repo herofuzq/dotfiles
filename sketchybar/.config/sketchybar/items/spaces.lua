@@ -53,6 +53,9 @@ local _popup_windows = {} -- { [ws_name] = { {id, app, title}, ... } }
 local _popup_pinned = {} -- { [ws_name] = true/false } 记录点击固定状态，固定后鼠标离开不隐藏
 local _popup_hovering = {} -- { [ws_name] = true/false } 鼠标当前是否在 popup 子项上
 local _popup_exit_gen = {} -- { [ws_name] = gen } 延迟隐藏的代数，进入 popup 时作废旧延迟
+local _popup_render_gen = {} -- { [ws_name] = gen } 延迟渲染的代数，避免旧鼠标事件覆盖新内容
+local _popup_color_gen = {} -- { [ws_name] = { [item_index] = gen } } 延迟颜色更新的代数
+local _popup_item_hovering = {} -- { [ws_name] = { [item_index] = true/false } } 子项独立悬浮状态
 local _popup_animations = {}
 local _popup_cached_gen = {} -- { [ws_name] = snapshot_generation } popup 数据缓存版本号
 local _border_signature
@@ -386,6 +389,35 @@ local function set_popup_item_colors(ws_index, icon_color, label_color)
 	end
 end
 
+local function defer_popup_render(ws_index, callback)
+	local gen = (_popup_render_gen[ws_index] or 0) + 1
+	_popup_render_gen[ws_index] = gen
+	sbar.delay(0, function()
+		if _popup_render_gen[ws_index] == gen then
+			callback()
+		end
+	end)
+end
+
+local function defer_popup_item_colors(ws_index, item_index, icon_color, label_color, hovering)
+	_popup_color_gen[ws_index] = _popup_color_gen[ws_index] or {}
+	local gen = (_popup_color_gen[ws_index][item_index] or 0) + 1
+	_popup_color_gen[ws_index][item_index] = gen
+	sbar.delay(0, function()
+		if _popup_color_gen[ws_index][item_index] ~= gen then
+			return
+		end
+		if hovering ~= nil
+			and ((_popup_item_hovering[ws_index] or {})[item_index] or false) ~= hovering then
+			return
+		end
+		local item = _popup_items[ws_index] and _popup_items[ws_index][item_index]
+		if item then
+			item:set({ icon = { color = icon_color }, label = { color = label_color } })
+		end
+	end)
+end
+
 local function show_popup(ws_index, workspace)
 	local animation = _popup_animations[ws_index]
 	if not animations_ready or not animation then
@@ -469,13 +501,15 @@ local function togglePopup(ws_index, workspace_item, force_show)
 	end
 
 	if #windows == 0 then
-		for i = 1, MAX_POPUP_SLOTS do
-			local item = _popup_items[ws_index] and _popup_items[ws_index][i]
-			if item then
-				item:set({ drawing = false })
+		defer_popup_render(ws_index, function()
+			for i = 1, MAX_POPUP_SLOTS do
+				local item = _popup_items[ws_index] and _popup_items[ws_index][i]
+				if item then
+					item:set({ drawing = false })
+				end
 			end
-		end
-		hide_popup(ws_index, workspace_item, true)
+			hide_popup(ws_index, workspace_item, true)
+		end)
 		return
 	end
 
@@ -484,26 +518,28 @@ local function togglePopup(ws_index, workspace_item, force_show)
 			hide_popup(other_index, ws, false)
 		end
 	end
-	for i = 1, MAX_POPUP_SLOTS do
-		local item = _popup_items[ws_index] and _popup_items[ws_index][i]
-		local win = _popup_windows[ws_index][i]
-		if item then
-			if win then
-				item:set({
-					drawing = true,
-					icon = { string = app_icons[win.app] or app_icons["Default"], color = appearance.colors.pill_fg },
-					label = { string = win.title, color = appearance.colors.text },
-				})
-			else
-				item:set({ drawing = false })
+	defer_popup_render(ws_index, function()
+		for i = 1, MAX_POPUP_SLOTS do
+			local item = _popup_items[ws_index] and _popup_items[ws_index][i]
+			local win = _popup_windows[ws_index][i]
+			if item then
+				if win then
+					item:set({
+						drawing = true,
+						icon = { string = app_icons[win.app] or app_icons["Default"], color = appearance.colors.pill_fg },
+						label = { string = win.title, color = appearance.colors.text },
+					})
+				else
+					item:set({ drawing = false })
+				end
 			end
 		end
-	end
-	if force_show or _popup_pinned[ws_index] then
-		show_popup(ws_index, workspace_item)
-	else
-		hide_popup(ws_index, workspace_item, true)
-	end
+		if force_show or _popup_pinned[ws_index] then
+			show_popup(ws_index, workspace_item)
+		else
+			hide_popup(ws_index, workspace_item, true)
+		end
+	end)
 end
 
 local function distribute_cached_borders(focused_workspace, animated)
@@ -830,12 +866,16 @@ sbar.exec(":", function()
 			local pi = _popup_items[ws][i]
 			pi:subscribe("mouse.entered", function()
 				_popup_exit_gen[ws] = (_popup_exit_gen[ws] or 0) + 1
+				_popup_item_hovering[ws] = _popup_item_hovering[ws] or {}
+				_popup_item_hovering[ws][i] = true
 				_popup_hovering[ws] = true
-				pi:set({ icon = { color = appearance.colors.red }, label = { color = appearance.colors.red } })
+				defer_popup_item_colors(ws, i, appearance.colors.red, appearance.colors.red, true)
 			end)
 			pi:subscribe("mouse.exited", function()
+				_popup_item_hovering[ws] = _popup_item_hovering[ws] or {}
+				_popup_item_hovering[ws][i] = false
 				_popup_hovering[ws] = false
-				pi:set({ icon = { color = appearance.colors.pill_fg }, label = { color = appearance.colors.text } })
+				defer_popup_item_colors(ws, i, appearance.colors.pill_fg, appearance.colors.text, false)
 				scheduleHide(ws, w)
 			end)
 			pi:subscribe("mouse.clicked", function()
