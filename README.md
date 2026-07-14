@@ -1,6 +1,6 @@
 # Dotfiles
 
-这是我的 macOS dotfiles 源码仓库，主要管理开发环境、窗口管理、状态栏、输入法和终端工具配置。
+这是我的 macOS dotfiles 源码仓库，管理窗口管理、状态栏、输入法、终端、编辑器、Shell 和常用桌面工具配置。
 
 详细安装步骤见 [SETUP.md](./SETUP.md)。这个 README 只保留整体地图和日常排查入口。
 
@@ -18,10 +18,12 @@
 | AeroSpace | `~/.config/aerospace/aerospace.toml` | 平铺窗口管理、工作区、快捷键 |
 | SketchyBar | `~/.config/sketchybar` | 状态栏、工作区、系统信息、输入法、媒体组件 |
 | Hammerspoon | `~/.hammerspoon` | macOS 自动化和少量窗口辅助 |
+| BetterTouchTool | 由 Hammerspoon 调用 | 执行浮动窗口 Pin/Unpin；仓库不维护 BTT 触发器规则 |
 | Karabiner | `~/.config/karabiner` | 键盘改键 |
 | Kitty / Ghostty | `~/.config/kitty`, `~/.config/ghostty` | 终端配置 |
 | Neovim | `~/.config/nvim` | 编辑器配置 |
 | fcitx5 | `~/.config/fcitx5` | 中文输入法配置 |
+| Shell / TUI | `~/.zshrc`, `~/.config/{yazi,lazygit,starship}` | Shell、文件管理和 Git TUI |
 
 ## SketchyBar 提醒
 
@@ -45,6 +47,20 @@ helper 二进制会生成在实际运行路径，例如：
 
 相关架构和事件流见 [sketchybar/.config/sketchybar/README.md](./sketchybar/.config/sketchybar/README.md)。
 
+## 浮动窗口联动
+
+浮动窗口的职责分成三层：
+
+1. **AeroSpace** 判断窗口是否为 `floating`，并负责工作区与窗口布局规则。
+2. **Hammerspoon** 监听窗口创建、聚焦和移动事件；新建的浮动窗口会避开顶部 SketchyBar 并移动到屏幕安全区域中央。
+3. **BetterTouchTool** 只执行 Hammerspoon 串行发送的 Pin/Unpin 动作，目标通过窗口 ID 和 Bundle ID 指定。
+
+置顶逻辑按窗口创建顺序维护栈：后创建且仍存在的浮动窗口优先 Pin，旧窗口保持 Unpin；关闭后才恢复上一个窗口。这样同一应用多窗口和多个浮动应用不会互相抢占。`Typeless` 不参与置顶，`CleanShot X` 不参与安全区归位。
+
+自动置顶默认开启，可用 `Hyper+P` 切换；关闭时会解除现有浮动窗口的 Pin，重新开启时会重新扫描当前工作区。Hammerspoon 不使用常驻轮询，主要依赖窗口事件和有限次数的 AeroSpace 查询重试。
+
+这条链路不依赖 BTT 前端触发器规则；BTT 作为动作执行端安装即可。浮动窗口移入 SketchyBar 顶部区域时，Hammerspoon 会在实际发生归位后显示一次提示。
+
 ## 常用验证
 
 ```bash
@@ -53,6 +69,10 @@ luac -p ~/.config/sketchybar/items/spaces.lua
 make -C ~/.config/sketchybar/helpers/event_providers/aerospace_watch
 launchctl print gui/$(id -u)/com.fuzhuoqun.aerospace_watch
 sketchybar --reload
+
+# Hammerspoon Lua 语法与运行状态
+luac -p ~/.hammerspoon/*.lua
+hs -c 'print(_floatingLevel_filter ~= nil, _windowWatcher_filter ~= nil)'
 ```
 
 ## 入口文档
@@ -61,3 +81,6 @@ sketchybar --reload
 |------|------|
 | [SETUP.md](./SETUP.md) | 新机器安装、Stow、Brewfile、Launchd |
 | [sketchybar/.config/sketchybar/README.md](./sketchybar/.config/sketchybar/README.md) | SketchyBar 模块、事件流、调试入口 |
+| [nvim/.config/nvim/README.md](./nvim/.config/nvim/README.md) | Neovim 配置与插件说明 |
+
+仓库当前没有单独的 `readme/` 目录；以上根文档和模块 README 是维护入口。

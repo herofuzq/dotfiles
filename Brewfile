@@ -19,8 +19,6 @@ tap "otuerk/sidebar", trusted: true
 tap "steipete/tap", trusted: true
 tap "vitorgalvao/tiny-scripts", trusted: true
 tap "yqrashawn/goku", trusted: true
-# Email client that runs in your terminal
-brew "aerc"
 # Download with resuming and segmented downloading
 brew "aria2"
 # Aquarium animation in ASCII art
@@ -61,6 +59,8 @@ brew "fortune"
 brew "fzf"
 # Distributed revision control system
 brew "git"
+# Fast recursive search used throughout the shell workflow
+brew "ripgrep"
 # Tool to report network interface bandwidth
 brew "ifstat"
 # Tools and libraries to manipulate images in select formats
@@ -71,6 +71,8 @@ brew "imagemagick-full"
 brew "jq"
 # Simple terminal UI for git commands
 brew "lazygit"
+# Hyper-extensible modal text editor
+brew "neovim"
 # Apple Silicon Monitor Top written in Go Lang
 brew "mactop"
 # Control and observe media playback from the command-line
@@ -121,8 +123,6 @@ brew "tag"
 brew "telnet"
 # Terminal image and video viewer
 brew "timg"
-# Terminal multiplexer
-brew "tmux"
 # Lightweight BitTorrent client
 brew "transmission-cli"
 # Digital clock in ncurses
@@ -163,6 +163,8 @@ brew "malpern/tap/sketchybar-toggle", trusted: true
 brew "mdnmdn/asimeow/asimeow", trusted: true
 # AeroSpace is an i3-like tiling window manager for macOS
 cask "nikitabobko/tap/aerospace"
+# Raycast launcher and Hyper key provider
+cask "raycast"
 # Enable Windows-like alt-tab
 cask "alt-tab"
 # Tools for building Android applications
@@ -217,6 +219,10 @@ cask "ghostty"
 cask "goodsync"
 # Desktop automation application
 cask "hammerspoon"
+# Typeless input method companion
+cask "typeless"
+# Chromium-based browser with workspace support
+cask "zen"
 # Windows manager and desktop organiser
 cask "hazeover"
 # Chromium-based web browser
