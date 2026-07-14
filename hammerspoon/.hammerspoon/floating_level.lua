@@ -9,6 +9,7 @@ local pinState = require("floating_pin_state")
 local CREATED_DELAY = 0.30
 local RETRY_DELAYS = { 0.30, 0.50, 0.80 }
 local PIN_AFTER_PLACEMENT_DELAY = 0.28
+local PIN_HANDOFF_DELAY = 0.10
 
 -- Keep these tables across hs.reload(), but replace stale timers and records.
 _floatingPinRecords = _floatingPinRecords or {}
@@ -24,6 +25,7 @@ local generations = _floatingWindowGenerations
 local legacyPinnedIDs = _floatingPinnedWindowIDs
 local scheduledTimers = {}
 local pinTimers = {}
+local handoffTimers = {}
 
 local SKIP_BUNDLE_IDS = {
 	["pl.maketheweb.cleanshotx"] = true,
@@ -96,6 +98,7 @@ local function pruneMissingStackWindows()
 		local windowID = pinStack[index]
 		if not records[windowID] or not hs.window(windowID) then
 			table.remove(pinStack, index)
+			if handoffTimers[windowID] then handoffTimers[windowID]:stop(); handoffTimers[windowID] = nil end
 			legacyPinnedIDs[windowID] = nil
 			if records[windowID] then
 				nextGeneration(windowID)
@@ -254,6 +257,15 @@ reconcileStack = function()
 		end
 		return
 	end
+	if topRecord.handoffPending then return end
+
+	-- Pin the new top first. Only after BTT confirms it do we release older
+	-- windows, avoiding a visible gap where the old window owns the front.
+	if validPinTarget(topRecord) and topRecord.state ~= "pinned" then
+		requestPin(topRecord)
+		return
+	end
+	if topRecord.state == "pinning" or topRecord.state == "unpinning" then return end
 
 	-- Older windows remain in the stack but must stay unpinned until the
 	-- windows above them close.
@@ -278,6 +290,17 @@ end
 local function promoteOwner(record)
 	if not record then return end
 	if pushToStack(record) then
+		local window = hs.window(record.id)
+		if window then pcall(function() window:raise() end) end
+		record.handoffPending = true
+		if handoffTimers[record.id] then handoffTimers[record.id]:stop() end
+		handoffTimers[record.id] = hs.timer.doAfter(PIN_HANDOFF_DELAY, function()
+			handoffTimers[record.id] = nil
+			if isCurrentRecord(record) then
+				record.handoffPending = false
+				reconcileStack()
+			end
+		end)
 		print("[floating_level] window " .. tostring(record.id) .. " pushed to Pin stack")
 	end
 	reconcileStack()
@@ -424,6 +447,7 @@ _floatingLevel_filter:subscribe({
 		if id then
 			if scheduledTimers[id] then scheduledTimers[id]:stop(); scheduledTimers[id] = nil end
 			if pinTimers[id] then pinTimers[id]:stop(); pinTimers[id] = nil end
+			if handoffTimers[id] then handoffTimers[id]:stop(); handoffTimers[id] = nil end
 			local record = records[id]
 			if record then
 				nextGeneration(id)
