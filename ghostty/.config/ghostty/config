@@ -2,13 +2,13 @@
 # Shell
 # -------------------------------------------------- #
 shell-integration-features = cursor,sudo,title,ssh-env,ssh-terminfo
-command = /bin/zsh -c "$HOME/.config/fastfetch/pokemon.sh; exec /bin/zsh -l"
+initial-command = /bin/zsh -c "$HOME/.config/fastfetch/pokemon.sh; exec /bin/zsh -l"
 # -------------------------------------------------- #
 # Macos
 # -------------------------------------------------- #
-macos-titlebar-style          = tabs
+macos-titlebar-style          = transparent
 macos-titlebar-proxy-icon     = visible
-macos-window-buttons          = hidden
+macos-window-buttons          = visible
 macos-window-shadow           = true
 macos-option-as-alt           = true
 macos-auto-secure-input       = true
@@ -17,17 +17,15 @@ macos-secure-input-indication = true
 # Font
 # -------------------------------------------------- #
 font-family = JetBrains Maple Mono
-font-family = Sarasa Mono SC
-# font-family = Sarasa Term SC
 font-thicken = true
 font-thicken-strength = 128
 font-size = 17
 # -------------------------------------------------- #
 # Custom 
 # -------------------------------------------------- #
-theme = Mellow
-background-opacity      = 0.8
-background-blur         = 10
+theme = Catppuccin Mocha
+background-opacity      = 1
+background-blur         = 0
 mouse-hide-while-typing = true
 
 # split pane dimming — unfocused panes darken to show active one
@@ -44,12 +42,9 @@ window-padding-balance  = true
 split-inherit-working-directory  = true
 window-inherit-working-directory = true
 
-# hide ghostty's own tab bar — cmux provides vertical tabs
-window-show-tab-bar     = never
-
 window-decoration       = auto
 window-theme            = auto
-window-colorspace       = display-p3
+window-colorspace       = srgb
 window-step-resize      = false
 window-width            = 150
 window-height           = 50
@@ -63,7 +58,7 @@ custom-shader = "shaders/ripple_cursor.glsl"
 # -------------------------------------------------- #
 # Clipboard 
 # -------------------------------------------------- #
-clipboard-read                 = allow
+clipboard-read                 = ask
 clipboard-write                = allow
 clipboard-paste-protection     = true
 clipboard-trim-trailing-spaces = true
@@ -75,3 +70,8 @@ env = LANG=zh_CN.UTF-8
 # Quick_drop
 # -------------------------------------------------- #
 keybind = global:ctrl+alt+cmd+q=toggle_quick_terminal
+quick-terminal-position       = top
+quick-terminal-size           = 45%
+quick-terminal-screen         = mouse
+quick-terminal-space-behavior = move
+quick-terminal-autohide       = true
