@@ -480,8 +480,12 @@ local function render_popup(ws_index, workspace_item, windows)
 				if win then
 					item:set({
 						drawing = true,
-						icon = { string = app_icons[win.app] or app_icons["Default"], color = appearance.colors.pill_fg },
-						label = { string = win.title, color = appearance.colors.text },
+						icon = {
+							string = app_icons[win.app] or app_icons["Default"],
+							color = appearance.colors.pill_fg,
+							highlight = false,
+						},
+						label = { string = win.title, color = appearance.colors.text, highlight = false },
 					})
 				else
 					item:set({ drawing = false })
@@ -788,6 +792,7 @@ for _, ws in ipairs(initial_workspaces) do
 				padding_left = 12,
 				padding_right = 6,
 				color = appearance.colors.pill_fg,
+				highlight_color = appearance.colors.red,
 			},
 			label = {
 				font = { family = fonts.font.text, style = fonts.font.style_map["Semibold"], size = 13.0 },
@@ -795,6 +800,7 @@ for _, ws in ipairs(initial_workspaces) do
 				padding_right = 16,
 				max_chars = 50,
 				color = appearance.colors.text,
+				highlight_color = appearance.colors.red,
 			},
 			background = { drawing = false, border_width = 0 },
 		})
@@ -846,15 +852,21 @@ sbar.exec(":", function()
 						_popup_pinned[ws] = true
 						open_popup(ws, w)
 					end
-					else
-						close_popups()
-						sbar.exec("aerospace workspace " .. shell_quote(ws))
+				else
+					close_popups()
+					sbar.exec("aerospace workspace " .. shell_quote(ws))
 				end
 			end)
 		end)
 
 		for i = 1, MAX_POPUP_SLOTS do
 			local pi = _popup_items[ws][i]
+			pi:subscribe("mouse.entered", function()
+				pi:set({ icon = { highlight = true }, label = { highlight = true } })
+			end)
+			pi:subscribe("mouse.exited", function()
+				pi:set({ icon = { highlight = false }, label = { highlight = false } })
+			end)
 			pi:subscribe("mouse.clicked", function()
 				local win = _popup_windows[ws] and _popup_windows[ws][i]
 				if win then
