@@ -11,10 +11,17 @@ local TOP_GUARD_HEIGHT = 34
 local VISIBLE_FRAME_PADDING = 4
 local MIN_RESCUE_WIDTH = 220
 local MIN_RESCUE_HEIGHT = 120
-local RESCUE_ANIMATION_DURATION = 0.20
+local RESCUE_ANIMATION_DURATION = 0
+local FRAME_STABLE_SAMPLE_DELAY = 0.06
+local FRAME_STABLE_TOLERANCE = 1
+local FRAME_STABLE_MAX_ATTEMPTS = 4
 local rescueTimers = {}
 local createdPlacementTimers = {}
+local placementPending = {}
+local placementAnimating = {}
+local placementClearTimers = {}
 local command = require("command")
+local notification = require("notification_hud")
 local SKIP_BUNDLE_IDS = {
 	["pl.maketheweb.cleanshotx"] = true,
 }
@@ -37,6 +44,17 @@ local function centerFrameInSafeArea(window, frame, safeTop)
 	frame.x = visible.x + math.max(0, (visible.w - frame.w) / 2)
 	frame.y = safeTop + math.max(0, (safeHeight - frame.h) / 2)
 	return frame
+end
+
+local function beginPlacementAnimation(windowID)
+	placementAnimating[windowID] = true
+	if placementClearTimers[windowID] then
+		placementClearTimers[windowID]:stop()
+	end
+	placementClearTimers[windowID] = hs.timer.doAfter(RESCUE_ANIMATION_DURATION + 0.08, function()
+		placementClearTimers[windowID] = nil
+		placementAnimating[windowID] = nil
+	end)
 end
 
 local function windowBundleID(window)
@@ -80,6 +98,7 @@ local function centerWindowInSafeArea(window)
 	local safeTop = safeTopForWindow(window)
 	if safeTop then
 		frame = centerFrameInSafeArea(window, frame, safeTop)
+		beginPlacementAnimation(window:id())
 		window:setFrame(frame, RESCUE_ANIMATION_DURATION)
 	end
 end
@@ -93,8 +112,39 @@ local function rescueTopOverlap(window)
 	local safeTop = safeTopForWindow(window)
 	if safeTop and frame.y + 1 < safeTop then
 		frame = centerFrameInSafeArea(window, frame, safeTop)
+		notification.show("浮动窗口：已避开 SketchyBar", "warning", 0.80)
+		beginPlacementAnimation(window:id())
 		window:setFrame(frame, RESCUE_ANIMATION_DURATION)
 	end
+end
+
+local function framesAreStable(previous, current)
+	return math.abs(previous.x - current.x) <= FRAME_STABLE_TOLERANCE
+		and math.abs(previous.y - current.y) <= FRAME_STABLE_TOLERANCE
+		and math.abs(previous.w - current.w) <= FRAME_STABLE_TOLERANCE
+		and math.abs(previous.h - current.h) <= FRAME_STABLE_TOLERANCE
+end
+
+local function centerWhenFrameStable(window, windowID, attempt)
+	attempt = attempt or 1
+	if not window or not window:screen() then
+		placementPending[windowID] = nil
+		return
+	end
+	local previous = window:frame()
+	hs.timer.doAfter(FRAME_STABLE_SAMPLE_DELAY, function()
+		if not window or not window:screen() then
+			placementPending[windowID] = nil
+			return
+		end
+		local current = window:frame()
+		if framesAreStable(previous, current) or attempt >= FRAME_STABLE_MAX_ATTEMPTS then
+			placementPending[windowID] = nil
+			centerWindowInSafeArea(window)
+		else
+			centerWhenFrameStable(window, windowID, attempt + 1)
+		end
+	end)
 end
 
 local function aerospaceWindowIsFloating(stdout, windowID)
@@ -132,10 +182,11 @@ local function placeCreatedWindow(window, windowID, attempt)
 	local started = command.aerospace(createdWindowQueryArgs(window), function(exitCode, stdout)
 		local ok, err = pcall(function()
 			if exitCode == 0 and aerospaceWindowIsFloating(stdout, windowID) then
-				centerWindowInSafeArea(window)
+				centerWhenFrameStable(window, windowID, 1)
 			elseif attempt < CREATED_PLACEMENT_MAX_ATTEMPTS then
 				scheduleCreatedPlacement(window, CREATED_PLACEMENT_RETRY_DELAY, attempt + 1)
 			else
+				placementPending[windowID] = nil
 				rescueTopOverlap(window)
 			end
 		end)
@@ -144,6 +195,7 @@ local function placeCreatedWindow(window, windowID, attempt)
 		end
 	end)
 	if not started then
+		placementPending[windowID] = nil
 		rescueTopOverlap(window)
 	end
 end
@@ -156,6 +208,7 @@ scheduleCreatedPlacement = function(window, delay, attempt)
 	if createdPlacementTimers[windowID] then
 		createdPlacementTimers[windowID]:stop()
 	end
+	placementPending[windowID] = true
 	createdPlacementTimers[windowID] = hs.timer.doAfter(delay, function()
 		createdPlacementTimers[windowID] = nil
 		local ok, err = pcall(placeCreatedWindow, window, windowID, attempt)
@@ -168,6 +221,9 @@ end
 local function scheduleTopRescue(window, delay)
 	local windowID = window and window:id()
 	if not windowID then
+		return
+	end
+	if placementPending[windowID] or placementAnimating[windowID] then
 		return
 	end
 	if rescueTimers[windowID] then

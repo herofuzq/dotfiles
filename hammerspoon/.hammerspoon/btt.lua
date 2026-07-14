@@ -20,7 +20,7 @@ local function actionJSON(windowID, bundleID, actionType)
 	local additional = {
 		BTTActionPinOnTopWindowMode = 1,
 		BTTActionPinOnTopWindowID = windowID,
-		BTTActionPinOnTopOnlyChangeFocusOnClick = true,
+		BTTActionPinOnTopOnlyChangeFocusOnClick = false,
 	}
 	if bundleID and bundleID ~= "" then
 		additional.BTTActionPinOnTopWindowBelongsToApp = bundleID
