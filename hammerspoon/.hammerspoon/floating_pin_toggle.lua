@@ -13,7 +13,7 @@ _floatingPinToggleHotkey = hs.hotkey.bind({ "cmd", "ctrl", "alt" }, "p", functio
 	print("[floating_pin_toggle] automatic BTT pin " .. (enabled and "enabled" or "disabled"))
 	if enabled then
 		if _floatingLevelReconcile then
-			_floatingLevelReconcile()
+			_floatingLevelReconcile(true)
 		end
 	elseif _floatingLevelUnpinAll then
 		_floatingLevelUnpinAll()
