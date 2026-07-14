@@ -293,7 +293,7 @@ return {
 	["Transmit"] = ":transmit:",
 	["Trello"] = ":trello:",
 	["Tweetbot"] = ":twitter:",
-	["Typeless"] = ":voice_memos:",
+	["Typeless"] = ":mic_on:",
 	["Twitter"] = ":twitter:",
 	["UTM"] = ":utm:",
 	["MacVim"] = ":vim:",
