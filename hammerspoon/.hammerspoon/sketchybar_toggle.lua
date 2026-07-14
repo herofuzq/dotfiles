@@ -4,6 +4,7 @@
 -- ============================================================
 
 local command = require("command")
+local notification = require("notification_hud")
 
 -- 从 sketchybar --query bar 的 JSON 输出中解析 hidden 状态
 local function parseHidden(stdout)
@@ -18,7 +19,7 @@ local function startSketchybarTask(args, callback)
 	local started, err = command.sketchybar(args, callback)
 	if not started then
 		print("[SketchybarToggle] 命令启动失败: " .. tostring(err))
-		hs.alert.show("Sketchybar 命令启动失败", 1.0)
+		notification.show("SketchyBar：切换失败", "error", 1.0)
 		return false
 	end
 	return true
@@ -30,16 +31,16 @@ hs.hotkey.bind({ "cmd", "ctrl", "alt" }, "b", function()
 		local hidden = parseHidden(qstdout)
 		if exitCode ~= 0 or hidden == nil then
 			print("[SketchybarToggle] 查询失败: " .. tostring(stderr or exitCode))
-			hs.alert.show("无法读取 Sketchybar 状态", 1.0)
+			notification.show("SketchyBar：读取失败", "error", 1.0)
 			return
 		end
 		local nextState = hidden and "off" or "on"
 		startSketchybarTask({ "--bar", "hidden=" .. nextState }, function(setExitCode, _, setStderr)
 			if setExitCode == 0 then
-				hs.alert.show("▣ Sketchybar 显示已切换", 0.5)
+				notification.show(nextState == "on" and "SketchyBar：显示" or "SketchyBar：隐藏", "success", 0.5)
 			else
 				print("[SketchybarToggle] 设置失败: " .. tostring(setStderr or setExitCode))
-				hs.alert.show("Sketchybar 切换失败", 1.0)
+				notification.show("SketchyBar：切换失败", "error", 1.0)
 			end
 		end)
 	end)

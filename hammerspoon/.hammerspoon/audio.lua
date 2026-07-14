@@ -5,6 +5,8 @@
 --   "Built-in"             → 内置扬声器
 -- ============================================================
 
+local notification = require("notification_hud")
+
 -- ---- 配置 ----
 -- 外接显示器音频的 transport 类型（macOS 返回 "HDMI" 或 "DisplayPort"）
 local EXTERNAL_TRANSPORTS = {
@@ -75,7 +77,7 @@ local function doSwitch(target, label)
 
 	local switched, result = pcall(function() return target:setDefaultOutputDevice() end)
 	if switched and result then
-		hs.alert.show(label .. target:name(), 1.5)
+		notification.show("音频：已切换至 " .. target:name(), "success", 1.5)
 		print("[AudioSwitch] 已切换: " .. target:name())
 		return true
 	else
@@ -103,7 +105,7 @@ local function switchToExternal(retries, onExhausted, device)
 		if onExhausted then
 			onExhausted()
 		else
-			hs.alert.show("⚠ 未找到外接显示器音频设备", 1.5)
+			notification.show("音频：未找到外接设备", "warning", 1.5)
 		end
 	end
 end

@@ -3,6 +3,7 @@
 -- 1 = 英文, 2 = 中文
 -- ============================================================
 local command = require("command")
+local notification = require("notification_hud")
 local FCITX = command.find({
 	"/Library/Input Methods/Fcitx5.app/Contents/bin/fcitx5-remote",
 	"/opt/homebrew/bin/fcitx5-remote",
@@ -71,6 +72,7 @@ local _idleDeadline = nil
 local _idleTickTimer = nil
 local _keyTimestamps = {}
 local _inputHud = nil
+local _inputHudSuppressed = false
 
 local function stopIdleTimer(fadeHud)
 	if _idleTimer then
@@ -226,6 +228,9 @@ local function inputHudFrame()
 end
 
 local function showInputHud(state, remaining, kpm)
+	if _inputHudSuppressed then
+		return
+	end
 	if state ~= ZH or not isUsingFcitx5() then
 		hideInputHud()
 		return
@@ -302,6 +307,18 @@ local function updateInputHud(state)
 	end
 	local kpm = currentKpm(now)
 	showInputHud(state, remaining, kpm)
+end
+
+_inputHudSuspend = function()
+	_inputHudSuppressed = true
+	hideInputHud(true)
+end
+
+_inputHudResume = function()
+	_inputHudSuppressed = false
+	if _idleDeadline and _zhState == ZH and isUsingFcitx5() then
+		updateInputHud(ZH)
+	end
 end
 
 local function applyState(state)
@@ -400,8 +417,6 @@ resetIdleTimer = function()
 		queryState(function(state)
 			if state == ZH then
 				requestState(EN, function(success)
-					-- HUD 已显示输入状态，切换提醒不再额外弹窗。
-					-- if success then hs.alert.show("⏱ 英文输入中", 0.4) end
 				end)
 			elseif state == EN then
 				applyState(EN)
@@ -438,9 +453,6 @@ local function requestToggleFromState(state)
 			flushZhSwitchKeyBuffer()
 		end
 		-- HUD 已显示输入状态，切换提醒不再额外弹窗。
-		-- if success then
-		-- 	hs.alert.show(target == ZH and "⌨ 中文输入中" or "⌨ 英文输入中", 0.4)
-		-- end
 	end)
 	return true
 end
@@ -459,8 +471,6 @@ local function toggle()
 			end
 			requestState(ZH, function(success)
 				flushZhSwitchKeyBuffer()
-				-- HUD 已显示输入状态，切换提醒不再额外弹窗。
-				-- if success then hs.alert.show("⌨ 中文输入中", 0.4) end
 			end)
 		end, "macism 输入源切换")
 		return
@@ -510,7 +520,7 @@ local function warnEN(id)
 	end
 	queryState(function(state)
 		if state == ZH then
-			hs.alert.show("⚠ 中文输入中", 1.0)
+			notification.show("中文输入：请切换为英文", "warning", 1.0)
 		end
 	end)
 end

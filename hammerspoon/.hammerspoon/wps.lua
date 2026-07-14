@@ -8,6 +8,7 @@ local WPS_APPS = {
 	["com.kingsoft.wpsoffice.mac"] = true,
 }
 local input = require("input")
+local notification = require("notification_hud")
 
 -- ---- 内部状态 ----
 local _switched = false
@@ -38,7 +39,7 @@ local function createWPSTap()
 					input.switchToEnglishAsync(function(success)
 						if generation ~= _sessionGeneration then return end
 						if success then
-							hs.alert.show("⌨ 英文输入中", 0.5)
+							notification.show("英文输入", "success", 0.5)
 						else
 							_switched = false
 						end
@@ -48,7 +49,7 @@ local function createWPSTap()
 				if etype == hs.eventtap.event.types.leftMouseDown then
 					if _recoverTimer then _recoverTimer:stop(); _recoverTimer = nil end
 					input.switchToChineseAsync(function(success)
-						if success then hs.alert.show("⌨ 中文输入中", 0.5) end
+						if success then notification.show("中文输入", "success", 0.5) end
 					end)
 					_switched = false
 				elseif etype == hs.eventtap.event.types.keyDown then
@@ -58,7 +59,7 @@ local function createWPSTap()
 						_recoverTimer = nil
 						if _switched then
 							input.switchToChineseAsync(function(success)
-								if success then hs.alert.show("⌨ 中文输入中", 0.5) end
+								if success then notification.show("中文输入", "success", 0.5) end
 							end)
 							_switched = false
 						end
