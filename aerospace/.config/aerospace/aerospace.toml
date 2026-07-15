@@ -151,15 +151,15 @@ outer.right = 7
 
     # See: https://nikitabobko.github.io/AeroSpace/commands#focus
 
-    cmd-alt-ctrl-left = 'focus --wrap-around left'
-    cmd-alt-ctrl-down = 'focus --wrap-around down'
-    cmd-alt-ctrl-up = 'focus --wrap-around up'
-    cmd-alt-ctrl-right = 'focus --wrap-around right'
+    cmd-alt-ctrl-left = 'focus --ignore-floating --wrap-around left'
+    cmd-alt-ctrl-down = 'focus --ignore-floating --wrap-around down'
+    cmd-alt-ctrl-up = 'focus --ignore-floating --wrap-around up'
+    cmd-alt-ctrl-right = 'focus --ignore-floating --wrap-around right'
 
-    cmd-alt-ctrl-h = 'focus --wrap-around left'
-    cmd-alt-ctrl-j = 'focus --wrap-around down'
-    cmd-alt-ctrl-k = 'focus --wrap-around up'
-    cmd-alt-ctrl-l = 'focus --wrap-around right'
+    cmd-alt-ctrl-h = 'focus --ignore-floating --wrap-around left'
+    cmd-alt-ctrl-j = 'focus --ignore-floating --wrap-around down'
+    cmd-alt-ctrl-k = 'focus --ignore-floating --wrap-around up'
+    cmd-alt-ctrl-l = 'focus --ignore-floating --wrap-around right'
 
     # See: https://nikitabobko.github.io/AeroSpace/commands#move
     cmd-alt-ctrl-shift-left = 'move left'
@@ -393,3 +393,9 @@ if = 'test %{app-bundle-id} = net.battle.app'
 run = ["layout floating",
        "move-node-to-workspace 6̲Play",
       ]
+
+# 审计兜底：前面的规则都未命中时，先悬浮窗口，便于从窗口形态和 list-windows 发现遗漏。
+# 必须保持在所有具体规则之后；AeroSpace 默认会在首个命中规则后停止继续匹配。
+[[on-window-detected]]
+if = 'true'
+run = 'layout floating'
