@@ -11,7 +11,7 @@ local TOP_GUARD_HEIGHT = 34
 local VISIBLE_FRAME_PADDING = 4
 local MIN_RESCUE_WIDTH = 220
 local MIN_RESCUE_HEIGHT = 120
-local RESCUE_ANIMATION_DURATION = 0
+local RESCUE_ANIMATION_DURATION = 0.20
 local FRAME_STABLE_SAMPLE_DELAY = 0.06
 local FRAME_STABLE_TOLERANCE = 1
 local FRAME_STABLE_MAX_ATTEMPTS = 4
@@ -239,10 +239,6 @@ local function scheduleTopRescue(window, delay)
 end
 
 local function notify(window, _, event)
-	if event == hs.window.filter.windowFocused then
-		scheduleTopRescue(window, RESCUE_MOVE_DELAY)
-		return
-	end
 	if event == hs.window.filter.windowCreated then
 		scheduleCreatedPlacement(window, CREATED_PLACEMENT_DELAY)
 		return
@@ -257,10 +253,10 @@ end
 
 _windowWatcher_filter = hs.window.filter.new()
 _windowWatcher_filter:rejectApp("iStat Menus")
+_windowWatcher_filter:rejectApp("Hammerspoon")
 
 local windowEvents = {
 	hs.window.filter.windowCreated,
-	hs.window.filter.windowFocused,
 }
 if hs.window.filter.windowMoved then
 	table.insert(windowEvents, hs.window.filter.windowMoved)

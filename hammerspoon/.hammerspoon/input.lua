@@ -38,6 +38,7 @@ local _stateGeneration = 0
 local _zhSwitchKeyBufferUntil = 0
 local _zhBufferedKey = nil
 local _replayingBufferedKey = false
+local _zhBufferedTarget = nil
 
 -- ============================================================
 -- 空闲自动切换回英文
@@ -72,7 +73,6 @@ local _idleDeadline = nil
 local _idleTickTimer = nil
 local _keyTimestamps = {}
 local _inputHud = nil
-local _inputHudSuppressed = false
 
 local function stopIdleTimer(fadeHud)
 	if _idleTimer then
@@ -150,6 +150,25 @@ end
 local function clearZhSwitchKeyBuffer()
 	_zhSwitchKeyBufferUntil = 0
 	_zhBufferedKey = nil
+	_zhBufferedTarget = nil
+end
+
+local function frontmostIdentity()
+	local window = hs.window.frontmostWindow()
+	if not window then return nil end
+	local app = window:application()
+	return {
+		windowID = window:id(),
+		bundleID = app and app:bundleID() or nil,
+	}
+end
+
+local function sameFrontmost(identity)
+	local current = frontmostIdentity()
+	return identity
+		and current
+		and identity.windowID == current.windowID
+		and identity.bundleID == current.bundleID
 end
 
 local function modifiersFromEvent(event)
@@ -180,16 +199,26 @@ local function maybeBufferZhSwitchKey(event)
 		keyCode = event:getKeyCode(),
 		modifiers = modifiersFromEvent(event),
 	}
+	_zhBufferedTarget = frontmostIdentity()
 	return true
 end
 
 local function flushZhSwitchKeyBuffer()
 	local bufferedKey = _zhBufferedKey
+	local bufferedTarget = _zhBufferedTarget
 	clearZhSwitchKeyBuffer()
 	if not bufferedKey then
 		return
 	end
+	if not sameFrontmost(bufferedTarget) then
+		print("[Input] 丢弃前台窗口已变化的中文首键重放")
+		return
+	end
 	hs.timer.doAfter(ZH_SWITCH_KEY_REPLAY_DELAY, function()
+		if not sameFrontmost(bufferedTarget) then
+			print("[Input] 丢弃重放期间前台窗口变化的中文首键")
+			return
+		end
 		_replayingBufferedKey = true
 		local ok, err = pcall(function()
 			hs.eventtap.keyStroke(bufferedKey.modifiers, bufferedKey.keyCode, 1000)
@@ -228,9 +257,6 @@ local function inputHudFrame()
 end
 
 local function showInputHud(state, remaining, kpm)
-	if _inputHudSuppressed then
-		return
-	end
 	if state ~= ZH or not isUsingFcitx5() then
 		hideInputHud()
 		return
@@ -279,15 +305,26 @@ local function showInputHud(state, remaining, kpm)
 			frame = { x = slotX + (i - 1) * (slotW + slotGap), y = slotY, w = slotW, h = slotH },
 		})
 	end
-	hideInputHud()
-	_inputHud = hs.canvas.new(inputHudFrame())
 	if not _inputHud then
+		_inputHud = hs.canvas.new(inputHudFrame())
+		if not _inputHud then
+			return
+		end
+		_inputHud:appendElements(table.unpack(elements))
+		_inputHud:level(hs.canvas.windowLevels.overlay)
+		_inputHud:behavior(hs.canvas.windowBehaviors.canJoinAllSpaces)
+		_inputHud:show()
 		return
 	end
-	_inputHud:appendElements(table.unpack(elements))
-	_inputHud:level(hs.canvas.windowLevels.overlay)
-	_inputHud:behavior(hs.canvas.windowBehaviors.canJoinAllSpaces)
-	_inputHud:show()
+
+	-- Reuse the canvas while the countdown ticks. Rebuilding an Accessibility
+	-- window every second was enough to stall Hammerspoon's main run loop.
+	_inputHud:frame(inputHudFrame())
+	_inputHud:elementAttribute(2, "text", "中→英")
+	_inputHud:elementAttribute(3, "text", string.format("%d kpm", kpm))
+	for i = 1, HUD_BAR_SLOTS do
+		_inputHud:elementAttribute(i + 3, "fillColor", i <= filledSlots and progressSlotColor(i) or HUD_PROGRESS_EMPTY)
+	end
 end
 
 local function updateInputHud(state)
@@ -307,18 +344,6 @@ local function updateInputHud(state)
 	end
 	local kpm = currentKpm(now)
 	showInputHud(state, remaining, kpm)
-end
-
-_inputHudSuspend = function()
-	_inputHudSuppressed = true
-	hideInputHud(true)
-end
-
-_inputHudResume = function()
-	_inputHudSuppressed = false
-	if _idleDeadline and _zhState == ZH and isUsingFcitx5() then
-		updateInputHud(ZH)
-	end
 end
 
 local function applyState(state)

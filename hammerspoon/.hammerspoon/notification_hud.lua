@@ -4,6 +4,7 @@
 local HUD_WIDTH = 212
 local HUD_HEIGHT = 26
 local HUD_BOTTOM_OFFSET = 30
+local HUD_LANE_GAP = 8
 local HUD_CORNER_RADIUS = 10
 local HUD_FADE_OUT_DURATION = 0.16
 
@@ -31,7 +32,8 @@ local function hudFrame()
 	local frame = screen:fullFrame()
 	return {
 		x = frame.x + math.floor((frame.w - HUD_WIDTH) / 2),
-		y = frame.y + frame.h - HUD_HEIGHT - HUD_BOTTOM_OFFSET,
+		-- Keep transient feedback above the persistent input-method lane.
+		y = frame.y + frame.h - (HUD_HEIGHT * 2) - HUD_BOTTOM_OFFSET - HUD_LANE_GAP,
 		w = HUD_WIDTH,
 		h = HUD_HEIGHT,
 	}
@@ -59,23 +61,13 @@ local function clearHud()
 	end
 end
 
-local function resumeInputHud()
-	if _inputHudResume then
-		pcall(_inputHudResume)
-	end
-end
-
 function M.show(text, tone, duration)
 	generation = generation + 1
 	local currentGeneration = generation
 	clearHud()
-	if _inputHudSuspend then
-		pcall(_inputHudSuspend)
-	end
 
 	hud = hs.canvas.new(hudFrame())
 	if not hud then
-		resumeInputHud()
 		return
 	end
 	local elements = {
@@ -107,14 +99,12 @@ function M.show(text, tone, duration)
 		end
 		hideTimer = nil
 		clearHud()
-		resumeInputHud()
 	end)
 end
 
 function M.hide()
 	generation = generation + 1
 	clearHud()
-	resumeInputHud()
 end
 
 return M

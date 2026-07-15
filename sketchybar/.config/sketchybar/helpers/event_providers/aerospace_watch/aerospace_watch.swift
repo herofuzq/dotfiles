@@ -281,40 +281,6 @@ func runAeroSpaceCommand(arguments: [String]) -> CommandResult? {
     runAeroSpaceSocketCommand(arguments: arguments) ?? runAeroSpaceProcessCommand(arguments: arguments)
 }
 
-func moveTypelessToWorkspace(_ workspace: String) -> Bool {
-    // AeroSpace floating windows still belong to one workspace. Typeless owns
-    // one input window, so keep that window with the active workspace instead
-    // of letting it remain behind in the workspace where it was opened.
-    let listArguments = [
-        "list-windows",
-        "--monitor",
-        "all",
-        "--app-bundle-id",
-        "now.typeless.desktop",
-        "--json",
-    ]
-    guard let result = runAeroSpaceCommand(arguments: listArguments),
-          result.exitCode == 0,
-          let data = result.stdout.data(using: .utf8),
-          let windows = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] else {
-        return false
-    }
-
-    var foundTypelessWindow = false
-    for window in windows {
-        guard let windowId = stringValue(window["window-id"]) else { continue }
-        foundTypelessWindow = true
-        _ = runAeroSpaceCommand(arguments: [
-            "move-node-to-workspace",
-            "--window-id",
-            windowId,
-            "--fail-if-noop",
-            workspace,
-        ])
-    }
-    return foundTypelessWindow
-}
-
 func boolValue(_ value: Any?) -> Bool {
     switch value {
     case let value as Bool:
@@ -398,7 +364,6 @@ func handleEvent(_ json: [String: Any]) {
     switch event {
     case "focused-workspace-changed":
         guard let workspace = stringValue(json["workspace"]) else { return }
-        let hasTypelessWindow = moveTypelessToWorkspace(workspace)
         var fields = [
             "FOCUSED_WORKSPACE": workspace,
             "SOURCE": "aerospace_watch",
@@ -407,14 +372,6 @@ func handleEvent(_ json: [String: Any]) {
             fields["PREV_WORKSPACE"] = prevWorkspace
         }
         trigger("aerospace_workspace_change", fields: fields)
-        if hasTypelessWindow {
-            // The move is programmatic, so AeroSpace does not emit the normal
-            // window-detected event. Ask spaces.lua to refresh its app icons.
-            trigger("space_windows_change", fields: [
-                "WINDOW_EVENT": "moved",
-                "SOURCE": "aerospace_watch",
-            ])
-        }
         scheduleFullscreenStateCheck()
 
     case "focus-changed":
