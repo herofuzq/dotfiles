@@ -291,7 +291,7 @@ func moveTypelessToWorkspace(_ workspace: String) -> Bool {
         "--app-bundle-id",
         "now.typeless.desktop",
         "--format",
-        "%{window-id}|%{workspace}",
+        "%{window-id}|%{workspace}|%{window-title}",
     ]
     guard let result = runAeroSpaceCommand(arguments: listArguments),
           result.exitCode == 0 else {
@@ -300,9 +300,10 @@ func moveTypelessToWorkspace(_ workspace: String) -> Bool {
 
     var moved = false
     for line in result.stdout.split(whereSeparator: { $0.isNewline }) {
-        let fields = line.split(separator: "|", maxSplits: 1).map(String.init)
-        guard fields.count == 2,
+        let fields = line.split(separator: "|", maxSplits: 2, omittingEmptySubsequences: false).map(String.init)
+        guard fields.count == 3,
               !fields[0].isEmpty,
+              fields[2] == "Status",
               fields[1] != workspace else {
             continue
         }
