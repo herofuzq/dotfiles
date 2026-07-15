@@ -14,6 +14,7 @@ local app_icons = require("helpers.app_icons")
 local borders = require("helpers.borders")
 local popup_animation = require("helpers.popup_animation")
 local timing = require("helpers.timing")
+local window_filter = require("helpers.window_filter")
 local sbar = require("sketchybar")
 local fonts = require("fonts")
 local settings = require("settings")
@@ -216,9 +217,10 @@ local function withWindows(f)
 			local workspace_index = entry.workspace
 			local app = entry["app-name"]
 			local window_id = entry["window-id"]
+			local title = entry["window-title"]
 
 			-- 快照保留窗口粒度：主条按 app 去重渲染，popup 仍按窗口逐个显示。
-			if not processed_windows[window_id] then
+			if window_filter.should_show(app, title) and not processed_windows[window_id] then
 				processed_windows[window_id] = true
 
 				if results.open_windows[workspace_index] == nil then
@@ -229,7 +231,7 @@ local function withWindows(f)
 					app = app,
 					window_id = window_id,
 					is_fullscreen = entry["window-is-fullscreen"] == true,
-					title = entry["window-title"],
+					title = title,
 				})
 			end
 		end
@@ -437,12 +439,14 @@ local function popup_windows_from_query(entries)
 			seen_ids[window_id] = true
 			local app = entry["app-name"] or "?"
 			local title = entry["window-title"]
-			windows[#windows + 1] = {
-				id = window_id,
-				app = app,
-				title = (title and #title > 0 and title) or app or "Untitled",
-				window_id = window_id,
-			}
+			if window_filter.should_show(app, title) then
+				windows[#windows + 1] = {
+					id = window_id,
+					app = app,
+					title = (title and #title > 0 and title) or app or "Untitled",
+					window_id = window_id,
+				}
+			end
 		end
 	end
 	return windows

@@ -254,7 +254,7 @@ check-further-callbacks = true
 run = 'layout floating'
 
 # 设定总是悬浮的程序
-[[on-window-detected]] # Typeless 的 Status 是屏幕外后台窗，集中放到工作区 2
+[[on-window-detected]] # Status 是屏幕外后台窗；先放到工作区 2，随后由 aerospace_watch 跟随焦点
 if = 'test %{app-bundle-id} = now.typeless.desktop'
 run = ["layout floating", "move-node-to-workspace 2̲Sec"]
 
