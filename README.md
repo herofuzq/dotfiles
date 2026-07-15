@@ -23,7 +23,7 @@
 | Kitty / Ghostty | `~/.config/kitty`, `~/.config/ghostty` | 终端配置 |
 | Neovim | `~/.config/nvim` | 编辑器配置 |
 | fcitx5 | `~/.config/fcitx5` | 中文输入法配置 |
-| Shell / TUI | `~/.zshrc`, `~/.config/{yazi,lazygit,starship}` | Shell、文件管理和 Git TUI |
+| Shell / TUI | `~/.zshrc`, `~/.zprofile`, `~/.zshenv`, `~/.bashrc`, `~/.config/{yazi,lazygit,starship,zellij}` | Shell、文件管理、终端复用和 Git TUI |
 
 ## SketchyBar 提醒
 
