@@ -472,6 +472,7 @@ return {
 	["HandBrake"] = ":handbrake:",
 	["Hazel"] = ":hazel:",
 	["Helium"] = ":helium:",
+	["Hermes"] = ":hyperkey:",
 	["Hex Fiend"] = ":hex_fiend:",
 	["Home"] = ":home:",
 	["Hyperkey"] = ":hyperkey:",
