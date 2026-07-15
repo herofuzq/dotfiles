@@ -585,6 +585,7 @@ local shift_pressed = false
 _InputTap = hs.eventtap.new({
 	hs.eventtap.event.types.flagsChanged,
 	hs.eventtap.event.types.keyDown,
+	hs.eventtap.event.types.keyUp,
 	hs.eventtap.event.types.leftMouseDown,
 	hs.eventtap.event.types.rightMouseDown,
 	hs.eventtap.event.types.otherMouseDown,
@@ -610,6 +611,15 @@ _InputTap = hs.eventtap.new({
 			hs.timer.doAfter(0.03, queryState)
 		end
 		shift_pressed = shift
+	elseif etype == hs.eventtap.event.types.keyDown
+		or etype == hs.eventtap.event.types.keyUp then
+		-- 组合键的按键释放也可能晚于业务方的全局快捷键处理；
+		-- 只要完整 Hyper 仍在，就明确标记为已使用，避免误触发单独 Hyper。
+		if hyper then
+			hyper_pressed, hyper_used = true, true
+		elseif hyper_pressed then
+			hyper_used = true
+		end
 	elseif hyper_pressed then
 		hyper_used = true
 	end
