@@ -1,5 +1,5 @@
 # Kiro CLI pre block. Keep at the top of this file.
-[[ -f "${HOME}/Library/Application Support/kiro-cli/shell/zshrc.pre.zsh" ]] && builtin source "${HOME}/Library/Application Support/kiro-cli/shell/zshrc.pre.zsh"
+[[ -z "${ZELLIJ:-}" && -f "${HOME}/Library/Application Support/kiro-cli/shell/zshrc.pre.zsh" ]] && builtin source "${HOME}/Library/Application Support/kiro-cli/shell/zshrc.pre.zsh"
 
 # =============================================================================
 # PATH hygiene
@@ -132,6 +132,10 @@ eval "$(starship init zsh)"
 
 # --- SkillHub / user-local CLI tools (~/.local/bin) ---
 path=($HOME/.local/bin $path)
+
+# --- zide: IDE-like zellij layout (yazi + editor) ---
+# Only prepend if the directory exists.
+[[ -d $HOME/.config/zide/bin ]] && path=($HOME/.config/zide/bin $path)
 
 # --- Personal scripts (~/bin: aria2 wrapper a2, etc.) ---
 # Only prepend if the directory exists.
@@ -270,8 +274,12 @@ alias ff='~/.config/fastfetch/pokemon.sh'
 alias lg='lazygit'
 alias rsx='reasonix'
 alias pon='proxy_all_on'
+export EDITOR=nvim
+export ZIDE_DEFAULT_LAYOUT=stacked_shell
+export ZIDE_USE_YAZI_CONFIG=false
+
 alias poff='proxy_all_off'
 alias pst='proxy_all_status'
 
 # Kiro CLI post block. Keep at the bottom of this file.
-[[ -f "${HOME}/Library/Application Support/kiro-cli/shell/zshrc.post.zsh" ]] && builtin source "${HOME}/Library/Application Support/kiro-cli/shell/zshrc.post.zsh"
+[[ -z "${ZELLIJ:-}" && -f "${HOME}/Library/Application Support/kiro-cli/shell/zshrc.post.zsh" ]] && builtin source "${HOME}/Library/Application Support/kiro-cli/shell/zshrc.post.zsh"
