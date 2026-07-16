@@ -1,7 +1,10 @@
+include ../swift.mk
+
 all: bin/bar_height
 
-bin/bar_height: main.swift makefile | bin
-	swiftc -module-cache-path /tmp/sketchybar-swift-module-cache -O -o bin/bar_height main.swift
+bin/bar_height: main.swift makefile ../swift.mk | bin
+	$(SKETCHYBAR_SWIFTC) -o $@.new main.swift
+	mv -f $@.new $@
 
 bin:
 	mkdir -p bin

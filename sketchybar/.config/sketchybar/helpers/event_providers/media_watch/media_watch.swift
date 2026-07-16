@@ -23,6 +23,22 @@ let mediaControl = waitPath("media-control", candidates: ["/opt/homebrew/bin/med
 let stateQueue = DispatchQueue(label: "com.fuzhuoqun.media_watch.state")
 let processQueue = DispatchQueue(label: "com.fuzhuoqun.media_watch.process")
 var lastState = MediaState(title: "", artist: "", album: "", playing: false)
+let commandTimeout: TimeInterval = 1.0
+
+func waitForProcess(_ task: Process, timeout: TimeInterval) -> Bool {
+    let finished = DispatchSemaphore(value: 0)
+    task.terminationHandler = { _ in finished.signal() }
+    guard finished.wait(timeout: .now() + timeout) == .timedOut else {
+        task.terminationHandler = nil
+        return true
+    }
+    if task.isRunning { task.terminate() }
+    if finished.wait(timeout: .now() + 0.2) == .timedOut, task.isRunning {
+        kill(task.processIdentifier, SIGKILL)
+    }
+    task.terminationHandler = nil
+    return false
+}
 
 func runSketchybar(arguments: [String]) {
     processQueue.async {
@@ -33,7 +49,7 @@ func runSketchybar(arguments: [String]) {
         task.standardError = FileHandle.nullDevice
 
         guard (try? task.run()) != nil else { return }
-        task.waitUntilExit()
+        _ = waitForProcess(task, timeout: commandTimeout)
     }
 }
 

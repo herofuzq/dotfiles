@@ -61,57 +61,6 @@ local battery_popup = popup_animation.new(battery, {
 	end,
 })
 
-local function parse_battery(raw)
-	raw = raw or ""
-	local cur_raw = raw:match('"CurrentCapacity"%s*=%s*(%d+)')
-	local max_raw = raw:match('"MaxCapacity"%s*=%s*(%d+)')
-	if not cur_raw or not max_raw then
-		return nil
-	end
-
-	local function number_field(key)
-		return parsers.parse_ioreg_integer(raw:match('"' .. key .. '"%s*=%s*(-?%d+)'))
-	end
-
-	local ext = raw:match('"ExternalConnected"%s*=%s*%w+') or ""
-	local chg = raw:match('"IsCharging"%s*=%s*%w+') or ""
-	local cur = tonumber(cur_raw) or 0
-	local max_cap = tonumber(max_raw) or 1
-	if max_cap <= 0 then
-		return nil
-	end
-
-	local min_left = number_field("AvgTimeToEmpty")
-	if min_left and min_left >= 65535 then
-		min_left = nil
-	end
-
-	local system_power = number_field("SystemPowerIn")
-	local battery_power = number_field("BatteryPower")
-	local amperage = number_field("InstantAmperage") or number_field("Amperage")
-	local voltage = number_field("Voltage") or number_field("AppleRawBatteryVoltage")
-	local current_watts
-
-	if system_power and system_power > 0 then
-		current_watts = system_power / 1000
-	elseif battery_power and battery_power ~= 0 then
-		current_watts = math.abs(battery_power) / 1000
-	elseif amperage and voltage and amperage ~= 0 and voltage > 0 then
-		current_watts = math.abs(amperage * voltage) / 1000000
-	end
-	if current_watts and current_watts > 500 then
-		current_watts = nil
-	end
-
-	return {
-		ac = ext:find("Yes") ~= nil,
-		charging = chg:find("Yes") ~= nil,
-		current_watts = current_watts,
-		min_left = min_left,
-		percent = math.floor(cur * 100 / max_cap + 0.5),
-	}
-end
-
 local function format_watts(watts)
 	if not watts then
 		return nil
@@ -206,7 +155,7 @@ end
 
 local function update_battery()
 	sbar.exec("ioreg -rn AppleSmartBattery", function(raw)
-		last_state = parse_battery(raw)
+		last_state = parsers.parse_battery(raw)
 		update_battery_display(last_state)
 		-- popup 内容由点击打开时直接刷新，这里只维护主条状态。
 	end)

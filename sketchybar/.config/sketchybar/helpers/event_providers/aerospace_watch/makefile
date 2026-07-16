@@ -1,5 +1,8 @@
-bin/aerospace_watch: aerospace_watch.swift makefile | bin
-	swiftc -module-cache-path /tmp/sketchybar-swift-module-cache -O $< -o $@
+include ../../swift.mk
+
+bin/aerospace_watch: aerospace_watch.swift makefile ../../swift.mk | bin
+	$(SKETCHYBAR_SWIFTC) $< -o $@.new
+	mv -f $@.new $@
 
 bin:
 	mkdir -p bin

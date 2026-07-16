@@ -23,7 +23,7 @@ When debugging live behavior, inspect `~/.config/sketchybar` first. Source edits
 
 ### How It Works
 
-1. `sketchybarrc` loads `helpers/` first (compile stale Swift/C helpers if needed; bar starts `hidden` to avoid default-height flash), then starts `init.lua`.
+1. `sketchybarrc` loads `helpers/` first. One batched mtime scan skips fresh helpers, builds missing binaries synchronously, and rebuilds stale binaries in the background; the bar starts `hidden` to avoid the default-height flash.
 2. `init.lua` runs `begin_config` → appearance defaults, `bar.lua` (still hidden), `items/`.
 3. After `end_config`, `helpers/enter_animation.lua` records the fade set; `helpers/startup.lua` reveals the bar immediately, then items fade to their declared colors.
 4. `sbar.event_loop()` receives SketchyBar native events and custom triggers from helper daemons.
@@ -55,8 +55,9 @@ Main-bar icon/label colors are made transparent at `sbar.add` time. Dynamic back
 
 - Makefiles write to relative `bin/` based on **cwd**. They are not “wrong files”; the bug is running `make` in the **repo** path.
 - Correct builds:
-  - preferred: `sketchybar --reload` → `helpers/init.lua` does `cd $CONFIG_DIR/helpers && make` when sources are newer than binaries;
+  - preferred: `sketchybar --reload` → `helpers/helper_build.lua` builds only missing/stale targets under `$CONFIG_DIR`; stale binaries remain usable during the background build;
   - manual: `cd ~/.config/sketchybar/helpers && make` (or `make -C ~/.config/sketchybar/helpers/event_providers/<name>`).
+- Helper recipes compile to `bin/<name>.new` and replace the active binary only after success. Swift recipes share `helpers/swift.mk`; `SKETCHYBAR_SWIFT_SDK` can override its compatible SDK fallback.
 - **Wrong:** `make -C ~/dotfiles/sketchybar/.config/sketchybar/helpers/...` — creates a **second** `bin/` under the repo tree. That binary is **not** what launchd loads (`exec $HOME/.config/sketchybar/helpers/.../bin/...`).
 - If `bin/` exists under the **dotfiles** checkout, treat it as a mistake: delete those `helpers/**/bin` dirs (they are gitignored) and rebuild under `~/.config`.
 - After editing Swift/C: confirm `ls -l ~/.config/sketchybar/helpers/**/bin/` mtimes, then `launchctl kickstart -k gui/$(id -u)/com.fuzhuoqun.<agent>` if needed.
@@ -81,7 +82,9 @@ Main-bar icon/label colors are made transparent at `sbar.add` time. Dynamic back
 | `items/spaces.lua` | AeroSpace workspaces, app icons, focus segment, window popup |
 | `items/calendar.lua` | Date/time + month popup |
 | `items/widgets/*` | Right-side pills (sys, battery, network, media, …) |
-| `helpers/init.lua` | Helper build freshness check and event-provider restart |
+| `helpers/init.lua` | Early startup setup and helper-build entry |
+| `helpers/helper_build.lua` | Batched freshness plan, targeted build, and event-provider restart |
+| `helpers/swift.mk` | Shared Swift compiler, SDK, and module-cache settings |
 | `helpers/enter_animation.lua` | Reload startup alpha fade for main-bar items |
 | `helpers/popup_animation.lua` | Popup show/hide alpha helpers |
 | `helpers/popup_utils.lua` | Shared pin / hover / delayed hide for single popups |
@@ -103,7 +106,7 @@ Main-bar icon/label colors are made transparent at `sbar.add` time. Dynamic back
 | Process | How it starts | How it stops / restarts |
 |---------|---------------|-------------------------|
 | `sketchybar` | brew service / manual / login | `sketchybar --reload` restarts the Lua config process |
-| `aerospace_watch`, `docker_watch`, `input_method_watch`, `media_watch` | launchd LaunchAgents (`KeepAlive`) | `helpers/init.lua` `launchctl kickstart` only for binaries whose mtime changed after `make` |
+| `aerospace_watch`, `docker_watch`, `input_method_watch`, `media_watch` | launchd LaunchAgents (`KeepAlive`) | `helper_build.lua` runs `launchctl kickstart` only after the corresponding binary rebuild succeeds |
 | `cpu_load` | `items/widgets/sys.lua` on config load (pidfile under `$TMPDIR`) | killed/replaced on next reload of `sys.lua` |
 | `sys_watch` | only while sys popup is open | stopped in popup `on_hidden` |
 
@@ -203,7 +206,7 @@ helper 的编译产物不进 git，而是在实际运行路径里生成，例如
 
 ### 工作流程
 
-1. `sketchybarrc` 先加载 `helpers/`（必要时编译 helper；bar 先 `hidden` 避免默认高度闪一下），再进入 `init.lua`。
+1. `sketchybarrc` 先加载 `helpers/`：一次批量 mtime 扫描跳过新鲜产物，缺失 binary 同步定向编译，已有但过期的 binary 后台定向编译；bar 先 `hidden` 避免默认高度闪一下。
 2. `init.lua` 执行 `begin_config` → 外观默认、`bar.lua`（仍 hidden）、`items/`。
 3. `end_config` 之后：`prepare` 记录渐入 item，`helpers/startup.lua` 立即 unhide，随后 item 渐入到声明颜色。
 4. `sbar.event_loop()` 接收 SketchyBar 原生事件和 helper 守护进程的自定义 trigger。
@@ -236,8 +239,9 @@ helper 的编译产物不进 git，而是在实际运行路径里生成，例如
 
 - makefile 里是相对路径 `bin/`，跟 **当前 cwd** 走，不是 makefile「写错路径」。
 - 正确编译：
-  - 推荐：`sketchybar --reload` → `helpers/init.lua` 在 binary 过期时 `cd $CONFIG_DIR/helpers && make`；
+  - 推荐：`sketchybar --reload` → `helpers/helper_build.lua` 只在 `$CONFIG_DIR` 下编译缺失或过期 target；后台编译期间旧 binary 仍可继续运行；
   - 手动：`cd ~/.config/sketchybar/helpers && make`。
+- helper 先输出到 `bin/<name>.new`，成功后才替换现有 binary。Swift helper 共用 `helpers/swift.mk`；必要时可用 `SKETCHYBAR_SWIFT_SDK` 覆盖兼容 SDK fallback。
 - **错误：** `make -C ~/dotfiles/sketchybar/.config/sketchybar/helpers/...` — 会在**仓库树**下再生成一份 `bin/`，launchd 仍加载 `$HOME/.config/.../bin/...`，改了等于白改。
 - 若在 **dotfiles 检出目录**里看到 `helpers/**/bin`：当作误编译，删掉这些目录（本来就不进 git），再到 `~/.config` 下重编。
 - 改 Swift/C 后：看 `~/.config/sketchybar/helpers/**/bin/` 的 mtime，必要时 `launchctl kickstart -k gui/$(id -u)/com.fuzhuoqun.<agent>`。
@@ -261,7 +265,9 @@ helper 的编译产物不进 git，而是在实际运行路径里生成，例如
 | `items/spaces.lua` | AeroSpace 工作区、app 图标、焦点分段、窗口 popup |
 | `items/calendar.lua` | 日期时间 + 月历 popup |
 | `items/widgets/*` | 右侧 pills（sys、battery、network、media 等） |
-| `helpers/init.lua` | helper 编译 freshness 检查和 event provider 重启 |
+| `helpers/init.lua` | 最早期启动设置与 helper build 入口 |
+| `helpers/helper_build.lua` | 批量 freshness 计划、定向编译与 event provider 重启 |
+| `helpers/swift.mk` | 共享 Swift 编译器、SDK 与 module cache 配置 |
 | `helpers/startup.lua` | reload 启动阶段协调：隐藏、批量配置、揭示 |
 | `helpers/enter_animation.lua` | reload 启动 item alpha 渐入 |
 | `helpers/popup_animation.lua` | popup 显隐 alpha |
@@ -284,7 +290,7 @@ helper 的编译产物不进 git，而是在实际运行路径里生成，例如
 | 进程 | 如何启动 | 如何停止 / 重启 |
 |------|----------|-----------------|
 | `sketchybar` | brew service / 手动 / 登录项 | `sketchybar --reload` 重跑 Lua 配置进程 |
-| `aerospace_watch` / `docker_watch` / `input_method_watch` / `media_watch` | launchd LaunchAgents（`KeepAlive`） | `helpers/init.lua` 仅在对应 binary 重建后 `launchctl kickstart` |
+| `aerospace_watch` / `docker_watch` / `input_method_watch` / `media_watch` | launchd LaunchAgents（`KeepAlive`） | `helper_build.lua` 仅在对应 binary 成功重建后 `launchctl kickstart` |
 | `cpu_load` | `items/widgets/sys.lua` 加载时（pidfile 在 `$TMPDIR`） | 下次 reload `sys.lua` 时 kill 旧进程再起 |
 | `sys_watch` | 仅在 sys popup 打开期间 | popup `on_hidden` 时停止 |
 

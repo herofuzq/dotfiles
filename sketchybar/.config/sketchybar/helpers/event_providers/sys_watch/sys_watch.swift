@@ -30,6 +30,22 @@ var sensorBuffer = ""
 var sensorReceived = false
 var lastHeader = ""
 var lastRows = Array(repeating: "", count: 10)
+let commandTimeout: TimeInterval = 1.0
+
+@Sendable func waitForProcess(_ task: Process, timeout: TimeInterval) -> Bool {
+    let finished = DispatchSemaphore(value: 0)
+    task.terminationHandler = { _ in finished.signal() }
+    guard finished.wait(timeout: .now() + timeout) == .timedOut else {
+        task.terminationHandler = nil
+        return true
+    }
+    if task.isRunning { task.terminate() }
+    if finished.wait(timeout: .now() + 0.2) == .timedOut, task.isRunning {
+        kill(task.processIdentifier, SIGKILL)
+    }
+    task.terminationHandler = nil
+    return false
+}
 
 @Sendable func number(_ value: Any?) -> Double? {
     (value as? NSNumber)?.doubleValue
@@ -85,7 +101,7 @@ var lastRows = Array(repeating: "", count: 10)
     task.standardOutput = FileHandle.nullDevice
     task.standardError = FileHandle.nullDevice
     guard (try? task.run()) != nil else { return }
-    task.waitUntilExit()
+    _ = waitForProcess(task, timeout: commandTimeout)
 }
 
 /// Drop control characters so --set label=... is not split/corrupted by sketchybar parsing.

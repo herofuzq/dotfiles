@@ -91,67 +91,45 @@ local function parseWindowRecords(stdout)
 	return records
 end
 
-local function focusedWorkspace(callback)
-	return command.aerospace({
-		"list-workspaces", "--focused", "--format", "%{workspace}",
+local function focusedFloatingWindow()
+	local started = command.aerospace({
+		"list-windows",
+		"--workspace", "focused",
+		"--format", WINDOW_FORMAT,
 	}, function(exitCode, stdout)
 		if exitCode ~= 0 then
-			callback(nil)
-			return
-		end
-		local workspace = trim((stdout or ""):match("[^\r\n]+"))
-		callback(workspace ~= "" and workspace or nil)
-	end) == true
-end
-
-local function focusedFloatingWindow()
-	local started = focusedWorkspace(function(workspace)
-		if not workspace then
-			notification.show("无法读取当前工作区", "warning", 0.8)
+			notification.show("无法读取浮动窗口", "warning", 0.8)
 			return
 		end
 
-		local queried = command.aerospace({
-			"list-windows",
-			"--workspace", "focused",
-			"--format", WINDOW_FORMAT,
-		}, function(exitCode, stdout)
-			if exitCode ~= 0 then
-				notification.show("无法读取浮动窗口", "warning", 0.8)
-				return
-			end
-
-			local records = parseWindowRecords(stdout)
-			local current = hs.window.frontmostWindow()
-			local currentID = current and current:id() or nil
-			if lastFocusedWorkspace == workspace and lastFocusedID then
-				currentID = currentID or lastFocusedID
-			end
-			local target = selectNext(records, workspace, currentID)
-			if not target then
-				notification.show("当前工作区没有浮动窗口", "neutral", 0.8)
-				return
-			end
-
-			local window = hs.window(target.id)
-			if not window then
-				notification.show("浮动窗口已经关闭", "warning", 0.8)
-				return
-			end
-			local ok = pcall(function() window:focus() end)
-			if not ok then
-				notification.show("无法聚焦浮动窗口", "warning", 0.8)
-				return
-			end
-			lastFocusedID = target.id
-			lastFocusedWorkspace = workspace
-		end)
-		if not queried then
-			notification.show("无法启动 AeroSpace 查询", "warning", 0.8)
+		local records = parseWindowRecords(stdout)
+		local workspace = records[1] and records[1].workspace or nil
+		local current = hs.window.frontmostWindow()
+		local currentID = current and current:id() or nil
+		if workspace and lastFocusedWorkspace == workspace and lastFocusedID then
+			currentID = currentID or lastFocusedID
 		end
+		local target = selectNext(records, workspace, currentID)
+		if not target then
+			notification.show("当前工作区没有浮动窗口", "neutral", 0.8)
+			return
+		end
+
+		local window = hs.window(target.id)
+		if not window then
+			notification.show("浮动窗口已经关闭", "warning", 0.8)
+			return
+		end
+		local ok = pcall(function() window:focus() end)
+		if not ok then
+			notification.show("无法聚焦浮动窗口", "warning", 0.8)
+			return
+		end
+		lastFocusedID = target.id
+		lastFocusedWorkspace = workspace
 	end)
 	if not started then
-		notification.show("无法启动工作区查询", "warning", 0.8)
+		notification.show("无法启动 AeroSpace 查询", "warning", 0.8)
 	end
 end
 

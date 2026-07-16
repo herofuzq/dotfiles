@@ -22,6 +22,22 @@ let sketchybar = waitPath("sketchybar", candidates: ["/opt/homebrew/bin/sketchyb
 let triggerQueue = DispatchQueue(label: "com.fuzhuoqun.docker_watch.trigger")
 var triggerScheduled = false
 var shouldRun = true
+let commandTimeout: TimeInterval = 1.0
+
+func waitForProcess(_ task: Process, timeout: TimeInterval) -> Bool {
+    let finished = DispatchSemaphore(value: 0)
+    task.terminationHandler = { _ in finished.signal() }
+    guard finished.wait(timeout: .now() + timeout) == .timedOut else {
+        task.terminationHandler = nil
+        return true
+    }
+    if task.isRunning { task.terminate() }
+    if finished.wait(timeout: .now() + 0.2) == .timedOut, task.isRunning {
+        kill(task.processIdentifier, SIGKILL)
+    }
+    task.terminationHandler = nil
+    return false
+}
 
 func runSketchybarTrigger() {
     let task = Process()
@@ -30,7 +46,7 @@ func runSketchybarTrigger() {
     task.standardOutput = FileHandle.nullDevice
     task.standardError = FileHandle.nullDevice
     guard (try? task.run()) != nil else { return }
-    task.waitUntilExit()
+    _ = waitForProcess(task, timeout: commandTimeout)
 }
 
 func scheduleTrigger() {
