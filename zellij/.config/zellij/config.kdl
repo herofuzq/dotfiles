@@ -49,7 +49,12 @@ keybinds clear-defaults=true {
         bind "j" { GoToNextTab; }
         bind "k" { GoToPreviousTab; }
         bind "l" { GoToNextTab; }
-        bind "n" { NewTab; SwitchToMode "normal"; }
+        bind "n" {
+            NewTab {
+                layout "default"
+            }
+            SwitchToMode "normal"
+        }
         bind "r" { SwitchToMode "renametab"; TabNameInput 0; }
         bind "s" { ToggleActiveSyncTab; SwitchToMode "normal"; }
         bind "Ctrl t" { SwitchToMode "normal"; }
@@ -264,7 +269,12 @@ keybinds clear-defaults=true {
         bind "," { SwitchToMode "renametab"; }
         bind "[" { SwitchToMode "scroll"; }
         bind "Ctrl b" { Write 2; SwitchToMode "normal"; }
-        bind "c" { NewTab; SwitchToMode "normal"; }
+        bind "c" {
+            NewTab {
+                layout "default"
+            }
+            SwitchToMode "normal"
+        }
         bind "h" { MoveFocus "left"; SwitchToMode "normal"; }
         bind "j" { MoveFocus "down"; SwitchToMode "normal"; }
         bind "k" { MoveFocus "up"; SwitchToMode "normal"; }
@@ -290,6 +300,11 @@ plugins {
     status-bar location="zellij:status-bar"
     strider location="zellij:strider"
     tab-bar location="zellij:tab-bar"
+    smart-tabs location="file:/Users/fuzhuoqun/.config/zellij/plugins/zellij-smart-tabs.wasm" {
+        format "{% if short_git_root %}{{ short_git_root }}{% else %}{{ short_dir }}{% endif %}{% if program %} · {{ program }}{% endif %}"
+        poll_interval 5
+        debug false
+    }
     welcome-screen location="zellij:session-manager" {
         welcome_screen true
     }
@@ -300,6 +315,7 @@ plugins {
 // eg. "https://example.com/my-plugin.wasm"
 load_plugins {
     zellij:link
+    smart-tabs
 }
 web_client {
     font "monospace"
