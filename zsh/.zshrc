@@ -7,6 +7,9 @@
 # Deduplicate path/fpath entries (prevents repeated exports from piling up).
 typeset -U path PATH fpath FPATH
 
+# Prefer Homebrew tools and include formula-provided system commands.
+path=(/opt/homebrew/bin /opt/homebrew/sbin $path)
+
 # Use Simplified Chinese UTF-8 locale consistently across terminal apps.
 export LANG=zh_CN.UTF-8
 
