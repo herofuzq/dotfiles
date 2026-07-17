@@ -2,10 +2,10 @@ import Foundation
 
 // Bridge Docker container events into a lightweight SketchyBar trigger.
 //
-// This daemon does not own UI state and does not query containers. It only
-// listens to Docker's event stream and tells services.lua to refresh once after
-// container lifecycle changes. If Docker Desktop is not running, `docker events`
-// exits and the loop retries quietly.
+// This daemon does not own UI state or inspect container lists. It listens to
+// Docker's event stream and tells services.lua to refresh once after
+// container lifecycle changes. When Docker Desktop is unavailable it uses a
+// bounded retry delay and only notifies SketchyBar on availability transitions.
 
 func waitPath(_ name: String, candidates: [String]) -> String {
     while true {
@@ -23,6 +23,7 @@ let triggerQueue = DispatchQueue(label: "com.fuzhuoqun.docker_watch.trigger")
 var triggerScheduled = false
 var shouldRun = true
 let commandTimeout: TimeInterval = 1.0
+var dockerAvailable = false
 
 func waitForProcess(_ task: Process, timeout: TimeInterval) -> Bool {
     let finished = DispatchSemaphore(value: 0)
@@ -62,6 +63,25 @@ func scheduleTrigger() {
     }
 }
 
+func updateDockerAvailability(_ available: Bool) {
+    guard dockerAvailable != available else { return }
+    dockerAvailable = available
+    scheduleTrigger()
+}
+
+func dockerIsReady() -> Bool {
+    let task = Process()
+    task.launchPath = docker
+    task.arguments = ["info", "--format", "{{.ServerVersion}}"]
+    task.standardOutput = FileHandle.nullDevice
+    task.standardError = FileHandle.nullDevice
+    guard (try? task.run()) != nil,
+          waitForProcess(task, timeout: commandTimeout) else {
+        return false
+    }
+    return task.terminationStatus == 0
+}
+
 func runEventsOnce() {
     let task = Process()
     task.launchPath = docker
@@ -87,14 +107,9 @@ func runEventsOnce() {
         scheduleTrigger()
     }
 
-    guard (try? task.run()) != nil else {
-        sleep(5)
-        return
-    }
-    // 仅在有真实 container event 或 stream 结束时 refresh；不在 stream 刚启动时空刷一次
+    guard (try? task.run()) != nil else { return }
     task.waitUntilExit()
     pipe.fileHandleForReading.readabilityHandler = nil
-    scheduleTrigger()
 }
 
 signal(SIGTERM, SIG_IGN)
@@ -106,10 +121,22 @@ sigtermSource.setEventHandler {
 sigtermSource.resume()
 
 DispatchQueue.global().async {
+    var retryDelay: UInt32 = 2
     while shouldRun {
+        guard dockerIsReady() else {
+            updateDockerAvailability(false)
+            sleep(retryDelay)
+            retryDelay = min(retryDelay * 2, 15)
+            continue
+        }
+
+        retryDelay = 2
+        updateDockerAvailability(true)
         runEventsOnce()
         if shouldRun {
-            sleep(5)
+            updateDockerAvailability(false)
+            sleep(retryDelay)
+            retryDelay = min(retryDelay * 2, 15)
         }
     }
 }

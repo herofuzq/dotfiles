@@ -1,6 +1,6 @@
 -- ========== Popup 弹出/收起 ==========
 -- show：背景 color alpha 线性渐入（无 y_offset）。
--- hide / hide_async：瞬时关闭，没有渐出动画；通过下一事件循环提交状态。
+-- hide：瞬时关闭，没有渐出动画；通过下一事件循环提交状态。
 --   原因：timer/mouse 回调里同步 parent:set 可能与 SketchyBar 事件 IPC 互等（#794）。
 -- generation：延迟提交前校验代数，避免旧 hide 关掉刚显示的 popup。
 local appearance = require("appearance")
@@ -87,24 +87,15 @@ function M.new(parent, options)
 		end)
 	end
 
-	function controller:hide(_use_cli)
+	function controller:hide()
+		if not visible then
+			return
+		end
 		generation = generation + 1
 		visible = false
 		defer_set(generation, { popup = { drawing = false } }, function()
 			fire_on_hidden(options)
 		end)
-	end
-
-	function controller:hide_async()
-		generation = generation + 1
-		visible = false
-		defer_set(generation, { popup = { drawing = false } }, function()
-			fire_on_hidden(options)
-		end)
-	end
-
-	function controller:is_visible()
-		return visible
 	end
 
 	return controller

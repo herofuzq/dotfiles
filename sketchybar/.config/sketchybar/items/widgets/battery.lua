@@ -1,7 +1,6 @@
 -- ========== 电池电量显示 ==========
 local sbar = require("sketchybar")
 local icons = require("icons")
-local fonts = require("fonts")
 local appearance = require("appearance")
 local popup_animation = require("helpers.popup_animation")
 local parsers = require("helpers.widget_parsers")
@@ -95,7 +94,7 @@ battery:subscribe("mouse.clicked", function()
 	popup_visible = not popup_visible
 	local visible = popup_visible
 	if not visible then
-		battery_popup:hide_async()
+		battery_popup:hide()
 	else
 		popup_utils.defer(function()
 			if not popup_visible then return end

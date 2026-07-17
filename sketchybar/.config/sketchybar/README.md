@@ -87,13 +87,13 @@ Main-bar icon/label colors are made transparent at `sbar.add` time. Dynamic back
 | `helpers/swift.mk` | Shared Swift compiler, SDK, and module-cache settings |
 | `helpers/enter_animation.lua` | Reload startup alpha fade for main-bar items |
 | `helpers/popup_animation.lua` | Popup show/hide alpha helpers |
-| `helpers/popup_utils.lua` | Shared pin / hover / delayed hide for single popups |
+| `helpers/popup_utils.lua` | Deferred UI updates from popup event callbacks |
 | `helpers/borders.lua` | Focused workspace segment styling |
 | `helpers/timing.lua` | Shared animation timing constants |
 | `helpers/services/*` | Docker compose config / status / control scripts |
 | `helpers/git/*` | Watched repos config + status script |
 | `helpers/event_providers/aerospace_watch/` | AeroSpace subscribe + fullscreen diff |
-| `helpers/event_providers/docker_watch/` | Docker events → `services_change` |
+| `helpers/event_providers/docker_watch/` | Docker events and bounded availability retry → `services_change` |
 | `helpers/event_providers/input_method/` | Input-method watcher |
 | `helpers/event_providers/media_watch/` | `media-control stream` watcher |
 | `helpers/event_providers/cpu_load/` | CPU % (host_statistics); started from `sys.lua` with pidfile |
@@ -164,7 +164,7 @@ brew install mactop
 
 ### Battery Widget
 
-Hover the pill for percentage and estimated time remaining. Data from:
+Click the pill for percentage and estimated time remaining. Data from:
 
 ```bash
 ioreg -rn AppleSmartBattery
@@ -271,13 +271,13 @@ helper 的编译产物不进 git，而是在实际运行路径里生成，例如
 | `helpers/startup.lua` | reload 启动阶段协调：隐藏、批量配置、揭示 |
 | `helpers/enter_animation.lua` | reload 启动 item alpha 渐入 |
 | `helpers/popup_animation.lua` | popup 显隐 alpha |
-| `helpers/popup_utils.lua` | 单 popup 的 pin / hover / 延迟隐藏 |
+| `helpers/popup_utils.lua` | popup 事件回调中的延后 UI 更新 |
 | `helpers/borders.lua` | 工作区焦点分段样式 |
 | `helpers/timing.lua` | 共享动画时间常量 |
 | `helpers/services/*` | Docker Compose 配置 / 状态 / 控制脚本 |
 | `helpers/git/*` | 监视仓库配置 + 状态脚本 |
 | `helpers/event_providers/aerospace_watch/` | AeroSpace subscribe 与 fullscreen diff |
-| `helpers/event_providers/docker_watch/` | Docker events → `services_change` |
+| `helpers/event_providers/docker_watch/` | Docker events 与有上限的可用性重试 → `services_change` |
 | `helpers/event_providers/input_method/` | 原生输入法监听 |
 | `helpers/event_providers/media_watch/` | `media-control stream` 监听 |
 | `helpers/event_providers/cpu_load/` | CPU%（host_statistics）；由 `sys.lua` 用 pidfile 拉起 |
@@ -348,7 +348,7 @@ brew install mactop
 
 ### 电池 Widget
 
-悬停查看电量百分比和预估剩余时间。数据来源：
+点击查看电量百分比和预估剩余时间。数据来源：
 
 ```bash
 ioreg -rn AppleSmartBattery

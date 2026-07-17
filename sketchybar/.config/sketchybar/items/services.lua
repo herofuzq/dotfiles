@@ -189,9 +189,14 @@ end
 
 -- ========== 状态刷新 ==========
 -- 必须先于按钮 subscribe 定义 refresh，否则闭包会解析到全局 nil refresh。
-local popup_utils = require("helpers.popup_utils")
 local popup_visible = false
-local inflight = false; local pending = false
+local inflight = false
+local pending = false
+local refresh_generation = 0
+local REFRESH_TIMEOUT = 5
+local last_main_signature
+local last_popup_state
+local popup_utils = require("helpers.popup_utils")
 
 local function count_color(status, running, total)
 	if status == "error" or total <= 0 then return colors.red end
@@ -214,6 +219,29 @@ local function spl(line)
 	return f
 end
 
+local function render_popup(state)
+	local sum, grps, svcs = state.sum, state.grps, state.svcs
+	for gid, g in pairs(grps) do
+		local entry = text_rows["group." .. gid]
+		if entry then
+			entry.item:set({ label = { string = entry.prefix .. icons.services.docker .. " " .. string.format("%s  %d/%d", g.label, g.running, g.total), color = colors.subtext1 } })
+		end
+	end
+	for key, s in pairs(svcs) do
+		local gid, sid = key:match("^(.-)\0(.*)$")
+		local entry = text_rows[(gid or "") .. "." .. (sid or "")]
+		if entry then
+			local port = s.port ~= "" and (" :" .. s.port) or ""
+			entry.item:set({ label = { string = entry.prefix .. "• " .. string.format("%s  %s%s", s.label, st_text(s.state), port), color = colors.text } })
+		end
+	end
+	if sum.status == "error" then
+		status_row:set({ drawing = true, label = { string = sum.message ~= "" and sum.message or "docker unavailable", color = colors.surface1 } })
+	else
+		status_row:set({ drawing = false })
+	end
+end
+
 local function apply_status(output)
 	local sum = { status = "error", running = 0, total = 0, message = "services unavailable" }
 	local grps, svcs = {}, {}
@@ -231,42 +259,36 @@ local function apply_status(output)
 
 	local icon_color = sum.status == "error" and colors.red or colors.green
 	local count_color_value = count_color(sum.status, sum.running, sum.total)
-	services_item:set({
-		icon = { color = icon_color },
-		label = { string = tostring(sum.running), color = count_color_value },
-	})
-
-	for gid, g in pairs(grps) do
-		local entry = text_rows["group." .. gid]
-		if entry then
-			entry.item:set({ label = { string = entry.prefix .. icons.services.docker .. " " .. string.format("%s  %d/%d", g.label, g.running, g.total), color = colors.subtext1 } })
-		end
+	local main_signature = table.concat({ sum.status, sum.running, sum.total, icon_color, count_color_value }, "|")
+	if main_signature ~= last_main_signature then
+		last_main_signature = main_signature
+		services_item:set({
+			icon = { color = icon_color },
+			label = { string = tostring(sum.running), color = count_color_value },
+		})
 	end
 
-	for key, s in pairs(svcs) do
-		local gid, sid = key:match("^(.-)\0(.*)$")
-		local lookup_key = (gid or "") .. "." .. (sid or "")
-		local entry = text_rows[lookup_key]
-		if entry then
-			local port = s.port ~= "" and (" :" .. s.port) or ""
-			entry.item:set({ label = { string = entry.prefix .. "• " .. string.format("%s  %s%s", s.label, st_text(s.state), port), color = colors.text } })
-		end
-	end
-
-	if sum.status == "error" then
-		status_row:set({ drawing = true, label = { string = sum.message ~= "" and sum.message or "docker unavailable", color = colors.surface1 } })
-	else
-		status_row:set({ drawing = false })
+	last_popup_state = { sum = sum, grps = grps, svcs = svcs }
+	if popup_visible then
+		render_popup(last_popup_state)
 	end
 end
 
 local function refresh()
 	if inflight then pending = true; return end
 	inflight = true
-	sbar.exec(shell_quote(lua_bin) .. " " .. shell_quote(status_script), function(o)
-		inflight = false; apply_status(o)
+	refresh_generation = refresh_generation + 1
+	local generation = refresh_generation
+	local settled = false
+	local function finish(output)
+		if settled or generation ~= refresh_generation then return end
+		settled = true
+		inflight = false
+		if output ~= nil then apply_status(output) end
 		if pending then pending = false; refresh() end
-	end)
+	end
+	sbar.delay(REFRESH_TIMEOUT, function() finish(nil) end)
+	sbar.exec(shell_quote(lua_bin) .. " " .. shell_quote(status_script), finish)
 end
 
 for _, entry in ipairs(actions_list) do
@@ -282,11 +304,14 @@ for _, entry in ipairs(actions_list) do
 end
 
 local function show()
+	if last_popup_state then
+		render_popup(last_popup_state)
+	end
 	refresh()
 	services_anim:show()
 end
 local function hide()
-	services_anim:hide_async()
+	services_anim:hide()
 end
 services_item:subscribe("mouse.clicked", function()
 	popup_visible = not popup_visible

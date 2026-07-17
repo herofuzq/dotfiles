@@ -146,12 +146,11 @@ local function snapshot_item(name)
 		was_drawing = props.drawing ~= false,
 		icon = icon and icon.drawing ~= false and parse_color(icon.color) or nil,
 		label = label and label.drawing ~= false and parse_color(label.color) or nil,
-		-- Background colors are often changed after add() to join a bracket.
-		-- Do not animate a stale creation-time value.
-		background = nil,
+		-- Background colors are often changed after add() to join a bracket, so
+		-- startup only fades icon/label alpha.
 	}
 
-	if not entry.icon and not entry.label and not entry.background then
+	if not entry.icon and not entry.label then
 		return nil
 	end
 	return entry
@@ -164,9 +163,6 @@ local function apply(entry, alpha)
 	end
 	if entry.label then
 		props.label = { color = appearance.with_alpha(entry.label, alpha) }
-	end
-	if entry.background then
-		props.background = { color = appearance.with_alpha(entry.background, alpha) }
 	end
 	sbar.set(entry.name, props)
 end

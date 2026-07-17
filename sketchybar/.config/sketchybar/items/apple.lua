@@ -12,22 +12,19 @@ local border_width = 0 -- 无背景无边框
 local icon_width = 15
 local dock_sync_generation = 0
 
-local function compute_icon_pad()
-	local dock_w, dock_hidden = settings.detect_dock_width()
+local function compute_icon_pad(dock_w, dock_hidden)
 	if dock_hidden == 1 then
 		return 10, 10
 	else
 		local pad = math.floor((dock_w - icon_width - 2 * border_width - 4) / 2)
-		return pad + 0, pad - 0
+		return pad, pad
 	end
 end
 
-local icon_pad_left, icon_pad_right = compute_icon_pad()
-
-local dock_x = 5
+local icon_pad_left, icon_pad_right = compute_icon_pad(settings.initial_dock_width())
 
 local apple = sbar.add("item", "apple", {
-	padding_left = dock_x,
+	padding_left = 5,
 	padding_right = 5,
 	icon = {
 		string = icons.apple,
@@ -44,6 +41,20 @@ local apple = sbar.add("item", "apple", {
 	label = { drawing = false },
 	background = { drawing = false },
 })
+
+local current_pad_left, current_pad_right = icon_pad_left, icon_pad_right
+local function refresh_icon_padding()
+	settings.refresh_dock_width(function(dock_width, dock_hidden)
+		local left_pad, right_pad = compute_icon_pad(dock_width, dock_hidden)
+		if left_pad == current_pad_left and right_pad == current_pad_right then
+			return
+		end
+		current_pad_left, current_pad_right = left_pad, right_pad
+		apple:set({ icon = { padding_left = left_pad, padding_right = right_pad } })
+	end)
+end
+
+refresh_icon_padding()
 
 apple:subscribe("mouse.clicked", function()
 	sbar.delay(0, function()
@@ -70,8 +81,7 @@ apple:subscribe("display_change", function()
 			if dock_sync_generation ~= gen then
 				return
 			end
-			local pl, pr = compute_icon_pad()
-			apple:set({ icon = { padding_left = pl, padding_right = pr } })
+			refresh_icon_padding()
 		end)
 	end
 end)

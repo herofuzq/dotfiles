@@ -36,5 +36,4 @@ for screen in NSScreen.screens {
     if h > best { best = h }
 }
 
-let hasNotch = (NSScreen.main?.safeAreaInsets.top ?? 0) > 0
-print("\(best) \(hasNotch ? 1 : 0)")
+print(best)

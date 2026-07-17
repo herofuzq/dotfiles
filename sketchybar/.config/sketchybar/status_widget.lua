@@ -1,6 +1,5 @@
 -- ========== 通用状态角标 Widget 工厂 ==========
 local sbar = require("sketchybar")
-local fonts = require("fonts")
 local appearance = require("appearance")
 local colors = appearance.colors
 local settings = require("settings")

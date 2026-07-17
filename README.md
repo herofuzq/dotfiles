@@ -18,7 +18,6 @@
 | AeroSpace | `~/.config/aerospace/aerospace.toml` | 平铺窗口管理、工作区、快捷键 |
 | SketchyBar | `~/.config/sketchybar` | 状态栏、工作区、系统信息、输入法、媒体组件 |
 | Hammerspoon | `~/.hammerspoon` | macOS 自动化和少量窗口辅助 |
-| BetterTouchTool | 由 Hammerspoon 调用 | 执行浮动窗口 Pin/Unpin；仓库不维护 BTT 触发器规则 |
 | Karabiner | `~/.config/karabiner` | 键盘改键 |
 | Kitty / Ghostty | `~/.config/kitty`, `~/.config/ghostty` | 终端配置 |
 | Neovim | `~/.config/nvim` | 编辑器配置 |
@@ -49,17 +48,14 @@ helper 二进制会生成在实际运行路径，例如：
 
 ## 浮动窗口联动
 
-浮动窗口的职责分成三层：
+浮动窗口的职责分成两层：
 
 1. **AeroSpace** 判断窗口是否为 `floating`，并负责工作区与窗口布局规则。
 2. **Hammerspoon** 监听窗口创建、聚焦和移动事件；新建的浮动窗口会避开顶部 SketchyBar 并移动到屏幕安全区域中央。
-3. **BetterTouchTool** 只执行 Hammerspoon 串行发送的 Pin/Unpin 动作，目标通过窗口 ID 和 Bundle ID 指定。
 
-置顶逻辑按窗口创建顺序维护栈：后创建且仍存在的浮动窗口优先 Pin，旧窗口保持 Unpin；关闭后才恢复上一个窗口。这样同一应用多窗口和多个浮动应用不会互相抢占。`Typeless` 不参与置顶，`CleanShot X` 不参与安全区归位。
+`Hyper+P` 在当前工作区的可聚焦浮动窗口之间循环；`Typeless` 不参与该快捷键，`CleanShot X` 不参与安全区归位。
 
-自动置顶默认开启，可用 `Hyper+P` 切换；关闭时会解除现有浮动窗口的 Pin，重新开启时会重新扫描当前工作区。Hammerspoon 不使用常驻轮询，主要依赖窗口事件和有限次数的 AeroSpace 查询重试。
-
-这条链路不依赖 BTT 前端触发器规则；BTT 作为动作执行端安装即可。浮动窗口移入 SketchyBar 顶部区域时，Hammerspoon 会在实际发生归位后显示一次提示。
+Hammerspoon 不使用常驻轮询，主要依赖窗口事件和有限次数的 AeroSpace 查询重试。浮动窗口移入 SketchyBar 顶部区域时，会在实际发生归位后显示一次提示。
 
 ## 常用验证
 

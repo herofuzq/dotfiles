@@ -2,7 +2,6 @@
 -- ABC 系统输入法 / fcitx5 中英状态
 local sbar = require("sketchybar")
 local icons = require("icons")
-local fonts = require("fonts")
 local appearance = require("appearance")
 local colors = appearance.colors
 local settings = require("settings")

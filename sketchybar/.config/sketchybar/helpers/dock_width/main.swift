@@ -4,24 +4,18 @@ let app = NSApplication.shared
 app.setActivationPolicy(.accessory)
 Thread.sleep(forTimeInterval: 0.1)
 
-func readDockDefault(_ key: String) -> String? {
-	let task = Process()
-	task.launchPath = "/usr/bin/defaults"
-	task.arguments = ["read", "com.apple.dock", key]
-	let pipe = Pipe()
-	task.standardOutput = pipe
-	task.standardError = FileHandle.nullDevice
-	if (try? task.run()) != nil {
-		task.waitUntilExit()
-	}
-	let data = pipe.fileHandleForReading.readDataToEndOfFile()
-	return String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines)
+let dockDefaults = UserDefaults.standard.persistentDomain(forName: "com.apple.dock") ?? [:]
+
+func dockBool(_ key: String) -> Bool {
+	if let value = dockDefaults[key] as? Bool { return value }
+	if let value = dockDefaults[key] as? NSNumber { return value.boolValue }
+	return false
 }
 
-let autohide = readDockDefault("autohide") == "1"
-let orientation = readDockDefault("orientation") ?? "bottom"
+let autohide = dockBool("autohide")
+let orientation = dockDefaults["orientation"] as? String ?? "bottom"
 
-func getDockInfo() -> (width: Int, x: Int)? {
+func getDockWidth() -> Int? {
     guard let dockApp = NSRunningApplication.runningApplications(
         withBundleIdentifier: "com.apple.dock"
     ).first else { return nil }
@@ -36,25 +30,17 @@ func getDockInfo() -> (width: Int, x: Int)? {
 
     var sizeValue: CFTypeRef?
     AXUIElementCopyAttributeValue(firstChild, kAXSizeAttribute as CFString, &sizeValue)
-    var posValue: CFTypeRef?
-    AXUIElementCopyAttributeValue(firstChild, kAXPositionAttribute as CFString, &posValue)
-
 	var size = CGSize.zero
-	var pos = CGPoint.zero
 	guard let sv = sizeValue,
 	      CFGetTypeID(sv) == AXValueGetTypeID(),
 	      AXValueGetValue((sv as! AXValue), .cgSize, &size) else { return nil }
-	if let pv = posValue, CFGetTypeID(pv) == AXValueGetTypeID() {
-		AXValueGetValue((pv as! AXValue), .cgPoint, &pos)
-	}
-	return (Int(size.width), Int(pos.x))
+	return Int(size.width)
 }
 
 if autohide || orientation != "left" {
-	print("55 \(autohide ? 1 : 0) 0")
-} else if let info = getDockInfo() {
-    // 格式: <width> <hidden> <x>
-    print("\(info.width) 0 \(info.x)")
+	print("55 \(autohide ? 1 : 0)")
+} else if let width = getDockWidth() {
+	print("\(width) 0")
 } else {
-	print("55 0 0")
+	print("55 0")
 }

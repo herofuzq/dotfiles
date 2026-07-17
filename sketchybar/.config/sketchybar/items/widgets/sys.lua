@@ -169,7 +169,7 @@ local function show_popup()
 end
 
 local function hide_popup()
-	sys_popup:hide_async()
+	sys_popup:hide()
 end
 sys:subscribe("mouse.clicked", function()
 	popup_visible = not popup_visible

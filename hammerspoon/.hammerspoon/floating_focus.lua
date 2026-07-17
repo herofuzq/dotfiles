@@ -13,25 +13,6 @@ local WINDOW_FORMAT = "%{window-id}|%{app-bundle-id}|%{workspace}|%{window-layou
 local lastFocusedID = nil
 local lastFocusedWorkspace = nil
 
-local function cleanupLegacyPinRuntime()
-	-- hs.reload() can retain globals from the previous configuration. Remove
-	-- the old watcher and hotkey before installing the focus-only behavior.
-	if _floatingLevelUnpinAll then
-		pcall(_floatingLevelUnpinAll)
-		_floatingLevelUnpinAll = nil
-	end
-	if _floatingLevel_filter then
-		pcall(function() _floatingLevel_filter:unsubscribeAll() end)
-		_floatingLevel_filter = nil
-	end
-	if _floatingPinToggleHotkey then
-		pcall(function() _floatingPinToggleHotkey:delete() end)
-		_floatingPinToggleHotkey = nil
-	end
-end
-
-cleanupLegacyPinRuntime()
-
 local function isEligible(record, workspace)
 	return record
 		and record.workspace == workspace
@@ -61,8 +42,6 @@ local function selectNext(records, workspace, currentID)
 	end
 	return eligible[1]
 end
-
-_floatingFocusSelect = selectNext
 
 local function trim(value)
 	return (value or ""):match("^%s*(.-)%s*$")

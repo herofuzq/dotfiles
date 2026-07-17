@@ -395,22 +395,13 @@ local function show_popup(ws_index, workspace)
 	animation:show()
 end
 
-local function hide_popup(ws_index, workspace, animated)
+local function hide_popup(ws_index, workspace)
 	local animation = _popup_animations[ws_index]
 	if not animations_ready or not animation then
 		workspace:set({ popup = { drawing = false } })
 		return
 	end
-	animation:hide(animated)
-end
-
-local function hide_popup_async(ws_index, workspace)
-	local animation = _popup_animations[ws_index]
-	if animations_ready and animation and animation.hide_async then
-		animation:hide_async()
-		return
-	end
-	workspace:set({ popup = { drawing = false } })
+	animation:hide()
 end
 
 local function popup_windows_from_snapshot(ws_index)
@@ -471,7 +462,7 @@ local function render_popup(ws_index, workspace_item, windows)
 					item:set({ drawing = false })
 				end
 			end
-			hide_popup(ws_index, workspace_item, true)
+			hide_popup(ws_index, workspace_item)
 		end)
 		return
 	end
@@ -499,7 +490,7 @@ local function render_popup(ws_index, workspace_item, windows)
 		if _popup_pinned[ws_index] then
 			show_popup(ws_index, workspace_item)
 		else
-			hide_popup(ws_index, workspace_item, true)
+			hide_popup(ws_index, workspace_item)
 		end
 	end)
 end
@@ -511,9 +502,11 @@ end
 local function close_popups(except_ws)
 	for ws_index, workspace in pairs(workspaces) do
 		if ws_index ~= except_ws then
-			_popup_pinned[ws_index] = false
 			invalidate_popup_query(ws_index)
-			hide_popup(ws_index, workspace, false)
+			if _popup_pinned[ws_index] then
+				hide_popup(ws_index, workspace)
+			end
+			_popup_pinned[ws_index] = false
 		end
 	end
 end
@@ -698,30 +691,33 @@ local function updateWorkspaceMonitor(on_complete)
 		local signature = table.concat(signature_parts, "\0")
 		local changed = signature ~= workspace_monitor_signature
 		workspace_monitor_signature = signature
-		for workspace_index, _ in pairs(workspaces) do
-			workspaces[workspace_index]:set({
-				display = workspace_monitor[workspace_index],
-			})
+		if changed then
+			for workspace_index, _ in pairs(workspaces) do
+				workspaces[workspace_index]:set({
+					display = workspace_monitor[workspace_index],
+				})
+			end
 		end
 		if on_complete then on_complete(changed) end
 	end)
 end
 
 local function syncDisplayState(refresh_windows)
-	local h = settings.detect_bar_height()
-	local height_changed = h and h > 0 and h ~= settings.height
-	if h and h > 0 then
-		sbar.bar({ height = h })
-		settings.height = h
-	end
-
-	-- Display/wake can leave the focused workspace cache stale while AeroSpace
-	-- is still settling. Force the next window snapshot to query the real focus.
-	focused_workspace_cache = nil
-	updateWorkspaceMonitor(function(monitor_changed)
-		if refresh_windows or height_changed or monitor_changed then
-			updateWindows({ protect_empty_snapshot = true })
+	settings.refresh_bar_height(function(height)
+		local height_changed = height and height > 0 and height ~= settings.height
+		if height_changed then
+			settings.height = height
+			sbar.bar({ height = height })
 		end
+
+		-- Display/wake can leave the focused workspace cache stale while AeroSpace
+		-- is still settling. Force the next window snapshot to query the real focus.
+		focused_workspace_cache = nil
+		updateWorkspaceMonitor(function(monitor_changed)
+			if refresh_windows or height_changed or monitor_changed then
+				updateWindows({ protect_empty_snapshot = true })
+			end
+		end)
 	end)
 end
 
@@ -851,7 +847,7 @@ sbar.exec(":", function()
 					if _popup_pinned[ws] then
 						_popup_pinned[ws] = false
 						invalidate_popup_query(ws)
-						hide_popup_async(ws, w)
+						hide_popup(ws, w)
 					else
 						_popup_pinned[ws] = true
 						open_popup(ws, w)
@@ -880,7 +876,7 @@ sbar.exec(":", function()
 					end
 					_popup_pinned[ws] = false
 					invalidate_popup_query(ws)
-					hide_popup_async(ws, w)
+					hide_popup(ws, w)
 				end
 			end)
 		end

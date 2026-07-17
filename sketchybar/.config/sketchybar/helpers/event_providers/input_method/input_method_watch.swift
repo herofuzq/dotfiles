@@ -1,4 +1,5 @@
 import Carbon
+import Darwin
 import Foundation
 
 /// 循环等待 sketchybar 就绪，避免 launchd 无限重启
@@ -30,15 +31,6 @@ let sourceFallbackInterval: TimeInterval = 5.0
 var lastSignature = ""
 var currentSourceID = ""
 
-func firstExecutable(_ paths: [String]) -> String? {
-    for path in paths where FileManager.default.isExecutableFile(atPath: path) {
-        return path
-    }
-    return nil
-}
-
-let curlPath = firstExecutable(["/usr/bin/curl", "/opt/homebrew/bin/curl", "/usr/local/bin/curl"])
-
 struct BeastEndpoint {
     let communication: String
     let udsPath: String
@@ -69,6 +61,9 @@ func loadBeastEndpoint() -> BeastEndpoint {
 
 let beastEndpoint = loadBeastEndpoint()
 let commandTimeout: TimeInterval = 1.0
+let fcitxQueue = DispatchQueue(label: "com.fuzhuoqun.input_method_watch.fcitx")
+var fcitxQueryInFlight = false
+var fcitxQueryPending = false
 
 func waitForProcess(_ task: Process, timeout: TimeInterval) -> Bool {
     let finished = DispatchSemaphore(value: 0)
@@ -98,30 +93,123 @@ func currentInputSourceID() -> String {
     return Unmanaged<CFString>.fromOpaque(property).takeUnretainedValue() as String
 }
 
-func currentFcitxMode() -> String {
-    guard let curlPath else { return "" }
-    let task = Process()
-    task.launchPath = curlPath
-    if beastEndpoint.communication == "TCP" {
-        task.arguments = ["-s", "-X", "POST", "http://127.0.0.1:\(beastEndpoint.tcpPort)/remote/"]
-    } else {
-        task.arguments = ["-s", "--unix-socket", beastEndpoint.udsPath, "-X", "POST", "http://fcitx/remote/"]
+func configureSocketTimeout(_ fd: Int32) {
+    var timeout = timeval(tv_sec: 0, tv_usec: 300_000)
+    withUnsafePointer(to: &timeout) { pointer in
+        _ = setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, pointer, socklen_t(MemoryLayout<timeval>.size))
+        _ = setsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, pointer, socklen_t(MemoryLayout<timeval>.size))
     }
-    let pipe = Pipe()
-    task.standardOutput = pipe
-    task.standardError = FileHandle.nullDevice
-    guard (try? task.run()) != nil else { return "" }
-    guard waitForProcess(task, timeout: commandTimeout) else { return "" }
-    guard task.terminationStatus == 0,
-          let output = String(data: pipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) else {
-        return ""
-    }
-    return output.trimmingCharacters(in: .whitespacesAndNewlines)
 }
 
-func triggerInputMethodChange(inputSourceID: String) {
+func connectUnixSocket(path: String) -> Int32? {
+    let fd = socket(AF_UNIX, SOCK_STREAM, 0)
+    guard fd >= 0 else { return nil }
+    configureSocketTimeout(fd)
+
+    var address = sockaddr_un()
+    address.sun_family = sa_family_t(AF_UNIX)
+    let maxPathLength = MemoryLayout.size(ofValue: address.sun_path)
+    guard path.utf8.count < maxPathLength else {
+        Darwin.close(fd)
+        return nil
+    }
+    withUnsafeMutablePointer(to: &address.sun_path) { pointer in
+        pointer.withMemoryRebound(to: CChar.self, capacity: maxPathLength) { pathPointer in
+            path.withCString { cString in
+                _ = strncpy(pathPointer, cString, maxPathLength - 1)
+            }
+        }
+    }
+    let result = withUnsafePointer(to: &address) { pointer in
+        pointer.withMemoryRebound(to: sockaddr.self, capacity: 1) { socketAddress in
+            Darwin.connect(fd, socketAddress, socklen_t(MemoryLayout<sockaddr_un>.size))
+        }
+    }
+    guard result == 0 else {
+        Darwin.close(fd)
+        return nil
+    }
+    return fd
+}
+
+func connectTCPSocket(port: String) -> Int32? {
+    guard let parsedPort = UInt16(port) else { return nil }
+    let fd = socket(AF_INET, SOCK_STREAM, 0)
+    guard fd >= 0 else { return nil }
+    configureSocketTimeout(fd)
+
+    var address = sockaddr_in()
+    address.sin_len = UInt8(MemoryLayout<sockaddr_in>.size)
+    address.sin_family = sa_family_t(AF_INET)
+    address.sin_port = parsedPort.bigEndian
+    guard inet_pton(AF_INET, "127.0.0.1", &address.sin_addr) == 1 else {
+        Darwin.close(fd)
+        return nil
+    }
+    let result = withUnsafePointer(to: &address) { pointer in
+        pointer.withMemoryRebound(to: sockaddr.self, capacity: 1) { socketAddress in
+            Darwin.connect(fd, socketAddress, socklen_t(MemoryLayout<sockaddr_in>.size))
+        }
+    }
+    guard result == 0 else {
+        Darwin.close(fd)
+        return nil
+    }
+    return fd
+}
+
+func writeAll(fd: Int32, data: Data) -> Bool {
+    data.withUnsafeBytes { rawBuffer in
+        guard let base = rawBuffer.baseAddress else { return false }
+        var written = 0
+        while written < data.count {
+            let result = Darwin.write(fd, base.advanced(by: written), data.count - written)
+            if result < 0 && errno == EINTR { continue }
+            if result <= 0 { return false }
+            written += result
+        }
+        return true
+    }
+}
+
+func readResponse(fd: Int32) -> Data? {
+    var result = Data()
+    var chunk = [UInt8](repeating: 0, count: 4096)
+    while result.count < 65_536 {
+        let count = chunk.withUnsafeMutableBytes { buffer in
+            Darwin.read(fd, buffer.baseAddress, buffer.count)
+        }
+        if count > 0 {
+            result.append(contentsOf: chunk[0..<count])
+        } else if count == 0 {
+            return result
+        } else if errno != EINTR {
+            return nil
+        }
+    }
+    return result
+}
+
+func currentFcitxMode() -> String {
+    let fd = beastEndpoint.communication == "TCP"
+        ? connectTCPSocket(port: beastEndpoint.tcpPort)
+        : connectUnixSocket(path: beastEndpoint.udsPath)
+    guard let fd else { return "" }
+    defer { Darwin.close(fd) }
+
+    let host = beastEndpoint.communication == "TCP" ? "127.0.0.1" : "fcitx"
+    let request = "POST /remote/ HTTP/1.1\r\nHost: \(host)\r\nConnection: close\r\nContent-Length: 0\r\n\r\n"
+    guard writeAll(fd: fd, data: Data(request.utf8)),
+          let response = readResponse(fd: fd),
+          let output = String(data: response, encoding: .utf8),
+          let bodyRange = output.range(of: "\r\n\r\n") else {
+        return ""
+    }
+    return String(output[bodyRange.upperBound...]).trimmingCharacters(in: .whitespacesAndNewlines)
+}
+
+func publishInputMethodChange(inputSourceID: String, fcitxMode: String) {
     let isFcitx = inputSourceID.hasPrefix(fcitx5SourcePrefix)
-    let fcitxMode = isFcitx ? currentFcitxMode() : ""
     let signature = "\(inputSourceID)|\(fcitxMode)"
     guard signature != lastSignature else { return }
     lastSignature = signature
@@ -144,9 +232,35 @@ func triggerInputMethodChange(inputSourceID: String) {
     }
 }
 
+func refreshFcitxMode(inputSourceID: String) {
+    fcitxQueue.async {
+        if fcitxQueryInFlight {
+            fcitxQueryPending = true
+            return
+        }
+        fcitxQueryInFlight = true
+        let mode = currentFcitxMode()
+        let rerun = fcitxQueryPending
+        fcitxQueryPending = false
+        fcitxQueryInFlight = false
+        DispatchQueue.main.async {
+            guard currentSourceID == inputSourceID,
+                  currentSourceID.hasPrefix(fcitx5SourcePrefix) else { return }
+            publishInputMethodChange(inputSourceID: inputSourceID, fcitxMode: mode)
+            if rerun {
+                refreshFcitxMode(inputSourceID: inputSourceID)
+            }
+        }
+    }
+}
+
 func refreshInputSource() {
     currentSourceID = currentInputSourceID()
-    triggerInputMethodChange(inputSourceID: currentSourceID)
+    if currentSourceID.hasPrefix(fcitx5SourcePrefix) {
+        refreshFcitxMode(inputSourceID: currentSourceID)
+    } else {
+        publishInputMethodChange(inputSourceID: currentSourceID, fcitxMode: "")
+    }
 }
 
 let center = DistributedNotificationCenter.default()
@@ -161,7 +275,7 @@ refreshInputSource()
 
 Timer.scheduledTimer(withTimeInterval: fcitxPollInterval, repeats: true) { _ in
     guard currentSourceID.hasPrefix(fcitx5SourcePrefix) else { return }
-    triggerInputMethodChange(inputSourceID: currentSourceID)
+    refreshFcitxMode(inputSourceID: currentSourceID)
 }
 
 Timer.scheduledTimer(withTimeInterval: sourceFallbackInterval, repeats: true) { _ in

@@ -1,11 +1,12 @@
 local sbar = require("sketchybar")
 local appearance = require("appearance")
-local popup_animation = require("helpers.popup_animation")
 local icons = require("icons")
 local fonts = require("fonts")
+local timing = require("helpers.timing")
 local shell_quote = require("helpers.utils").shell_quote
 local find_binary = require("helpers.find_binary").find
 local config = require("helpers.git.config")
+local popup_utils = require("helpers.popup_utils")
 
 local vlen = utf8 and utf8.len or function(s)
 	local n = 0
@@ -40,12 +41,6 @@ local git_item = sbar.add("item", item_name, {
 	popup = { align = "center", background = appearance.popup_bg(), blur_radius = 30 },
 })
 
-local git_anim = popup_animation.new(git_item, {
-	background_color = function()
-		return appearance.popup_bg().color
-	end,
-})
-
 local PF = fonts.popup
 local function pf()
 	return { family = PF.text, style = PF.style_map["Bold"], size = PF.size }
@@ -56,6 +51,9 @@ local repo_rows = {}
 for ri, repo in ipairs(config.repos or {}) do
 	local item = sbar.add("item", item_name .. ".popup.repo." .. ri, {
 		position = "popup." .. item_name,
+		-- Keep the pre-created rows drawable so the first click has popup geometry
+		-- before the asynchronous status cache arrives. Later refreshes only render
+		-- these rows while the popup is open.
 		drawing = true, width = 560,
 		padding_left = 0, padding_right = 0,
 		icon = { drawing = false },
@@ -86,6 +84,29 @@ local function status_color(status)
 	if status == "ok" then return colors.green end
 	if status == "dirty" then return colors.yellow end
 	return colors.surface1
+end
+
+local popup_visible = false
+local last_popup_state = { entries = {}, max_branch_len = 0, max_info_len = 0 }
+local last_main_signature
+
+local function render_popup(state)
+	local seen = {}
+	for _, e in ipairs(state.entries) do
+		seen[e.path] = true
+		local pad_label = e.label .. string.rep(" ", max_label_len - vlen(e.label) + 2)
+		local pad_branch = e.branch .. string.rep(" ", state.max_branch_len - vlen(e.branch) + 2)
+		local pad_info = e.info .. string.rep(" ", state.max_info_len - vlen(e.info) + 2)
+		e.row:set({
+			drawing = true,
+			label = { string = icons.git .. "  " .. pad_label .. pad_branch .. pad_info .. e.path:gsub("^" .. os.getenv("HOME"), "~"), color = e.color },
+		})
+	end
+	for path, row in pairs(repo_rows) do
+		if not seen[path] then
+			row:set({ drawing = false })
+		end
+	end
 end
 
 local function apply_status(output)
@@ -124,46 +145,78 @@ local function apply_status(output)
 		end
 	end
 
-
-	for _, e in ipairs(entries) do
-		local pad_label = e.label .. string.rep(" ", max_label_len - vlen(e.label) + 2)
-		local pad_branch = e.branch .. string.rep(" ", max_branch_len - vlen(e.branch) + 2)
-		local pad_info = e.info .. string.rep(" ", max_info_len - vlen(e.info) + 2)
-		e.row:set({ label = { string = icons.git .. "  " .. pad_label .. pad_branch .. pad_info .. e.path:gsub("^" .. os.getenv("HOME"), "~"), color = e.color } })
-	end
-
 	local bar_color = total_dirty > 0 and colors.yellow or colors.green
-	git_item:set({ label = { string = tostring(total_dirty), color = bar_color } })
+	local main_signature = tostring(total_dirty) .. "|" .. tostring(bar_color)
+	if main_signature ~= last_main_signature then
+		last_main_signature = main_signature
+		git_item:set({ label = { string = tostring(total_dirty), color = bar_color } })
+	end
+	last_popup_state = {
+		entries = entries,
+		max_branch_len = max_branch_len,
+		max_info_len = max_info_len,
+	}
+	if popup_visible then
+		render_popup(last_popup_state)
+	end
 end
 
-local inflight = false; local pending = false
+local inflight = false
+local pending = false
+local refresh_generation = 0
+local REFRESH_TIMEOUT = 8
 
 local function refresh()
 	if inflight then pending = true; return end
 	inflight = true
-	sbar.exec(shell_quote(lua_bin) .. " " .. shell_quote(status_script), function(o)
-		inflight = false; apply_status(o)
+	refresh_generation = refresh_generation + 1
+	local generation = refresh_generation
+	local settled = false
+	local function finish(output)
+		if settled or generation ~= refresh_generation then return end
+		settled = true
+		inflight = false
+		if output ~= nil then apply_status(output) end
 		if pending then pending = false; refresh() end
+	end
+	sbar.delay(REFRESH_TIMEOUT, function() finish(nil) end)
+	sbar.exec(shell_quote(lua_bin) .. " " .. shell_quote(status_script), finish)
+end
+
+local function show()
+	render_popup(last_popup_state)
+	refresh()
+	local popup_color = appearance.popup_bg().color
+	-- Git's popup refreshes several rows on click. Keep its transition local and
+	-- direct: the shared controller's nested deferred sets can miss this popup
+	-- while SketchyBar is dispatching the originating mouse event.
+	git_item:set({
+		popup = {
+			drawing = true,
+			background = { color = appearance.with_alpha(popup_color, 0) },
+		},
+	})
+	sbar.animate("linear", timing.STANDARD_DURATION_FRAMES, function()
+		git_item:set({ popup = { background = { color = popup_color } } })
+	end)
+end
+local function hide()
+	git_item:set({ popup = { drawing = false } })
+end
+local function toggle_popup()
+	popup_visible = not popup_visible
+	-- Popup rows are refreshed on open. Deferring avoids sending those item IPC
+	-- updates while SketchyBar is still dispatching the mouse event.
+	popup_utils.defer(function()
+		if popup_visible then
+			show()
+		else
+			hide()
+		end
 	end)
 end
 
-local popup_visible = false
-
-local function show()
-	refresh()
-	git_anim:show()
-end
-local function hide()
-	git_anim:hide_async()
-end
-git_item:subscribe("mouse.clicked", function()
-	popup_visible = not popup_visible
-	if popup_visible then
-		show()
-	else
-		hide()
-	end
-end)
+git_item:subscribe("mouse.clicked", toggle_popup)
 
 git_item:subscribe({ "routine", "system_woke" }, refresh)
 refresh()

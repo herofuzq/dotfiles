@@ -152,7 +152,7 @@ cal:subscribe(
 					updatePopupContent()
 					cal_popup:show()
 				else
-					cal_popup:hide_async()
+					cal_popup:hide()
 				end
 			end)
 		end

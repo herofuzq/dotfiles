@@ -16,6 +16,26 @@ local function media_exec(args_suffix, callback)
 	sbar.exec(shell_quote(MEDIA) .. " " .. args_suffix, callback)
 end
 
+-- Only the state query needs a deadline. Control commands retain their normal
+-- completion callbacks so a late `next`/`pause` cannot be discarded by a query.
+local media_query_generation = 0
+local function query_media(callback)
+	media_query_generation = media_query_generation + 1
+	local generation = media_query_generation
+	local finished = false
+	local function finish(output)
+		if finished or generation ~= media_query_generation then
+			return
+		end
+		finished = true
+		callback(output)
+	end
+	sbar.delay(2, function()
+		finish(nil)
+	end)
+	sbar.exec(shell_quote(MEDIA) .. " get 2>/dev/null", finish)
+end
+
 -- Nerd Font 媒体控制图标
 local ICON_PLAY = "\u{f04b}"
 local ICON_PAUSE = "\u{f04c}"
@@ -127,7 +147,7 @@ local function refresh(env)
 		apply_state(info, true)
 		return
 	end
-	media_exec("get 2>/dev/null", function(info)
+	query_media(function(info)
 		apply_state(info, true)
 	end)
 end
@@ -264,6 +284,6 @@ label = sbar.add("item", "widgets.media_label", {
 label:subscribe("media_update", refresh)
 
 -- 初始查询：reload 后首次显示（不恢复轮询）
-media_exec("get 2>/dev/null", function(info)
+query_media(function(info)
 	apply_state(info, false)
 end)

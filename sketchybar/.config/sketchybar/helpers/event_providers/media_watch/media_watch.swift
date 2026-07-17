@@ -109,7 +109,9 @@ func updateFromCurrentState() {
     p.standardOutput = out
     p.standardError = FileHandle.nullDevice
     guard (try? p.run()) != nil else { return }
-    p.waitUntilExit()
+    guard waitForProcess(p, timeout: commandTimeout), p.terminationStatus == 0 else {
+        return
+    }
     guard let data = try? out.fileHandleForReading.readToEnd(),
           let object = try? JSONSerialization.jsonObject(with: data),
           let state = mediaState(from: object) else {

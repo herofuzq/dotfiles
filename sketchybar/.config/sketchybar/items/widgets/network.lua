@@ -1,7 +1,6 @@
 -- ========== 网络速度显示（↓下载 / ↑上传，上下堆叠）==========
 local sbar = require("sketchybar")
 local icons = require("icons")
-local fonts = require("fonts")
 local appearance = require("appearance")
 local parsers = require("helpers.widget_parsers")
 local find_binary = require("helpers.find_binary").find
@@ -132,12 +131,17 @@ end
 local net_iface, current_network_kind, last_interface_check
 local last_up_str, last_down_str
 local consecutive_failures = 0
+local unavailable = false
 local interface_check_in_flight = false
 local interface_check_pending = false
 local interface_check_generation = 0
 
 local function set_network_icon(kind)
-	current_network_kind = kind or "offline"
+	local next_kind = kind or "offline"
+	if current_network_kind == next_kind then
+		return
+	end
+	current_network_kind = next_kind
 	down:set({
 		icon = {
 			drawing = true,
@@ -148,6 +152,10 @@ local function set_network_icon(kind)
 end
 
 local function show_unavailable()
+	if unavailable then
+		return
+	end
+	unavailable = true
 	last_up_str, last_down_str = nil, nil
 	set_network_icon("offline")
 	up:set({ label = "↑ —" })
@@ -180,6 +188,7 @@ local function sample_network()
 			end
 
 			consecutive_failures = 0
+			unavailable = false
 			local up_str = "↑" .. format_speed(up_raw)
 			local down_str = "↓" .. format_speed(down_raw)
 			-- dedup: 上下行速度和上次一样就不 set
@@ -237,6 +246,9 @@ local function update_network(force_interface_check)
 		interface_check_in_flight = false
 		net_iface = iface
 		set_network_icon(kind)
+		if iface then
+			unavailable = false
+		end
 		sample_network()
 		if interface_check_pending then
 			interface_check_pending = false
