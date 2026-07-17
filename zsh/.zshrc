@@ -7,6 +7,9 @@
 # Deduplicate path/fpath entries (prevents repeated exports from piling up).
 typeset -U path PATH fpath FPATH
 
+# Use Simplified Chinese UTF-8 locale consistently across terminal apps.
+export LANG=zh_CN.UTF-8
+
 # Start configuration added by Zim Framework install {{{
 #
 # User configuration sourced by interactive shells
