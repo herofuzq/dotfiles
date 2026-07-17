@@ -386,7 +386,8 @@ if = """test %{app-bundle-id} = com.jinghaoshe.qspace.pro || \
         test %{app-bundle-id} = com.openai.codex || \
         test %{app-bundle-id} = com.todesktop.230313mzl4w4u92 || \
         test %{app-bundle-id} = com.nousresearch.hermes || \
-        test %{app-bundle-id} = com.minimax.agent.cn"""
+        test %{app-bundle-id} = com.minimax.agent.cn || \
+        test %{app-bundle-id} = dev.warp.Warp-Stable"""
 run = ["move-node-to-workspace 5̲Term --focus-follows-window"]
 
 [[on-window-detected]]
