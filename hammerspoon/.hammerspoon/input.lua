@@ -679,7 +679,8 @@ _InputTap = hs.eventtap.new({
 
 	if etype == hs.eventtap.event.types.flagsChanged then
 		if event:getKeyCode() == RIGHT_OPTION_KEYCODE then
-			local rightOptionDown = rightOptionIsDown(event)
+			local rawDown, rawFlags = rightOptionIsDown(event)
+			local rightOptionDown = rawDown
 			if rightOptionDown == nil then
 				rightOptionDown = not _rightOptionDown
 			end
@@ -710,9 +711,6 @@ _InputTap = hs.eventtap.new({
 			hyper_pressed, hyper_used = true, true
 		elseif hyper_pressed then
 			hyper_used = true
-		end
-	elseif hyper_pressed then
-		hyper_used = true
 		end
 	if etype == hs.eventtap.event.types.keyDown then
 		-- Hyper 组合键（如 Hyper+数字 切换工作区）不重置空闲
