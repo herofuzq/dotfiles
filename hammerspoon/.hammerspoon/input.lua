@@ -564,6 +564,8 @@ local function startVoiceInput()
 		applyState(ZH)
 	end
 	_voiceInputActive = true
+	-- 显式重置右 Option 状态，避免 WeChat 接管按键后释放事件丢失导致下次检测失败
+	_rightOptionDown = false
 	pauseIdleTimerForVoice()
 	-- 语音模式：HUD 向上位移避让微信语音栏，带动画过渡
 	if _inputHud then
