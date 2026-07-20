@@ -1,30 +1,32 @@
 -- ============================================================
--- 输入法切换 - fcitx5-remote
--- 1 = 英文, 2 = 中文
+-- 输入法切换 - macOS input source
+-- 1 = 英文（ABC）, 2 = 中文（微信输入法）
 -- ============================================================
 local command = require("command")
 local notification = require("notification_hud")
+local EN = 1
+local ZH = 2
+
+local ABC_SRC = "com.apple.keylayout.ABC"
+local WECHAT_SRC = "com.tencent.inputmethod.wetype.pinyin"
+
+-- macism 直接切换 macOS 输入源；WeType 不接受 Fcitx5 旧的延迟参数。
+local MACISM_BIN = command.find({ "/opt/homebrew/bin/macism", "/usr/local/bin/macism" }, "macism")
+
+-- Fcitx5 旧后端保留，观察期内不删除，必要时可恢复。
+--[[
 local FCITX = command.find({
 	"/Library/Input Methods/Fcitx5.app/Contents/bin/fcitx5-remote",
 	"/opt/homebrew/bin/fcitx5-remote",
 	"/usr/local/bin/fcitx5-remote",
 }, "/Library/Input Methods/Fcitx5.app/Contents/bin/fcitx5-remote")
-local EN = 1
-local ZH = 2
-
--- fcitx5 的 sourceID（macism + currentSourceID 共用）
 local FCITX5_SRC = "org.fcitx.inputmethod.Fcitx5.zhHans"
-
--- fcitx5 内的输入法名（用 `fcitx5-remote -n` 查得）
--- -s <imname> 是显式切换：行为比 -c/-o 更可预测，不依赖上次激活记忆
 local IM_ZH = "rime"
 local IM_EN = "keyboard-us"
+]]
 
--- 动态查找 macism 路径（避免依赖 PATH）
-local MACISM_BIN = command.find({ "/opt/homebrew/bin/macism", "/usr/local/bin/macism" }, "macism")
-
-local function isUsingFcitx5()
-	return hs.keycodes.currentSourceID() == FCITX5_SRC
+local function isUsingWeChat()
+	return hs.keycodes.currentSourceID() == WECHAT_SRC
 end
 
 -- 内部状态只在查询或切换成功后更新，避免命令失败时误报。
@@ -257,7 +259,7 @@ local function inputHudFrame()
 end
 
 local function showInputHud(state, remaining, kpm)
-	if state ~= ZH or not isUsingFcitx5() then
+	if state ~= ZH or not isUsingWeChat() then
 		hideInputHud()
 		return
 	end
@@ -329,9 +331,9 @@ end
 
 local function updateInputHud(state)
 	local now = hs.timer.secondsSinceEpoch()
-	local fcitx5_active = isUsingFcitx5()
+	local wechat_active = isUsingWeChat()
 	local remaining = 0
-	if state == ZH and fcitx5_active and _idleDeadline then
+	if state == ZH and wechat_active and _idleDeadline then
 		remaining = math.max(0, math.ceil(_idleDeadline - now))
 		if remaining <= 0 then
 			if _idleTickTimer then
@@ -365,6 +367,59 @@ local function startTask(executable, args, callback, label)
 end
 
 local function queryState(callback, options)
+	local state = isUsingWeChat() and ZH or EN
+	if not (options and options.apply == false) then
+		applyState(state)
+	end
+	if callback then callback(state) end
+	return true
+end
+
+local function requestState(targetState, callback)
+	_desiredState = targetState
+	_desiredCallback = callback
+	if _switchInFlight then return end
+
+	local function drain()
+		local state = _desiredState
+		local stateCallback = _desiredCallback
+		_desiredState = nil
+		_desiredCallback = nil
+		if not state then return end
+
+		_switchInFlight = true
+		_stateGeneration = _stateGeneration + 1
+		local sourceID = state == ZH and WECHAT_SRC or ABC_SRC
+		-- WeChat 已不需要 macism 的 TemporaryWindow 兼容 workaround；关闭它可避免
+		-- macism 短暂成为前台应用并造成输入焦点闪动。首键由上面的缓冲逻辑保护。
+		local started = startTask(MACISM_BIN, { sourceID, "0" }, function(exitCode, _, stderr)
+			_switchInFlight = false
+			local superseded = _desiredState and _desiredState ~= state
+			if exitCode == 0 then
+				applyState(state)
+			else
+				print("[Input] 切换输入源失败: " .. tostring(stderr or exitCode))
+			end
+			if stateCallback and not superseded then stateCallback(exitCode == 0) end
+			if superseded then
+				drain()
+			else
+				_desiredState = nil
+				_desiredCallback = nil
+			end
+		end, "macOS 输入源切换")
+		if not started then
+			_switchInFlight = false
+			if stateCallback then stateCallback(false) end
+		end
+	end
+
+	drain()
+end
+
+-- Fcitx5 旧切换实现保留在上面的 source-level requestState 旁边，便于观察期回滚。
+--[[
+local function queryState(callback, options)
 	local generation = _stateGeneration
 	return startTask(FCITX, {}, function(exitCode, stdout, stderr)
 		local raw = tonumber((stdout or ""):match("^%s*([012])%s*$"))
@@ -385,53 +440,22 @@ local function queryState(callback, options)
 	end, "fcitx5 状态查询")
 end
 
-local function requestState(targetState, callback)
-	_desiredState = targetState
-	_desiredCallback = callback
-	if _switchInFlight then return end
-
-	local function drain()
-		local state = _desiredState
-		local stateCallback = _desiredCallback
-		_desiredState = nil
-		_desiredCallback = nil
-		if not state then return end
-
-		_switchInFlight = true
-		_stateGeneration = _stateGeneration + 1
-		local im = state == ZH and IM_ZH or IM_EN
-		local started = startTask(FCITX, { "-s", im }, function(exitCode, _, stderr)
-			_switchInFlight = false
-			local superseded = _desiredState and _desiredState ~= state
-			if exitCode == 0 then
-				applyState(state)
-			else
-				print("[Input] 切换失败: " .. tostring(stderr or exitCode))
-			end
-			if stateCallback and not superseded then stateCallback(exitCode == 0) end
-			if superseded then
-				drain()
-			else
-				_desiredState = nil
-				_desiredCallback = nil
-			end
-		end, "fcitx5 输入法切换")
-		if not started then
-			_switchInFlight = false
-			if stateCallback then stateCallback(false) end
-		end
-	end
-
-	drain()
+local function requestFcitxState(targetState, callback)
+	local im = targetState == ZH and IM_ZH or IM_EN
+	return startTask(FCITX, { "-s", im }, callback, "fcitx5 输入法切换")
 end
+
+-- 旧 Fcitx5 在 ABC 下切入 Fcitx5 的路径曾使用：
+-- startTask(MACISM_BIN, { FCITX5_SRC, "150" }, ...)
+]]
 
 resetIdleTimer = function()
 	stopIdleTimer()
-	if _zhState ~= ZH or not isUsingFcitx5() then return end
+	if _zhState ~= ZH or not isUsingWeChat() then return end
 	_idleDeadline = hs.timer.secondsSinceEpoch() + IDLE_TIMEOUT
 	updateInputHud(ZH)
 	_idleTickTimer = hs.timer.doEvery(IDLE_TICK_INTERVAL, function()
-		if _zhState == ZH and isUsingFcitx5() then
+		if _zhState == ZH and isUsingWeChat() then
 			updateInputHud(ZH)
 		else
 			stopIdleTimer()
@@ -456,7 +480,7 @@ local function noteInputActivity(countKpm)
 		table.insert(_keyTimestamps, now)
 		pruneKeyTimestamps(now)
 	end
-	if _zhState == ZH and isUsingFcitx5() then
+	if _zhState == ZH and isUsingWeChat() then
 		resetIdleTimer()
 	else
 		updateInputHud(_zhState or EN)
@@ -485,24 +509,7 @@ end
 local function toggle()
 	_toggled = hs.timer.secondsSinceEpoch()
 
-	-- 如果当前输入源是 ABC（非 fcitx5），先切输入源，再显式启用中文引擎。
-	if not isUsingFcitx5() then
-		armZhSwitchKeyBuffer()
-		startTask(MACISM_BIN, { FCITX5_SRC, "150" }, function(exitCode, _, stderr)
-			if exitCode ~= 0 then
-				clearZhSwitchKeyBuffer()
-				print("[Input] 切换输入源失败: " .. tostring(stderr or exitCode))
-				return
-			end
-			requestState(ZH, function(success)
-				flushZhSwitchKeyBuffer()
-			end)
-		end, "macism 输入源切换")
-		return
-	end
-
-	-- 在 Fcitx5 内部切换时优先信任缓存状态，少一次 fcitx5-remote 查询，
-	-- 降低 Hyper 后第一个按键落在旧输入状态里的概率。
+	-- 直接根据当前 macOS 输入源切换 ABC 与微信输入法。
 	if requestToggleFromState(_zhState) then
 		return
 	end
@@ -540,7 +547,7 @@ local function warnEN(id)
 	if hs.timer.secondsSinceEpoch() - _toggled < 2 then
 		return
 	end
-	if not isUsingFcitx5() then
+	if not isUsingWeChat() then
 		return
 	end
 	queryState(function(state)
@@ -575,12 +582,10 @@ end
 
 -- ============================================================
 -- CapsLock (Hyper) 单独按下 → 切换中英文
--- 不监听 shift：shift 由 fcitx5 内部处理（左 shift = -t 切激活），
--- Hammerspoon 主动 -s 切 IM，shift 的状态变化 _zhState 不感知。
+-- 微信输入法以 macOS source ID 表示中文状态。
 -- ============================================================
 local hyper_pressed = false
 local hyper_used = false
-local shift_pressed = false
 
 _InputTap = hs.eventtap.new({
 	hs.eventtap.event.types.flagsChanged,
@@ -605,12 +610,6 @@ _InputTap = hs.eventtap.new({
 				toggle()
 			end
 		end
-		local shift = f.shift == true
-		if shift_pressed and not shift and not hyper and isUsingFcitx5() then
-			-- Fcitx5 在 Shift 松开后切换内部状态，稍后读取真实值。
-			hs.timer.doAfter(0.03, queryState)
-		end
-		shift_pressed = shift
 	elseif etype == hs.eventtap.event.types.keyDown
 		or etype == hs.eventtap.event.types.keyUp then
 		-- 组合键的按键释放也可能晚于业务方的全局快捷键处理；
@@ -622,7 +621,7 @@ _InputTap = hs.eventtap.new({
 		end
 	elseif hyper_pressed then
 		hyper_used = true
-	end
+		end
 	if etype == hs.eventtap.event.types.keyDown then
 		-- Hyper 组合键（如 Hyper+数字 切换工作区）不重置空闲
 		if not hyper_pressed then
@@ -642,12 +641,21 @@ _InputTap:start()
 -- 启动时读取真实状态，避免默认缓存导致误报。
 queryState()
 
+-- 输入源变化由 macOS 分布式通知驱动，不使用常驻轮询。
+_InputSourceWatcher = hs.distributednotifications.new(
+	function()
+		queryState()
+	end,
+	"com.apple.Carbon.TISNotifySelectedKeyboardInputSourceChanged"
+)
+_InputSourceWatcher:start()
+
 -- ============================================================
 -- 暴露接口给外部模块使用（如 wps.lua）
 -- ============================================================
 return {
 	isChineseAsync = function(callback)
-		if not isUsingFcitx5() then
+		if not isUsingWeChat() then
 			applyState(EN)
 			callback(false)
 			return
