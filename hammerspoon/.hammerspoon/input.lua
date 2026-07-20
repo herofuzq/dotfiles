@@ -8,6 +8,8 @@ local ZH = 2
 
 local ABC_SRC = "com.apple.keylayout.ABC"
 local WECHAT_SRC = "com.tencent.inputmethod.wetype.pinyin"
+local RIGHT_OPTION_KEYCODE = hs.keycodes.map.rightalt or 61
+local RIGHT_OPTION_RAW_FLAG = hs.eventtap.event.rawFlagMasks.deviceRightAlternate
 
 -- Fcitx5 旧后端保留，观察期内不删除，必要时可恢复。
 --[[
@@ -39,6 +41,9 @@ local _zhSwitchKeyBufferUntil = 0
 local _zhBufferedKey = nil
 local _replayingBufferedKey = false
 local _zhBufferedTarget = nil
+local _voiceInputActive = false
+local _rightOptionDown = false
+local _rightOptionRawObserved = false
 
 -- ============================================================
 -- 空闲自动切换回英文
@@ -74,8 +79,9 @@ local _idleTickTimer = nil
 local _keyTimestamps = {}
 local _inputHud = nil
 local SOURCE_VERIFY_DELAY = 0.10
+local _sourceVerifyTimer = nil
 
-local function stopIdleTimer(fadeHud)
+local function stopIdleTimer(fadeHud, keepHud)
 	if _idleTimer then
 		_idleTimer:stop()
 		_idleTimer = nil
@@ -85,8 +91,22 @@ local function stopIdleTimer(fadeHud)
 		_idleTickTimer = nil
 	end
 	_idleDeadline = nil
-	if hideInputHud then
+	if hideInputHud and not keepHud then
 		hideInputHud(fadeHud)
+	end
+end
+
+local function pauseIdleTimerForVoice()
+	if _idleTimer then
+		_idleTimer:stop()
+		_idleTimer = nil
+	end
+	if _idleTickTimer then
+		_idleTickTimer:stop()
+		_idleTickTimer = nil
+	end
+	if not _idleDeadline then
+		_idleDeadline = hs.timer.secondsSinceEpoch() + IDLE_TIMEOUT
 	end
 end
 
@@ -274,7 +294,7 @@ local function showInputHud(state, remaining, kpm)
 		},
 		{
 			type = "text",
-			text = "中→英",
+			text = _voiceInputActive and "语音" or "中→英",
 			textFont = "SF Pro Text",
 			textSize = 13,
 			textColor = HUD_TEXT,
@@ -321,7 +341,7 @@ local function showInputHud(state, remaining, kpm)
 	-- Reuse the canvas while the countdown ticks. Rebuilding an Accessibility
 	-- window every second was enough to stall Hammerspoon's main run loop.
 	_inputHud:frame(inputHudFrame())
-	_inputHud:elementAttribute(2, "text", "中→英")
+	_inputHud:elementAttribute(2, "text", _voiceInputActive and "语音" or "中→英")
 	_inputHud:elementAttribute(3, "text", string.format("%d kpm", kpm))
 	for i = 1, HUD_BAR_SLOTS do
 		_inputHud:elementAttribute(i + 3, "fillColor", i <= filledSlots and progressSlotColor(i) or HUD_PROGRESS_EMPTY)
@@ -348,10 +368,15 @@ local function updateInputHud(state)
 end
 
 local function applyState(state)
+	local previousState = _zhState
 	_zhState = state
 	if state == ZH then
-		resetIdleTimer()
+		if previousState ~= ZH or not _idleDeadline then
+			resetIdleTimer()
+		end
 	else
+		_voiceInputActive = false
+		_rightOptionDown = false
 		stopIdleTimer(true)
 	end
 end
@@ -381,6 +406,7 @@ local function requestState(targetState, callback)
 		_stateGeneration = _stateGeneration + 1
 		local sourceID = state == ZH and WECHAT_SRC or ABC_SRC
 		local function finish(success, message)
+			_sourceVerifyTimer = nil
 			_switchInFlight = false
 			local superseded = _desiredState and _desiredState ~= state
 			if success then
@@ -402,7 +428,7 @@ local function requestState(targetState, callback)
 			finish(false, "原生输入源设置返回失败")
 			return
 		end
-		hs.timer.doAfter(SOURCE_VERIFY_DELAY, function()
+		_sourceVerifyTimer = hs.timer.doAfter(SOURCE_VERIFY_DELAY, function()
 			if hs.keycodes.currentSourceID() == sourceID then
 				finish(true)
 				return
@@ -414,7 +440,7 @@ local function requestState(targetState, callback)
 				finish(false, "原生输入源重试返回失败")
 				return
 			end
-			hs.timer.doAfter(SOURCE_VERIFY_DELAY, function()
+			_sourceVerifyTimer = hs.timer.doAfter(SOURCE_VERIFY_DELAY, function()
 				finish(hs.keycodes.currentSourceID() == sourceID, "原生输入源复核失败")
 			end)
 		end)
@@ -455,8 +481,9 @@ end
 -- startTask(MACISM_BIN, { FCITX5_SRC, "150" }, ...)
 ]]
 
-resetIdleTimer = function()
-	stopIdleTimer()
+resetIdleTimer = function(keepHud)
+	if _voiceInputActive then return end
+	stopIdleTimer(nil, keepHud)
 	if _zhState ~= ZH or not isUsingWeChat() then return end
 	_idleDeadline = hs.timer.secondsSinceEpoch() + IDLE_TIMEOUT
 	updateInputHud(ZH)
@@ -524,6 +551,34 @@ local function toggle()
 		if not state then return end
 		requestToggleFromState(state)
 	end)
+end
+
+local function startVoiceInput()
+	if _voiceInputActive or not isUsingWeChat() then return end
+	if _zhState ~= ZH then
+		applyState(ZH)
+	end
+	_voiceInputActive = true
+	pauseIdleTimerForVoice()
+	updateInputHud(ZH)
+end
+
+local function finishVoiceInput()
+	if not _voiceInputActive then return false end
+	_voiceInputActive = false
+	resetIdleTimer(true)
+	return true
+end
+
+local function rightOptionIsDown(event)
+	if not RIGHT_OPTION_RAW_FLAG then return nil, nil end
+	local rawFlags = event:rawFlags()
+	local rawDown = rawFlags and (rawFlags & RIGHT_OPTION_RAW_FLAG) ~= 0
+	if rawDown then
+		_rightOptionRawObserved = true
+	end
+	if not _rightOptionRawObserved then return nil, rawFlags end
+	return rawDown, rawFlags
 end
 
 -- ============================================================
@@ -605,7 +660,25 @@ _InputTap = hs.eventtap.new({
 	local f = event:getFlags()
 	local hyper = f.ctrl and f.alt and f.cmd
 
+	if etype == hs.eventtap.event.types.keyDown and finishVoiceInput() then
+		return false
+	end
+
 	if etype == hs.eventtap.event.types.flagsChanged then
+		if event:getKeyCode() == RIGHT_OPTION_KEYCODE then
+			local rightOptionDown = rightOptionIsDown(event)
+			if rightOptionDown == nil then
+				rightOptionDown = not _rightOptionDown
+			end
+			if rightOptionDown and not _rightOptionDown then
+				if _voiceInputActive then
+					finishVoiceInput()
+				else
+					startVoiceInput()
+				end
+			end
+			_rightOptionDown = rightOptionDown
+		end
 		if hyper and not hyper_pressed then
 			hyper_pressed, hyper_used = true, false
 		elseif hyper and hyper_pressed then

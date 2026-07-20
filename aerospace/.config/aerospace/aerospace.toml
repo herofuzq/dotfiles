@@ -15,10 +15,10 @@ after-startup-command = [
   'exec-and-forget borders active_color=0xfffab387 inactive_color=0x00000000 width=5.0 hidpi=on order=above',
   # Per-workspace root layout defaults (AeroSpace v0.21+).
   'layout --workspace 1̲Main --root accordion',
-  'layout --workspace 2̲Sec --root accordion',
+  'layout --workspace 2̲Term --root accordion',
   'layout --workspace 3̲Chat --root tiles',
   'layout --workspace 4̲Work --root accordion',
-  'layout --workspace 5̲Term --root tiles',
+  'layout --workspace 5̲AI --root tiles',
   'layout --workspace 6̲Play --root accordion',
   'exec-and-forget /bin/bash -c "sleep 0.3 && sketchybar --trigger space_windows_change"',
 ] 
@@ -73,7 +73,7 @@ automatically-unhide-macos-hidden-apps = true
 # even when they are invisible.
 # This config version is only available since 'config-version = 2'
 # Fallback value (if you omit the key): persistent-workspaces = []
-persistent-workspaces = ["1̲Main", "2̲Sec", "3̲Chat", "4̲Work", "5̲Term", "6̲Play"]
+persistent-workspaces = ["1̲Main", "2̲Term", "3̲Chat", "4̲Work", "5̲AI", "6̲Play"]
 
 # A callback that runs every time binding mode changes
 # See: https://nikitabobko.github.io/AeroSpace/guide#binding-modes
@@ -178,10 +178,10 @@ outer.right = 7
 
     # See: https://nikitabobko.github.io/AeroSpace/commands#workspace
     cmd-alt-ctrl-1 = 'workspace 1̲Main'
-    cmd-alt-ctrl-2 = 'workspace 2̲Sec'
+    cmd-alt-ctrl-2 = 'workspace 2̲Term'
     cmd-alt-ctrl-3 = 'workspace 3̲Chat'
     cmd-alt-ctrl-4 = 'workspace 4̲Work'
-    cmd-alt-ctrl-5 = 'workspace 5̲Term'
+    cmd-alt-ctrl-5 = 'workspace 5̲AI'
     cmd-alt-ctrl-6 = 'workspace 6̲Play'
 
     # See: https://nikitabobko.github.io/AeroSpace/commands#move-node-to-workspace
@@ -189,10 +189,10 @@ outer.right = 7
     # aerospace_watch 负责 workspace/focus/window-created 事件,
     # 但手动移动窗口不一定产生可覆盖的窗口列表变化事件。
     cmd-alt-ctrl-shift-1 = ['move-node-to-workspace 1̲Main --focus-follows-window', 'exec-and-forget sketchybar --trigger space_windows_change']
-    cmd-alt-ctrl-shift-2 = ['move-node-to-workspace 2̲Sec --focus-follows-window', 'exec-and-forget sketchybar --trigger space_windows_change']
+    cmd-alt-ctrl-shift-2 = ['move-node-to-workspace 2̲Term --focus-follows-window', 'exec-and-forget sketchybar --trigger space_windows_change']
     cmd-alt-ctrl-shift-3 = ['move-node-to-workspace 3̲Chat --focus-follows-window', 'exec-and-forget sketchybar --trigger space_windows_change']
     cmd-alt-ctrl-shift-4 = ['move-node-to-workspace 4̲Work --focus-follows-window', 'exec-and-forget sketchybar --trigger space_windows_change']
-    cmd-alt-ctrl-shift-5 = ['move-node-to-workspace 5̲Term --focus-follows-window', 'exec-and-forget sketchybar --trigger space_windows_change']
+    cmd-alt-ctrl-shift-5 = ['move-node-to-workspace 5̲AI --focus-follows-window', 'exec-and-forget sketchybar --trigger space_windows_change']
     cmd-alt-ctrl-shift-6 = ['move-node-to-workspace 6̲Play --focus-follows-window', 'exec-and-forget sketchybar --trigger space_windows_change'] 
 
     # See: https://nikitabobko.github.io/AeroSpace/commands#workspace-back-and-forth
@@ -219,10 +219,10 @@ outer.right = 7
     # Reapply per-workspace root layout defaults without switching workspaces.
     p = [
         'layout --workspace 1̲Main --root accordion',
-        'layout --workspace 2̲Sec --root accordion',
+        'layout --workspace 2̲Term --root accordion',
         'layout --workspace 3̲Chat --root tiles',
         'layout --workspace 4̲Work --root accordion',
-        'layout --workspace 5̲Term --root tiles',
+        'layout --workspace 5̲AI --root tiles',
         'layout --workspace 6̲Play --root accordion',
         'mode main',
     ]
@@ -257,7 +257,7 @@ run = 'layout floating'
 [[on-window-detected]] # Status 是屏幕外后台窗；先放到工作区 2，随后由 aerospace_watch 跟随焦点
 if = """test %{app-bundle-id} = now.typeless.desktop && \
         test %{window-title} = Status"""
-run = ["layout floating", "move-node-to-workspace 2̲Sec"]
+run = ["layout floating", "move-node-to-workspace 2̲Term"]
 
 [[on-window-detected]]
 if = """test %{app-bundle-id} ~= '^com[.]apple[.]' || \
@@ -297,7 +297,7 @@ run = 'layout floating'
 
 [[on-window-detected]]
 if = 'test %{app-bundle-id} = com.enlink.EnUES'
-run = ["layout floating", "move-node-to-workspace 2̲Sec --focus-follows-window"]
+run = ["layout floating", "move-node-to-workspace 2̲Term --focus-follows-window"]
 
 [[on-window-detected]]
 if = """test %{app-bundle-id} = cn.unisk.wohuiyi || \
@@ -344,7 +344,6 @@ if = """test %{app-bundle-id} = com.kingsoft.wpsoffice.mac || \
         test %{app-bundle-id} = com.tableausoftware.tableaudesktop || \
         test %{app-bundle-id} = md.obsidian || \
         test %{app-bundle-id} = abnerworks.Typora || \
-        test %{app-bundle-id} = com.tencent.qclaw || \
         test %{app-bundle-id} = com.emclient.mail.client || \
         test %{app-bundle-id} = com.workreview.app"""
 run = ["move-node-to-workspace 4̲Work --focus-follows-window"]
@@ -353,7 +352,7 @@ run = ["move-node-to-workspace 4̲Work --focus-follows-window"]
 if = """test %{app-bundle-id} = com.parallels.desktop.console || \
         test %{app-bundle-id} = com.xiaomi.hyperConnect || \
         test %{app-bundle-id} = com.alienator88.Pearcleaner"""
-run = ["move-node-to-workspace 2̲Sec --focus-follows-window"]
+run = ["move-node-to-workspace 2̲Term --focus-follows-window"]
 
 [[on-window-detected]] # 微信主窗口兜底；浮窗规则在前面优先处理
 if = """test %{app-bundle-id} = com.tencent.xinWeChat || \
@@ -375,20 +374,24 @@ run = "move-node-to-workspace 6̲Play --focus-follows-window"
 
 [[on-window-detected]]
 if = """test %{app-bundle-id} = com.jinghaoshe.qspace.pro || \
-        test %{app-bundle-id} = com.electron.ollama || \
-        test %{app-bundle-id} = ai.elementlabs.lmstudio || \
         test %{app-bundle-id} = com.electron.dockerdesktop || \
         test %{app-bundle-id} = com.googlecode.iterm2 || \
         test %{app-bundle-id} = com.mitchellh.ghostty || \
         test %{app-bundle-id} = com.cmuxterm.app || \
         test %{app-bundle-id} = net.kovidgoyal.kitty || \
+        test %{app-bundle-id} = dev.warp.Warp-Stable"""
+run = ["move-node-to-workspace 2̲Term --focus-follows-window"]
+
+[[on-window-detected]]
+if = """test %{app-bundle-id} = com.electron.ollama || \
+        test %{app-bundle-id} = ai.elementlabs.lmstudio || \
         test %{app-bundle-id} = com.ccswitch.desktop || \
         test %{app-bundle-id} = com.openai.codex || \
         test %{app-bundle-id} = com.todesktop.230313mzl4w4u92 || \
         test %{app-bundle-id} = com.nousresearch.hermes || \
         test %{app-bundle-id} = com.minimax.agent.cn || \
-        test %{app-bundle-id} = dev.warp.Warp-Stable"""
-run = ["move-node-to-workspace 5̲Term --focus-follows-window"]
+        test %{app-bundle-id} = com.tencent.qclaw"""
+run = ["move-node-to-workspace 5̲AI --focus-follows-window"]
 
 [[on-window-detected]]
 if = 'test %{app-bundle-id} = net.battle.app'

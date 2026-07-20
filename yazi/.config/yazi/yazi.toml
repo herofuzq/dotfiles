@@ -58,7 +58,7 @@ image = [
 ]
 open_terminal = [
 	# %d1 = dirname of first selected file (= CWD when browsing a directory listing)
-	{ run = "kitty --directory %d1", desc = "Terminal", for = "unix", orphan = true },
+	{ run = 'open -a Warp "%d1"', desc = "Terminal", for = "unix", orphan = true },
 ]
 extract = [{ run = "ya pub extract --list %s", desc = "Extract here" }]
 extract_rar = [{ run = 'unar -output-directory %d %s', desc = "Extract RAR with unar", for = "unix" }]

@@ -34,10 +34,10 @@ local shell_quote = require("helpers.utils").shell_quote
 -- 注：键名含 U+0332 组合下划线，对应 aerospace 工作区名称，请勿修改
 local always_show = {
 	["1̲Main"] = true,
-	["2̲Sec"] = true,
+	["2̲Term"] = true,
 	["3̲Chat"] = true,
 	["4̲Work"] = true,
-	["5̲Term"] = true,
+	["5̲AI"] = true,
 	["6̲Play"] = true,
 }
 -- aerospace 查询命令模板

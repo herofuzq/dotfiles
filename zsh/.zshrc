@@ -289,3 +289,8 @@ alias pst='proxy_all_status'
 
 # Kiro CLI post block. Keep at the bottom of this file.
 [[ -z "${ZELLIJ:-}" && -f "${HOME}/Library/Application Support/kiro-cli/shell/zshrc.post.zsh" ]] && builtin source "${HOME}/Library/Application Support/kiro-cli/shell/zshrc.post.zsh"
+
+# kimi-code
+export PATH="/Users/fuzhuoqun/.kimi-code/bin:$PATH"
+export PATH="$HOME/.local/bin:$PATH"
+export PATH="$HOME/.local/bin:$PATH"
