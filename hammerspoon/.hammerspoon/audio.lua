@@ -37,7 +37,8 @@ end
 
 -- ---- 内部状态 ----
 local _screenSignature = screenSignature()
-local _pendingTimer = nil
+-- hs.reload() 安全：暴露为全局变量，让 init.lua 在 reload 时停止旧定时器。
+_pendingTimer = nil
 
 -- ---- 查找设备 ----
 local function findDevice(transports)

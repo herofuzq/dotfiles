@@ -314,12 +314,14 @@ local function hide()
 	services_anim:hide()
 end
 services_item:subscribe("mouse.clicked", function()
-	popup_visible = not popup_visible
-	if popup_visible then
-		show()
-	else
-		hide()
-	end
+	popup_utils.defer(function()
+		popup_visible = not popup_visible
+		if popup_visible then
+			show()
+		else
+			hide()
+		end
+	end)
 end)
 
 services_item:subscribe({ "services_change", "system_woke" }, refresh)

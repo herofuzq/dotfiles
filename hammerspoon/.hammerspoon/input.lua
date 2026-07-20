@@ -7,6 +7,7 @@ local EN = 1
 local ZH = 2
 
 local ABC_SRC = "com.apple.keylayout.ABC"
+-- WeChat source ID 用于切换输入源（精确值）；isUsingWeChat 用前缀匹配覆盖变种
 local WECHAT_SRC = "com.tencent.inputmethod.wetype.pinyin"
 local RIGHT_OPTION_KEYCODE = hs.keycodes.map.rightalt or 61
 local RIGHT_OPTION_RAW_FLAG = hs.eventtap.event.rawFlagMasks.deviceRightAlternate
@@ -26,7 +27,8 @@ local IM_EN = "keyboard-us"
 ]]
 
 local function isUsingWeChat()
-	return hs.keycodes.currentSourceID() == WECHAT_SRC
+	local id = hs.keycodes.currentSourceID()
+	return id and id:match("^com%.tencent%.inputmethod%.wetype%.") ~= nil
 end
 
 -- 内部状态只在查询或切换成功后更新，避免命令失败时误报。
@@ -531,7 +533,7 @@ local function requestToggleFromState(state)
 		clearZhSwitchKeyBuffer()
 	end
 	requestState(target, function(success)
-		if target == ZH then
+		if target == ZH and success then
 			flushZhSwitchKeyBuffer()
 		end
 		-- HUD 已显示输入状态，切换提醒不再额外弹窗。

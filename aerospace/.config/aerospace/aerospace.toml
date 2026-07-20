@@ -325,7 +325,7 @@ if = """test %{app-bundle-id} = com.mac.utility.media.hub && \
         test %{window-title} ~= '视频播放器' && \
         test-not %{window-title} ~= '媒体库'"""
 run = ["layout floating",
-       "move-node-to-workspace 6̲Play",
+       "move-node-to-workspace 6̲Play"
       ]
 
 #根据程序自动设定工作区
@@ -396,7 +396,7 @@ run = ["move-node-to-workspace 5̲AI --focus-follows-window"]
 [[on-window-detected]]
 if = 'test %{app-bundle-id} = net.battle.app'
 run = ["layout floating",
-       "move-node-to-workspace 6̲Play",
+       "move-node-to-workspace 6̲Play"
       ]
 
 # 审计兜底：前面的规则都未命中时，先悬浮窗口，便于从窗口形态和 list-windows 发现遗漏。

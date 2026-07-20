@@ -12,15 +12,17 @@ local notification = require("notification_hud")
 
 -- ---- 内部状态 ----
 local _switched = false
-local _wpsTap = nil
-local _recoverTimer = nil   -- trailing-edge 防抖：连续 keyDown 时只最后一次触发恢复
+-- hs.reload() 安全：_wpsTap / _recoverTimer 需要暴露为全局变量，
+-- 让 init.lua 在 reload 时停止旧实例（模块级 local reload 后无法访问旧作用域）。
+_WpsTap = nil
+_WpsRecoverTimer = nil
 local _sessionGeneration = 0
 
 -- ---- eventtap 管理 ----
 
 local function createWPSTap()
-	if _wpsTap then return end
-	_wpsTap = hs.eventtap.new(
+	if _WpsTap then return end
+	_WpsTap = hs.eventtap.new(
 		{
 			hs.eventtap.event.types.rightMouseDown,
 			hs.eventtap.event.types.leftMouseDown,
@@ -47,16 +49,16 @@ local function createWPSTap()
 				end)
 			elseif _switched then
 				if etype == hs.eventtap.event.types.leftMouseDown then
-					if _recoverTimer then _recoverTimer:stop(); _recoverTimer = nil end
+					if _WpsRecoverTimer then _WpsRecoverTimer:stop(); _WpsRecoverTimer = nil end
 					input.switchToChineseAsync(function(success)
 						if success then notification.show("中文输入", "success", 0.5) end
 					end)
 					_switched = false
 				elseif etype == hs.eventtap.event.types.keyDown then
 					-- trailing-edge 防抖：每次 key 都重置定时器，0.3s 无输入才恢复中文
-					if _recoverTimer then _recoverTimer:stop() end
-					_recoverTimer = hs.timer.doAfter(0.3, function()
-						_recoverTimer = nil
+					if _WpsRecoverTimer then _WpsRecoverTimer:stop() end
+					_WpsRecoverTimer = hs.timer.doAfter(0.3, function()
+						_WpsRecoverTimer = nil
 						if _switched then
 							input.switchToChineseAsync(function(success)
 								if success then notification.show("中文输入", "success", 0.5) end
@@ -69,19 +71,19 @@ local function createWPSTap()
 			return false
 		end
 	)
-	_wpsTap:start()
+	_WpsTap:start()
 end
 
 local function destroyWPSTap()
 	_sessionGeneration = _sessionGeneration + 1
-	if _recoverTimer then _recoverTimer:stop(); _recoverTimer = nil end
+	if _WpsRecoverTimer then _WpsRecoverTimer:stop(); _WpsRecoverTimer = nil end
 	if _switched then
 		input.switchToChineseAsync()
 		_switched = false
 	end
-	if _wpsTap then
-		_wpsTap:stop()
-		_wpsTap = nil
+	if _WpsTap then
+		_WpsTap:stop()
+		_WpsTap = nil
 	end
 end
 

@@ -26,6 +26,10 @@ local function scheduleCapsLockClear(reason)
 	end)
 end
 
+-- hs.reload() 安全：先停止旧 tap 再创建新的
+if _CapsGuardTap then
+	_CapsGuardTap:stop()
+end
 _CapsGuardTap = hs.eventtap.new({
 	hs.eventtap.event.types.flagsChanged,
 	hs.eventtap.event.types.keyDown,
