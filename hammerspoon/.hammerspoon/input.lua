@@ -2,7 +2,6 @@
 -- 输入法切换 - macOS input source
 -- 1 = 英文（ABC）, 2 = 中文（微信输入法）
 -- ============================================================
-local command = require("command")
 local notification = require("notification_hud")
 local EN = 1
 local ZH = 2
@@ -10,16 +9,15 @@ local ZH = 2
 local ABC_SRC = "com.apple.keylayout.ABC"
 local WECHAT_SRC = "com.tencent.inputmethod.wetype.pinyin"
 
--- macism 直接切换 macOS 输入源；WeType 不接受 Fcitx5 旧的延迟参数。
-local MACISM_BIN = command.find({ "/opt/homebrew/bin/macism", "/usr/local/bin/macism" }, "macism")
-
 -- Fcitx5 旧后端保留，观察期内不删除，必要时可恢复。
 --[[
+local command = require("command")
 local FCITX = command.find({
 	"/Library/Input Methods/Fcitx5.app/Contents/bin/fcitx5-remote",
 	"/opt/homebrew/bin/fcitx5-remote",
 	"/usr/local/bin/fcitx5-remote",
 }, "/Library/Input Methods/Fcitx5.app/Contents/bin/fcitx5-remote")
+local MACISM_BIN = command.find({ "/opt/homebrew/bin/macism", "/usr/local/bin/macism" }, "macism")
 local FCITX5_SRC = "org.fcitx.inputmethod.Fcitx5.zhHans"
 local IM_ZH = "rime"
 local IM_EN = "keyboard-us"
@@ -75,6 +73,7 @@ local _idleDeadline = nil
 local _idleTickTimer = nil
 local _keyTimestamps = {}
 local _inputHud = nil
+local SOURCE_VERIFY_DELAY = 0.10
 
 local function stopIdleTimer(fadeHud)
 	if _idleTimer then
@@ -357,15 +356,6 @@ local function applyState(state)
 	end
 end
 
-local function startTask(executable, args, callback, label)
-	local started, err = command.start(executable, args, callback)
-	if not started then
-		print("[Input] 无法启动任务 " .. (label or executable) .. ": " .. tostring(err))
-		return false
-	end
-	return true
-end
-
 local function queryState(callback, options)
 	local state = isUsingWeChat() and ZH or EN
 	if not (options and options.apply == false) then
@@ -390,28 +380,44 @@ local function requestState(targetState, callback)
 		_switchInFlight = true
 		_stateGeneration = _stateGeneration + 1
 		local sourceID = state == ZH and WECHAT_SRC or ABC_SRC
-		-- WeChat 已不需要 macism 的 TemporaryWindow 兼容 workaround；关闭它可避免
-		-- macism 短暂成为前台应用并造成输入焦点闪动。首键由上面的缓冲逻辑保护。
-		local started = startTask(MACISM_BIN, { sourceID, "0" }, function(exitCode, _, stderr)
+		local function finish(success, message)
 			_switchInFlight = false
 			local superseded = _desiredState and _desiredState ~= state
-			if exitCode == 0 then
+			if success then
 				applyState(state)
 			else
-				print("[Input] 切换输入源失败: " .. tostring(stderr or exitCode))
+				print("[Input] 切换输入源失败: " .. tostring(message or sourceID))
 			end
-			if stateCallback and not superseded then stateCallback(exitCode == 0) end
+			if stateCallback and not superseded then stateCallback(success) end
 			if superseded then
 				drain()
 			else
 				_desiredState = nil
 				_desiredCallback = nil
 			end
-		end, "macOS 输入源切换")
-		if not started then
-			_switchInFlight = false
-			if stateCallback then stateCallback(false) end
 		end
+
+		local changed = hs.keycodes.currentSourceID(sourceID)
+		if not changed then
+			finish(false, "原生输入源设置返回失败")
+			return
+		end
+		hs.timer.doAfter(SOURCE_VERIFY_DELAY, function()
+			if hs.keycodes.currentSourceID() == sourceID then
+				finish(true)
+				return
+			end
+
+			-- 某些 App 需要第二次原生设置才能完成 source 接管；仍不启动外部进程。
+			local retried = hs.keycodes.currentSourceID(sourceID)
+			if not retried then
+				finish(false, "原生输入源重试返回失败")
+				return
+			end
+			hs.timer.doAfter(SOURCE_VERIFY_DELAY, function()
+				finish(hs.keycodes.currentSourceID() == sourceID, "原生输入源复核失败")
+			end)
+		end)
 	end
 
 	drain()
