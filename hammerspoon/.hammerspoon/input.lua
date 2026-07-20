@@ -44,8 +44,10 @@ local _zhBufferedKey = nil
 local _replayingBufferedKey = false
 local _zhBufferedTarget = nil
 local _voiceInputActive = false
+local _voiceActionTimer = nil
 local _rightOptionDown = false
 local _rightOptionRawObserved = false
+local _rightOptionLastEventAt = nil
 
 -- ============================================================
 -- 空闲自动切换回英文
@@ -59,7 +61,10 @@ local HUD_BAR_SLOTS = 10
 local HUD_WIDTH = 212
 local HUD_HEIGHT = 26
 local HUD_BOTTOM_OFFSET = 30
-local HUD_VOICE_OFFSET = 68  -- 语音模式下向上位移，避让微信语音栏
+local HUD_VOICE_OFFSET = 40  -- 语音模式下向上位移，避让微信语音栏
+local HUD_MOVE_DURATION = 0.20
+local HUD_MOVE_INTERVAL = 1 / 60
+local RIGHT_OPTION_FALLBACK_GAP = 0.45
 local HUD_CORNER_RADIUS = 10
 local HUD_FADE_OUT_DURATION = 0.16
 local MOCHA_BASE = { red = 30 / 255, green = 30 / 255, blue = 46 / 255 }
@@ -81,6 +86,7 @@ local _idleDeadline = nil
 local _idleTickTimer = nil
 local _keyTimestamps = {}
 local _inputHud = nil
+local _hudMoveTimer = nil
 local SOURCE_VERIFY_DELAY = 0.10
 local _sourceVerifyTimer = nil
 
@@ -110,6 +116,18 @@ local function pauseIdleTimerForVoice()
 	end
 	if not _idleDeadline then
 		_idleDeadline = hs.timer.secondsSinceEpoch() + IDLE_TIMEOUT
+	end
+end
+
+local function copyHudFrame(frame)
+	if not frame then return nil end
+	return { x = frame.x, y = frame.y, w = frame.w, h = frame.h }
+end
+
+local function stopHudMoveAnimation()
+	if _hudMoveTimer then
+		_hudMoveTimer:stop()
+		_hudMoveTimer = nil
 	end
 end
 
@@ -255,6 +273,7 @@ local function flushZhSwitchKeyBuffer()
 end
 
 hideInputHud = function(fade)
+	stopHudMoveAnimation()
 	if _inputHud then
 		local hud = _inputHud
 		_inputHud = nil
@@ -267,6 +286,31 @@ hideInputHud = function(fade)
 		end
 		hud:delete()
 	end
+end
+
+local function animateInputHud(fromFrame, toFrame)
+	if not _inputHud or not fromFrame or not toFrame then return end
+	stopHudMoveAnimation()
+	local startedAt = hs.timer.secondsSinceEpoch()
+	_inputHud:frame(fromFrame)
+	_hudMoveTimer = hs.timer.doEvery(HUD_MOVE_INTERVAL, function()
+		if not _inputHud then
+			stopHudMoveAnimation()
+			return
+		end
+		local progress = math.min(1, (hs.timer.secondsSinceEpoch() - startedAt) / HUD_MOVE_DURATION)
+		local eased = 1 - (1 - progress) ^ 3
+		_inputHud:frame({
+			x = fromFrame.x + (toFrame.x - fromFrame.x) * eased,
+			y = fromFrame.y + (toFrame.y - fromFrame.y) * eased,
+			w = fromFrame.w + (toFrame.w - fromFrame.w) * eased,
+			h = fromFrame.h + (toFrame.h - fromFrame.h) * eased,
+		})
+		if progress >= 1 then
+			_inputHud:frame(toFrame)
+			stopHudMoveAnimation()
+		end
+	end)
 end
 
 local function inputHudFrame()
@@ -381,7 +425,12 @@ local function applyState(state)
 		end
 	else
 		_voiceInputActive = false
+		if _voiceActionTimer then
+			_voiceActionTimer:stop()
+			_voiceActionTimer = nil
+		end
 		_rightOptionDown = false
+		_rightOptionLastEventAt = nil
 		stopIdleTimer(true)
 	end
 end
@@ -560,29 +609,39 @@ end
 
 local function startVoiceInput()
 	if _voiceInputActive or not isUsingWeChat() then return end
+	local fromFrame = _inputHud and copyHudFrame(_inputHud:frame()) or nil
 	if _zhState ~= ZH then
 		applyState(ZH)
 	end
 	_voiceInputActive = true
-	-- 显式重置右 Option 状态，避免 WeChat 接管按键后释放事件丢失导致下次检测失败
-	_rightOptionDown = false
 	pauseIdleTimerForVoice()
-	-- 语音模式：HUD 向上位移避让微信语音栏，带动画过渡
-	if _inputHud then
-		_inputHud:frame(inputHudFrame())
-	end
 	updateInputHud(ZH)
+	-- 语音模式：HUD 向上位移避让微信语音栏，带动画过渡。
+	animateInputHud(fromFrame, inputHudFrame())
 end
 
 local function finishVoiceInput()
 	if not _voiceInputActive then return false end
+	local fromFrame = _inputHud and copyHudFrame(_inputHud:frame()) or nil
 	_voiceInputActive = false
 	resetIdleTimer(true)
-	-- 语音结束：HUD 恢复原位
-	if _inputHud then
-		_inputHud:frame(inputHudFrame())
-	end
+	-- 语音结束：HUD 平滑恢复原位。
+	animateInputHud(fromFrame, inputHudFrame())
 	return true
+end
+
+local function scheduleVoiceInputAction(shouldFinish)
+	if _voiceActionTimer then
+		_voiceActionTimer:stop()
+	end
+	_voiceActionTimer = hs.timer.doAfter(0, function()
+		_voiceActionTimer = nil
+		if shouldFinish then
+			finishVoiceInput()
+		else
+			startVoiceInput()
+		end
+	end)
 end
 
 local function rightOptionIsDown(event)
@@ -675,25 +734,31 @@ _InputTap = hs.eventtap.new({
 	local f = event:getFlags()
 	local hyper = f.ctrl and f.alt and f.cmd
 
-	if etype == hs.eventtap.event.types.keyDown and finishVoiceInput() then
+	if etype == hs.eventtap.event.types.keyDown and _voiceInputActive then
+		scheduleVoiceInputAction(true)
 		return false
 	end
 
 	if etype == hs.eventtap.event.types.flagsChanged then
 		if event:getKeyCode() == RIGHT_OPTION_KEYCODE then
-			local rawDown, rawFlags = rightOptionIsDown(event)
-			local rightOptionDown = rawDown
-			if rightOptionDown == nil then
-				rightOptionDown = not _rightOptionDown
+			local now = hs.timer.secondsSinceEpoch()
+			local rawDown = rightOptionIsDown(event)
+			local isPress
+			local rightOptionDown
+			if rawDown == nil then
+				local gap = _rightOptionLastEventAt and now - _rightOptionLastEventAt or math.huge
+				isPress = not _rightOptionDown or gap > RIGHT_OPTION_FALLBACK_GAP
+				rightOptionDown = isPress
+			else
+				rightOptionDown = rawDown
+				isPress = rightOptionDown and not _rightOptionDown
 			end
-			if rightOptionDown and not _rightOptionDown then
-				if _voiceInputActive then
-					finishVoiceInput()
-				else
-					startVoiceInput()
-				end
+			if isPress then
+				scheduleVoiceInputAction(_voiceInputActive)
 			end
 			_rightOptionDown = rightOptionDown
+			_rightOptionLastEventAt = now
+			return false
 		end
 		if hyper and not hyper_pressed then
 			hyper_pressed, hyper_used = true, false
@@ -714,6 +779,7 @@ _InputTap = hs.eventtap.new({
 		elseif hyper_pressed then
 			hyper_used = true
 		end
+	end
 	if etype == hs.eventtap.event.types.keyDown then
 		-- Hyper 组合键（如 Hyper+数字 切换工作区）不重置空闲
 		if not hyper_pressed then
