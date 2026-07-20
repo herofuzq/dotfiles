@@ -142,6 +142,7 @@ Displays the current macOS input source and fcitx5 mode. The Swift daemon emits 
 | Input Source | Display |
 |--------------|---------|
 | `com.apple.keylayout.ABC` | `A` |
+| WeChat Input (`com.tencent.inputmethod.wetype.pinyin`) | `微` with green icon |
 | fcitx5 Chinese | `CH` |
 | fcitx5 English | `EN` |
 | Unknown | `?` |
@@ -326,6 +327,7 @@ helper 的编译产物不进 git，而是在实际运行路径里生成，例如
 | 输入法 | 显示 |
 |--------|------|
 | `com.apple.keylayout.ABC` | `A` |
+| 微信输入法（`com.tencent.inputmethod.wetype.pinyin`） | 绿色图标 + `微` |
 | fcitx5 中文 | `CH` |
 | fcitx5 英文 | `EN` |
 | 未知 | `?` |

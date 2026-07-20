@@ -1,11 +1,12 @@
 -- ========== 当前输入法显示 ==========
--- ABC 系统输入法 / fcitx5 中英状态
+-- ABC / 微信输入法 / fcitx5 中英状态
 local sbar = require("sketchybar")
 local icons = require("icons")
 local appearance = require("appearance")
 local colors = appearance.colors
 local settings = require("settings")
 local find_binary = require("helpers.find_binary").find
+local WETYPE_SRC = "com.tencent.inputmethod.wetype.pinyin"
 
 -- 动态查找 fcitx5-remote 路径（支持 .app 安装和 brew 安装两种方式）。
 -- fallback 用 macOS .app 路径，因为这是 fcitx5 cask 的默认安装位置，比 brew 路径更稳。
@@ -42,6 +43,11 @@ local function update_display(im_id, fcitx_mode)
 		input_method:set({
 			icon = { string = icons.input_method.keyboard, color = colors.blue },
 			label = { string = "A", color = colors.pill_fg },
+		})
+	elseif im_id == WETYPE_SRC then
+		input_method:set({
+			icon = { string = icons.input_method.keyboard, color = colors.green },
+			label = { string = "微", color = colors.pill_fg },
 		})
 	elseif im_id == "org.fcitx.inputmethod.Fcitx5.zhHans" then
 		if fcitx_mode == "2" then -- fcitx5-remote: 0=关闭, 1=不活跃, 2=中文
