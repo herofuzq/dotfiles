@@ -59,6 +59,7 @@ local HUD_BAR_SLOTS = 10
 local HUD_WIDTH = 212
 local HUD_HEIGHT = 26
 local HUD_BOTTOM_OFFSET = 30
+local HUD_VOICE_OFFSET = 68  -- 语音模式下向上位移，避让微信语音栏
 local HUD_CORNER_RADIUS = 10
 local HUD_FADE_OUT_DURATION = 0.16
 local MOCHA_BASE = { red = 30 / 255, green = 30 / 255, blue = 46 / 255 }
@@ -271,9 +272,10 @@ end
 local function inputHudFrame()
 	local screen = hs.mouse.getCurrentScreen() or hs.screen.mainScreen()
 	local frame = screen:fullFrame()
+	local voiceShift = _voiceInputActive and HUD_VOICE_OFFSET or 0
 	return {
 		x = frame.x + math.floor((frame.w - HUD_WIDTH) / 2),
-		y = frame.y + frame.h - HUD_HEIGHT - HUD_BOTTOM_OFFSET,
+		y = frame.y + frame.h - HUD_HEIGHT - HUD_BOTTOM_OFFSET - voiceShift,
 		w = HUD_WIDTH,
 		h = HUD_HEIGHT,
 	}
@@ -285,6 +287,7 @@ local function showInputHud(state, remaining, kpm)
 		return
 	end
 
+	local voiceShift = _voiceInputActive and HUD_VOICE_OFFSET or 0
 	local filledSlots = countdownFilledSlots(remaining, IDLE_TIMEOUT)
 	local elements = {
 		{
@@ -562,6 +565,10 @@ local function startVoiceInput()
 	end
 	_voiceInputActive = true
 	pauseIdleTimerForVoice()
+	-- 语音模式：HUD 向上位移避让微信语音栏，带动画过渡
+	if _inputHud then
+		_inputHud:frame(inputHudFrame())
+	end
 	updateInputHud(ZH)
 end
 
@@ -569,6 +576,10 @@ local function finishVoiceInput()
 	if not _voiceInputActive then return false end
 	_voiceInputActive = false
 	resetIdleTimer(true)
+	-- 语音结束：HUD 恢复原位
+	if _inputHud then
+		_inputHud:frame(inputHudFrame())
+	end
 	return true
 end
 
