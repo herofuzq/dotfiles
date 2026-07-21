@@ -13,6 +13,7 @@ local appearance = require("appearance")
 local colors = appearance.colors
 local settings = require("settings")
 local timing = require("helpers.timing")
+local enter_animation = require("helpers.enter_animation")
 
 local focused_bg = colors.red
 local inactive_bg = 0x00000000
@@ -43,7 +44,7 @@ local function segment_x_offset(name, workspace_order)
 end
 
 local function set_segment_geometry(name, workspace_order)
-	sbar.set(name, {
+	local props = {
 		background = {
 			drawing = true,
 			height = workspace_style.segment_height,
@@ -53,23 +54,29 @@ local function set_segment_geometry(name, workspace_order)
 			padding_right = 0,
 			x_offset = segment_x_offset(name, workspace_order),
 		},
-	})
+	}
+	enter_animation.update_target(name, props)
+	sbar.set(name, props)
 end
 
 local function set_focused(name)
-	sbar.set(name, {
+	local props = {
 		background = { color = focused_bg },
 		icon = { color = colors.crust, highlight_color = colors.crust },
 		label = { color = colors.crust, highlight_color = colors.crust },
-	})
+	}
+	enter_animation.update_target(name, props)
+	sbar.set(name, props)
 end
 
 local function set_inactive(name)
-	sbar.set(name, {
+	local props = {
 		background = { color = inactive_bg },
 		icon = { color = colors.pill_fg, highlight_color = colors.pill_fg },
 		label = { color = colors.pill_fg, highlight_color = colors.pill_fg },
-	})
+	}
+	enter_animation.update_target(name, props)
+	sbar.set(name, props)
 end
 
 local function distribute(visible_workspace_names, focused_name, animated, workspace_order)
@@ -90,7 +97,7 @@ local function distribute(visible_workspace_names, focused_name, animated, works
 	end
 
 	if animated then
-		sbar.animate("tanh", timing.STANDARD_DURATION_FRAMES, apply)
+		sbar.animate("linear", timing.STANDARD_DURATION_FRAMES, apply)
 	else
 		apply()
 	end

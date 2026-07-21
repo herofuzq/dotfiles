@@ -4,7 +4,9 @@ local icons = require("icons")
 local appearance = require("appearance")
 local popup_animation = require("helpers.popup_animation")
 local parsers = require("helpers.widget_parsers")
+local startup = require("helpers.startup")
 local colors = appearance.colors
+local initial_ready = startup.track("battery.status")
 local BATTERY_UPDATE_INTERVAL = 37 -- 与其他外部轮询错峰
 
 local battery = sbar.add("item", "widgets.battery", {
@@ -112,10 +114,12 @@ local function update_battery_display(state)
 			return
 		end
 		last_battery_signature = false
-		battery:set({
-			icon = { string = icons.battery._0, color = colors.surface1 },
-			label = { string = "—" },
-		})
+		startup.after_reveal("battery.status", function()
+			battery:set({
+				icon = { string = icons.battery._0, color = colors.surface1 },
+				label = { string = "—" },
+			})
+		end)
 		return
 	end
 
@@ -146,16 +150,19 @@ local function update_battery_display(state)
 		end
 	end
 
-	battery:set({
-		icon = { string = icon, color = color },
-		label = { string = string.format("%02d%%", state.percent) },
-	})
+	startup.after_reveal("battery.status", function()
+		battery:set({
+			icon = { string = icon, color = color },
+			label = { string = string.format("%02d%%", state.percent) },
+		})
+	end)
 end
 
 local function update_battery()
 	sbar.exec("ioreg -rn AppleSmartBattery", function(raw)
 		last_state = parsers.parse_battery(raw)
 		update_battery_display(last_state)
+		initial_ready()
 		-- popup 内容由点击打开时直接刷新，这里只维护主条状态。
 	end)
 end

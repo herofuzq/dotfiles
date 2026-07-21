@@ -18,6 +18,7 @@ local window_filter = require("helpers.window_filter")
 local sbar = require("sketchybar")
 local fonts = require("fonts")
 local settings = require("settings")
+local startup = require("helpers.startup")
 local SPACE_ICONS = { "󰼏", "󰼐", "󰼑", "󰼒", "󰼓", "󰼔" }
 -- nf-cod-screen_full：用在工作区编号左侧，表示该工作区里有 macOS fullscreen 窗口。
 local FULLSCREEN_ICON = ""
@@ -56,12 +57,15 @@ local _popup_render_gen = {} -- { [ws_name] = gen } 延迟渲染的代数，避�
 local _popup_query_gen = {} -- { [ws_name] = gen } 丢弃关闭 popup 后才返回的旧查询
 local _popup_animations = {}
 local _border_signature
+local _workspace_content_signatures = {}
 local animations_ready = false
 local front_app_generation = 0
 local front_app_initialized = false
 local front_app_name
 local mode_visible = false
 local mode_generation = 0
+local spaces_initial_ready = startup.track("spaces.snapshot")
+local front_app_initial_ready = startup.track("front_app.status")
 
 -- 内容切换动画帧数:统一规范，跟随 timing.lua 的标准 fade 时长。
 -- front_app 是一整串 label；名称变化时先淡出、替换文字、再淡入，
@@ -120,6 +124,7 @@ local function ensure_front_app()
 	front_app:subscribe("front_app_switched", function(env)
 		local name = env.INFO or ""
 		if front_app_name == name then
+			front_app_initial_ready()
 			return
 		end
 		front_app_name = name
@@ -128,8 +133,10 @@ local function ensure_front_app()
 		if not front_app_initialized then
 			front_app_initialized = true
 			front_app:set({ label = { string = name } })
+			front_app_initial_ready()
 			return
 		end
+		front_app_initial_ready()
 		sbar.animate("linear", CONTENT_FADE_FRAMES, function()
 			front_app:set({
 				label = { color = transparent(appearance.colors.peach) },
@@ -362,17 +369,36 @@ end
 
 local function updateWindow(workspace_index, args)
 	local open_windows = args.open_windows[workspace_index] or {}
+	local icon_line = #open_windows > 0 and app_icon_line(open_windows) or nil
+	local has_fullscreen = #open_windows > 0 and workspace_has_fullscreen(open_windows) or false
 
 	local function apply_content(label_color)
 		if #open_windows == 0 then
 			show_empty_workspace(workspace_index, args.focused_workspace, args.visible_workspaces, label_color)
 		else
-			show_workspace_apps(workspace_index, app_icon_line(open_windows), workspace_has_fullscreen(open_windows), label_color)
+			show_workspace_apps(workspace_index, icon_line, has_fullscreen, label_color)
 		end
 	end
 
 	local is_focused = args.focused_workspace == workspace_index
 	local final_color = is_focused and appearance.colors.crust or appearance.colors.pill_fg
+	local signature
+	if #open_windows == 0 then
+		local monitor_id = visible_monitor_id(workspace_index, args.visible_workspaces)
+		local drawing = monitor_id ~= nil or is_focused or always_show[workspace_index] == true
+		signature = table.concat({ "empty", tostring(monitor_id), tostring(drawing), tostring(final_color) }, "\0")
+	else
+		signature = table.concat({
+			"apps",
+			icon_line,
+			tostring(has_fullscreen),
+			tostring(final_color),
+		}, "\0")
+	end
+	if _workspace_content_signatures[workspace_index] == signature then
+		return
+	end
+	_workspace_content_signatures[workspace_index] = signature
 	apply_content(final_color)
 end
 
@@ -576,6 +602,7 @@ local function updateWindows(opts)
 			return
 		end
 		refresh_in_flight = false
+		spaces_initial_ready()
 		if refresh_pending then
 			local pending_protect = refresh_pending_protect_empty_snapshot
 			refresh_pending = false
@@ -585,67 +612,70 @@ local function updateWindows(opts)
 	end)
 
 	withWindows(function(args)
-		if not refresh_in_flight or refresh_generation ~= generation then
-			return
-		end
+		startup.after_reveal("spaces.snapshot", function()
+			if not refresh_in_flight or refresh_generation ~= generation then
+				return
+			end
 
-		if refresh_pending then
-			local pending_protect = refresh_pending_protect_empty_snapshot
-			refresh_pending = false
-			refresh_pending_protect_empty_snapshot = false
-			refresh_in_flight = false
-			updateWindows({ protect_empty_snapshot = pending_protect })
-			return
-		end
+			if refresh_pending then
+				local pending_protect = refresh_pending_protect_empty_snapshot
+				refresh_pending = false
+				refresh_pending_protect_empty_snapshot = false
+				refresh_in_flight = false
+				updateWindows({ protect_empty_snapshot = pending_protect })
+				return
+			end
 
-		if args.snapshot_ok then
-			if protect_empty_snapshot and snapshot_is_empty(args.open_windows) and not snapshot_is_empty(window_snapshot) then
-				args.open_windows = window_snapshot
+			if args.snapshot_ok then
+				if protect_empty_snapshot and snapshot_is_empty(args.open_windows) and not snapshot_is_empty(window_snapshot) then
+					args.open_windows = window_snapshot
+				else
+					window_snapshot = args.open_windows
+				end
 			else
-				window_snapshot = args.open_windows
+				args.open_windows = window_snapshot
 			end
-		else
-			args.open_windows = window_snapshot
-		end
 
-		-- 第一步：更新每个工作区的窗口内容
-		for workspace_index, _ in pairs(workspaces) do
-			updateWindow(workspace_index, args)
-		end
-
-		-- 第二步：按创建顺序收集所有「可见」的工作区
-		-- 先将 visible_workspaces 列表转为 hash set，避免后续 O(n) 查表
-		local visible_ws_set = {}
-		for _, vw in ipairs(args.visible_workspaces) do
-			visible_ws_set[vw["workspace"]] = true
-		end
-
-		local visible = {}
-		for _, ws_idx in ipairs(workspace_order) do
-			local open = args.open_windows[ws_idx]
-			local has_apps = open and #open > 0
-			local is_visible = has_apps
-				or visible_ws_set[ws_idx]
-				or ws_idx == args.focused_workspace
-				or always_show[ws_idx]
-
-			if is_visible then
-				table.insert(visible, ws_idx)
+			-- 第一步：更新每个工作区的窗口内容
+			for workspace_index, _ in pairs(workspaces) do
+				updateWindow(workspace_index, args)
 			end
-		end
 
-		-- 第三步：更新焦点分段样式
-		local visible_names = {}
-		for i, ws_idx in ipairs(visible) do
-			visible_names[#visible_names + 1] = "workspace." .. ws_idx
-		end
-		distribute_borders_if_changed(
-			visible_names,
-			"workspace." .. (args.focused_workspace or ""),
-			animations_ready
-		)
-		refresh_in_flight = false
-		animations_ready = true
+			-- 第二步：按创建顺序收集所有「可见」的工作区
+			-- 先将 visible_workspaces 列表转为 hash set，避免后续 O(n) 查表
+			local visible_ws_set = {}
+			for _, vw in ipairs(args.visible_workspaces) do
+				visible_ws_set[vw["workspace"]] = true
+			end
+
+			local visible = {}
+			for _, ws_idx in ipairs(workspace_order) do
+				local open = args.open_windows[ws_idx]
+				local has_apps = open and #open > 0
+				local is_visible = has_apps
+					or visible_ws_set[ws_idx]
+					or ws_idx == args.focused_workspace
+					or always_show[ws_idx]
+
+				if is_visible then
+					table.insert(visible, ws_idx)
+				end
+			end
+
+			-- 第三步：更新焦点分段样式
+			local visible_names = {}
+			for _, ws_idx in ipairs(visible) do
+				visible_names[#visible_names + 1] = "workspace." .. ws_idx
+			end
+			distribute_borders_if_changed(
+				visible_names,
+				"workspace." .. (args.focused_workspace or ""),
+				animations_ready
+			)
+			refresh_in_flight = false
+			animations_ready = true
+		end)
+		spaces_initial_ready()
 	end)
 end
 
@@ -831,8 +861,8 @@ sbar.add("bracket", "workspaces.bracket", workspace_names, {
 -- front_app 在 begin_config 中直接创建（不依赖 aerospace 回调）
 ensure_front_app()
 
--- 事件订阅 + 初始化（在 end_config 后延迟执行）
-sbar.exec(":", function()
+-- 事件订阅 + 初始化（在 end_config 后延迟执行，不启动空 shell）
+sbar.delay(0, function()
 	if not next(workspace_order) then
 		io.stderr:write("sketchybar: spaces init failed — no workspaces loaded\n")
 		return
@@ -991,5 +1021,5 @@ sbar.exec(":", function()
 	end)
 end)
 
--- 启动渐隐：startup 在 end_config 之后揭示 bar，enter_animation 负责 item 渐入。
--- spaces.root / aerospace_mode / popup 子项在 enter_animation 的 skip 名单里，不参与渐隐。
+-- 启动渐入：startup 在 end_config 之后揭示 bar，enter_animation 负责 item 渐入。
+-- spaces.root / aerospace_mode / popup 子项在 enter_animation 的 skip 名单里，不参与渐入。

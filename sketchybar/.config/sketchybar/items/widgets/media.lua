@@ -5,7 +5,9 @@ local appearance = require("appearance")
 local timing = require("helpers.timing")
 local find_binary = require("helpers.find_binary").find
 local shell_quote = require("helpers.utils").shell_quote
+local startup = require("helpers.startup")
 local colors = appearance.colors
+local initial_ready = startup.track("media.status")
 
 -- 找不到则回退 PATH 上的 media-control（避免写死 /opt/homebrew 在 Intel 上指错）
 local MEDIA = find_binary(
@@ -114,7 +116,7 @@ local function info_from_env(env)
 	}
 end
 
-local function apply_state(info, animated)
+local function apply_state_now(info, animated)
 	update_label(info, animated)
 	local playing = info and info.playing or false
 	if playing ~= last_playing then
@@ -124,6 +126,12 @@ local function apply_state(info, animated)
 			icon = { string = playing and ICON_PAUSE or ICON_PLAY },
 		})
 	end
+end
+
+local function apply_state(info, animated)
+	startup.after_reveal("media.status", function()
+		apply_state_now(info, animated)
+	end)
 end
 
 local function schedule_fallback_refresh()
@@ -286,4 +294,5 @@ label:subscribe("media_update", refresh)
 -- 初始查询：reload 后首次显示（不恢复轮询）
 query_media(function(info)
 	apply_state(info, false)
+	initial_ready()
 end)

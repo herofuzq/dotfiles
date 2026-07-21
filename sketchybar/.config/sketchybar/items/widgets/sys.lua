@@ -16,6 +16,7 @@ local SENSOR_CACHE = tmp_path("sketchybar_sys_sensors.json")
 local find_binary = require("helpers.find_binary").find
 
 local shell_quote = require("helpers.utils").shell_quote
+local startup = require("helpers.startup")
 
 local MACTOP = find_binary({ "/opt/homebrew/bin/mactop", "/usr/local/bin/mactop" })
 local SKETCHYBAR = find_binary({ "/opt/homebrew/bin/sketchybar", "/usr/local/bin/sketchybar" })
@@ -183,6 +184,7 @@ end)
 stop_watcher()
 
 local last_cpu_signature
+local initial_ready = startup.track("sys.cpu")
 
 sys:subscribe("cpu_update", function(env)
 	local cpu_load = math.max(0, math.min(100, math.floor(tonumber(env.total_load) or 0)))
@@ -191,11 +193,15 @@ sys:subscribe("cpu_update", function(env)
 	-- dedup: cpu 百分比和颜色档位都和上次一样就不 set
 	local signature = cpu_load .. "|" .. tostring(cpu_color)
 	if signature == last_cpu_signature then
+		initial_ready()
 		return
 	end
 	last_cpu_signature = signature
-	sys:set({
-		icon = { color = cpu_color },
-		label = { string = string.format("%d%%", cpu_load), color = colors.pill_fg },
-	})
+	startup.after_reveal("sys.cpu", function()
+		sys:set({
+			icon = { color = cpu_color },
+			label = { string = string.format("%d%%", cpu_load), color = colors.pill_fg },
+		})
+	end)
+	initial_ready()
 end)

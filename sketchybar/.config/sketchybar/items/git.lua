@@ -7,6 +7,7 @@ local shell_quote = require("helpers.utils").shell_quote
 local find_binary = require("helpers.find_binary").find
 local config = require("helpers.git.config")
 local popup_utils = require("helpers.popup_utils")
+local startup = require("helpers.startup")
 
 local vlen = utf8 and utf8.len or function(s)
 	local n = 0
@@ -20,6 +21,7 @@ local item_name = (config.item or {}).name or "git_status"
 local config_dir = os.getenv("CONFIG_DIR") or ((os.getenv("HOME") or "") .. "/.config/sketchybar")
 local lua_bin = find_binary({ "/opt/homebrew/bin/lua", "/usr/local/bin/lua" }, "lua")
 local status_script = config_dir .. "/helpers/git/status.lua"
+local initial_ready = startup.track("git.status")
 
 local git_item = sbar.add("item", item_name, {
 	position = "e", display = "active",
@@ -109,7 +111,7 @@ local function render_popup(state)
 	end
 end
 
-local function apply_status(output)
+local function apply_status(output, force_main)
 	local total_dirty = 0
 	local entries, max_branch_len, max_info_len = {}, 0, 0
 
@@ -147,7 +149,7 @@ local function apply_status(output)
 
 	local bar_color = total_dirty > 0 and colors.yellow or colors.green
 	local main_signature = tostring(total_dirty) .. "|" .. tostring(bar_color)
-	if main_signature ~= last_main_signature then
+	if force_main or main_signature ~= last_main_signature then
 		last_main_signature = main_signature
 		git_item:set({ label = { string = tostring(total_dirty), color = bar_color } })
 	end
@@ -165,6 +167,7 @@ local inflight = false
 local pending = false
 local refresh_generation = 0
 local REFRESH_TIMEOUT = 8
+local first_status = true
 
 local function refresh()
 	if inflight then pending = true; return end
@@ -176,7 +179,12 @@ local function refresh()
 		if settled or generation ~= refresh_generation then return end
 		settled = true
 		inflight = false
-		if output ~= nil then apply_status(output) end
+		if output ~= nil then
+			local force_main = first_status
+			first_status = false
+			startup.after_reveal("git.status", function() apply_status(output, force_main) end)
+		end
+		initial_ready()
 		if pending then pending = false; refresh() end
 	end
 	sbar.delay(REFRESH_TIMEOUT, function() finish(nil) end)

@@ -5,7 +5,9 @@ local appearance = require("appearance")
 local parsers = require("helpers.widget_parsers")
 local find_binary = require("helpers.find_binary").find
 local shell_quote = require("helpers.utils").shell_quote
+local startup = require("helpers.startup")
 local colors = appearance.colors
+local initial_ready = startup.track("network.status")
 local NETWORK_SAMPLE_INTERVAL = 3
 local INTERFACE_REFRESH_INTERVAL = 60
 local OFFLINE_RETRY_INTERVAL = 15
@@ -59,13 +61,13 @@ local down = sbar.add("item", "widgets.network_down", {
 	background = { drawing = false },
 })
 
--- bracket 容器：背景 + wifi 图标
+-- 仅用于组合上下行；可见背景由外层 widgets.system 统一绘制。
 sbar.add("bracket", "widgets.network", { "widgets.network_up", "widgets.network_down" }, {
 	position = "right",
 	icon = { drawing = false },
 	padding_left = 4,
 	padding_right = 0,
-	background = appearance.pill_bg(),
+	background = { drawing = false },
 })
 
 local function format_speed(raw)
@@ -142,13 +144,15 @@ local function set_network_icon(kind)
 		return
 	end
 	current_network_kind = next_kind
-	down:set({
-		icon = {
-			drawing = true,
-			string = icons.network[current_network_kind] or icons.network.offline,
-			color = icon_color(current_network_kind),
-		},
-	})
+	startup.after_reveal("network.icon", function()
+		down:set({
+			icon = {
+				drawing = true,
+				string = icons.network[next_kind] or icons.network.offline,
+				color = icon_color(next_kind),
+			},
+		})
+	end)
 end
 
 local function show_unavailable()
@@ -158,14 +162,17 @@ local function show_unavailable()
 	unavailable = true
 	last_up_str, last_down_str = nil, nil
 	set_network_icon("offline")
-	up:set({ label = "↑ —" })
-	down:set({ label = "↓ —" })
+	startup.after_reveal("network.values", function()
+		up:set({ label = "↑ —" })
+		down:set({ label = "↓ —" })
+	end)
 end
 
 local function sample_network()
 	if not IFSTAT or not net_iface then
 		consecutive_failures = 0
 		show_unavailable()
+		initial_ready()
 		return
 	end
 	sbar.exec(
@@ -184,6 +191,7 @@ local function sample_network()
 				if consecutive_failures >= MAX_CONSECUTIVE_FAILURES then
 					show_unavailable()
 				end
+				initial_ready()
 				return
 			end
 
@@ -193,12 +201,16 @@ local function sample_network()
 			local down_str = "↓" .. format_speed(down_raw)
 			-- dedup: 上下行速度和上次一样就不 set
 			if up_str == last_up_str and down_str == last_down_str then
+				initial_ready()
 				return
 			end
 			last_up_str = up_str
 			last_down_str = down_str
-			up:set({ label = up_str })
-			down:set({ label = down_str })
+			startup.after_reveal("network.values", function()
+				up:set({ label = up_str })
+				down:set({ label = down_str })
+			end)
+			initial_ready()
 		end
 	)
 end
@@ -237,6 +249,7 @@ local function update_network(force_interface_check)
 		else
 			sample_network()
 		end
+		initial_ready()
 	end)
 
 	detect_network(function(iface, kind)
@@ -268,10 +281,8 @@ end)
 update_network(true)
 
 -- ========== system bracket（clash_tun + network_up/down）==========
--- clash_tun 在创建时已 background.drawing=false；network_up/down 同理。
+-- clash_tun、network 子项及子 bracket 创建时均不绘制背景。
 -- 依赖 widgets/init.lua：clash_tun 在 network 之前 require。
--- widgets.network 是 up/down 的子 bracket，关掉其自身 bg，只保留 system 外层 pill。
-sbar.set("widgets.network", { background = { drawing = false } })
 sbar.add("bracket", "widgets.system", {
 	"widgets.clash_tun",
 	"widgets.network_up",

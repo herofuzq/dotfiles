@@ -9,6 +9,7 @@ local timing = require("helpers.timing")
 local shell_quote = require("helpers.utils").shell_quote
 local find_binary = require("helpers.find_binary").find
 local config = require("helpers.services.config")
+local startup = require("helpers.startup")
 
 local colors = appearance.colors
 local item_config = config.item or {}
@@ -17,6 +18,7 @@ local config_dir = os.getenv("CONFIG_DIR") or ((os.getenv("HOME") or "") .. "/.c
 local lua_bin = find_binary({ "/opt/homebrew/bin/lua", "/usr/local/bin/lua" }, "lua")
 local status_script = config_dir .. "/helpers/services/status.lua"
 local control_script = config_dir .. "/helpers/services/control.lua"
+local initial_ready = startup.track("services.status")
 
 local services_item = sbar.add("item", item_name, {
 	position = "q", display = "active",
@@ -194,6 +196,7 @@ local inflight = false
 local pending = false
 local refresh_generation = 0
 local REFRESH_TIMEOUT = 5
+local first_status = true
 local last_main_signature
 local last_popup_state
 local popup_utils = require("helpers.popup_utils")
@@ -242,7 +245,7 @@ local function render_popup(state)
 	end
 end
 
-local function apply_status(output)
+local function apply_status(output, force_main)
 	local sum = { status = "error", running = 0, total = 0, message = "services unavailable" }
 	local grps, svcs = {}, {}
 
@@ -260,7 +263,7 @@ local function apply_status(output)
 	local icon_color = sum.status == "error" and colors.red or colors.green
 	local count_color_value = count_color(sum.status, sum.running, sum.total)
 	local main_signature = table.concat({ sum.status, sum.running, sum.total, icon_color, count_color_value }, "|")
-	if main_signature ~= last_main_signature then
+	if force_main or main_signature ~= last_main_signature then
 		last_main_signature = main_signature
 		services_item:set({
 			icon = { color = icon_color },
@@ -284,7 +287,12 @@ local function refresh()
 		if settled or generation ~= refresh_generation then return end
 		settled = true
 		inflight = false
-		if output ~= nil then apply_status(output) end
+		if output ~= nil then
+			local force_main = first_status
+			first_status = false
+			startup.after_reveal("services.status", function() apply_status(output, force_main) end)
+		end
+		initial_ready()
 		if pending then pending = false; refresh() end
 	end
 	sbar.delay(REFRESH_TIMEOUT, function() finish(nil) end)

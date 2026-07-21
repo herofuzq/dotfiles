@@ -7,6 +7,7 @@ local fonts = require("fonts")
 local colors = require("appearance").colors
 local settings = require("settings")
 local timing = require("helpers.timing")
+local startup = require("helpers.startup")
 
 local border_width = 0 -- 无背景无边框
 local icon_width = 15
@@ -50,7 +51,9 @@ local function refresh_icon_padding()
 			return
 		end
 		current_pad_left, current_pad_right = left_pad, right_pad
-		apple:set({ icon = { padding_left = left_pad, padding_right = right_pad } })
+		startup.after_reveal("apple.padding", function()
+			apple:set({ icon = { padding_left = left_pad, padding_right = right_pad } })
+		end)
 	end)
 end
 

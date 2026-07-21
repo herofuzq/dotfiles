@@ -3,7 +3,9 @@
 local sbar = require("sketchybar")
 local icons = require("icons")
 local appearance = require("appearance")
+local startup = require("helpers.startup")
 local colors = appearance.colors
+local initial_ready = startup.track("input_method.status")
 local settings = require("settings")
 local find_binary = require("helpers.find_binary").find
 local WETYPE_SRC = "com.tencent.inputmethod.wetype.pinyin"
@@ -38,7 +40,7 @@ local input_method = sbar.add("item", "widgets.input_method", {
 	background = appearance.pill_bg(),
 })
 
-local function update_display(im_id, fcitx_mode)
+local function apply_display(im_id, fcitx_mode)
 	if im_id == "com.apple.keylayout.ABC" then
 		input_method:set({
 			icon = { string = icons.input_method.keyboard, color = colors.blue },
@@ -71,15 +73,24 @@ local function update_display(im_id, fcitx_mode)
 	end
 end
 
+local function update_display(im_id, fcitx_mode)
+	startup.after_reveal("input_method.status", function()
+		apply_display(im_id, fcitx_mode)
+	end)
+end
+
 local function check_status()
 	sbar.exec("macism", function(im_id)
 		im_id = im_id and im_id:match("^%s*(.-)%s*$")
 		if im_id == "org.fcitx.inputmethod.Fcitx5.zhHans" then
 			sbar.exec("'" .. FCITX_REMOTE .. "'", function(mode)
-				local clean = mode and mode:match("^%s*(.-)%s*$"); update_display(im_id, (clean and clean:match("^[012]$")) and clean or nil)
+				local clean = mode and mode:match("^%s*(.-)%s*$")
+				update_display(im_id, (clean and clean:match("^[012]$")) and clean or nil)
+				initial_ready()
 			end)
 		else
 			update_display(im_id)
+			initial_ready()
 		end
 	end)
 end

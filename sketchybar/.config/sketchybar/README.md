@@ -25,7 +25,7 @@ When debugging live behavior, inspect `~/.config/sketchybar` first. Source edits
 
 1. `sketchybarrc` loads `helpers/` first. One batched mtime scan skips fresh helpers, builds missing binaries synchronously, and rebuilds stale binaries in the background; the bar starts `hidden` to avoid the default-height flash.
 2. `init.lua` runs `begin_config` → appearance defaults, `bar.lua` (still hidden), `items/`.
-3. After `end_config`, `helpers/enter_animation.lua` records the fade set; `helpers/startup.lua` reveals the bar immediately, then items fade to their declared colors.
+3. After `end_config`, `helpers/enter_animation.lua` records the fade set; `helpers/startup.lua` reveals the bar immediately, then item foregrounds and explicit backgrounds fade together.
 4. `sbar.event_loop()` receives SketchyBar native events and custom triggers from helper daemons.
 
 ### Startup fade
@@ -33,15 +33,15 @@ When debugging live behavior, inspect `~/.config/sketchybar` first. Source edits
 | Step | Module | Behavior |
 |------|--------|----------|
 | `install()` | `enter_animation` | Before `begin_config`, wrap `sbar.add` and record main-bar item names (skip popup rows) |
-| `prepare()` | same | After `end_config`, use declared icon/label colors for tracked main-bar items and set them to alpha 0 (bar still hidden) |
+| `prepare()` | same | After `end_config`, snapshot declared foreground/background colors for tracked main-bar items (bar still hidden) |
 | `startup.reveal()` | `startup` | Unhide with transparent bar colors, then animate bar background/border to final alpha (~500ms) |
-| `run()` | same | Single linear alpha animate for all items with declared colors (~500ms, synchronized with bar) |
+| `run()` | same | Single linear alpha animate for declared foreground, background, and border colors (~500ms, synchronized with bar) |
 
-- Item fade only: no `y_offset`, no stagger, does not force `drawing=true`.
+- Color fade only: no `y_offset`, no stagger, does not force `drawing=true` or change geometry.
 - Popup rows are skipped (`position` starts with `popup`, or names containing `popup` / calendar grid / sys process rows).
-- Bar/item timing: `helpers/timing.lua` → `ENTER_BAR_FADE_FRAMES` / `ENTER_ITEM_FADE_FRAMES` (both 60 frames).
+- Bar/item timing: `helpers/timing.lua` → `ENTER_BAR_FADE_FRAMES` / `ENTER_ITEM_FADE_FRAMES` (both 30 steps, about 500ms at SketchyBar's 60 steps/s).
 
-Main-bar icon/label colors are made transparent at `sbar.add` time. Dynamic backgrounds are excluded because some widgets change them after `add` to join a shared bracket.
+Main-bar icon/label colors and explicitly declared background/border colors are made transparent at `sbar.add` time. Only colors are restored, so later `drawing=false` changes used to join a shared bracket remain intact. Initial asynchronous status results are collected in parallel and their latest UI updates are released after the startup fade, preventing ordinary `set` calls from cancelling the animation halfway through.
 
 **Pitfall — wrapping `sbar.add`:** always forward with `raw_add(...)`. Never call `raw_add(kind, name, props, nil)` for a 3-arg `add("item", name, props)`. Passing an explicit `nil` 4th argument makes SbarLua mis-parse the call (treats it like a 4-arg form); popup items can lose `position = "popup.…"` and appear as normal bar items (Docker/Git popup rows flooding the bar). The `install()` wrapper uses varargs on purpose.
 
@@ -209,23 +209,24 @@ helper 的编译产物不进 git，而是在实际运行路径里生成，例如
 
 1. `sketchybarrc` 先加载 `helpers/`：一次批量 mtime 扫描跳过新鲜产物，缺失 binary 同步定向编译，已有但过期的 binary 后台定向编译；bar 先 `hidden` 避免默认高度闪一下。
 2. `init.lua` 执行 `begin_config` → 外观默认、`bar.lua`（仍 hidden）、`items/`。
-3. `end_config` 之后：`prepare` 记录渐入 item，`helpers/startup.lua` 立即 unhide，随后 item 渐入到声明颜色。
+3. `end_config` 之后：首屏查询并行完成即放行，最长等待 1 秒；先填入已返回的真实内容，再统一归零并渐入。
 4. `sbar.event_loop()` 接收 SketchyBar 原生事件和 helper 守护进程的自定义 trigger。
 
-### 启动渐隐
+### 启动渐入
 
 | 步骤 | 模块 | 行为 |
 |------|------|------|
 | `install()` | `enter_animation` | `begin_config` 前劫持 `sbar.add`，只登记主条 item 名（跳过 popup） |
-| `prepare()` | 同上 | `end_config` 后使用登记的 icon/label 颜色；对主条 item 设 alpha=0（bar 仍 hidden） |
+| `track()` / `when_ready()` | `startup` | 等待首轮异步状态；全部完成立即继续，1 秒超时则用已完成数据降级显示 |
+| `prepare()` / `conceal()` | `enter_animation` | 记录显式目标颜色，并在真实字符串/计数填入后重新压到透明态 |
 | `startup.reveal()` | `startup` | 以透明 bar 背景/边框 unhide，再渐入到最终 alpha（约 500ms） |
-| `run()` | 同上 | 所有声明了颜色的主条 item 一次 linear alpha 渐入（约 500ms，与 bar 同步） |
+| `run()` | 同上 | 所有显式前景、背景和边框颜色一次 linear alpha 渐入（约 500ms，与 bar 同步） |
 
-- 仅 item 走颜色 alpha：不改 `y_offset`、不做 stagger、不强行 `drawing=true`。
+- 只插值颜色 alpha：不改 `y_offset`、不做 stagger、不强行 `drawing=true`，也不改变几何。
 - 跳过 popup 行（`position` 以 `popup` 开头，或名称含 `popup` / 月历格 / sys 进程行）。
-- bar/item 时长：`helpers/timing.lua` 的 `ENTER_BAR_FADE_FRAMES` / `ENTER_ITEM_FADE_FRAMES`，当前均为 60 帧（约 500ms）。
+- bar/item 时长：`helpers/timing.lua` 的 `ENTER_BAR_FADE_FRAMES` / `ENTER_ITEM_FADE_FRAMES`，当前均为 30 steps（SketchyBar 按 60 steps/s 计算，约 500ms）。
 
-必须在 **end_config 之后** snapshot：部分 widget 会在 `add` 后再 `sbar.set` 关掉 background 以并入 bracket；用创建时 props 渐入会把背景错误地画回来。
+必须在 **end_config 之后** prepare。首屏屏障只等待状态，不串行执行外部命令；超时也不会取消晚到的查询。动画使用 `add` 时声明的目标颜色，不逐项调用同步 `query()`，避免 item 数量增长后拖慢 reload。首次 UI 结果在隐藏阶段先填充内容，并在渐入结束后以最新值收尾，避免普通 `set` 半途取消动画。
 
 **坑：包装 `sbar.add` 时必须用 `raw_add(...)` 原样转发。**  
 不要对 3 参数的 `add("item", name, props)` 写成 `raw_add(kind, name, props, nil)`。多传的 `nil` 会让 SbarLua 按 4 参形态误解析，popup item 的 `position = "popup.…"` 丢失，Docker/Git 等 popup 行会整排铺到主条上。`install()` 故意用可变参数 `...`，改这段时务必保留。
@@ -252,7 +253,7 @@ helper 的编译产物不进 git，而是在实际运行路径里生成，例如
 | 路径 | 作用 |
 |------|------|
 | `sketchybarrc` | 入口：helpers + settings + `init` |
-| `init.lua` | `begin_config` / 启动渐隐 / `event_loop` |
+| `init.lua` | `begin_config` / 启动渐入 / `event_loop` |
 | `settings.lua` | bar 高度、默认间距、自动显隐 helper |
 | `appearance.lua` | Catppuccin 色板、语义颜色、全局默认样式 |
 | `fonts.lua` | 字体族和样式 |

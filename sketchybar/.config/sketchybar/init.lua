@@ -14,10 +14,13 @@ startup.configure(function()
 	require("items")
 end)
 
--- end_config 之后：记录已登记的颜色，立即揭示 bar，再执行 item 渐入。
-enter_animation.prepare()
-startup.reveal()
-enter_animation.run()
+-- 首屏查询并行完成（最长等 1 秒）后，以真实内容作为目标统一渐入。
+startup.when_ready(function()
+	enter_animation.prepare()
+	enter_animation.conceal()
+	startup.reveal()
+	enter_animation.run()
+end)
 
 -- 启动事件循环（必须！否则所有回调函数不会执行）
 sbar.event_loop()

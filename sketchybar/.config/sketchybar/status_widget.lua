@@ -3,6 +3,7 @@ local sbar = require("sketchybar")
 local appearance = require("appearance")
 local colors = appearance.colors
 local settings = require("settings")
+local startup = require("helpers.startup")
 
 return function(opts)
 	local function resolve_color(key)
@@ -68,13 +69,15 @@ return function(opts)
 			return
 		end
 		last_display_signature = signature
-		item:set({
-			icon = { color = num > 0 and resolve_color(opts.icon_color) or resolve_color(opts.icon_inactive_color) },
-			label = {
-				string = label,
-				color = num > 0 and resolve_color(opts.label_color) or resolve_color(opts.label_inactive_color),
-			},
-		})
+		startup.after_reveal(opts.name .. ".status", function()
+			item:set({
+				icon = { color = num > 0 and resolve_color(opts.icon_color) or resolve_color(opts.icon_inactive_color) },
+				label = {
+					string = label,
+					color = num > 0 and resolve_color(opts.label_color) or resolve_color(opts.label_inactive_color),
+				},
+			})
+		end)
 	end
 
 	local raw_id = opts.app_id or ""
@@ -87,10 +90,12 @@ return function(opts)
 		io.stderr:write("sketchybar: status_widget: invalid bundle id format: " .. safe_id .. "\n")
 		return
 	end
+	local initial_ready = startup.track(opts.name .. ".status")
 
 	local function check_status()
 		sbar.exec("lsappinfo -all info -only StatusLabel " .. safe_id, function(raw)
 			update_display(raw and raw:match([["label"%s*=%s*"([^"]*)"]]))
+			initial_ready()
 		end)
 	end
 
