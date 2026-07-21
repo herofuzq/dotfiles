@@ -1,16 +1,67 @@
 -- ============================================================
 -- 输入法切换 - macOS input source
--- 1 = 英文（ABC）, 2 = 中文（微信输入法）
+-- 1 = 英文（ABC）, 2 = 中文（任意非 ABC 输入法）
+-- 仅启用 ABC + 一个中文输入法时，“上一个输入源”切换最可靠。
 -- ============================================================
 local notification = require("notification_hud")
 local EN = 1
 local ZH = 2
 
 local ABC_SRC = "com.apple.keylayout.ABC"
--- WeChat source ID 用于切换输入源（精确值）；isUsingWeChat 用前缀匹配覆盖变种
+-- 微信输入法仅用于右 Option 语音适配；通用切换不依赖具体中文输入法。
 local WECHAT_SRC = "com.tencent.inputmethod.wetype.pinyin"
 local RIGHT_OPTION_KEYCODE = hs.keycodes.map.rightalt or 61
 local RIGHT_OPTION_RAW_FLAG = hs.eventtap.event.rawFlagMasks.deviceRightAlternate
+
+local function hasModifier(rawFlags, mask)
+	return math.floor(rawFlags / mask) % 2 == 1
+end
+
+local function readInputSourceShortcut()
+	local home = os.getenv("HOME")
+	local plist = home and hs.plist.read(home .. "/Library/Preferences/com.apple.symbolichotkeys.plist")
+	local hotkeys = plist and plist.AppleSymbolicHotKeys
+	local entry = hotkeys and (hotkeys["60"] or hotkeys[60])
+	local parameters = entry and entry.value and entry.value.parameters
+	if not entry or entry.enabled ~= true or type(parameters) ~= "table" then
+		return nil, "系统未启用“选择上一个输入源”快捷键"
+	end
+
+	local keyCode = tonumber(parameters[2])
+	local rawFlags = tonumber(parameters[3])
+	if not keyCode or not rawFlags then
+		return nil, "无法解析“选择上一个输入源”快捷键"
+	end
+	local key = hs.keycodes.map[keyCode]
+	if type(key) ~= "string" then
+		return nil, "无法识别“选择上一个输入源”的按键"
+	end
+
+	local modifiers = {}
+	for _, item in ipairs({
+		{ mask = 131072, name = "shift" },
+		{ mask = 262144, name = "ctrl" },
+		{ mask = 524288, name = "alt" },
+		{ mask = 1048576, name = "cmd" },
+		{ mask = 8388608, name = "fn" },
+	}) do
+		if hasModifier(rawFlags, item.mask) then
+			modifiers[#modifiers + 1] = item.name
+		end
+	end
+	return { key = key, modifiers = modifiers }
+end
+
+local _inputSourceShortcut, _inputSourceShortcutError = readInputSourceShortcut()
+if not _inputSourceShortcut then
+	print("[Input] " .. tostring(_inputSourceShortcutError))
+end
+
+local function sendInputSourceShortcut()
+	if not _inputSourceShortcut then return false end
+	hs.eventtap.keyStroke(_inputSourceShortcut.modifiers, _inputSourceShortcut.key, 1000)
+	return true
+end
 
 -- Fcitx5 旧后端保留，观察期内不删除，必要时可恢复。
 --[[
@@ -28,7 +79,10 @@ local IM_EN = "keyboard-us"
 
 local function isUsingWeChat()
 	local id = hs.keycodes.currentSourceID()
-	return id and id:match("^com%.tencent%.inputmethod%.wetype%.") ~= nil
+	return id ~= nil and (
+		id == WECHAT_SRC
+			or id:match("^com%.tencent%.inputmethod%.wetype%.") ~= nil
+	)
 end
 
 -- 内部状态只在查询或切换成功后更新，避免命令失败时误报。
@@ -36,9 +90,6 @@ local _zhState
 local _toggled = 0
 local _idleTimer = nil
 local _switchInFlight = false
-local _desiredState = nil
-local _desiredCallback = nil
-local _stateGeneration = 0
 local _zhSwitchKeyBufferUntil = 0
 local _zhBufferedKey = nil
 local _replayingBufferedKey = false
@@ -89,6 +140,43 @@ local _inputHud = nil
 local _hudMoveTimer = nil
 local SOURCE_VERIFY_DELAY = 0.10
 local _sourceVerifyTimer = nil
+
+local function isUsingAlternateInput()
+	return hs.keycodes.currentSourceID() ~= ABC_SRC
+end
+
+local function enabledInputSourceNames()
+	local names = {}
+	for _, name in ipairs(hs.keycodes.layouts() or {}) do
+		names[#names + 1] = name
+	end
+	for _, name in ipairs(hs.keycodes.methods() or {}) do
+		names[#names + 1] = name
+	end
+	return names
+end
+
+local function warnInputSourceConfiguration()
+	local names = enabledInputSourceNames()
+	local warnings = {}
+	local hasABC = false
+	for _, name in ipairs(names) do
+		if name == "ABC" then
+			hasABC = true
+			break
+		end
+	end
+	if #names ~= 2 or not hasABC then
+		warnings[#warnings + 1] = string.format("输入源 %d 个", #names)
+		print("[Input] 已启用输入源: " .. (#names > 0 and table.concat(names, "、") or "无"))
+	end
+	if not _inputSourceShortcut then
+		warnings[#warnings + 1] = "快捷键不可用"
+	end
+	if #warnings > 0 then
+		notification.show("配置异常：" .. table.concat(warnings, "、"), "warning", 2.0)
+	end
+end
 
 local function stopIdleTimer(fadeHud, keepHud)
 	if _idleTimer then
@@ -326,7 +414,7 @@ local function inputHudFrame()
 end
 
 local function showInputHud(state, remaining, kpm)
-	if state ~= ZH or not isUsingWeChat() then
+	if state ~= ZH or not isUsingAlternateInput() then
 		hideInputHud()
 		return
 	end
@@ -399,9 +487,9 @@ end
 
 local function updateInputHud(state)
 	local now = hs.timer.secondsSinceEpoch()
-	local wechat_active = isUsingWeChat()
+	local alternateActive = isUsingAlternateInput()
 	local remaining = 0
-	if state == ZH and wechat_active and _idleDeadline then
+	if state == ZH and alternateActive and _idleDeadline then
 		remaining = math.max(0, math.ceil(_idleDeadline - now))
 		if remaining <= 0 then
 			if _idleTickTimer then
@@ -436,71 +524,77 @@ local function applyState(state)
 end
 
 local function queryState(callback, options)
-	local state = isUsingWeChat() and ZH or EN
+	local state = isUsingAlternateInput() and ZH or EN
+	local voiceEnded = not isUsingWeChat() and _voiceInputActive
+	if voiceEnded then
+		_voiceInputActive = false
+		if _voiceActionTimer then
+			_voiceActionTimer:stop()
+			_voiceActionTimer = nil
+		end
+		_rightOptionDown = false
+		_rightOptionLastEventAt = nil
+	end
 	if not (options and options.apply == false) then
 		applyState(state)
+		if voiceEnded and state == ZH then
+			resetIdleTimer(true)
+		end
 	end
 	if callback then callback(state) end
 	return true
 end
 
 local function requestState(targetState, callback)
-	_desiredState = targetState
-	_desiredCallback = callback
-	if _switchInFlight then return end
-
-	local function drain()
-		local state = _desiredState
-		local stateCallback = _desiredCallback
-		_desiredState = nil
-		_desiredCallback = nil
-		if not state then return end
-
-		_switchInFlight = true
-		_stateGeneration = _stateGeneration + 1
-		local sourceID = state == ZH and WECHAT_SRC or ABC_SRC
-		local function finish(success, message)
-			_sourceVerifyTimer = nil
-			_switchInFlight = false
-			local superseded = _desiredState and _desiredState ~= state
-			if success then
-				applyState(state)
-			else
-				print("[Input] 切换输入源失败: " .. tostring(message or sourceID))
-			end
-			if stateCallback and not superseded then stateCallback(success) end
-			if superseded then
-				drain()
-			else
-				_desiredState = nil
-				_desiredCallback = nil
-			end
-		end
-
-		local changed = hs.keycodes.currentSourceID(sourceID)
-		if not changed then
-			finish(false, "原生输入源设置返回失败")
-			return
-		end
-		_sourceVerifyTimer = hs.timer.doAfter(SOURCE_VERIFY_DELAY, function()
-			if hs.keycodes.currentSourceID() == sourceID then
-				finish(true)
-				return
-			end
-
-			-- 某些 App 需要第二次原生设置才能完成 source 接管；仍不启动外部进程。
-			local retried = hs.keycodes.currentSourceID(sourceID)
-			if not retried then
-				finish(false, "原生输入源重试返回失败")
-				return
-			end
-			_sourceVerifyTimer = hs.timer.doAfter(SOURCE_VERIFY_DELAY, function()
-				finish(hs.keycodes.currentSourceID() == sourceID, "原生输入源复核失败")
-			end)
-		end)
+	if targetState ~= EN and targetState ~= ZH then
+		if callback then callback(false) end
+		return false
+	end
+	if _switchInFlight then
+		if callback then callback(false) end
+		return false
 	end
 
-	drain()
+	local currentState = isUsingAlternateInput() and ZH or EN
+	if currentState == targetState then
+		applyState(targetState)
+		if callback then callback(true) end
+		return true
+	end
+	if not _inputSourceShortcut then
+		print("[Input] 切换输入源失败: " .. tostring(_inputSourceShortcutError))
+		if callback then callback(false) end
+		return false
+	end
+
+	_switchInFlight = true
+	local function finish(success, message)
+		_sourceVerifyTimer = nil
+		_switchInFlight = false
+		if success then
+			applyState(targetState)
+		else
+			print("[Input] 切换输入源失败: " .. tostring(message))
+		end
+		if callback then callback(success) end
+	end
+
+	if targetState == EN then
+		if not hs.keycodes.currentSourceID(ABC_SRC) then
+			finish(false, "ABC 输入源设置返回失败")
+			return false
+		end
+	else
+		sendInputSourceShortcut()
+	end
+
+	_sourceVerifyTimer = hs.timer.doAfter(SOURCE_VERIFY_DELAY, function()
+		local reachedTarget = targetState == EN
+			and hs.keycodes.currentSourceID() == ABC_SRC
+			or targetState == ZH and isUsingAlternateInput()
+		finish(reachedTarget, "系统快捷键未切换到预期输入源")
+	end)
+	return true
 end
 
 -- Fcitx5 旧切换实现保留在上面的 source-level requestState 旁边，便于观察期回滚。
@@ -538,11 +632,11 @@ end
 resetIdleTimer = function(keepHud)
 	if _voiceInputActive then return end
 	stopIdleTimer(nil, keepHud)
-	if _zhState ~= ZH or not isUsingWeChat() then return end
+	if _zhState ~= ZH or not isUsingAlternateInput() then return end
 	_idleDeadline = hs.timer.secondsSinceEpoch() + IDLE_TIMEOUT
 	updateInputHud(ZH)
 	_idleTickTimer = hs.timer.doEvery(IDLE_TICK_INTERVAL, function()
-		if _zhState == ZH and isUsingWeChat() then
+		if _zhState == ZH and isUsingAlternateInput() then
 			updateInputHud(ZH)
 		else
 			stopIdleTimer()
@@ -567,43 +661,30 @@ local function noteInputActivity(countKpm)
 		table.insert(_keyTimestamps, now)
 		pruneKeyTimestamps(now)
 	end
-	if _zhState == ZH and isUsingWeChat() then
+	if _zhState == ZH and isUsingAlternateInput() then
 		resetIdleTimer()
 	else
 		updateInputHud(_zhState or EN)
 	end
 end
 
-local function requestToggleFromState(state)
-	if state ~= ZH and state ~= EN then
-		return false
-	end
-	local target = state == ZH and EN or ZH
+local function toggle()
+	_toggled = hs.timer.secondsSinceEpoch()
+	if _switchInFlight then return end
+
+	local target = isUsingAlternateInput() and EN or ZH
 	if target == ZH then
 		armZhSwitchKeyBuffer()
 	else
 		clearZhSwitchKeyBuffer()
 	end
+
 	requestState(target, function(success)
 		if target == ZH and success then
 			flushZhSwitchKeyBuffer()
+		elseif not success then
+			clearZhSwitchKeyBuffer()
 		end
-		-- HUD 已显示输入状态，切换提醒不再额外弹窗。
-	end)
-	return true
-end
-
-local function toggle()
-	_toggled = hs.timer.secondsSinceEpoch()
-
-	-- 直接根据当前 macOS 输入源切换 ABC 与微信输入法。
-	if requestToggleFromState(_zhState) then
-		return
-	end
-
-	queryState(function(state)
-		if not state then return end
-		requestToggleFromState(state)
 	end)
 end
 
@@ -682,7 +763,7 @@ local function warnEN(id)
 	if hs.timer.secondsSinceEpoch() - _toggled < 2 then
 		return
 	end
-	if not isUsingWeChat() then
+	if not isUsingAlternateInput() then
 		return
 	end
 	queryState(function(state)
@@ -717,7 +798,7 @@ end
 
 -- ============================================================
 -- CapsLock (Hyper) 单独按下 → 切换中英文
--- 微信输入法以 macOS source ID 表示中文状态。
+-- ABC 表示英文；任意非 ABC 输入源表示中文状态。
 -- ============================================================
 local hyper_pressed = false
 local hyper_used = false
@@ -741,6 +822,11 @@ _InputTap = hs.eventtap.new({
 
 	if etype == hs.eventtap.event.types.flagsChanged then
 		if event:getKeyCode() == RIGHT_OPTION_KEYCODE then
+			if not isUsingWeChat() then
+				_rightOptionDown = false
+				_rightOptionLastEventAt = nil
+				return false
+			end
 			local now = hs.timer.secondsSinceEpoch()
 			local rawDown = rightOptionIsDown(event)
 			local isPress
@@ -764,11 +850,9 @@ _InputTap = hs.eventtap.new({
 			hyper_pressed, hyper_used = true, false
 		elseif hyper and hyper_pressed then
 			hyper_used = true
-		elseif not hyper and hyper_pressed then
+		elseif hyper_pressed and not f.ctrl and not f.alt and not f.cmd then
 			hyper_pressed = false
-			if not hyper_used then
-				toggle()
-			end
+			if not hyper_used then toggle() end
 		end
 	elseif etype == hs.eventtap.event.types.keyDown
 		or etype == hs.eventtap.event.types.keyUp then
@@ -782,7 +866,7 @@ _InputTap = hs.eventtap.new({
 	end
 	if etype == hs.eventtap.event.types.keyDown then
 		-- Hyper 组合键（如 Hyper+数字 切换工作区）不重置空闲
-		if not hyper_pressed then
+		if not hyper_pressed and not _switchInFlight then
 			if maybeBufferZhSwitchKey(event) then
 				return true
 			end
@@ -802,22 +886,22 @@ queryState()
 -- 输入源变化由 macOS 分布式通知驱动，不使用常驻轮询。
 _InputSourceWatcher = hs.distributednotifications.new(
 	function()
-		queryState()
+		if not _switchInFlight then
+			queryState()
+		end
 	end,
 	"com.apple.Carbon.TISNotifySelectedKeyboardInputSourceChanged"
 )
 _InputSourceWatcher:start()
+
+-- 仅在 reload 时检查一次，不为配置健康度增加常驻轮询。
+warnInputSourceConfiguration()
 
 -- ============================================================
 -- 暴露接口给外部模块使用（如 wps.lua）
 -- ============================================================
 return {
 	isChineseAsync = function(callback)
-		if not isUsingWeChat() then
-			applyState(EN)
-			callback(false)
-			return
-		end
 		queryState(function(state)
 			callback(state == ZH)
 		end)

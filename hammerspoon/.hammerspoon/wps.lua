@@ -12,11 +12,27 @@ local notification = require("notification_hud")
 
 -- ---- 内部状态 ----
 local _switched = false
+local RECOVER_DELAY = 0.3
 -- hs.reload() 安全：_wpsTap / _recoverTimer 需要暴露为全局变量，
 -- 让 init.lua 在 reload 时停止旧实例（模块级 local reload 后无法访问旧作用域）。
 _WpsTap = nil
 _WpsRecoverTimer = nil
 local _sessionGeneration = 0
+
+local function scheduleChineseRecovery(generation)
+	if _WpsRecoverTimer then _WpsRecoverTimer:stop() end
+	_WpsRecoverTimer = hs.timer.doAfter(RECOVER_DELAY, function()
+		_WpsRecoverTimer = nil
+		if generation ~= _sessionGeneration or not _switched then return end
+		input.switchToChineseAsync(function(success)
+			if generation ~= _sessionGeneration then return end
+			if success then
+				_switched = false
+				notification.show("中文输入", "success", 0.5)
+			end
+		end)
+	end)
+end
 
 -- ---- eventtap 管理 ----
 
@@ -49,23 +65,11 @@ local function createWPSTap()
 				end)
 			elseif _switched then
 				if etype == hs.eventtap.event.types.leftMouseDown then
-					if _WpsRecoverTimer then _WpsRecoverTimer:stop(); _WpsRecoverTimer = nil end
-					input.switchToChineseAsync(function(success)
-						if success then notification.show("中文输入", "success", 0.5) end
-					end)
-					_switched = false
+					-- 等原生右键菜单关闭后再发送输入源快捷键，避免被菜单吞掉。
+					scheduleChineseRecovery(generation)
 				elseif etype == hs.eventtap.event.types.keyDown then
-					-- trailing-edge 防抖：每次 key 都重置定时器，0.3s 无输入才恢复中文
-					if _WpsRecoverTimer then _WpsRecoverTimer:stop() end
-					_WpsRecoverTimer = hs.timer.doAfter(0.3, function()
-						_WpsRecoverTimer = nil
-						if _switched then
-							input.switchToChineseAsync(function(success)
-								if success then notification.show("中文输入", "success", 0.5) end
-							end)
-							_switched = false
-						end
-					end)
+					-- trailing-edge 防抖：0.3 秒无键盘事件后恢复中文。
+					scheduleChineseRecovery(generation)
 				end
 			end
 			return false
