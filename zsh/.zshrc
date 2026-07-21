@@ -139,10 +139,6 @@ eval "$(starship init zsh)"
 # --- SkillHub / user-local CLI tools (~/.local/bin) ---
 path=($HOME/.local/bin $path)
 
-# --- zide: IDE-like zellij layout (yazi + editor) ---
-# Only prepend if the directory exists.
-[[ -d $HOME/.config/zide/bin ]] && path=($HOME/.config/zide/bin $path)
-
 # --- Personal scripts (~/bin: aria2 wrapper a2, etc.) ---
 # Only prepend if the directory exists.
 [[ -d $HOME/bin ]] && path=($HOME/bin $path)
@@ -281,8 +277,6 @@ alias lg='lazygit'
 alias rsx='reasonix'
 alias pon='proxy_all_on'
 export EDITOR=nvim
-export ZIDE_DEFAULT_LAYOUT=stacked_shell
-export ZIDE_USE_YAZI_CONFIG=false
 
 alias poff='proxy_all_off'
 alias pst='proxy_all_status'
