@@ -118,7 +118,7 @@ Main-bar icon/label colors and explicitly declared background/border colors are 
 | SketchyBar | `space_windows_change` | `items/spaces.lua` | Refresh full window snapshot after native window create/destroy |
 | `aerospace_watch` | `space_windows_change` | `items/spaces.lua` | Refresh after AeroSpace reports a newly detected window |
 | `aerospace_watch` | `aerospace_fullscreen_change` | `items/spaces.lua` | Full snapshot + fullscreen mark on the workspace number |
-| SketchyBar | `display_change` | `items/spaces.lua` | Sync bar height, reveal zone, workspace display mapping, protected snapshot |
+| SketchyBar | `display_change` / `system_woke` | `items/spaces.lua` | Fade the full bar in as one unit; display changes also sync height and workspace display mapping |
 | `aerospace_watch` | `aerospace_mode_change` | `items/spaces.lua` | Show or hide AeroSpace service-mode indicator |
 | `input_method_watch` | `input_method_change` | `items/widgets/input_method.lua` | Sync macOS input source and fcitx5 mode |
 | `media_watch` | `media_update` | `items/widgets/media.lua` | Media title and playback state |
@@ -304,7 +304,7 @@ helper 的编译产物不进 git，而是在实际运行路径里生成，例如
 | SketchyBar | `space_windows_change` | `items/spaces.lua` | 原生窗口创建/销毁后刷新完整窗口快照 |
 | `aerospace_watch` | `space_windows_change` | `items/spaces.lua` | AeroSpace 检测到新窗口后补一次刷新 |
 | `aerospace_watch` | `aerospace_fullscreen_change` | `items/spaces.lua` | 完整快照 + 工作区编号旁 fullscreen 标记 |
-| SketchyBar | `display_change` | `items/spaces.lua` | 同步 bar 高度、显隐区域、工作区屏幕映射和受保护快照 |
+| SketchyBar | `display_change` / `system_woke` | `items/spaces.lua` | 整条 bar 统一渐入；仅显示器变化额外同步高度和工作区屏幕映射 |
 | `aerospace_watch` | `aerospace_mode_change` | `items/spaces.lua` | 显示或隐藏 AeroSpace service mode 指示器 |
 | `input_method_watch` | `input_method_change` | `items/widgets/input_method.lua` | 同步 macOS 输入源和 fcitx5 状态 |
 | `media_watch` | `media_update` | `items/widgets/media.lua` | 媒体标题和播放状态 |

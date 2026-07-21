@@ -17,13 +17,18 @@ local timing = require("helpers.timing")
 local M = {}
 
 local ITEM_FADE_FRAMES = timing.ENTER_ITEM_FADE_FRAMES or 30
+local raw_set = sbar.set
 local _names = {} -- 有序 name 列表（install 期间收集）
 local _name_set = {}
 local _props = {} -- add 时声明的 props；避免启动阶段逐项 --query
+local _live_by_name = {} -- add/set 持续维护的最新颜色；运行时无需 query IPC
 local _installed = false
 local _closed = false -- prepare 起不再登记
 local _pending = {}
 local _prepare_ok = false
+local _runtime_active = false
+local _runtime_generation = 0
+local _runtime_pending = {}
 local apply
 
 local SKIP_NAMES = {
@@ -68,6 +73,71 @@ local function fade_color(color, progress)
 	return appearance.with_alpha(color, target_alpha * progress)
 end
 
+local function copy_table(value)
+	local copy = {}
+	for key, entry in pairs(value) do copy[key] = entry end
+	return copy
+end
+
+local function update_live_target(name, props)
+	if not _name_set[name] or type(props) ~= "table" then return nil end
+	local entry = _live_by_name[name]
+	if not entry then
+		entry = { name = name }
+		_live_by_name[name] = entry
+	end
+	for _, key in ipairs({ "icon", "label" }) do
+		local section = props[key]
+		local color = type(section) == "table" and parse_color(section.color) or nil
+		if color then entry[key] = color end
+	end
+	local background = props.background
+	if type(background) == "table" then
+		local color = parse_color(background.color)
+		local border = parse_color(background.border_color)
+		if color then entry.background = color end
+		if border then entry.border = border end
+	end
+	return entry
+end
+
+-- display_change/system_woke 的透明窗口内，组件仍可能提交新状态。
+-- 记录最新目标色并把这次提交保持为透明，避免网络、Docker 等先单独冒出来。
+local function runtime_props(name, props)
+	local entry = update_live_target(name, props)
+	if not _runtime_active or not entry then return props end
+
+	local result
+	for _, key in ipairs({ "icon", "label" }) do
+		local section = props[key]
+		local color = type(section) == "table" and parse_color(section.color) or nil
+		if color then
+			result = result or copy_table(props)
+			local section_copy = copy_table(section)
+			section_copy.color = fade_color(color, 0)
+			result[key] = section_copy
+		end
+	end
+
+	local background = props.background
+	if type(background) == "table" then
+		local color = parse_color(background.color)
+		local border = parse_color(background.border_color)
+		if color or border then
+			result = result or copy_table(props)
+			local background_copy = copy_table(background)
+			if color then
+				background_copy.color = fade_color(color, 0)
+			end
+			if border then
+				background_copy.border_color = fade_color(border, 0)
+			end
+			result.background = background_copy
+		end
+	end
+	return result or props
+end
+
 local function track_name(name, props)
 	if _closed or should_skip_name(name) or should_skip_props(props) then
 		return false
@@ -78,12 +148,14 @@ local function track_name(name, props)
 	_name_set[name] = true
 	_props[name] = props
 	_names[#_names + 1] = name
+	update_live_target(name, props)
 	return true
 end
 
 -- 首屏状态在 bar 隐藏期间可能改变目标色（例如 focused workspace 反色）。
 -- 只更新动画快照，不发送额外 IPC；prepare() 后自动失效。
 function M.update_target(name, props)
+	update_live_target(name, props)
 	local target = not _closed and _props[name] or nil
 	if type(target) ~= "table" or type(props) ~= "table" then return end
 	for _, key in ipairs({ "icon", "label", "background" }) do
@@ -158,6 +230,9 @@ function M.install()
 	end
 	_installed = true
 	local raw_add = sbar.add
+	sbar.set = function(name, props, ...)
+		return raw_set(name, runtime_props(name, props), ...)
+	end
 	-- 必须用 ... 原样转发。若 3 参 add 却传入 nil 第 4 参，SbarLua 会误解析，
 	-- popup item 丢失 position，全部铺到主条上。
 	sbar.add = function(...)
@@ -178,7 +253,16 @@ function M.install()
 		if tracked then
 			args[props_index] = faded_props(props)
 		end
-		return raw_add(table.unpack(args))
+		local item = raw_add(table.unpack(args))
+		if tracked and type(item) == "table" then
+			if type(item.set) == "function" then
+				local raw_item_set = item.set
+				item.set = function(self, updates, ...)
+					return raw_item_set(self, runtime_props(a, updates), ...)
+				end
+			end
+		end
+		return item
 	end
 end
 
@@ -234,7 +318,49 @@ apply = function(entry, alpha)
 			props.background.border_color = fade_color(entry.border, alpha)
 		end
 	end
-	sbar.set(entry.name, props)
+	-- 绕过 install() 的运行时 set 包装，否则 conceal 自己也会改写目标色。
+	raw_set(entry.name, props)
+end
+
+-- 睡眠唤醒和显示器变化共用的整条 bar 渐入。事件重叠时沿用第一次
+-- 内存目标并重置 generation，全程不做 item query 或外部进程调用。
+function M.transition(settle_seconds)
+	if not _runtime_active then
+		_runtime_pending = {}
+		for _, name in ipairs(_names) do
+			local entry = _live_by_name[name]
+			if entry and (entry.icon or entry.label or entry.background or entry.border) then
+				_runtime_pending[#_runtime_pending + 1] = entry
+			end
+		end
+		_runtime_active = true
+	end
+
+	_runtime_generation = _runtime_generation + 1
+	local generation = _runtime_generation
+	for _, entry in ipairs(_runtime_pending) do apply(entry, 0) end
+	sbar.bar({
+		color = appearance.with_alpha(appearance.colors.bar_bg, 0),
+		border_color = appearance.with_alpha(appearance.colors.border, 0),
+	})
+
+	sbar.delay(settle_seconds or timing.RUNTIME_FADE_SETTLE_SECONDS, function()
+		if generation ~= _runtime_generation then return end
+		sbar.animate("linear", ITEM_FADE_FRAMES, function()
+			for _, entry in ipairs(_runtime_pending) do apply(entry, 1) end
+			sbar.bar({
+				color = appearance.colors.bar_bg,
+				border_color = appearance.colors.border,
+			})
+		end)
+		sbar.delay(timing.frames_to_seconds(ITEM_FADE_FRAMES), function()
+			if generation ~= _runtime_generation then return end
+			-- 动画期间晚到的状态可能取消单项动画；最终统一恢复最新目标色。
+			for _, entry in ipairs(_runtime_pending) do apply(entry, 1) end
+			_runtime_active = false
+			_runtime_pending = {}
+		end)
+	end)
 end
 
 function M.prepare()

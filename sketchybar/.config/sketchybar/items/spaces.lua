@@ -12,6 +12,7 @@
 local appearance = require("appearance")
 local app_icons = require("helpers.app_icons")
 local borders = require("helpers.borders")
+local enter_animation = require("helpers.enter_animation")
 local popup_animation = require("helpers.popup_animation")
 local timing = require("helpers.timing")
 local window_filter = require("helpers.window_filter")
@@ -945,10 +946,13 @@ sbar.delay(0, function()
 	-- fullscreen 变化由 aerospace_watch 在 focus/workspace 等事件后 diff，触发 aerospace_fullscreen_change。
 	-- 不再使用 window_focus_change（主条只高亮工作区段）。
 
-	-- 显示器变化：同步 bar、自动显隐区域与工作区所属屏幕。
-	-- system_woke 不直接触发，避免睡眠唤醒但显示器未变化时整组 workspace 重绘。
-	root:subscribe("display_change", function()
-		scheduleDisplaySync()
+	-- 唤醒与显示器变化共用一次整体渐入；只有显示器变化才查询高度和 workspace 映射。
+	-- 同一次恢复过程同时发出两个事件时，enter_animation 用 generation 合并动画。
+	root:subscribe({ "display_change", "system_woke" }, function(env)
+		enter_animation.transition()
+		if env.SENDER == "display_change" then
+			scheduleDisplaySync()
+		end
 	end)
 
 	-- 全屏状态变化后刷新完整快照，并把标记显示在对应工作区编号左侧。
