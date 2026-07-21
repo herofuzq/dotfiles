@@ -57,9 +57,33 @@ if not _inputSourceShortcut then
 	print("[Input] " .. tostring(_inputSourceShortcutError))
 end
 
-local function sendInputSourceShortcut()
+local INPUT_SHORTCUT_MODIFIER_HOLD = 0.05
+local INPUT_SHORTCUT_SPACE_HOLD = 0.10
+
+local function postShortcutKey(key, isDown, modifiers)
+	local event = hs.eventtap.event.newKeyEvent(modifiers or {}, key, isDown)
+	event:post()
+end
+
+local function sendInputSourceShortcut(onComplete)
 	if not _inputSourceShortcut then return false end
-	hs.eventtap.keyStroke(_inputSourceShortcut.modifiers, _inputSourceShortcut.key, 1000)
+
+	-- 模拟系统可识别的短按：修饰键按下、Space 按下，先释放修饰键，再释放 Space。
+	for _, modifier in ipairs(_inputSourceShortcut.modifiers) do
+		postShortcutKey(modifier, true)
+	end
+	-- 主键事件必须携带修饰标记，否则会被文本框当成普通空格。
+	postShortcutKey(_inputSourceShortcut.key, true, _inputSourceShortcut.modifiers)
+
+	hs.timer.doAfter(INPUT_SHORTCUT_MODIFIER_HOLD, function()
+		for index = #_inputSourceShortcut.modifiers, 1, -1 do
+			postShortcutKey(_inputSourceShortcut.modifiers[index], false)
+		end
+	end)
+	hs.timer.doAfter(INPUT_SHORTCUT_SPACE_HOLD, function()
+		postShortcutKey(_inputSourceShortcut.key, false)
+		if onComplete then onComplete() end
+	end)
 	return true
 end
 
@@ -106,8 +130,9 @@ local _rightOptionLastEventAt = nil
 local IDLE_TIMEOUT = 10
 local IDLE_TICK_INTERVAL = 1
 local KEY_RATE_WINDOW = 60
-local ZH_SWITCH_KEY_BUFFER_WINDOW = 0.18
-local ZH_SWITCH_KEY_REPLAY_DELAY = 0.03
+-- 暂时关闭中文切换后的首键缓冲，观察 Hyper 与输入法切换的即时体感。
+local ZH_SWITCH_KEY_BUFFER_WINDOW = 0
+local ZH_SWITCH_KEY_REPLAY_DELAY = 0
 local HUD_BAR_SLOTS = 10
 local HUD_WIDTH = 212
 local HUD_HEIGHT = 26
@@ -138,7 +163,8 @@ local _idleTickTimer = nil
 local _keyTimestamps = {}
 local _inputHud = nil
 local _hudMoveTimer = nil
-local SOURCE_VERIFY_DELAY = 0.10
+-- 暂时不等待异步验证，避免输入法切换链路增加体感延迟。
+local SOURCE_VERIFY_DELAY = 0
 local _sourceVerifyTimer = nil
 
 local function isUsingAlternateInput()
@@ -561,7 +587,7 @@ local function requestState(targetState, callback)
 		if callback then callback(true) end
 		return true
 	end
-	if not _inputSourceShortcut then
+	if targetState == ZH and not _inputSourceShortcut then
 		print("[Input] 切换输入源失败: " .. tostring(_inputSourceShortcutError))
 		if callback then callback(false) end
 		return false
@@ -584,17 +610,26 @@ local function requestState(targetState, callback)
 			finish(false, "ABC 输入源设置返回失败")
 			return false
 		end
+		-- 返回英文始终直接使用 TIS，不发送系统输入源快捷键。
+		finish(true)
+		return true
 	else
-		sendInputSourceShortcut()
+		if not sendInputSourceShortcut(function()
+			if SOURCE_VERIFY_DELAY <= 0 then
+				-- 当前处于低延迟观察模式，快捷键完整释放后直接完成。
+				finish(true)
+				return
+			end
+			_sourceVerifyTimer = hs.timer.doAfter(SOURCE_VERIFY_DELAY, function()
+				_sourceVerifyTimer = nil
+				local reachedTarget = isUsingAlternateInput()
+				finish(reachedTarget, "系统快捷键未切换到预期输入源")
+			end)
+		end) then
+			finish(false, "系统输入源快捷键发送失败")
+		end
+		return true
 	end
-
-	_sourceVerifyTimer = hs.timer.doAfter(SOURCE_VERIFY_DELAY, function()
-		local reachedTarget = targetState == EN
-			and hs.keycodes.currentSourceID() == ABC_SRC
-			or targetState == ZH and isUsingAlternateInput()
-		finish(reachedTarget, "系统快捷键未切换到预期输入源")
-	end)
-	return true
 end
 
 -- Fcitx5 旧切换实现保留在上面的 source-level requestState 旁边，便于观察期回滚。
