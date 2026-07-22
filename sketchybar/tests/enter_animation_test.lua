@@ -76,9 +76,10 @@ assert(applied[2].props.background.border_color == 0xbb99aabb)
 assert(applied[2].props.background.drawing == nil, "fade must not change background drawing")
 assert(applied[2].props.drawing == nil, "fade must not restore add-time drawing")
 
-animation.transition(0.3)
-assert((last_applied("demo").props.icon.color >> 24) == 0, "runtime transition must conceal current icon")
-assert((bars[1].color >> 24) == 0, "runtime transition must conceal bar")
+-- 运行时完成门控：hold 压透明，release(token) 才渐入（不再是固定计时器）。
+local token = animation.hold()
+assert((last_applied("demo").props.icon.color >> 24) == 0, "hold must conceal current icon")
+assert((bars[1].color >> 24) == 0, "hold must conceal bar")
 
 -- sbar.set 与 item:set 共用同一个运行时颜色闸门。
 sbar.set("demo", { icon = { color = 0xaa010203 } })
@@ -86,11 +87,44 @@ assert((last_applied("demo").props.icon.color >> 24) == 0, "late runtime color m
 objects.demo:set({ label = { color = 0xaa040506 } })
 assert((last_applied("demo").props.label.color >> 24) == 0, "late item:set color must remain concealed")
 
-delayed[1]()
+-- 过期 token 不能释放当前 hold。
+local bar_count = #bars
+local applied_count = #applied
+animation.release(token + 1)
+assert(#bars == bar_count, "stale token must not release the hold")
+assert(#applied == applied_count, "stale token must not apply anything")
+
+-- 正常 release：渐入目标使用 hold 期间的最新颜色。
+animation.release(token)
 assert(last_applied("demo").props.icon.color == 0xaa010203, "fade target must use latest runtime color")
 assert(last_applied("demo").props.label.color == 0xaa040506, "fade target must include latest item:set color")
-assert(bars[#bars].color == 0x3311111b, "runtime transition must restore bar color")
+assert(bars[#bars].color == 0x3311111b, "release must restore bar color")
+
+-- 超时兜底与正常 release 竞速：只放一次（delayed[1] 是 hold 排程的超时回调）。
+local applied_count = #applied
+delayed[1]()
+assert(#applied == applied_count, "hold timeout after release must be a no-op")
+
+-- finalizer 恢复最新色并结束运行时闸门。
 delayed[2]()
 assert(last_applied("demo").props.icon.color == 0xaa010203, "finalizer must preserve latest runtime color")
+
+-- 每次 hold 铸造新 token；旧 token 不能释放新 hold。
+local token2 = animation.hold()
+assert(token2 ~= token, "each hold must mint a new token")
+animation.release(token)
+assert((last_applied("demo").props.icon.color >> 24) == 0, "old token must not release the new hold")
+
+-- 无人 release 时，超时兜底强制放行（delayed[3] 是第二次 hold 的超时回调）。
+delayed[3]()
+assert((last_applied("demo").props.icon.color >> 24) ~= 0, "hold timeout must force release as fallback")
+delayed[4]() -- 第二次 release 的 finalizer
+
+-- no_timeout hold（system_will_sleep 预遮罩）：不排程兜底超时。
+local delayed_count = #delayed
+local token3 = animation.hold({ no_timeout = true })
+assert(#delayed == delayed_count, "no_timeout hold must not schedule a fallback timeout")
+animation.release(token3)
+delayed[#delayed]() -- release 的 finalizer
 
 print("enter_animation_test: ok")
