@@ -33,7 +33,7 @@ brew bundle install --file=Brewfile
 # 3. Stow 所有配置包（--no-folding 避免目录折叠）
 stow --no-folding aerospace bash bat borders btop clash cmux fastfetch fcitx5 fd \
      ghostty git hammerspoon karabiner kitty lazygit npm nvim \
-     sketchybar ssh starship yazi zellij zsh
+     sketchybar ssh starship yazi zsh
 
 # 4. 安装 Xcode Command Line Tools（编译 helpers 需要）
 xcode-select --install
@@ -112,7 +112,6 @@ brew bundle cleanup --file=Brewfile       # 清理未列出项
 | `kitty` | `~/.config/kitty/` | GPU 终端模拟器 + Catppuccin 主题 |
 | `ghostty` | `~/.config/ghostty/` | 终端模拟器配置 + GLSL 着色器 |
 | `yazi` | `~/.config/yazi/` | 终端文件管理器（含插件） |
-| `zellij` | `~/.config/zellij/config.kdl` | 终端复用器配置 |
 | `cmux` | `~/.config/cmux/cmux.json` | 窗口布局管理 |
 | `bat` | `~/.config/bat/config` | 语法高亮增强 cat |
 | `fd` | `~/.config/fd/ignore` | find 替代品忽略规则 |
@@ -255,7 +254,7 @@ cd ~ && git clone <your-dotfiles-repo> dotfiles
 # ▸ Stow 所有配置
 cd dotfiles && stow --no-folding aerospace bash bat borders btop clash cmux fastfetch fcitx5 fd \
      ghostty git hammerspoon karabiner kitty lazygit npm nvim \
-     sketchybar ssh starship yazi zellij zsh
+     sketchybar ssh starship yazi zsh
 
 # ▸ 安装 Homebrew 软件
 brew bundle install --file=Brewfile
