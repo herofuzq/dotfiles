@@ -322,9 +322,41 @@ apply = function(entry, alpha)
 	raw_set(entry.name, props)
 end
 
--- 睡眠唤醒和显示器变化共用的整条 bar 渐入。事件重叠时沿用第一次
--- 内存目标并重置 generation，全程不做 item query 或外部进程调用。
-function M.transition(settle_seconds)
+-- 睡眠唤醒和显示器变化确认拓扑变化后的整条 bar 渐入（完成门控）。
+-- hold() 压透明并开始等待；release(token) 由 apply 完成回调触发，
+-- 而非固定计时器——apply 慢则淡入相应推迟。
+-- HOLD_TIMEOUT_SECONDS 是故障降级兜底：职责仅为防 bar 永久隐藏，
+-- 超时降级显示并写 stderr 日志，不是"等所有刷新完成"的严格保证。
+-- 重叠事件沿用第一次的内存目标并重置 generation，全程不做 item query。
+local _release_started = false
+
+local function do_release(token)
+	if not _runtime_active or token ~= _runtime_generation or _release_started then
+		return false
+	end
+	_release_started = true
+	sbar.animate("linear", ITEM_FADE_FRAMES, function()
+		for _, entry in ipairs(_runtime_pending) do apply(entry, 1) end
+		sbar.bar({
+			color = appearance.colors.bar_bg,
+			border_color = appearance.colors.border,
+		})
+	end)
+	sbar.delay(timing.frames_to_seconds(ITEM_FADE_FRAMES), function()
+		if token ~= _runtime_generation then return end
+		-- 动画期间晚到的状态可能取消单项动画；最终统一恢复最新目标色。
+		for _, entry in ipairs(_runtime_pending) do apply(entry, 1) end
+		_runtime_active = false
+		_release_started = false
+		_runtime_pending = {}
+	end)
+	return true
+end
+
+-- 压透明并返回 token（当前 generation），供 release 校验。
+-- opts.no_timeout：跳过故障兜底超时（system_will_sleep 预遮罩用——
+-- 睡眠期间定时器不跑，唤醒后由遮罩会话重新 hold 并武装超时）。
+function M.hold(opts)
 	if not _runtime_active then
 		_runtime_pending = {}
 		for _, name in ipairs(_names) do
@@ -337,30 +369,28 @@ function M.transition(settle_seconds)
 	end
 
 	_runtime_generation = _runtime_generation + 1
-	local generation = _runtime_generation
+	local token = _runtime_generation
+	_release_started = false
 	for _, entry in ipairs(_runtime_pending) do apply(entry, 0) end
 	sbar.bar({
 		color = appearance.with_alpha(appearance.colors.bar_bg, 0),
 		border_color = appearance.with_alpha(appearance.colors.border, 0),
 	})
 
-	sbar.delay(settle_seconds or timing.RUNTIME_FADE_SETTLE_SECONDS, function()
-		if generation ~= _runtime_generation then return end
-		sbar.animate("linear", ITEM_FADE_FRAMES, function()
-			for _, entry in ipairs(_runtime_pending) do apply(entry, 1) end
-			sbar.bar({
-				color = appearance.colors.bar_bg,
-				border_color = appearance.colors.border,
-			})
+	if not (opts and opts.no_timeout) then
+		-- 闭包必须捕获创建时 token：触发时读 _runtime_generation 会让旧超时提前释放新 hold。
+		sbar.delay(timing.HOLD_TIMEOUT_SECONDS, function()
+			if do_release(token) then
+				io.stderr:write("sketchybar: enter_animation hold timeout, force release\n")
+			end
 		end)
-		sbar.delay(timing.frames_to_seconds(ITEM_FADE_FRAMES), function()
-			if generation ~= _runtime_generation then return end
-			-- 动画期间晚到的状态可能取消单项动画；最终统一恢复最新目标色。
-			for _, entry in ipairs(_runtime_pending) do apply(entry, 1) end
-			_runtime_active = false
-			_runtime_pending = {}
-		end)
-	end)
+	end
+	return token
+end
+
+-- 由 apply 完成回调触发。token 过期（已有更新的 hold）或已释放则丢弃。
+function M.release(token)
+	do_release(token)
 end
 
 function M.prepare()

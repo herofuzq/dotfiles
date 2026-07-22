@@ -181,6 +181,14 @@ sys:subscribe("mouse.clicked", function()
 	end
 end)
 
+-- 显示器拓扑变化渐入前统一关闭 popup（popup 不参与 alpha 遮罩）
+sys:subscribe("display_transition_begin", function()
+	if popup_visible then
+		popup_visible = false
+		hide_popup()
+	end
+end)
+
 stop_watcher()
 
 local last_cpu_signature

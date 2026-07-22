@@ -166,7 +166,6 @@ local refresh_pending = false
 local refresh_pending_protect_empty_snapshot = false
 local refresh_schedule_generation = 0
 local refresh_generation = 0
-local display_response_generation = 0
 local window_snapshot = {}
 
 -- ========== 公共排序：按创建时间倒序 ==========
@@ -580,8 +579,26 @@ local function distribute_borders(focused_workspace, animated, visible_names)
 end
 
 -- ========== 更新所有工作区 + 分段状态 ==========
+-- 完成回调单槽：新登记覆盖旧值。唯一消费者是显示器拓扑变化的渐入门控
+-- （enter_animation.hold/release），被覆盖的旧回调其 release(token) 必被
+-- token 过期丢弃，且 hold 有 HOLD_TIMEOUT 兜底，覆盖安全。
+local windows_on_complete = nil
+
+local function finish_windows_refresh()
+	local cb = windows_on_complete
+	windows_on_complete = nil
+	if cb then
+		cb()
+	end
+end
+
 local function updateWindows(opts)
 	opts = opts or {}
+	-- 登记必须先于 refresh_in_flight 检查：合并进在飞刷新时，
+	-- 由最终那次刷新的完成点统一冲刷。
+	if opts.on_complete then
+		windows_on_complete = opts.on_complete
+	end
 	if refresh_in_flight then
 		refresh_pending = true
 		refresh_pending_protect_empty_snapshot = refresh_pending_protect_empty_snapshot
@@ -604,7 +621,11 @@ local function updateWindows(opts)
 			local pending_protect = refresh_pending_protect_empty_snapshot
 			refresh_pending = false
 			refresh_pending_protect_empty_snapshot = false
+			-- 交接给 pending 刷新：on_complete 不在这里冲刷，
+			-- 由最终那次刷新的完成点统一冲刷。
 			updateWindows({ protect_empty_snapshot = pending_protect })
+		else
+			finish_windows_refresh()
 		end
 	end)
 
@@ -619,6 +640,8 @@ local function updateWindows(opts)
 				refresh_pending = false
 				refresh_pending_protect_empty_snapshot = false
 				refresh_in_flight = false
+				-- 交接给 pending 刷新：on_complete 不在这里冲刷，
+				-- 由最终那次刷新的完成点统一冲刷。
 				updateWindows({ protect_empty_snapshot = pending_protect })
 				return
 			end
@@ -667,6 +690,7 @@ local function updateWindows(opts)
 			distribute_borders(args.focused_workspace, animations_ready, visible_names)
 			refresh_in_flight = false
 			animations_ready = true
+			finish_windows_refresh()
 		end)
 		spaces_initial_ready()
 	end)
@@ -685,11 +709,18 @@ end
 
 -- ========== 多显示器支持：工作区所属显示器 ==========
 local workspace_monitor_signature
+local topology_signature
+
+local query_monitors = "aerospace list-monitors --format '%{monitor-id}|%{monitor-name}'"
 
 -- 仅查询组装快照：不更新签名缓存、不 set item。
 -- AeroSpace settle 期间可能只返回部分 workspace，"至少一条有数据"会把中间态当
 -- 真实拓扑应用；必须每个已知 workspace 都有合法 monitor ID 才算 monitor_valid，
 -- 否则映射信号按"未知"处理，交给下一轮 probe 重试。
+--
+-- 注意 nsscreen id 只是当前屏幕数组序号（AeroSpace 官方确认），单屏场景下外屏和
+-- 内屏会拿到同一个 id，映射签名对"换屏"不敏感。因此另取 topology 签名
+-- （显示器 id|name 有序列表）做第二信号；名称可能重复，是实用增强而非物理身份。
 local function queryMonitorSnapshot(on_done)
 	sbar.exec(query_workspaces, function(workspaces_and_monitors)
 		local snapshot = { monitor_valid = false, monitor_changed = false }
@@ -718,15 +749,32 @@ local function queryMonitorSnapshot(on_done)
 		end
 		snapshot.monitor_map = workspace_monitor
 		snapshot.monitor_signature = table.concat(signature_parts, "\0")
-		snapshot.monitor_valid = true
-		snapshot.monitor_changed = snapshot.monitor_signature ~= workspace_monitor_signature
-		on_done(snapshot)
+
+		sbar.exec(query_monitors, function(monitor_list)
+			local topo_parts = {}
+			if type(monitor_list) == "string" then
+				for line in monitor_list:gmatch("[^\r\n]+") do
+					topo_parts[#topo_parts + 1] = line
+				end
+				table.sort(topo_parts)
+			end
+			if #topo_parts > 0 then
+				snapshot.topology_signature = table.concat(topo_parts, "\n")
+			end
+			snapshot.monitor_valid = true
+			snapshot.monitor_changed = snapshot.monitor_signature ~= workspace_monitor_signature
+				or (snapshot.topology_signature ~= nil and snapshot.topology_signature ~= topology_signature)
+			on_done(snapshot)
+		end)
 	end)
 end
 
 -- 应用已确认的映射快照：更新签名并把 workspace 指派到对应显示器。
 local function applyMonitorSnapshot(snapshot)
 	workspace_monitor_signature = snapshot.monitor_signature
+	if snapshot.topology_signature then
+		topology_signature = snapshot.topology_signature
+	end
 	for workspace_index, _ in pairs(workspaces) do
 		workspaces[workspace_index]:set({
 			display = snapshot.monitor_map[workspace_index],
@@ -764,8 +812,9 @@ local function probeDisplayState(on_done)
 end
 
 -- 应用 probe 确认的同一份快照（不再次查询，避免 probe/apply 之间状态漂移）。
--- 仅在实际有变化时被调用。
-local function applySnapshot(snapshot)
+-- 仅在实际有变化时被调用。on_complete 在窗口快照刷新完成后触发
+-- （遮罩会话用它门控渐入的释放时机；高度-only 没有异步步骤，立即触发）。
+local function applySnapshot(snapshot, on_complete)
 	if snapshot.height_changed then
 		settings.height = snapshot.height
 		sbar.bar({ height = snapshot.height })
@@ -775,49 +824,100 @@ local function applySnapshot(snapshot)
 		-- 强制下一次窗口快照查询真实 focus。
 		focused_workspace_cache = nil
 		applyMonitorSnapshot(snapshot)
-		updateWindows({ protect_empty_snapshot = true })
+		updateWindows({ protect_empty_snapshot = true, on_complete = on_complete })
+	elseif on_complete then
+		on_complete()
 	end
 end
 
--- display_change 与 system_woke 统一走"先验证、分级响应"。事件类型不可信：
--- 睡眠期间的拓扑变化可能只投递 system_woke；display_change 也常发于无需调整的
--- 场景（切分辨率、镜像开关）。唤醒后实际查询高度 + 映射签名，按结果分级：
---   都没变   → 零动作（纯唤醒不播渐入、不 set）
---   仅高度变 → 直接 set bar 高度，不渐入
---   映射变   → transition() 渐入遮住跨屏搬家，应用快照并刷新窗口
--- 双轮（0.25s/1.25s）兜住 AeroSpace 慢 settle；round token 防止第一轮慢查询的
--- 旧快照在回调晚到时覆盖第二轮结果。
-local probe_round = 0
+-- ========== 显示器切换遮罩会话 ==========
+-- 背景（SketchyBar v2.24 源码确认）：system_woke/display_change 到达 Lua 之前，
+-- SketchyBar 已经销毁并重建了全部 bar 窗口（wake 还会 ~500ms 后再重建一次），
+-- 这种原生重建就是切换显示器时"闪好几次"的来源；事件到达后再遮罩遮不住第一帧。
+-- 因此：
+--   system_will_sleep → 睡前预压透明（no_timeout hold，睡眠期间定时器不跑）
+--   system_woke / display_change → 事件到达立即续期 hold（重复事件只续期，
+--     不重新遮罩、不重复渐入），武装 3.5s 故障兜底超时
+--   每 0.3s probe 一次，连续两份"有效且相同"的快照判定稳定 → 应用变化 →
+--     释放渐入（一次会话只播一次）；探测上限 5 轮（~1.5s）或会话超过 5s 强制收尾
+-- 纯唤醒的代价：也会经历一次"睡前遮罩 → 醒后渐入"，这是遮原生重建的必要代价。
+local SHIELD_PROBE_INTERVAL = 0.3
+local SHIELD_MAX_PROBES = 5
+local SHIELD_MAX_SECONDS = 5
 
-local function scheduleDisplayResponse(source_event)
-	display_response_generation = display_response_generation + 1
-	local gen = display_response_generation
-	for _, delay in ipairs({ 0.25, 1.25 }) do
-		sbar.delay(delay, function()
-			if display_response_generation ~= gen then
+local shield_active = false
+local shield_generation = 0
+local shield_token = nil
+local shield_probe_count = 0
+local shield_last_valid_key = nil
+local shield_started_at = 0
+local shield_had_wake = false
+
+local function shield_probe(gen)
+	sbar.delay(SHIELD_PROBE_INTERVAL, function()
+		if gen ~= shield_generation then
+			return
+		end
+		probeDisplayState(function(snapshot)
+			if gen ~= shield_generation then
 				return
 			end
-			probe_round = probe_round + 1
-			local my_round = probe_round
-			probeDisplayState(function(snapshot)
-				if display_response_generation ~= gen or my_round ~= probe_round then
+			shield_probe_count = shield_probe_count + 1
+
+			local deadline_reached = shield_probe_count >= SHIELD_MAX_PROBES
+				or (os.time() - shield_started_at) >= SHIELD_MAX_SECONDS
+			if snapshot.monitor_valid and not deadline_reached then
+				local valid_key = tostring(snapshot.height) .. "|" .. snapshot.monitor_signature
+					.. "|" .. tostring(snapshot.topology_signature)
+				local stable = shield_last_valid_key == valid_key
+				shield_last_valid_key = valid_key
+				if not stable then
+					shield_probe(gen)
 					return
 				end
-				if not snapshot.height_changed and not snapshot.monitor_changed then
-					return
-				end
-				-- wake 路径确认变化后补发，apple.lua 借此重测 Dock 宽度；
-				-- display_change 路径 apple 已有 raw 事件，不重复触发。
-				if source_event == "system_woke" then
+			elseif not deadline_reached then
+				-- AeroSpace 数据不完整：不计入稳定性，继续等下一轮
+				shield_probe(gen)
+				return
+			end
+
+			-- 结束会话：应用最终快照（映射无效则 fallback 高度-only），只渐入一次
+			shield_active = false
+			local token = shield_token
+			shield_token = nil
+			if not snapshot.monitor_valid then
+				snapshot.monitor_changed = false
+			end
+			if snapshot.height_changed or snapshot.monitor_changed then
+				if shield_had_wake then
 					sbar.trigger("display_topology_change")
 				end
-				if snapshot.monitor_changed then
-					enter_animation.transition()
-				end
-				applySnapshot(snapshot)
-			end)
+				applySnapshot(snapshot, function()
+					enter_animation.release(token)
+				end)
+			else
+				enter_animation.release(token)
+			end
 		end)
+	end)
+end
+
+local function start_shield(source_event)
+	if not shield_active then
+		shield_active = true
+		shield_probe_count = 0
+		shield_last_valid_key = nil
+		shield_started_at = os.time()
+		shield_had_wake = source_event == "system_woke"
+		-- popup 不参与 alpha 遮罩：先统一通知各 popup 模块自行关闭
+		close_popups()
+		sbar.trigger("display_transition_begin")
+	else
+		shield_had_wake = shield_had_wake or source_event == "system_woke"
 	end
+	shield_generation = shield_generation + 1
+	shield_token = enter_animation.hold()
+	shield_probe(shield_generation)
 end
 
 -- ========== 初始化：begin_config 批量创建 workspace（性能优化）==========
@@ -1002,11 +1102,18 @@ sbar.delay(0, function()
 	-- fullscreen 变化由 aerospace_watch 在 focus/workspace 等事件后 diff，触发 aerospace_fullscreen_change。
 	-- 不再使用 window_focus_change（主条只高亮工作区段）。
 
-	-- 唤醒与显示器变化统一走"先验证、分级响应"（scheduleDisplayResponse）：
-	-- 纯唤醒零动作；仅高度变直接 set；映射变才渐入。SENDER 仅用于 wake 路径
-	-- 确认变化后补发 display_topology_change（apple.lua 的 Dock 重测）。
+	-- 唤醒与显示器变化统一走遮罩会话（start_shield）：事件到达立即压透明，
+	-- 探测稳定后应用变化并只渐入一次。SENDER 用于会话内是否补发
+	-- display_topology_change（apple.lua 的 Dock 重测）。
 	root:subscribe({ "display_change", "system_woke" }, function(env)
-		scheduleDisplayResponse(env.SENDER)
+		start_shield(env.SENDER)
+	end)
+
+	-- 睡前预压透明：SketchyBar 在 wake 事件送达 Lua 之前就重建了全部 bar 窗口，
+	-- 事件后再遮罩遮不住第一帧旧画面。睡眠期间定时器不跑，hold 不武装超时；
+	-- 唤醒后由 system_woke/display_change 的 start_shield 续期并武装。
+	root:subscribe("system_will_sleep", function()
+		enter_animation.hold({ no_timeout = true })
 	end)
 
 	-- 全屏状态变化后刷新完整快照，并把标记显示在对应工作区编号左侧。

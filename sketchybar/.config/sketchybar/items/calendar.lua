@@ -158,3 +158,11 @@ cal:subscribe(
 		end
 	end
 )
+
+-- 显示器拓扑变化渐入前统一关闭 popup（popup 不参与 alpha 遮罩）
+cal:subscribe("display_transition_begin", function()
+	if popup_visible then
+		popup_visible = false
+		cal_popup:hide()
+	end
+end)

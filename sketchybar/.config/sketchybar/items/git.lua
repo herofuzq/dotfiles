@@ -226,6 +226,14 @@ end
 
 git_item:subscribe("mouse.clicked", toggle_popup)
 
+-- 显示器拓扑变化渐入前统一关闭 popup（popup 不参与 alpha 遮罩）
+git_item:subscribe("display_transition_begin", function()
+	if popup_visible then
+		popup_visible = false
+		hide()
+	end
+end)
+
 git_item:subscribe({ "routine", "system_woke" }, refresh)
 refresh()
 

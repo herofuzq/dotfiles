@@ -332,6 +332,14 @@ services_item:subscribe("mouse.clicked", function()
 	end)
 end)
 
+-- 显示器拓扑变化渐入前统一关闭 popup（popup 不参与 alpha 遮罩）
+services_item:subscribe("display_transition_begin", function()
+	if popup_visible then
+		popup_visible = false
+		hide()
+	end
+end)
+
 services_item:subscribe({ "services_change", "system_woke" }, refresh)
 refresh()
 

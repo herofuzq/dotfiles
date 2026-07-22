@@ -107,6 +107,14 @@ battery:subscribe("mouse.clicked", function()
 	end
 end)
 
+-- 显示器拓扑变化渐入前统一关闭 popup（popup 不参与 alpha 遮罩）
+battery:subscribe("display_transition_begin", function()
+	if popup_visible then
+		popup_visible = false
+		battery_popup:hide()
+	end
+end)
+
 -- ========== 电池状态更新 ==========
 local function update_battery_display(state)
 	if not state then
