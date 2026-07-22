@@ -166,7 +166,7 @@ local refresh_pending = false
 local refresh_pending_protect_empty_snapshot = false
 local refresh_schedule_generation = 0
 local refresh_generation = 0
-local display_sync_generation = 0
+local display_response_generation = 0
 local window_snapshot = {}
 
 -- ========== 公共排序：按创建时间倒序 ==========
@@ -683,75 +683,139 @@ local function scheduleUpdateWindows(delay)
 	end)
 end
 
--- ========== 多显示器支持：更新工作区所属显示器 ==========
+-- ========== 多显示器支持：工作区所属显示器 ==========
 local workspace_monitor_signature
 
-local function updateWorkspaceMonitor(on_complete)
-	local workspace_monitor = {}
+-- 仅查询组装快照：不更新签名缓存、不 set item。
+-- AeroSpace settle 期间可能只返回部分 workspace，"至少一条有数据"会把中间态当
+-- 真实拓扑应用；必须每个已知 workspace 都有合法 monitor ID 才算 monitor_valid，
+-- 否则映射信号按"未知"处理，交给下一轮 probe 重试。
+local function queryMonitorSnapshot(on_done)
 	sbar.exec(query_workspaces, function(workspaces_and_monitors)
+		local snapshot = { monitor_valid = false, monitor_changed = false }
 		if not workspaces_and_monitors then
-			if on_complete then on_complete(false) end
+			on_done(snapshot)
 			return
 		end
-		local has_monitor_data = false
+		local workspace_monitor = {}
 		for _, entry in ipairs(workspaces_and_monitors) do
 			local space_index = entry.workspace
 			local raw_id = entry["monitor-appkit-nsscreen-screens-id"]
 			local monitor_id = raw_id and math.floor(raw_id)
 			if space_index and monitor_id then
-				has_monitor_data = true
 				workspace_monitor[space_index] = monitor_id
 			end
 		end
-		if not has_monitor_data then
-			if on_complete then on_complete(false) end
-			return
+		for _, workspace_index in ipairs(workspace_order) do
+			if not workspace_monitor[workspace_index] then
+				on_done(snapshot)
+				return
+			end
 		end
 		local signature_parts = {}
 		for _, workspace_index in ipairs(workspace_order) do
-			signature_parts[#signature_parts + 1] = workspace_index .. "=" .. tostring(workspace_monitor[workspace_index] or "")
+			signature_parts[#signature_parts + 1] = workspace_index .. "=" .. tostring(workspace_monitor[workspace_index])
 		end
-		local signature = table.concat(signature_parts, "\0")
-		local changed = signature ~= workspace_monitor_signature
-		workspace_monitor_signature = signature
-		if changed then
-			for workspace_index, _ in pairs(workspaces) do
-				workspaces[workspace_index]:set({
-					display = workspace_monitor[workspace_index],
-				})
-			end
-		end
-		if on_complete then on_complete(changed) end
+		snapshot.monitor_map = workspace_monitor
+		snapshot.monitor_signature = table.concat(signature_parts, "\0")
+		snapshot.monitor_valid = true
+		snapshot.monitor_changed = snapshot.monitor_signature ~= workspace_monitor_signature
+		on_done(snapshot)
 	end)
 end
 
-local function syncDisplayState(refresh_windows)
-	settings.refresh_bar_height(function(height)
-		local height_changed = height and height > 0 and height ~= settings.height
-		if height_changed then
-			settings.height = height
-			sbar.bar({ height = height })
-		end
+-- 应用已确认的映射快照：更新签名并把 workspace 指派到对应显示器。
+local function applyMonitorSnapshot(snapshot)
+	workspace_monitor_signature = snapshot.monitor_signature
+	for workspace_index, _ in pairs(workspaces) do
+		workspaces[workspace_index]:set({
+			display = snapshot.monitor_map[workspace_index],
+		})
+	end
+end
 
-		-- Display/wake can leave the focused workspace cache stale while AeroSpace
-		-- is still settling. Force the next window snapshot to query the real focus.
-		focused_workspace_cache = nil
-		updateWorkspaceMonitor(function(monitor_changed)
-			if refresh_windows or height_changed or monitor_changed then
-				updateWindows({ protect_empty_snapshot = true })
-			end
+-- 启动初始化用：查询并直接应用（首次签名必为 changed）。
+local function updateWorkspaceMonitor(on_complete)
+	queryMonitorSnapshot(function(snapshot)
+		if snapshot.monitor_valid and snapshot.monitor_changed then
+			applyMonitorSnapshot(snapshot)
+		end
+		if on_complete then
+			on_complete(snapshot.monitor_valid and snapshot.monitor_changed)
+		end
+	end)
+end
+
+-- 采集显示器快照（bar 高度 + 映射签名），只比对不应用。
+local function probeDisplayState(on_done)
+	settings.refresh_bar_height(function(height)
+		local snapshot = {
+			height = height,
+			height_changed = height and height > 0 and height ~= settings.height or false,
+		}
+		queryMonitorSnapshot(function(monitor)
+			snapshot.monitor_valid = monitor.monitor_valid
+			snapshot.monitor_changed = monitor.monitor_changed
+			snapshot.monitor_map = monitor.monitor_map
+			snapshot.monitor_signature = monitor.monitor_signature
+			on_done(snapshot)
 		end)
 	end)
 end
 
-local function scheduleDisplaySync()
-	display_sync_generation = display_sync_generation + 1
-	local gen = display_sync_generation
-	for index, delay in ipairs({ 0.25, 1.25 }) do
+-- 应用 probe 确认的同一份快照（不再次查询，避免 probe/apply 之间状态漂移）。
+-- 仅在实际有变化时被调用。
+local function applySnapshot(snapshot)
+	if snapshot.height_changed then
+		settings.height = snapshot.height
+		sbar.bar({ height = snapshot.height })
+	end
+	if snapshot.monitor_changed then
+		-- 映射变化后 AeroSpace 仍在 settle，focused workspace 缓存可能过期，
+		-- 强制下一次窗口快照查询真实 focus。
+		focused_workspace_cache = nil
+		applyMonitorSnapshot(snapshot)
+		updateWindows({ protect_empty_snapshot = true })
+	end
+end
+
+-- display_change 与 system_woke 统一走"先验证、分级响应"。事件类型不可信：
+-- 睡眠期间的拓扑变化可能只投递 system_woke；display_change 也常发于无需调整的
+-- 场景（切分辨率、镜像开关）。唤醒后实际查询高度 + 映射签名，按结果分级：
+--   都没变   → 零动作（纯唤醒不播渐入、不 set）
+--   仅高度变 → 直接 set bar 高度，不渐入
+--   映射变   → transition() 渐入遮住跨屏搬家，应用快照并刷新窗口
+-- 双轮（0.25s/1.25s）兜住 AeroSpace 慢 settle；round token 防止第一轮慢查询的
+-- 旧快照在回调晚到时覆盖第二轮结果。
+local probe_round = 0
+
+local function scheduleDisplayResponse(source_event)
+	display_response_generation = display_response_generation + 1
+	local gen = display_response_generation
+	for _, delay in ipairs({ 0.25, 1.25 }) do
 		sbar.delay(delay, function()
-			if display_sync_generation == gen then
-				syncDisplayState(index == 1)
+			if display_response_generation ~= gen then
+				return
 			end
+			probe_round = probe_round + 1
+			local my_round = probe_round
+			probeDisplayState(function(snapshot)
+				if display_response_generation ~= gen or my_round ~= probe_round then
+					return
+				end
+				if not snapshot.height_changed and not snapshot.monitor_changed then
+					return
+				end
+				-- wake 路径确认变化后补发，apple.lua 借此重测 Dock 宽度；
+				-- display_change 路径 apple 已有 raw 事件，不重复触发。
+				if source_event == "system_woke" then
+					sbar.trigger("display_topology_change")
+				end
+				if snapshot.monitor_changed then
+					enter_animation.transition()
+				end
+				applySnapshot(snapshot)
+			end)
 		end)
 	end
 end
@@ -938,13 +1002,11 @@ sbar.delay(0, function()
 	-- fullscreen 变化由 aerospace_watch 在 focus/workspace 等事件后 diff，触发 aerospace_fullscreen_change。
 	-- 不再使用 window_focus_change（主条只高亮工作区段）。
 
-	-- 唤醒与显示器变化共用一次整体渐入；只有显示器变化才查询高度和 workspace 映射。
-	-- 同一次恢复过程同时发出两个事件时，enter_animation 用 generation 合并动画。
+	-- 唤醒与显示器变化统一走"先验证、分级响应"（scheduleDisplayResponse）：
+	-- 纯唤醒零动作；仅高度变直接 set；映射变才渐入。SENDER 仅用于 wake 路径
+	-- 确认变化后补发 display_topology_change（apple.lua 的 Dock 重测）。
 	root:subscribe({ "display_change", "system_woke" }, function(env)
-		enter_animation.transition()
-		if env.SENDER == "display_change" then
-			scheduleDisplaySync()
-		end
+		scheduleDisplayResponse(env.SENDER)
 	end)
 
 	-- 全屏状态变化后刷新完整快照，并把标记显示在对应工作区编号左侧。

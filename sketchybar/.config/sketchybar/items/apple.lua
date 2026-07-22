@@ -75,8 +75,13 @@ apple:subscribe("mouse.clicked", function()
 end)
 
 -- 显示器切换时重新检测 Dock 宽度，动态调整 icon padding。
--- 只响应 display_change；普通唤醒不应触发整套显示器同步。
-apple:subscribe("display_change", function()
+-- display_topology_change 由 spaces.lua 在 system_woke 确认拓扑变化后补发
+-- （display_change 路径已有这里的 raw 事件兜底）。
+-- recent-raw 去重：display_change → system_woke 时序下，wake 路径确认变化后会
+-- 补发自定义事件；近期已有 raw 事件时忽略，避免取消重排已排程的 Dock 查询。
+local last_raw_display_change = 0
+
+local function schedule_dock_sync()
 	dock_sync_generation = dock_sync_generation + 1
 	local gen = dock_sync_generation
 	for _, delay in ipairs({ 0.25, 1.25 }) do
@@ -87,4 +92,16 @@ apple:subscribe("display_change", function()
 			refresh_icon_padding()
 		end)
 	end
+end
+
+apple:subscribe("display_change", function()
+	last_raw_display_change = os.time()
+	schedule_dock_sync()
+end)
+
+apple:subscribe("display_topology_change", function()
+	if os.time() - last_raw_display_change <= 2 then
+		return
+	end
+	schedule_dock_sync()
 end)

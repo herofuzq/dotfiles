@@ -118,7 +118,7 @@ Main-bar icon/label colors and explicitly declared background/border colors are 
 | SketchyBar | `space_windows_change` | `items/spaces.lua` | Refresh full window snapshot after native window create/destroy |
 | `aerospace_watch` | `space_windows_change` | `items/spaces.lua` | Refresh after AeroSpace reports a newly detected window |
 | `aerospace_watch` | `aerospace_fullscreen_change` | `items/spaces.lua` | Full snapshot + fullscreen mark on the workspace number |
-| SketchyBar | `display_change` / `system_woke` | `items/spaces.lua` | Fade the full bar in as one unit; display changes also sync height and workspace display mapping |
+| SketchyBar | `display_change` / `system_woke` | `items/spaces.lua` | Verify-first graded response (see below): pure wake = no-op; height-only = set height, no fade; mapping change = full-bar fade + apply + window refresh |
 | `aerospace_watch` | `aerospace_mode_change` | `items/spaces.lua` | Show or hide AeroSpace service-mode indicator |
 | `input_method_watch` | `input_method_change` | `items/widgets/input_method.lua` | Sync macOS input source and fcitx5 mode |
 | `media_watch` | `media_update` | `items/widgets/media.lua` | Media title and playback state |
@@ -134,6 +134,15 @@ Main-bar icon/label colors and explicitly declared background/border colors are 
 - Window create/destroy and fullscreen changes refresh the full snapshot.
 - Fullscreen is marked at workspace level with ` <workspace>`, not around the app icon.
 - `aerospace_watch` uses AeroSpace 0.21's socket protocol for the tiny fullscreen diff query, with a CLI fallback. Lua still uses `aerospace list-windows` for the full render snapshot.
+
+### Display topology sync (`display_change` / `system_woke`)
+
+Event types are not trusted: topology changes made while asleep (clamshell, unplugging a display during sleep) may only deliver `system_woke`, and `display_change` often fires when nothing needs adjustment. Both events share one verify-first flow in `items/spaces.lua`:
+
+- Probe at 0.25s / 1.25s with generation + round token (stale callbacks from a slow earlier round are dropped): bar height via the `bar_height` helper, and the workspace→display mapping signature from `aerospace list-workspaces --monitor-appkit-nsscreen-screens-id`.
+- The mapping counts only when every known workspace has a valid monitor ID (`monitor_valid`); partial AeroSpace results during settle are treated as unknown and retried on the next round.
+- Graded response: nothing changed → no-op (a pure wake plays no fade and sets nothing); height-only → set the bar height directly, no fade; mapping changed → `enter_animation.transition()` fades the bar to mask workspaces moving across displays, then the probed snapshot is applied as-is (no second query), the focused-workspace cache is invalidated, and the window snapshot refreshes.
+- On a confirmed change from the `system_woke` path, spaces.lua triggers `display_topology_change`; `items/apple.lua` re-measures Dock width on it, but ignores it if a raw `display_change` arrived within the last 2 seconds.
 
 ### Input Method Widget
 
@@ -307,7 +316,7 @@ helper 的编译产物不进 git，而是在实际运行路径里生成，例如
 | SketchyBar | `space_windows_change` | `items/spaces.lua` | 原生窗口创建/销毁后刷新完整窗口快照 |
 | `aerospace_watch` | `space_windows_change` | `items/spaces.lua` | AeroSpace 检测到新窗口后补一次刷新 |
 | `aerospace_watch` | `aerospace_fullscreen_change` | `items/spaces.lua` | 完整快照 + 工作区编号旁 fullscreen 标记 |
-| SketchyBar | `display_change` / `system_woke` | `items/spaces.lua` | 整条 bar 统一渐入；仅显示器变化额外同步高度和工作区屏幕映射 |
+| SketchyBar | `display_change` / `system_woke` | `items/spaces.lua` | 先验证、分级响应（见下节）：纯唤醒零动作；仅高度变直接改高度不渐入；映射变才整条渐入 + 应用 + 刷新窗口 |
 | `aerospace_watch` | `aerospace_mode_change` | `items/spaces.lua` | 显示或隐藏 AeroSpace service mode 指示器 |
 | `input_method_watch` | `input_method_change` | `items/widgets/input_method.lua` | 同步 macOS 输入源和 fcitx5 状态 |
 | `media_watch` | `media_update` | `items/widgets/media.lua` | 媒体标题和播放状态 |
@@ -323,6 +332,15 @@ helper 的编译产物不进 git，而是在实际运行路径里生成，例如
 - 窗口创建/销毁、全屏状态变化才刷新完整快照。
 - fullscreen 标记在工作区编号旁：` <workspace>`。
 - `aerospace_watch` 用 AeroSpace 0.21 socket 做很小的 fullscreen diff，失败回退 CLI。Lua 仍用 `aerospace list-windows` 做完整渲染快照。
+
+### 显示器拓扑同步（`display_change` / `system_woke`）
+
+事件类型不可信：睡眠期间的拓扑变化（合盖、睡后拔显示器）可能只投递 `system_woke`，而 `display_change` 也常发于无需调整的场景。两个事件在 `items/spaces.lua` 共用一套"先验证、分级响应"流程：
+
+- 0.25s / 1.25s 双轮 probe，generation + round token 丢弃慢查询的过期回调。验证信号：bar 高度（`bar_height` helper）和 workspace→显示器映射签名（`aerospace list-workspaces --monitor-appkit-nsscreen-screens-id`）。
+- 映射数据只有在每个已知 workspace 都有合法 monitor ID 时才有效（`monitor_valid`）；AeroSpace settle 期间的部分结果按"未知"处理，等下一轮重试。
+- 分级响应：都没变 → 零动作（纯唤醒不播渐入、不 set）；仅高度变 → 直接改 bar 高度，不渐入；映射变 → `enter_animation.transition()` 渐入遮住跨屏搬家，随后直接应用 probe 到的同一份快照（不二次查询）、失效 focused workspace 缓存、刷新窗口快照。
+- system_woke 路径确认变化后由 spaces.lua 触发 `display_topology_change`；`items/apple.lua` 据此重测 Dock 宽度，但若 2 秒内已收到 raw `display_change` 则忽略。
 
 ### 输入法 Widget
 
