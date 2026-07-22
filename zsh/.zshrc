@@ -122,6 +122,10 @@ fi
 # - Grok CLI completions
 fpath=($HOME/.docker/completions $HOME/.grok/completions/zsh $fpath)
 
+# AI ghost text strategy — must be set BEFORE Zim loads zsh-autosuggestions
+ZSH_AUTOSUGGEST_STRATEGY=(history)
+ZSH_AUTOSUGGEST_USE_ASYNC=1
+
 # Initialize modules.
 source ${ZIM_HOME}/init.zsh
 # }}} End configuration added by Zim Framework install
@@ -280,6 +284,14 @@ export EDITOR=nvim
 
 alias poff='proxy_all_off'
 alias pst='proxy_all_status'
+
+# =============================================================================
+# zsh-ai-autocomplete — local ollama ghost text completion
+# =============================================================================
+export AIZSH_PROVIDER=ollama
+export AIZSH_GHOST_MODEL=qwen2.5-coder:1.5b
+export AIZSH_PROMPT_MODEL=qwen3.5:2b
+# source ~/.config/ai-zsh/ai-zsh.plugin.zsh
 
 # Kiro CLI post block. Keep at the bottom of this file.
 [[ -z "${ZELLIJ:-}" && -f "${HOME}/Library/Application Support/kiro-cli/shell/zshrc.post.zsh" ]] && builtin source "${HOME}/Library/Application Support/kiro-cli/shell/zshrc.post.zsh"
