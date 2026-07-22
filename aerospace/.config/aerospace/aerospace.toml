@@ -390,7 +390,8 @@ if = """test %{app-bundle-id} = com.electron.ollama || \
         test %{app-bundle-id} = com.todesktop.230313mzl4w4u92 || \
         test %{app-bundle-id} = com.nousresearch.hermes || \
         test %{app-bundle-id} = com.minimax.agent.cn || \
-        test %{app-bundle-id} = com.tencent.qclaw"""
+        test %{app-bundle-id} = com.tencent.qclaw || \
+        test %{app-bundle-id} = com.moonshot.kimichat"""
 run = ["move-node-to-workspace 5̲AI --focus-follows-window"]
 
 [[on-window-detected]]
