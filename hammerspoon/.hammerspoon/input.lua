@@ -59,33 +59,100 @@ end
 
 local INPUT_SHORTCUT_MODIFIER_HOLD = 0.05
 local INPUT_SHORTCUT_SPACE_HOLD = 0.10
+-- watchdog 时长在创建时按 INPUT_SHORTCUT_SPACE_HOLD + SOURCE_VERIFY_DELAY + 此余量计算，
+-- 因为 SOURCE_VERIFY_DELAY 的声明位置晚于这里的常量区。
+local INPUT_SWITCH_WATCHDOG_MARGIN = 0.4
 
 local function postShortcutKey(key, isDown, modifiers)
 	local event = hs.eventtap.event.newKeyEvent(modifiers or {}, key, isDown)
 	event:post()
 end
 
+-- 精确记录已按下的键：任何路径（重入替换、投递中途失败、watchdog 超时、reload/退出）
+-- 都只补偿释放确实按下且尚未抬起的键，不无条件补发 key-up。
+local _inputShortcutPressedModifiers = {}
+local _inputShortcutKeyPressed = false
+
+-- 同步释放所有记录为已按下的键：修饰键逆序释放，最后释放 Space。
+-- 释放成功的键即时清除记录；失败的保留记录，留给后续路径重试。
+local function releasePendingInputShortcut()
+	if not _inputSourceShortcut then return end
+	for index = #_inputShortcutPressedModifiers, 1, -1 do
+		local modifier = _inputShortcutPressedModifiers[index]
+		local ok, err = pcall(postShortcutKey, modifier, false)
+		if ok then
+			table.remove(_inputShortcutPressedModifiers, index)
+		else
+			print("[Input] 补偿释放输入源快捷键修饰键失败: " .. tostring(err))
+		end
+	end
+	if _inputShortcutKeyPressed then
+		local ok, err = pcall(postShortcutKey, _inputSourceShortcut.key, false)
+		if ok then
+			_inputShortcutKeyPressed = false
+		else
+			print("[Input] 补偿释放输入源快捷键主键失败: " .. tostring(err))
+		end
+	end
+end
+
 local function sendInputSourceShortcut(onComplete)
 	if not _inputSourceShortcut then return false end
+	local modifierReleaseError
+	if _InputShortcutModifierTimer then
+		_InputShortcutModifierTimer:stop()
+		_InputShortcutModifierTimer = nil
+	end
+	if _InputShortcutKeyTimer then
+		_InputShortcutKeyTimer:stop()
+		_InputShortcutKeyTimer = nil
+	end
+	-- 替换旧事务时，先补发其已按下但尚未释放的键。
+	releasePendingInputShortcut()
 
 	-- 模拟系统可识别的短按：修饰键按下、Space 按下，先释放修饰键，再释放 Space。
-	for _, modifier in ipairs(_inputSourceShortcut.modifiers) do
-		postShortcutKey(modifier, true)
+	-- 每个 key-down 成功后才记录；投递中途抛错时立即补偿释放已按下的键再向上抛出。
+	local postOk, postErr = pcall(function()
+		for _, modifier in ipairs(_inputSourceShortcut.modifiers) do
+			postShortcutKey(modifier, true)
+			table.insert(_inputShortcutPressedModifiers, modifier)
+		end
+		-- 主键事件必须携带修饰标记，否则会被文本框当成普通空格。
+		postShortcutKey(_inputSourceShortcut.key, true, _inputSourceShortcut.modifiers)
+		_inputShortcutKeyPressed = true
+	end)
+	if not postOk then
+		releasePendingInputShortcut()
+		error(postErr, 0)
 	end
-	-- 主键事件必须携带修饰标记，否则会被文本框当成普通空格。
-	postShortcutKey(_inputSourceShortcut.key, true, _inputSourceShortcut.modifiers)
 
-	hs.timer.doAfter(INPUT_SHORTCUT_MODIFIER_HOLD, function()
-		for index = #_inputSourceShortcut.modifiers, 1, -1 do
-			postShortcutKey(_inputSourceShortcut.modifiers[index], false)
+	_InputShortcutModifierTimer = hs.timer.doAfter(INPUT_SHORTCUT_MODIFIER_HOLD, function()
+		_InputShortcutModifierTimer = nil
+		for index = #_inputShortcutPressedModifiers, 1, -1 do
+			local modifier = _inputShortcutPressedModifiers[index]
+			local ok, err = pcall(postShortcutKey, modifier, false)
+			if ok then
+				table.remove(_inputShortcutPressedModifiers, index)
+			else
+				modifierReleaseError = modifierReleaseError or err
+				print("[Input] 释放输入源快捷键修饰键失败: " .. tostring(err))
+			end
 		end
 	end)
-	hs.timer.doAfter(INPUT_SHORTCUT_SPACE_HOLD, function()
-		postShortcutKey(_inputSourceShortcut.key, false)
-		if onComplete then onComplete() end
+	_InputShortcutKeyTimer = hs.timer.doAfter(INPUT_SHORTCUT_SPACE_HOLD, function()
+		_InputShortcutKeyTimer = nil
+		local ok, err = pcall(postShortcutKey, _inputSourceShortcut.key, false)
+		if ok then
+			_inputShortcutKeyPressed = false
+		end
+		if onComplete then onComplete(ok and not modifierReleaseError, err or modifierReleaseError) end
 	end)
 	return true
 end
+
+-- reload/退出会销毁 Lua 环境，pending timer 随之失效；shutdownCallback 是销毁前
+-- 同步补发 key-up 的唯一可靠时机（文档要求回调内不做异步任务）。
+hs.shutdownCallback = releasePendingInputShortcut
 
 -- Fcitx5 旧后端保留，观察期内不删除，必要时可恢复。
 --[[
@@ -594,27 +661,44 @@ local function requestState(targetState, callback)
 	end
 
 	_switchInFlight = true
+	local finished = false
 	local function finish(success, message)
-		_sourceVerifyTimer = nil
+		if finished then return end
+		finished = true
+		if _InputSwitchWatchdogTimer then
+			_InputSwitchWatchdogTimer:stop()
+			_InputSwitchWatchdogTimer = nil
+		end
+		if _sourceVerifyTimer then
+			_sourceVerifyTimer:stop()
+			_sourceVerifyTimer = nil
+		end
 		_switchInFlight = false
 		if success then
 			applyState(targetState)
 		else
+			-- 失败路径统一补偿释放仍记录为按下的键（含 watchdog 超时、释放失败等出口）。
+			releasePendingInputShortcut()
 			print("[Input] 切换输入源失败: " .. tostring(message))
 		end
 		if callback then callback(success) end
 	end
 
 	if targetState == EN then
-		if not hs.keycodes.currentSourceID(ABC_SRC) then
-			finish(false, "ABC 输入源设置返回失败")
+		local ok, switched = pcall(hs.keycodes.currentSourceID, ABC_SRC)
+		if not ok or not switched then
+			finish(false, ok and "ABC 输入源设置返回失败" or switched)
 			return false
 		end
 		-- 返回英文始终直接使用 TIS，不发送系统输入源快捷键。
 		finish(true)
 		return true
 	else
-		if not sendInputSourceShortcut(function()
+		local sendOk, sent = pcall(sendInputSourceShortcut, function(shortcutReleased, releaseError)
+			if not shortcutReleased then
+				finish(false, "释放系统输入源快捷键失败: " .. tostring(releaseError))
+				return
+			end
 			if SOURCE_VERIFY_DELAY <= 0 then
 				-- 当前处于低延迟观察模式，快捷键完整释放后直接完成。
 				finish(true)
@@ -625,8 +709,16 @@ local function requestState(targetState, callback)
 				local reachedTarget = isUsingAlternateInput()
 				finish(reachedTarget, "系统快捷键未切换到预期输入源")
 			end)
-		end) then
-			finish(false, "系统输入源快捷键发送失败")
+		end)
+		if not sendOk or not sent then
+			finish(false, sendOk and "系统输入源快捷键发送失败" or sent)
+		else
+			-- 超时与验证延迟联动：快捷键释放耗时 + 验证窗口 + 固定余量。
+			local watchdogTimeout = INPUT_SHORTCUT_SPACE_HOLD + SOURCE_VERIFY_DELAY + INPUT_SWITCH_WATCHDOG_MARGIN
+			_InputSwitchWatchdogTimer = hs.timer.doAfter(watchdogTimeout, function()
+				_InputSwitchWatchdogTimer = nil
+				finish(false, "系统输入源快捷键收尾超时")
+			end)
 		end
 		return true
 	end
