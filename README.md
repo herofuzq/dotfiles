@@ -21,6 +21,7 @@
 | Karabiner | `~/.config/karabiner` | 键盘改键 |
 | Kitty / Ghostty | `~/.config/kitty`, `~/.config/ghostty` | 终端配置 |
 | Neovim | `~/.config/nvim` | 编辑器配置 |
+| Zed | `~/.config/zed` | 编辑器配置（settings.json） |
 | fcitx5 | `~/.config/fcitx5` | 中文输入法配置 |
 | Shell / TUI | `~/.zshrc`, `~/.zprofile`, `~/.zshenv`, `~/.bashrc`, `~/.config/{yazi,lazygit,starship}` | Shell、文件管理和 Git TUI |
 

@@ -344,6 +344,7 @@ if = """test %{app-bundle-id} = com.kingsoft.wpsoffice.mac || \
         test %{app-bundle-id} = com.tableausoftware.tableaudesktop || \
         test %{app-bundle-id} = md.obsidian || \
         test %{app-bundle-id} = abnerworks.Typora || \
+        test %{app-bundle-id} = dev.zed.Zed || \
         test %{app-bundle-id} = com.emclient.mail.client || \
         test %{app-bundle-id} = com.workreview.app"""
 run = ["move-node-to-workspace 4̲Work --focus-follows-window"]

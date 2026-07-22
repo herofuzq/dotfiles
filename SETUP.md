@@ -33,7 +33,7 @@ brew bundle install --file=Brewfile
 # 3. Stow 所有配置包（--no-folding 避免目录折叠）
 stow --no-folding aerospace bash bat borders btop clash cmux fastfetch fcitx5 fd \
      ghostty git hammerspoon karabiner kitty lazygit npm nvim \
-     sketchybar ssh starship yazi zsh
+     sketchybar ssh starship yazi zed zsh
 
 # 4. 安装 Xcode Command Line Tools（编译 helpers 需要）
 xcode-select --install
@@ -87,6 +87,7 @@ brew bundle cleanup --file=Brewfile       # 清理未列出项
 | Stow 包 | 目标路径 | 说明 |
 |---------|---------|------|
 | `nvim` | `~/.config/nvim/` | Neovim 配置（lazy.nvim + LazyVim） |
+| `zed` | `~/.config/zed/settings.json` | Zed 编辑器配置 |
 | `lazygit` | `~/.config/lazygit/config.yml` | Lazygit 配置 |
 | `npm` | `~/.npmrc` | npm 镜像源配置 |
 
@@ -254,7 +255,7 @@ cd ~ && git clone <your-dotfiles-repo> dotfiles
 # ▸ Stow 所有配置
 cd dotfiles && stow --no-folding aerospace bash bat borders btop clash cmux fastfetch fcitx5 fd \
      ghostty git hammerspoon karabiner kitty lazygit npm nvim \
-     sketchybar ssh starship yazi zsh
+     sketchybar ssh starship yazi zed zsh
 
 # ▸ 安装 Homebrew 软件
 brew bundle install --file=Brewfile

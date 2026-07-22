@@ -285,6 +285,8 @@ cask "typora"
 cask "gechr/tap/whichspace", trusted: true
 # Photo viewer, image manager, image resiser and more
 cask "xnviewmp"
+# Multiplayer code editor
+cask "zed"
 cargo "pokeget"
 npm "corepack"
 npm "reasonix"
