@@ -1,3 +1,6 @@
 .config/yazi/plugins
 .config/yazi/flavors
 .DS_Store
+# 本机 AI 工具运行数据（gitignored 但 stow 不读 .gitignore，得手动列）
+.codegraph
+.omo
