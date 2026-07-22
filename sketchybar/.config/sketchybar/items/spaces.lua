@@ -560,22 +560,18 @@ local function open_popup(ws_index, workspace_item)
 	end)
 end
 
-local function distribute_cached_borders(focused_workspace, animated)
-	local visible_names = {}
-	for i, ws_idx in ipairs(workspace_order) do
-		visible_names[i] = "workspace." .. ws_idx
+-- visible_names 缺省时用全部 workspace_order。
+-- 不变量：workspace_order 只含 always_show 的常驻工作区（全部可见），
+-- 因此 updateWindows 的可见性过滤目前恒等于完整列表。
+local function distribute_borders(focused_workspace, animated, visible_names)
+	if not visible_names then
+		visible_names = {}
+		for i, ws_idx in ipairs(workspace_order) do
+			visible_names[i] = "workspace." .. ws_idx
+		end
 	end
 	local focused_name = "workspace." .. (focused_workspace or "")
 	local signature = focused_name .. "\0" .. table.concat(visible_names, "\0")
-	if _border_signature == signature then
-		return
-	end
-	_border_signature = signature
-	borders.distribute(visible_names, focused_name, animated, workspace_order)
-end
-
-local function distribute_borders_if_changed(visible_names, focused_name, animated)
-	local signature = (focused_name or "") .. "\0" .. table.concat(visible_names, "\0")
 	if _border_signature == signature then
 		return
 	end
@@ -668,11 +664,7 @@ local function updateWindows(opts)
 			for _, ws_idx in ipairs(visible) do
 				visible_names[#visible_names + 1] = "workspace." .. ws_idx
 			end
-			distribute_borders_if_changed(
-				visible_names,
-				"workspace." .. (args.focused_workspace or ""),
-				animations_ready
-			)
+			distribute_borders(args.focused_workspace, animations_ready, visible_names)
 			refresh_in_flight = false
 			animations_ready = true
 		end)
@@ -925,7 +917,7 @@ sbar.delay(0, function()
 			focused_workspace_cache = focused
 			close_popups()
 			-- 使用已有快照一次性清除旧背景并点亮当前工作区，不触发窗口查询。
-			distribute_cached_borders(focused, animations_ready)
+			distribute_borders(focused, animations_ready)
 		end
 	end)
 
@@ -1020,7 +1012,7 @@ sbar.delay(0, function()
 		focused_workspace = focused_workspace:match("^%s*(.-)%s*$")
 		focused_workspace_cache = focused_workspace
 		if workspaces[focused_workspace] then
-			distribute_cached_borders(focused_workspace)
+			distribute_borders(focused_workspace)
 		end
 	end)
 end)
