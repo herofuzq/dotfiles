@@ -25,6 +25,8 @@ if _HammerspoonReloadCount and _HammerspoonReloadCount > 0 then
 	safeStop(_WpsRecoverTimer)
 	safeStop(_WakeWatcher)
 	safeStop(_ScreenWatcher)
+	safeStop(_windowWatcher_retryTimer)
+	_windowWatcher_retryTimer = nil
 	if _pendingTimer then
 		pcall(function() _pendingTimer:stop() end)
 		_pendingTimer = nil
@@ -33,7 +35,6 @@ if _HammerspoonReloadCount and _HammerspoonReloadCount > 0 then
 end
 _HammerspoonReloadCount = (_HammerspoonReloadCount or 0) + 1
 
-require("hs.ipc") -- 启用 hs CLI，便于安全重载与自动验证配置
 require("caps_guard") -- 防止 Caps Lock 状态从 Raycast Hyper 映射中漏出
 require("input") -- 输入法切换 + 终端中文提醒（必须在 wps 之前）
 require("wps") -- WPS 右键自动切英文（通过 input 模块接口调用）

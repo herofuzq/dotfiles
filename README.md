@@ -66,9 +66,14 @@ make -C ~/.config/sketchybar/helpers/event_providers/aerospace_watch
 launchctl print gui/$(id -u)/com.fuzhuoqun.aerospace_watch
 sketchybar --reload
 
-# Hammerspoon Lua 语法与运行状态
+# Hammerspoon Lua 语法
 luac -p ~/.hammerspoon/*.lua
-hs -c 'print(_floatingLevel_filter ~= nil, _windowWatcher_filter ~= nil)'
+```
+
+在 Hammerspoon Console 中检查浮动窗口模块的运行状态：
+
+```lua
+print(_floatingLevel_filter ~= nil, _windowWatcher_filter ~= nil)
 ```
 
 ## 入口文档

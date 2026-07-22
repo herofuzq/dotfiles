@@ -251,10 +251,6 @@ end
 -- 窗口变化（用默认 filter）
 -- 注：原订阅 windowNotVisible（噪音大：minimize/hide/occlusion 都会触发），已移除。
 
-_windowWatcher_filter = hs.window.filter.new()
-_windowWatcher_filter:rejectApp("iStat Menus")
-_windowWatcher_filter:rejectApp("Hammerspoon")
-
 local windowEvents = {
 	hs.window.filter.windowCreated,
 }
@@ -262,6 +258,39 @@ if hs.window.filter.windowMoved then
 	table.insert(windowEvents, hs.window.filter.windowMoved)
 end
 
-_windowWatcher_filter:subscribe(windowEvents, notify)
+local WATCHER_START_RETRIES = 3
+local WATCHER_RETRY_DELAY = 0.5
 
-print("[window_watcher] top safe-area rescue + new floating center")
+local function startWindowWatcher(attempt)
+	local filter
+	local ok, err = pcall(function()
+		filter = hs.window.filter.new()
+		filter:rejectApp("iStat Menus")
+		filter:rejectApp("Hammerspoon")
+		filter:subscribe(windowEvents, notify)
+	end)
+
+	if ok then
+		_windowWatcher_filter = filter
+		_windowWatcher_retryTimer = nil
+		print("[window_watcher] top safe-area rescue + new floating center")
+		return
+	end
+
+	if filter then
+		pcall(function() filter:unsubscribe() end)
+	end
+	_windowWatcher_filter = nil
+	print(string.format("[window_watcher] watcher 启动失败 (%d/%d): %s", attempt, WATCHER_START_RETRIES, tostring(err)))
+
+	if attempt < WATCHER_START_RETRIES then
+		_windowWatcher_retryTimer = hs.timer.doAfter(WATCHER_RETRY_DELAY, function()
+			_windowWatcher_retryTimer = nil
+			startWindowWatcher(attempt + 1)
+		end)
+	else
+		print("[window_watcher] watcher 启动已停止，请手动 Reload Config")
+	end
+end
+
+startWindowWatcher(1)
