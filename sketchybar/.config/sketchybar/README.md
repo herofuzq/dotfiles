@@ -182,6 +182,9 @@ luac -p ~/.config/sketchybar/helpers/enter_animation.lua
 make -C ~/.config/sketchybar/helpers/event_providers/aerospace_watch
 launchctl print gui/$(id -u)/com.fuzhuoqun.aerospace_watch
 sketchybar --reload
+
+# Run unit tests from the dotfiles root (tests resolve source paths relative to it):
+for t in sketchybar/tests/*_test.lua; do lua "$t"; done
 ```
 
 Fade speed: edit `ENTER_BAR_FADE_FRAMES` / `ENTER_ITEM_FADE_FRAMES` in `helpers/timing.lua`.
@@ -368,6 +371,9 @@ luac -p ~/.config/sketchybar/helpers/enter_animation.lua
 make -C ~/.config/sketchybar/helpers/event_providers/aerospace_watch
 launchctl print gui/$(id -u)/com.fuzhuoqun.aerospace_watch
 sketchybar --reload
+
+# 在 dotfiles 根目录跑单元测试（测试按相对路径定位源码）：
+for t in sketchybar/tests/*_test.lua; do lua "$t"; done
 ```
 
 bar 和 item 渐入快慢：改 `helpers/timing.lua` 里的 `ENTER_BAR_FADE_FRAMES` / `ENTER_ITEM_FADE_FRAMES`。
