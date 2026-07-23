@@ -328,13 +328,29 @@ end
 -- HOLD_TIMEOUT_SECONDS 是故障降级兜底：职责仅为防 bar 永久隐藏，
 -- 超时降级显示并写 stderr 日志，不是"等所有刷新完成"的严格保证。
 -- 重叠事件沿用第一次的内存目标并重置 generation，全程不做 item query。
+--
+-- hidden 模式（hold({hidden=true})）：额外把整条 bar 置 hidden=on。
+-- hidden 状态由 bar_manager 保留并应用到原生重建后的新窗口（alpha 做不到），
+-- 是跨睡眠/重建的门控。release 走 reload 同款顺序：item alpha 0 →
+-- hidden=off（bar 背景同步 alpha 0）→ 一次整体渐入。
 local _release_started = false
+local _hold_hidden = false
 
 local function do_release(token)
 	if not _runtime_active or token ~= _runtime_generation or _release_started then
 		return false
 	end
 	_release_started = true
+	if _hold_hidden then
+		-- 先确保 item 全透明，再放行 hidden；顺序不可交换，
+		-- 否则取消 hidden 时会暴露未准备好的第一帧。
+		for _, entry in ipairs(_runtime_pending) do apply(entry, 0) end
+		sbar.bar({
+			hidden = "off",
+			color = appearance.with_alpha(appearance.colors.bar_bg, 0),
+			border_color = appearance.with_alpha(appearance.colors.border, 0),
+		})
+	end
 	sbar.animate("linear", ITEM_FADE_FRAMES, function()
 		for _, entry in ipairs(_runtime_pending) do apply(entry, 1) end
 		sbar.bar({
@@ -348,6 +364,7 @@ local function do_release(token)
 		for _, entry in ipairs(_runtime_pending) do apply(entry, 1) end
 		_runtime_active = false
 		_release_started = false
+		_hold_hidden = false
 		_runtime_pending = {}
 	end)
 	return true
@@ -356,6 +373,7 @@ end
 -- 压透明并返回 token（当前 generation），供 release 校验。
 -- opts.no_timeout：跳过故障兜底超时（system_will_sleep 预遮罩用——
 -- 睡眠期间定时器不跑，唤醒后由遮罩会话重新 hold 并武装超时）。
+-- opts.hidden：同时把 bar 置 hidden=on（跨原生重建的可见性门控）。
 function M.hold(opts)
 	if not _runtime_active then
 		_runtime_pending = {}
@@ -366,6 +384,7 @@ function M.hold(opts)
 			end
 		end
 		_runtime_active = true
+		_hold_hidden = opts and opts.hidden == true or false
 	end
 
 	_runtime_generation = _runtime_generation + 1
@@ -376,6 +395,9 @@ function M.hold(opts)
 		color = appearance.with_alpha(appearance.colors.bar_bg, 0),
 		border_color = appearance.with_alpha(appearance.colors.border, 0),
 	})
+	if _hold_hidden then
+		sbar.bar({ hidden = "on" })
+	end
 
 	if not (opts and opts.no_timeout) then
 		-- 闭包必须捕获创建时 token：触发时读 _runtime_generation 会让旧超时提前释放新 hold。

@@ -7,6 +7,7 @@ local applied = {}
 local objects = {}
 local bars = {}
 local delayed = {}
+local ops = {} -- set 与 bar 的统一顺序日志，用于断言 hidden/alpha 的先后
 local function last_applied(name)
 	for index = #applied, 1, -1 do
 		if applied[index].name == name then return applied[index] end
@@ -19,13 +20,22 @@ local sbar = {
 		added[args[2]] = args
 		local name = args[2]
 		objects[name] = {
-			set = function(_, props) applied[#applied + 1] = { name = name, props = props } end,
+			set = function(_, props)
+				applied[#applied + 1] = { name = name, props = props }
+				ops[#ops + 1] = { t = "set", name = name, props = props }
+			end,
 		}
 		return objects[name]
 	end,
-	set = function(name, props) applied[#applied + 1] = { name = name, props = props } end,
+	set = function(name, props)
+		applied[#applied + 1] = { name = name, props = props }
+		ops[#ops + 1] = { t = "set", name = name, props = props }
+	end,
 	animate = function(_, _, callback) callback() end,
-	bar = function(props) bars[#bars + 1] = props end,
+	bar = function(props)
+		bars[#bars + 1] = props
+		ops[#ops + 1] = { t = "bar", props = props }
+	end,
 	delay = function(_, callback) delayed[#delayed + 1] = callback end,
 }
 package.preload["sketchybar"] = function() return sbar end
@@ -126,5 +136,31 @@ local token3 = animation.hold({ no_timeout = true })
 assert(#delayed == delayed_count, "no_timeout hold must not schedule a fallback timeout")
 animation.release(token3)
 delayed[#delayed]() -- release 的 finalizer
+
+-- hidden 门控：hold({hidden=true}) 隐藏整条 bar；release 必须先 item alpha 0、
+-- 再 hidden=off（背景同步 alpha 0），最后渐入恢复（reload 同款顺序）。
+local htoken = animation.hold({ hidden = true })
+local last_bar = bars[#bars]
+assert(last_bar.hidden == "on", "hidden hold must set bar hidden=on")
+
+local ops_before_release = #ops
+animation.release(htoken)
+local unhide_index
+for index, op in ipairs(ops) do
+	if op.t == "bar" and op.props.hidden == "off" then
+		unhide_index = index
+		break
+	end
+end
+assert(unhide_index, "release must unhide the bar")
+for index = ops_before_release + 1, unhide_index - 1 do
+	local op = ops[index]
+	if op.t == "set" and op.props.icon then
+		assert((op.props.icon.color >> 24) == 0, "items must be alpha 0 before hidden=off")
+	end
+end
+assert((ops[unhide_index].props.color >> 24) == 0, "bar background must be alpha 0 at hidden=off")
+assert((last_applied("demo").props.icon.color >> 24) ~= 0, "fade must restore item colors")
+delayed[#delayed]() -- finalizer
 
 print("enter_animation_test: ok")

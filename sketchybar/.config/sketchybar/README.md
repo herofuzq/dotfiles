@@ -135,15 +135,14 @@ Main-bar icon/label colors and explicitly declared background/border colors are 
 - Fullscreen is marked at workspace level with ` <workspace>`, not around the app icon.
 - `aerospace_watch` uses AeroSpace 0.21's socket protocol for the tiny fullscreen diff query, with a CLI fallback. Lua still uses `aerospace list-windows` for the full render snapshot.
 
-### Display topology sync (`display_change` / `system_woke` / `system_will_sleep`)
+### Display topology sync (`display_change` / `system_woke` / `system_will_sleep` / `screen_unlocked`)
 
-SketchyBar rebuilds every bar window on wake and display reconfiguration *before* delivering the event to Lua (wake even rebuilds twice, ~500ms apart). That native rebuild is the "flicker" source, so all three events share one shield session in `items/spaces.lua`:
+SketchyBar rebuilds every bar window on wake/unlock and display reconfiguration *before* delivering the event to Lua (wake rebuilds twice, ~500ms apart; the unlock notification also becomes `SYSTEM_WOKE`). That native rebuild is the flicker source. `items/spaces.lua` runs a four-state visibility gate (`idle / sleep_hidden / settling / revealing`) using bar-level `hidden`, which the bar manager preserves across rebuilds (alpha cannot):
 
-- `system_will_sleep`: pre-conceal the bar with a no-timeout `enter_animation.hold()` (timers do not run during sleep), so the post-wake native rebuild inherits a transparent bar — no stale frame.
-- `display_change` / `system_woke`: immediately renew the hold (repeated events only renew; they never restart the conceal) and start probing every 0.3s. Two consecutive valid and identical snapshots (bar height + workspace→display mapping + `aerospace list-monitors` topology signature) mean settled: apply the snapshot, then `release(token)` plays exactly one fade.
-- Probe bounds: 5 rounds (~1.5s) or a 5s absolute session cap forces the finish; `HOLD_TIMEOUT_SECONDS` (3.5s) remains the degraded fallback against a permanently hidden bar (stderr-logged).
-- Known limit: for transitions while fully awake (hot plug/unplug), the first native rebuild frame is delivered before the event reaches Lua and cannot be masked; everything after it is.
-- `nsscreen` ids are array ordinals, not physical display identities — the topology signature (`monitor-id|monitor-name` list) complements the mapping signature for swap detection.
+- `system_will_sleep` → `hidden=on` immediately; device wake, the 500ms resent wake, and lock-screen time all stay hidden. A 75s failsafe (generation-bound) arms on the first wake and can only force `settling` — never `hidden=off` directly.
+- `screen_unlocked` (custom event on `com.apple.screenIsUnlocked`) is the normal release gate: probe every 0.2s until two consecutive identical valid snapshots (height + workspace→display mapping + `aerospace list-monitors` topology) plus 0.8s of event silence, then apply the snapshot while still hidden and play one ~0.5s reload-style fade.
+- Awake `display_change` → `hidden=on` immediately and the same settling path (probe decides what to apply, not whether to conceal; the first native rebuild frame is still unmaskable while awake).
+- Fault bounds: 3.5s `HOLD_TIMEOUT_SECONDS` in settling; the 75s sleep failsafe; recovery is `sketchybar --bar hidden=off && sketchybar --reload`.
 - On a confirmed change from the `system_woke` path, spaces.lua triggers `display_topology_change`; `items/apple.lua` re-measures Dock width on it, but ignores it if a raw `display_change` arrived within the last 2 seconds.
 
 ### Input Method Widget
@@ -335,15 +334,14 @@ helper 的编译产物不进 git，而是在实际运行路径里生成，例如
 - fullscreen 标记在工作区编号旁：` <workspace>`。
 - `aerospace_watch` 用 AeroSpace 0.21 socket 做很小的 fullscreen diff，失败回退 CLI。Lua 仍用 `aerospace list-windows` 做完整渲染快照。
 
-### 显示器拓扑同步（`display_change` / `system_woke` / `system_will_sleep`）
+### 显示器拓扑同步（`display_change` / `system_woke` / `system_will_sleep` / `screen_unlocked`）
 
-SketchyBar 在唤醒和显示器重构时会**先把全部 bar 窗口销毁重建，再把事件投递给 Lua**（唤醒甚至会隔 ~500ms 重建两次）。这种原生重建就是"闪好几次"的来源，因此三个事件在 `items/spaces.lua` 共用一个遮罩会话：
+SketchyBar 在唤醒/解锁和显示器重构时会**先把全部 bar 窗口销毁重建，再把事件投递给 Lua**（唤醒重建两次、间隔 ~500ms；解锁通知同样转成 `SYSTEM_WOKE`）。这种原生重建就是闪烁来源。`items/spaces.lua` 用四态可见性门控（`idle / sleep_hidden / settling / revealing`），门控用 bar 级 `hidden`——bar_manager 会把它保留并应用到重建后的新窗口（alpha 做不到）：
 
-- `system_will_sleep`：睡前用无超时的 `enter_animation.hold()` 预压透明（睡眠期间定时器不跑），唤醒后的原生重建继承透明状态，旧画面不会先露出来。
-- `display_change` / `system_woke`：到达立即续期 hold（重复事件只续期，不重新遮罩），每 0.3s probe 一次。连续两份有效且相同的快照（bar 高度 + workspace→显示器映射 + `aerospace list-monitors` 拓扑签名）判定稳定 → 应用快照 → `release(token)` 只播一次渐入。
-- 探测上限 5 轮（~1.5s）或会话超过 5s 强制收尾；`HOLD_TIMEOUT_SECONDS`（3.5s）继续作为防 bar 永久隐藏的故障降级兜底（写 stderr 日志）。
-- 已知极限：清醒状态下的热插拔，第一帧原生重建先于事件到达 Lua，无法遮罩；其后的重建都在遮罩内。
-- nsscreen id 只是屏幕数组序号而非物理身份，拓扑签名（`monitor-id|monitor-name` 有序列表）与映射签名互补，用于检出换屏。
+- `system_will_sleep` → 立即 `hidden=on`；设备唤醒、500ms 补发唤醒、锁屏期间全程保持。首次 wake 武装 75s failsafe（generation 绑定），只能强制进入 `settling`，绝不直接 `hidden=off`。
+- `screen_unlocked`（监听 `com.apple.screenIsUnlocked` 的自定义事件）是正常释放入口：每 0.2s probe，连续两份有效且相同的快照（高度 + workspace→显示器映射 + `aerospace list-monitors` 拓扑签名）+ 最后事件后 0.8s 静默判定稳定 → 在 hidden 状态下应用快照 → 播一次约 0.5s 的 reload 同款整体渐入。
+- 清醒 `display_change` → 立即 `hidden=on` 并走同样的 settling（probe 只决定应用什么，不决定是否遮罩；清醒态第一帧原生重建仍无法遮罩）。
+- 故障边界：settling 的 3.5s `HOLD_TIMEOUT_SECONDS`、75s 睡眠 failsafe；恢复命令 `sketchybar --bar hidden=off && sketchybar --reload`。
 - system_woke 路径确认变化后由 spaces.lua 触发 `display_topology_change`；`items/apple.lua` 据此重测 Dock 宽度，但若 2 秒内已收到 raw `display_change` 则忽略。
 
 ### 输入法 Widget
