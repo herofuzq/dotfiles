@@ -713,6 +713,13 @@ local topology_signature
 
 local query_monitors = "aerospace list-monitors --format '%{monitor-id}|%{monitor-name}'"
 
+local function readableSignature(value)
+	if not value then
+		return "<nil>"
+	end
+	return value:gsub("\0", ", "):gsub("\r\n", "\n"):gsub("\n", "; ")
+end
+
 -- 仅查询组装快照：不更新签名缓存、不 set item。
 -- AeroSpace settle 期间可能只返回部分 workspace，"至少一条有数据"会把中间态当
 -- 真实拓扑应用；必须每个已知 workspace 都有合法 monitor ID 才算 monitor_valid，
@@ -806,6 +813,7 @@ local function probeDisplayState(on_done)
 			snapshot.monitor_changed = monitor.monitor_changed
 			snapshot.monitor_map = monitor.monitor_map
 			snapshot.monitor_signature = monitor.monitor_signature
+			snapshot.topology_signature = monitor.topology_signature
 			on_done(snapshot)
 		end)
 	end)
@@ -842,12 +850,23 @@ end
 --                  （解锁通知丢失时兜底，只能进 settling，绝不直接 hidden=off）
 --   settling     → 已解锁（或清醒 display_change 立即进入）：0.2s 一探，
 --                  连续两份有效且相同快照 + 最后事件后 0.8s 静默判定稳定；
---                  3.5s 为故障兜底（enter_animation HOLD_TIMEOUT）
+--                  单次静默等待 3.5s、整个事件风暴最多 10s，hidden hold
+--                  另有 12s 灾难兜底
 --   revealing    → 应用快照后 release 一次整体渐入，随后回 idle
 local SETTLE_PROBE_INTERVAL = 0.2
 local SETTLE_QUIET_PROBES = 4 -- 最后事件后至少 0.8s 静默（4×0.2）
 local SETTLE_MAX_SECONDS = 3.5
 local SLEEP_FAILSAFE_SECONDS = 75
+-- 会话绝对上限：慢机器（DisplayLink 等）解锁后稳定可能需 ~8s，
+-- 到 10s 强制收尾；hold 兜底超时相应放宽到 12s（纯灾难兜底，正常不会触发）。
+local SETTLE_ABSOLUTE_MAX_SECONDS = 10
+local GATE_HOLD_TIMEOUT_SECONDS = 12
+-- reveal 后的余震窗口：同一风暴迟到的 wake/display_change 不开新会话。
+local REVEAL_GRACE_SECONDS = 3
+-- 睡眠恢复比普通切屏更容易在数秒后收到第二簇 wake/display_change。
+-- 3s 无条件吸收窗之后、12s 内只做一次静默核验：无实际变化则不再 hidden/fade；
+-- 确有高度或拓扑变化才恢复完整门控，避免吞掉扩展坞真正迟到的显示器。
+local POST_SLEEP_VERIFY_SECONDS = 12
 
 local gate_state = "idle"
 local gate_generation = 0
@@ -855,28 +874,58 @@ local gate_token = nil
 local gate_probes_since_event = 0
 local gate_last_valid_key = nil
 local gate_settling_started = 0
+local gate_session_started = 0
+local gate_revealed_at = 0
 local gate_had_wake = false
 local gate_failsafe_armed = false
+local gate_session_from_sleep = false
+local gate_post_sleep_verify_until = 0
+local gate_aftershock_generation = 0
 
 local gate_probe -- 前向声明
 
 local function gate_reveal(snapshot)
 	gate_state = "revealing"
+	local reveal_generation = gate_generation
+	local reveal_token = gate_token
+	local reveal_from_sleep = gate_session_from_sleep
 	if not snapshot.monitor_valid then
 		-- 收尾时映射仍无效：fallback 高度-only（映射保持旧值）
 		snapshot.monitor_changed = false
+	end
+	-- 临时诊断日志：确认二次事件到底是映射/拓扑真变化还是签名缓存问题。
+	if snapshot.monitor_changed then
+		io.stderr:write(string.format(
+			"display_gate: monitor diff map={%s} -> {%s}; topology={%s} -> {%s}\n",
+			readableSignature(workspace_monitor_signature),
+			readableSignature(snapshot.monitor_signature),
+			readableSignature(topology_signature),
+			readableSignature(snapshot.topology_signature)))
+	end
+	local height_changed = snapshot.height_changed
+	local monitor_changed = snapshot.monitor_changed
+	local function on_reveal_complete()
+		if gate_generation ~= reveal_generation or gate_state ~= "revealing" then
+			return
+		end
+		gate_revealed_at = os.time()
+		gate_post_sleep_verify_until = reveal_from_sleep
+			and (gate_revealed_at + POST_SLEEP_VERIFY_SECONDS)
+			or 0
+		gate_session_from_sleep = false
+		gate_state = "idle"
+		io.stderr:write(string.format("display_gate: [%s] reveal complete (height=%s monitor=%s)\n",
+			os.date("%H:%M:%S"), tostring(height_changed), tostring(monitor_changed)))
 	end
 	if snapshot.height_changed or snapshot.monitor_changed then
 		if gate_had_wake then
 			sbar.trigger("display_topology_change")
 		end
 		applySnapshot(snapshot, function()
-			enter_animation.release(gate_token)
-			gate_state = "idle"
+			enter_animation.release(reveal_token, on_reveal_complete)
 		end)
 	else
-		enter_animation.release(gate_token)
-		gate_state = "idle"
+		enter_animation.release(reveal_token, on_reveal_complete)
 	end
 end
 
@@ -891,6 +940,7 @@ gate_probe = function(gen)
 			end
 			gate_probes_since_event = gate_probes_since_event + 1
 			local timed_out = (os.time() - gate_settling_started) >= SETTLE_MAX_SECONDS
+				or (os.time() - gate_session_started) >= SETTLE_ABSOLUTE_MAX_SECONDS
 			if snapshot.monitor_valid and not timed_out then
 				local valid_key = tostring(snapshot.height) .. "|" .. snapshot.monitor_signature
 					.. "|" .. tostring(snapshot.topology_signature)
@@ -910,23 +960,71 @@ gate_probe = function(gen)
 	end)
 end
 
--- 进入/续期 settling：generation 作废旧回调，hold 续期并重武装 3.5s 兜底，
+-- 进入/续期 settling：generation 作废旧回调，hold 续期并重武装兜底，
 -- 静默计数清零。revealing 中的事件属于同一风暴，忽略。
 local function gate_enter_settling()
 	if gate_state == "revealing" then
 		return
 	end
+	if gate_state ~= "settling" then
+		-- 新会话起点（续期不重置，配合绝对上限）
+		gate_session_started = os.time()
+	end
 	gate_state = "settling"
 	gate_generation = gate_generation + 1
-	gate_token = enter_animation.hold({ hidden = true })
+	gate_token = enter_animation.hold({ hidden = true, timeout = GATE_HOLD_TIMEOUT_SECONDS })
 	gate_probes_since_event = 0
 	gate_last_valid_key = nil
 	gate_settling_started = os.time()
 	gate_probe(gate_generation)
 end
 
+-- 睡眠恢复后的迟到事件先验证再决定是否重新遮罩。这个例外只在第一次 reveal
+-- 完成后的短窗口内生效；普通清醒 display_change 仍保持“事件即 hidden”。
+local function gate_verify_post_sleep_event(source_event)
+	gate_aftershock_generation = gate_aftershock_generation + 1
+	local verify_generation = gate_aftershock_generation
+	sbar.delay(SETTLE_PROBE_INTERVAL, function()
+		if verify_generation ~= gate_aftershock_generation or gate_state ~= "idle" then
+			return
+		end
+		probeDisplayState(function(snapshot)
+			if verify_generation ~= gate_aftershock_generation or gate_state ~= "idle" then
+				return
+			end
+			if snapshot.height_changed or snapshot.monitor_changed then
+				io.stderr:write("display_gate: post-sleep event has real change, start gate\n")
+				gate_post_sleep_verify_until = 0
+				gate_session_from_sleep = false
+				gate_had_wake = source_event == "system_woke"
+				close_popups()
+				sbar.trigger("display_transition_begin")
+				gate_enter_settling()
+				return
+			end
+			io.stderr:write("display_gate: absorbed unchanged post-sleep event\n")
+		end)
+	end)
+end
+
 -- display_change / system_woke 统一入口
 local function gate_on_display_event(source_event)
+	-- 临时诊断日志：排查"释放后二次渐入"后移除
+	io.stderr:write(string.format("display_gate: [%s] event %s (state=%s)\n",
+		os.date("%H:%M:%S"), tostring(source_event), gate_state))
+	-- 余震窗口：reveal 后数秒内的迟到事件属于上一风暴，只吸收不开新会话
+	if gate_state == "idle"
+		and gate_revealed_at > 0
+		and (os.time() - gate_revealed_at) <= REVEAL_GRACE_SECONDS then
+		io.stderr:write("display_gate: absorbed (post-reveal grace)\n")
+		return
+	end
+	if gate_state == "idle"
+		and gate_post_sleep_verify_until > 0
+		and os.time() <= gate_post_sleep_verify_until then
+		gate_verify_post_sleep_event(source_event)
+		return
+	end
 	if gate_state == "sleep_hidden" then
 		-- 睡眠会话：只记录并武装 failsafe（一次），等解锁；不 bump generation，
 		-- 否则 failsafe 会被吸收事件作废。
@@ -944,6 +1042,8 @@ local function gate_on_display_event(source_event)
 		return
 	end
 	if gate_state == "idle" then
+		gate_session_from_sleep = false
+		gate_post_sleep_verify_until = 0
 		gate_had_wake = source_event == "system_woke"
 		-- popup 状态一致性：hidden 本身会关 popup，这里同步各模块内部标志
 		close_popups()
@@ -959,13 +1059,18 @@ local function gate_on_will_sleep()
 	gate_generation = gate_generation + 1 -- 作废旧会话的所有回调
 	gate_failsafe_armed = false
 	gate_had_wake = false
+	gate_session_from_sleep = true
+	gate_post_sleep_verify_until = 0
+	gate_aftershock_generation = gate_aftershock_generation + 1
 	close_popups()
 	sbar.trigger("display_transition_begin")
 	gate_token = enter_animation.hold({ hidden = true, no_timeout = true })
+	io.stderr:write(string.format("display_gate: [%s] sleep hidden\n", os.date("%H:%M:%S")))
 end
 
 local function gate_on_unlock()
 	if gate_state == "sleep_hidden" then
+		io.stderr:write(string.format("display_gate: [%s] unlock -> settling\n", os.date("%H:%M:%S")))
 		gate_enter_settling()
 	end
 end

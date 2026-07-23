@@ -335,10 +335,27 @@ end
 -- hidden=off（bar 背景同步 alpha 0）→ 一次整体渐入。
 local _release_started = false
 local _hold_hidden = false
+local _release_callbacks = {}
+local _last_completed_generation = 0
 
-local function do_release(token)
-	if not _runtime_active or token ~= _runtime_generation or _release_started then
+local function do_release(token, on_complete)
+	if token ~= _runtime_generation then
 		return false
+	end
+	if not _runtime_active then
+		if token == _last_completed_generation and on_complete then
+			on_complete()
+			return true
+		end
+		return false
+	end
+	if on_complete then
+		_release_callbacks[#_release_callbacks + 1] = on_complete
+	end
+	if _release_started then
+		-- 超时回调与正常 release 同时到达时，不要把“已经在释放”误报成
+		-- “超时刚刚强制释放”；带完成回调的调用仍算成功注册。
+		return on_complete ~= nil
 	end
 	_release_started = true
 	if _hold_hidden then
@@ -366,6 +383,12 @@ local function do_release(token)
 		_release_started = false
 		_hold_hidden = false
 		_runtime_pending = {}
+		_last_completed_generation = token
+		local callbacks = _release_callbacks
+		_release_callbacks = {}
+		for _, callback in ipairs(callbacks) do
+			callback()
+		end
 	end)
 	return true
 end
@@ -374,6 +397,8 @@ end
 -- opts.no_timeout：跳过故障兜底超时（system_will_sleep 预遮罩用——
 -- 睡眠期间定时器不跑，唤醒后由遮罩会话重新 hold 并武装超时）。
 -- opts.hidden：同时把 bar 置 hidden=on（跨原生重建的可见性门控）。
+-- opts.timeout：自定义故障兜底秒数（门控会话的合法 settle 时间可能
+-- 超过默认的 3.5s，需显式放宽，超时仍只是纯灾难兜底）。
 function M.hold(opts)
 	if not _runtime_active then
 		_runtime_pending = {}
@@ -390,6 +415,7 @@ function M.hold(opts)
 	_runtime_generation = _runtime_generation + 1
 	local token = _runtime_generation
 	_release_started = false
+	_release_callbacks = {}
 	for _, entry in ipairs(_runtime_pending) do apply(entry, 0) end
 	sbar.bar({
 		color = appearance.with_alpha(appearance.colors.bar_bg, 0),
@@ -401,7 +427,8 @@ function M.hold(opts)
 
 	if not (opts and opts.no_timeout) then
 		-- 闭包必须捕获创建时 token：触发时读 _runtime_generation 会让旧超时提前释放新 hold。
-		sbar.delay(timing.HOLD_TIMEOUT_SECONDS, function()
+		local timeout_secs = (opts and opts.timeout) or timing.HOLD_TIMEOUT_SECONDS
+		sbar.delay(timeout_secs, function()
 			if do_release(token) then
 				io.stderr:write("sketchybar: enter_animation hold timeout, force release\n")
 			end
@@ -411,8 +438,10 @@ function M.hold(opts)
 end
 
 -- 由 apply 完成回调触发。token 过期（已有更新的 hold）或已释放则丢弃。
-function M.release(token)
-	do_release(token)
+-- on_complete 只在渐入最终收尾后调用；调用方可据此结束 revealing 状态，
+-- 避免动画尚未完成就把晚到事件误判为新会话。
+function M.release(token, on_complete)
+	return do_release(token, on_complete)
 end
 
 function M.prepare()

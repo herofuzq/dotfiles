@@ -103,6 +103,9 @@ local applied_count = #applied
 animation.release(token + 1)
 assert(#bars == bar_count, "stale token must not release the hold")
 assert(#applied == applied_count, "stale token must not apply anything")
+local stale_completed = false
+animation.release(token + 1, function() stale_completed = true end)
+assert(not stale_completed, "stale token must not run release completion")
 
 -- 正常 release：渐入目标使用 hold 期间的最新颜色。
 animation.release(token)
@@ -144,7 +147,10 @@ local last_bar = bars[#bars]
 assert(last_bar.hidden == "on", "hidden hold must set bar hidden=on")
 
 local ops_before_release = #ops
-animation.release(htoken)
+local release_completed = false
+animation.release(htoken, function()
+	release_completed = true
+end)
 local unhide_index
 for index, op in ipairs(ops) do
 	if op.t == "bar" and op.props.hidden == "off" then
@@ -161,6 +167,11 @@ for index = ops_before_release + 1, unhide_index - 1 do
 end
 assert((ops[unhide_index].props.color >> 24) == 0, "bar background must be alpha 0 at hidden=off")
 assert((last_applied("demo").props.icon.color >> 24) ~= 0, "fade must restore item colors")
+assert(not release_completed, "release completion must wait for the fade finalizer")
 delayed[#delayed]() -- finalizer
+assert(release_completed, "release completion must run after the fade finalizer")
+local late_completion = false
+animation.release(htoken, function() late_completion = true end)
+assert(late_completion, "same-token completion registered after the fade must run immediately")
 
 print("enter_animation_test: ok")
