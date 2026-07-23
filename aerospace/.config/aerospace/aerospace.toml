@@ -336,7 +336,8 @@ if = """test %{app-bundle-id} = com.microsoft.edgemac || \
         test %{app-bundle-id} = com.google.Chrome || \
         test %{app-bundle-id} = app.zen-browser.zen || \
         test %{app-bundle-id} = com.kagi.kagimacOS || \
-        test %{app-bundle-id} = net.imput.helium"""
+        test %{app-bundle-id} = net.imput.helium || \
+        test %{app-bundle-id} = com.citrolabs.ego.lite"""
 run = ["move-node-to-workspace 1̲Main --focus-follows-window"]
 
 [[on-window-detected]]
