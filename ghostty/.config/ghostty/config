@@ -23,7 +23,7 @@ font-size = 16
 # -------------------------------------------------- #
 # Custom 
 # -------------------------------------------------- #
-theme = Catppuccin Mocha
+theme = dark:Catppuccin Mocha,light:Catppuccin Latte
 background-opacity      = 1
 background-blur         = 0
 mouse-hide-while-typing = true
