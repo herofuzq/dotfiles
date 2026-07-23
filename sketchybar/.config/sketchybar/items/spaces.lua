@@ -713,13 +713,6 @@ local topology_signature
 
 local query_monitors = "aerospace list-monitors --format '%{monitor-id}|%{monitor-name}'"
 
-local function readableSignature(value)
-	if not value then
-		return "<nil>"
-	end
-	return value:gsub("\0", ", "):gsub("\r\n", "\n"):gsub("\n", "; ")
-end
-
 -- 仅查询组装快照：不更新签名缓存、不 set item。
 -- AeroSpace settle 期间可能只返回部分 workspace，"至少一条有数据"会把中间态当
 -- 真实拓扑应用；必须每个已知 workspace 都有合法 monitor ID 才算 monitor_valid，
@@ -893,17 +886,6 @@ local function gate_reveal(snapshot)
 		-- 收尾时映射仍无效：fallback 高度-only（映射保持旧值）
 		snapshot.monitor_changed = false
 	end
-	-- 临时诊断日志：确认二次事件到底是映射/拓扑真变化还是签名缓存问题。
-	if snapshot.monitor_changed then
-		io.stderr:write(string.format(
-			"display_gate: monitor diff map={%s} -> {%s}; topology={%s} -> {%s}\n",
-			readableSignature(workspace_monitor_signature),
-			readableSignature(snapshot.monitor_signature),
-			readableSignature(topology_signature),
-			readableSignature(snapshot.topology_signature)))
-	end
-	local height_changed = snapshot.height_changed
-	local monitor_changed = snapshot.monitor_changed
 	local function on_reveal_complete()
 		if gate_generation ~= reveal_generation or gate_state ~= "revealing" then
 			return
@@ -914,8 +896,6 @@ local function gate_reveal(snapshot)
 			or 0
 		gate_session_from_sleep = false
 		gate_state = "idle"
-		io.stderr:write(string.format("display_gate: [%s] reveal complete (height=%s monitor=%s)\n",
-			os.date("%H:%M:%S"), tostring(height_changed), tostring(monitor_changed)))
 	end
 	if snapshot.height_changed or snapshot.monitor_changed then
 		if gate_had_wake then
@@ -993,7 +973,6 @@ local function gate_verify_post_sleep_event(source_event)
 				return
 			end
 			if snapshot.height_changed or snapshot.monitor_changed then
-				io.stderr:write("display_gate: post-sleep event has real change, start gate\n")
 				gate_post_sleep_verify_until = 0
 				gate_session_from_sleep = false
 				gate_had_wake = source_event == "system_woke"
@@ -1002,21 +981,16 @@ local function gate_verify_post_sleep_event(source_event)
 				gate_enter_settling()
 				return
 			end
-			io.stderr:write("display_gate: absorbed unchanged post-sleep event\n")
 		end)
 	end)
 end
 
 -- display_change / system_woke 统一入口
 local function gate_on_display_event(source_event)
-	-- 临时诊断日志：排查"释放后二次渐入"后移除
-	io.stderr:write(string.format("display_gate: [%s] event %s (state=%s)\n",
-		os.date("%H:%M:%S"), tostring(source_event), gate_state))
 	-- 余震窗口：reveal 后数秒内的迟到事件属于上一风暴，只吸收不开新会话
 	if gate_state == "idle"
 		and gate_revealed_at > 0
 		and (os.time() - gate_revealed_at) <= REVEAL_GRACE_SECONDS then
-		io.stderr:write("display_gate: absorbed (post-reveal grace)\n")
 		return
 	end
 	if gate_state == "idle"
@@ -1065,12 +1039,10 @@ local function gate_on_will_sleep()
 	close_popups()
 	sbar.trigger("display_transition_begin")
 	gate_token = enter_animation.hold({ hidden = true, no_timeout = true })
-	io.stderr:write(string.format("display_gate: [%s] sleep hidden\n", os.date("%H:%M:%S")))
 end
 
 local function gate_on_unlock()
 	if gate_state == "sleep_hidden" then
-		io.stderr:write(string.format("display_gate: [%s] unlock -> settling\n", os.date("%H:%M:%S")))
 		gate_enter_settling()
 	end
 end
