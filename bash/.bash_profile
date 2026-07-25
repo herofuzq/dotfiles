@@ -26,3 +26,6 @@ export PATH="$PATH:/Users/fuzhuoqun/.lmstudio/bin"
 # the shell-integration block in ~/.bashrc is reached (e.g. in tmux).
 if [ -f "$HOME/.bashrc" ]; then . "$HOME/.bashrc"; fi
 # <<< otty bash-profile shim >>>
+
+# Added by the BaseRT installer
+export PATH="/Users/fuzhuoqun/.basert:$PATH"

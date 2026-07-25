@@ -35,3 +35,6 @@ if [ -n "$OTTY_SHELL_INTEGRATION" ] && [ -r "$OTTY_SHELL_INTEGRATION/otty-integr
   . "$OTTY_SHELL_INTEGRATION/otty-integration.bash"
 fi
 # <<< otty shell integration <<<
+
+# Added by the BaseRT installer
+export PATH="/Users/fuzhuoqun/.basert:$PATH"
