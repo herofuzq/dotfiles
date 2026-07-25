@@ -4,14 +4,14 @@
 -- 仅启用 ABC + 一个中文输入法时，“上一个输入源”切换最可靠。
 -- ============================================================
 local notification = require("notification_hud")
+local wechatVoice = require("wechat_voice")
 local EN = 1
 local ZH = 2
 
 local ABC_SRC = "com.apple.keylayout.ABC"
--- 微信输入法仅用于右 Option 语音适配；通用切换不依赖具体中文输入法。
+-- 微信输入法仅用于双 Command 语音适配；通用切换不依赖具体中文输入法。
 local WECHAT_SRC = "com.tencent.inputmethod.wetype.pinyin"
-local RIGHT_OPTION_KEYCODE = hs.keycodes.map.rightalt or 61
-local RIGHT_OPTION_RAW_FLAG = hs.eventtap.event.rawFlagMasks.deviceRightAlternate
+local LEFT_COMMAND_KEYCODE = hs.keycodes.map.cmd or hs.keycodes.map.leftcmd or 55
 
 local function hasModifier(rawFlags, mask)
 	return math.floor(rawFlags / mask) % 2 == 1
@@ -187,9 +187,8 @@ local _replayingBufferedKey = false
 local _zhBufferedTarget = nil
 local _voiceInputActive = false
 local _voiceActionTimer = nil
-local _rightOptionDown = false
-local _rightOptionRawObserved = false
-local _rightOptionLastEventAt = nil
+local _voiceWindowProbeTimer = nil
+local stopVoiceWindowProbe
 
 -- ============================================================
 -- 空闲自动切换回英文
@@ -207,7 +206,8 @@ local HUD_BOTTOM_OFFSET = 30
 local HUD_VOICE_OFFSET = 40  -- 语音模式下向上位移，避让微信语音栏
 local HUD_MOVE_DURATION = 0.20
 local HUD_MOVE_INTERVAL = 1 / 60
-local RIGHT_OPTION_FALLBACK_GAP = 0.45
+local VOICE_WINDOW_PROBE_INTERVAL = 0.05
+local VOICE_WINDOW_PROBE_ATTEMPTS = 60
 local HUD_CORNER_RADIUS = 10
 local HUD_FADE_OUT_DURATION = 0.16
 local MOCHA_BASE = { red = 30 / 255, green = 30 / 255, blue = 46 / 255 }
@@ -507,7 +507,11 @@ local function inputHudFrame()
 end
 
 local function showInputHud(state, remaining, kpm)
-	if state ~= ZH or not isUsingAlternateInput() then
+	if not wechatVoice.shouldShowHud(
+		_voiceInputActive,
+		state == ZH,
+		isUsingAlternateInput()
+	) then
 		hideInputHud()
 		return
 	end
@@ -605,34 +609,25 @@ local function applyState(state)
 			resetIdleTimer()
 		end
 	else
+		if _voiceInputActive then
+			pauseIdleTimerForVoice()
+			updateInputHud(state)
+			return
+		end
 		_voiceInputActive = false
 		if _voiceActionTimer then
 			_voiceActionTimer:stop()
 			_voiceActionTimer = nil
 		end
-		_rightOptionDown = false
-		_rightOptionLastEventAt = nil
+		if stopVoiceWindowProbe then stopVoiceWindowProbe() end
 		stopIdleTimer(true)
 	end
 end
 
 local function queryState(callback, options)
 	local state = isUsingAlternateInput() and ZH or EN
-	local voiceEnded = not isUsingWeChat() and _voiceInputActive
-	if voiceEnded then
-		_voiceInputActive = false
-		if _voiceActionTimer then
-			_voiceActionTimer:stop()
-			_voiceActionTimer = nil
-		end
-		_rightOptionDown = false
-		_rightOptionLastEventAt = nil
-	end
 	if not (options and options.apply == false) then
 		applyState(state)
-		if voiceEnded and state == ZH then
-			resetIdleTimer(true)
-		end
 	end
 	if callback then callback(state) end
 	return true
@@ -795,35 +790,12 @@ local function noteInputActivity(countKpm)
 	end
 end
 
-local function toggle()
-	_toggled = hs.timer.secondsSinceEpoch()
-	if _switchInFlight then return end
-
-	local target = isUsingAlternateInput() and EN or ZH
-	if target == ZH then
-		armZhSwitchKeyBuffer()
-	else
-		clearZhSwitchKeyBuffer()
-	end
-
-	requestState(target, function(success)
-		if target == ZH and success then
-			flushZhSwitchKeyBuffer()
-		elseif not success then
-			clearZhSwitchKeyBuffer()
-		end
-	end)
-end
-
 local function startVoiceInput()
-	if _voiceInputActive or not isUsingWeChat() then return end
+	if _voiceInputActive then return end
 	local fromFrame = _inputHud and copyHudFrame(_inputHud:frame()) or nil
-	if _zhState ~= ZH then
-		applyState(ZH)
-	end
 	_voiceInputActive = true
 	pauseIdleTimerForVoice()
-	updateInputHud(ZH)
+	updateInputHud(_zhState or (isUsingAlternateInput() and ZH or EN))
 	-- 语音模式：HUD 向上位移避让微信语音栏，带动画过渡。
 	animateInputHud(fromFrame, inputHudFrame())
 end
@@ -832,13 +804,20 @@ local function finishVoiceInput()
 	if not _voiceInputActive then return false end
 	local fromFrame = _inputHud and copyHudFrame(_inputHud:frame()) or nil
 	_voiceInputActive = false
-	resetIdleTimer(true)
+	if isUsingAlternateInput() then
+		_zhState = ZH
+		resetIdleTimer(true)
+	else
+		_zhState = EN
+		stopIdleTimer(true)
+	end
 	-- 语音结束：HUD 平滑恢复原位。
 	animateInputHud(fromFrame, inputHudFrame())
 	return true
 end
 
 local function scheduleVoiceInputAction(shouldFinish)
+	if stopVoiceWindowProbe then stopVoiceWindowProbe() end
 	if _voiceActionTimer then
 		_voiceActionTimer:stop()
 	end
@@ -852,15 +831,38 @@ local function scheduleVoiceInputAction(shouldFinish)
 	end)
 end
 
-local function rightOptionIsDown(event)
-	if not RIGHT_OPTION_RAW_FLAG then return nil, nil end
-	local rawFlags = event:rawFlags()
-	local rawDown = rawFlags and (rawFlags & RIGHT_OPTION_RAW_FLAG) ~= 0
-	if rawDown then
-		_rightOptionRawObserved = true
+local function isVoiceWindowVisible()
+	for _, window in ipairs(hs.window.list(true) or {}) do
+		if wechatVoice.isVoiceWindow(window) then return true end
 	end
-	if not _rightOptionRawObserved then return nil, rawFlags end
-	return rawDown, rawFlags
+	return false
+end
+
+stopVoiceWindowProbe = function()
+	if not _voiceWindowProbeTimer then return end
+	_voiceWindowProbeTimer:stop()
+	_voiceWindowProbeTimer = nil
+end
+
+local function scheduleVoiceWindowProbe()
+	stopVoiceWindowProbe()
+	local expectedAction = _voiceInputActive and "finish" or "start"
+	local attempts = 0
+	local function inspectVoiceWindow()
+		attempts = attempts + 1
+		local action = wechatVoice.probeAction(_voiceInputActive, isVoiceWindowVisible())
+		if action == expectedAction then
+			stopVoiceWindowProbe()
+			scheduleVoiceInputAction(action == "finish")
+		elseif attempts >= VOICE_WINDOW_PROBE_ATTEMPTS then
+			stopVoiceWindowProbe()
+		end
+	end
+	_voiceWindowProbeTimer = hs.timer.doEvery(
+		VOICE_WINDOW_PROBE_INTERVAL,
+		inspectVoiceWindow
+	)
+	inspectVoiceWindow()
 end
 
 -- ============================================================
@@ -924,12 +926,9 @@ do
 end
 
 -- ============================================================
--- CapsLock (Hyper) 单独按下 → 切换中英文
--- ABC 表示英文；任意非 ABC 输入源表示中文状态。
+-- CapsLock 单按由 macOS 原生切换输入法；Raycast 仅处理 Hyper 组合键。
+-- 微信输入法会吞掉右 Command；纯 Command 事件只启动短时浮层检测。
 -- ============================================================
-local hyper_pressed = false
-local hyper_used = false
-
 _InputTap = hs.eventtap.new({
 	hs.eventtap.event.types.flagsChanged,
 	hs.eventtap.event.types.keyDown,
@@ -948,52 +947,18 @@ _InputTap = hs.eventtap.new({
 	end
 
 	if etype == hs.eventtap.event.types.flagsChanged then
-		if event:getKeyCode() == RIGHT_OPTION_KEYCODE then
-			if not isUsingWeChat() then
-				_rightOptionDown = false
-				_rightOptionLastEventAt = nil
-				return false
-			end
-			local now = hs.timer.secondsSinceEpoch()
-			local rawDown = rightOptionIsDown(event)
-			local isPress
-			local rightOptionDown
-			if rawDown == nil then
-				local gap = _rightOptionLastEventAt and now - _rightOptionLastEventAt or math.huge
-				isPress = not _rightOptionDown or gap > RIGHT_OPTION_FALLBACK_GAP
-				rightOptionDown = isPress
-			else
-				rightOptionDown = rawDown
-				isPress = rightOptionDown and not _rightOptionDown
-			end
-			if isPress then
-				scheduleVoiceInputAction(_voiceInputActive)
-			end
-			_rightOptionDown = rightOptionDown
-			_rightOptionLastEventAt = now
-			return false
-		end
-		if hyper and not hyper_pressed then
-			hyper_pressed, hyper_used = true, false
-		elseif hyper and hyper_pressed then
-			hyper_used = true
-		elseif hyper_pressed and not f.ctrl and not f.alt and not f.cmd then
-			hyper_pressed = false
-			if not hyper_used then toggle() end
-		end
-	elseif etype == hs.eventtap.event.types.keyDown
-		or etype == hs.eventtap.event.types.keyUp then
-		-- 组合键的按键释放也可能晚于业务方的全局快捷键处理；
-		-- 只要完整 Hyper 仍在，就明确标记为已使用，避免误触发单独 Hyper。
-		if hyper then
-			hyper_pressed, hyper_used = true, true
-		elseif hyper_pressed then
-			hyper_used = true
+		if wechatVoice.isProbeTrigger(
+			event:getKeyCode(),
+			f,
+			hs.keycodes.currentSourceID(),
+			LEFT_COMMAND_KEYCODE
+		) then
+			scheduleVoiceWindowProbe()
 		end
 	end
 	if etype == hs.eventtap.event.types.keyDown then
 		-- Hyper 组合键（如 Hyper+数字 切换工作区）不重置空闲
-		if not hyper_pressed and not _switchInFlight then
+		if not hyper and not _switchInFlight then
 			if maybeBufferZhSwitchKey(event) then
 				return true
 			end
