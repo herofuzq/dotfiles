@@ -181,10 +181,6 @@ local _zhState
 local _toggled = 0
 local _idleTimer = nil
 local _switchInFlight = false
-local _zhSwitchKeyBufferUntil = 0
-local _zhBufferedKey = nil
-local _replayingBufferedKey = false
-local _zhBufferedTarget = nil
 local _voiceInputActive = false
 local _voiceActionTimer = nil
 local _voiceWindowProbeTimer = nil
@@ -196,9 +192,6 @@ local stopVoiceWindowProbe
 local IDLE_TIMEOUT = 10
 local IDLE_TICK_INTERVAL = 1
 local KEY_RATE_WINDOW = 60
--- 暂时关闭中文切换后的首键缓冲，观察 Hyper 与输入法切换的即时体感。
-local ZH_SWITCH_KEY_BUFFER_WINDOW = 0
-local ZH_SWITCH_KEY_REPLAY_DELAY = 0
 local HUD_BAR_SLOTS = 10
 local HUD_WIDTH = 212
 local HUD_HEIGHT = 26
@@ -361,98 +354,6 @@ local function shouldCountKpm(event)
 	return kc ~= 51 and kc ~= 117
 end
 
-local function isBufferedZhSwitchKey(event)
-	local char = event:getCharacters()
-	local flags = event:getFlags()
-	return char and char:match("^[a-zA-Z0-9 %p]$")
-		and not flags.cmd
-		and not flags.ctrl
-		and not flags.alt
-end
-
-local function clearZhSwitchKeyBuffer()
-	_zhSwitchKeyBufferUntil = 0
-	_zhBufferedKey = nil
-	_zhBufferedTarget = nil
-end
-
-local function frontmostIdentity()
-	local window = hs.window.frontmostWindow()
-	if not window then return nil end
-	local app = window:application()
-	return {
-		windowID = window:id(),
-		bundleID = app and app:bundleID() or nil,
-	}
-end
-
-local function sameFrontmost(identity)
-	local current = frontmostIdentity()
-	return identity
-		and current
-		and identity.windowID == current.windowID
-		and identity.bundleID == current.bundleID
-end
-
-local function modifiersFromEvent(event)
-	local flags = event:getFlags()
-	local modifiers = {}
-	if flags.shift then
-		modifiers[#modifiers + 1] = "shift"
-	end
-	if flags.fn then
-		modifiers[#modifiers + 1] = "fn"
-	end
-	return modifiers
-end
-
-local function armZhSwitchKeyBuffer()
-	_zhSwitchKeyBufferUntil = hs.timer.secondsSinceEpoch() + ZH_SWITCH_KEY_BUFFER_WINDOW
-	_zhBufferedKey = nil
-end
-
-local function maybeBufferZhSwitchKey(event)
-	if _replayingBufferedKey or _zhBufferedKey or not isBufferedZhSwitchKey(event) then
-		return false
-	end
-	if hs.timer.secondsSinceEpoch() > _zhSwitchKeyBufferUntil then
-		return false
-	end
-	_zhBufferedKey = {
-		keyCode = event:getKeyCode(),
-		modifiers = modifiersFromEvent(event),
-	}
-	_zhBufferedTarget = frontmostIdentity()
-	return true
-end
-
-local function flushZhSwitchKeyBuffer()
-	local bufferedKey = _zhBufferedKey
-	local bufferedTarget = _zhBufferedTarget
-	clearZhSwitchKeyBuffer()
-	if not bufferedKey then
-		return
-	end
-	if not sameFrontmost(bufferedTarget) then
-		print("[Input] 丢弃前台窗口已变化的中文首键重放")
-		return
-	end
-	hs.timer.doAfter(ZH_SWITCH_KEY_REPLAY_DELAY, function()
-		if not sameFrontmost(bufferedTarget) then
-			print("[Input] 丢弃重放期间前台窗口变化的中文首键")
-			return
-		end
-		_replayingBufferedKey = true
-		local ok, err = pcall(function()
-			hs.eventtap.keyStroke(bufferedKey.modifiers, bufferedKey.keyCode, 1000)
-		end)
-		_replayingBufferedKey = false
-		if not ok then
-			print("[Input] 重放中文首键失败: " .. tostring(err))
-		end
-	end)
-end
-
 hideInputHud = function(fade)
 	stopHudMoveAnimation()
 	if _inputHud then
@@ -604,6 +505,10 @@ end
 local function applyState(state)
 	local previousState = _zhState
 	_zhState = state
+	if previousState ~= state then
+		-- 记录最近一次切换时刻，warnEN 用它做"刚切换过 2 秒内不提醒"的防抖。
+		_toggled = hs.timer.secondsSinceEpoch()
+	end
 	if state == ZH then
 		if previousState ~= ZH or not _idleDeadline then
 			resetIdleTimer()
@@ -873,6 +778,7 @@ local WARN_APPS = {
 	["com.googlecode.iterm2"] = true,
 	["org.alacritty"] = true,
 	["com.mitchellh.ghostty"] = true,
+	["dev.warp.Warp-Stable"] = true,
 	["com.cmuxterm.app"] = true,
 	["net.kovidgoyal.kitty"] = true,
 	["com.microsoft.VSCode"] = true,
@@ -959,9 +865,6 @@ _InputTap = hs.eventtap.new({
 	if etype == hs.eventtap.event.types.keyDown then
 		-- Hyper 组合键（如 Hyper+数字 切换工作区）不重置空闲
 		if not hyper and not _switchInFlight then
-			if maybeBufferZhSwitchKey(event) then
-				return true
-			end
 			-- 字母、数字、空格、标点、退格/删除、方向键才重置空闲
 			if _zhState == ZH and isInputActivityKey(event) then
 				noteInputActivity(shouldCountKpm(event))
