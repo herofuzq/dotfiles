@@ -1,6 +1,3 @@
-# Kiro CLI pre block. Keep at the top of this file.
-[[ -z "${ZELLIJ:-}" && -f "${HOME}/Library/Application Support/kiro-cli/shell/zshrc.pre.zsh" ]] && builtin source "${HOME}/Library/Application Support/kiro-cli/shell/zshrc.pre.zsh"
-
 # =============================================================================
 # PATH hygiene
 # =============================================================================
@@ -153,11 +150,9 @@ eval "$(zoxide init zsh)"
 # --- Homebrew Ruby + gem executables ---
 # Hardcoded gem bindir avoids spawning `ruby -e` on every shell start.
 # Update the gem path after a major Ruby upgrade (`brew info ruby` / `gem env`).
-path=(
-  /opt/homebrew/lib/ruby/gems/4.0.0/bin
-  /opt/homebrew/opt/ruby/bin
-  $path
-)
+[[ -d /opt/homebrew/lib/ruby/gems/4.0.0/bin ]] &&
+  path=(/opt/homebrew/lib/ruby/gems/4.0.0/bin $path)
+path=(/opt/homebrew/opt/ruby/bin $path)
 
 # --- bun (JS runtime) ---
 export BUN_INSTALL="$HOME/.bun"
@@ -167,9 +162,6 @@ path=($BUN_INSTALL/bin $path)
 
 # --- ImageMagick (Homebrew formula: imagemagick, not imagemagick-full) ---
 [[ -d /opt/homebrew/opt/imagemagick/bin ]] && path=(/opt/homebrew/opt/imagemagick/bin $path)
-
-# --- MiniMax Code (mavis) ---
-path=($HOME/.mavis/bin $path)
 
 # --- LM Studio CLI (lms) ---
 path=($path $HOME/.lmstudio/bin)
@@ -292,11 +284,3 @@ export AIZSH_PROVIDER=ollama
 export AIZSH_GHOST_MODEL=qwen2.5-coder:1.5b
 export AIZSH_PROMPT_MODEL=qwen3.5:2b
 # source ~/.config/ai-zsh/ai-zsh.plugin.zsh
-
-# Kiro CLI post block. Keep at the bottom of this file.
-[[ -z "${ZELLIJ:-}" && -f "${HOME}/Library/Application Support/kiro-cli/shell/zshrc.post.zsh" ]] && builtin source "${HOME}/Library/Application Support/kiro-cli/shell/zshrc.post.zsh"
-
-# kimi-code
-export PATH="/Users/fuzhuoqun/.kimi-code/bin:$PATH"
-export PATH="$HOME/.local/bin:$PATH"
-export PATH="$HOME/.local/bin:$PATH"
