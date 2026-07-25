@@ -3,6 +3,7 @@ local sbar = require("sketchybar")
 local fonts = require("fonts")
 local appearance = require("appearance")
 local timing = require("helpers.timing")
+local textwidth = require("helpers.textwidth")
 local find_binary = require("helpers.find_binary").find
 local shell_quote = require("helpers.utils").shell_quote
 local startup = require("helpers.startup")
@@ -52,6 +53,10 @@ local title_generation = 0
 local title_initialized = false
 local fallback_refresh_generation = 0
 
+-- 显示宽度预算：汉字算 2、ASCII 算 1，14 ≈ 7 个汉字 / 14 个英文字母。
+-- SketchyBar 的 max_chars 只数字符个数，所以每次按歌名实际宽度换算。
+local TITLE_WIDTH_BUDGET = 14
+
 local function display_title(info)
 	local title = (info and info.title) or ""
 	local artist = (info and info.artist) or ""
@@ -82,9 +87,10 @@ local function update_label(info, animated)
 	if not label then
 		return
 	end
+	local max_chars = textwidth.chars_within_width(title, TITLE_WIDTH_BUDGET)
 	if not title_initialized or not animated then
 		title_initialized = true
-		label:set({ label = { string = title, color = colors.yellow } })
+		label:set({ label = { string = title, color = colors.yellow, max_chars = max_chars } })
 		return
 	end
 
@@ -99,7 +105,7 @@ local function update_label(info, animated)
 			return
 		end
 		sbar.animate("linear", timing.STANDARD_DURATION_FRAMES, function()
-			label:set({ label = { string = title, color = colors.yellow } })
+			label:set({ label = { string = title, color = colors.yellow, max_chars = max_chars } })
 		end)
 	end)
 end
@@ -283,6 +289,7 @@ label = sbar.add("item", "widgets.media_label", {
 		color = colors.yellow,
 		padding_left = 2,
 		padding_right = 6,
+		-- 占位值：update_label 每次 set 都按 TITLE_WIDTH_BUDGET 重新换算 max_chars
 		max_chars = 7,
 		align = "left",
 	},
