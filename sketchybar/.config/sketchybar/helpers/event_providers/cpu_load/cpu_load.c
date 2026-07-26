@@ -16,6 +16,11 @@ int main(int argc, char** argv) {
   snprintf(event_message, 512, "--add event '%s'", argv[1]);
   sketchybar(event_message);
 
+  // CPU percentage needs two host_statistics snapshots. Warm up briefly so
+  // the first published event contains a real delta instead of placeholder data.
+  cpu_update(&cpu);
+  usleep(100000);
+
   char trigger_message[512];
   for (;;) {
     cpu_update(&cpu);

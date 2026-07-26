@@ -107,7 +107,7 @@ Main-bar icon/label colors and explicitly declared background/border colors are 
 |---------|---------------|-------------------------|
 | `sketchybar` | brew service / manual / login | `sketchybar --reload` restarts the Lua config process |
 | `aerospace_watch`, `docker_watch`, `input_method_watch`, `media_watch` | launchd LaunchAgents (`KeepAlive`) | `helper_build.lua` runs `launchctl kickstart` only after the corresponding binary rebuild succeeds |
-| `cpu_load` | `items/widgets/sys.lua` on config load (pidfile under `$TMPDIR`) | killed/replaced on next reload of `sys.lua` |
+| `cpu_load` | `items/widgets/sys.lua` schedules it from the event loop after the `cpu_update` subscription is active (pidfile under `$TMPDIR`); the provider warms up for 100ms before its first real sample | killed/replaced on next reload of `sys.lua` |
 | `sys_watch` | only while sys popup is open | stopped in popup `on_hidden` |
 
 ### Desktop Event Flow
@@ -307,7 +307,7 @@ helper 的编译产物不进 git，而是在实际运行路径里生成，例如
 |------|----------|-----------------|
 | `sketchybar` | brew service / 手动 / 登录项 | `sketchybar --reload` 重跑 Lua 配置进程 |
 | `aerospace_watch` / `docker_watch` / `input_method_watch` / `media_watch` | launchd LaunchAgents（`KeepAlive`） | `helper_build.lua` 仅在对应 binary 成功重建后 `launchctl kickstart` |
-| `cpu_load` | `items/widgets/sys.lua` 加载时（pidfile 在 `$TMPDIR`） | 下次 reload `sys.lua` 时 kill 旧进程再起 |
+| `cpu_load` | `items/widgets/sys.lua` 在 `cpu_update` 订阅生效后从事件循环启动（pidfile 在 `$TMPDIR`）；provider 预热 100ms 后发送首个真实采样 | 下次 reload `sys.lua` 时 kill 旧进程再起 |
 | `sys_watch` | 仅在 sys popup 打开期间 | popup `on_hidden` 时停止 |
 
 ### 桌面事件流

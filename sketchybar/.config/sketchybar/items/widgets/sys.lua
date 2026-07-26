@@ -22,20 +22,21 @@ local MACTOP = find_binary({ "/opt/homebrew/bin/mactop", "/usr/local/bin/mactop"
 local SKETCHYBAR = find_binary({ "/opt/homebrew/bin/sketchybar", "/usr/local/bin/sketchybar" })
 local WATCHER_EXECUTABLE = find_binary({ WATCHER })
 
--- 启动 CPU 监控后台进程，每 2 秒通过事件推送 CPU 数据
--- 使用 pidfile 避免 reload 时误杀其他同名进程
-sbar.exec(table.concat({
-	'pidfile="${TMPDIR:-/tmp}/sketchybar_cpu_load.pid"',
-	'cpu_bin="$CONFIG_DIR/helpers/event_providers/cpu_load/bin/cpu_load"',
-	'old="$(cat "$pidfile" 2>/dev/null)"',
-	'case "$old" in ""|*[!0-9]*) old="" ;; esac',
-	'if [ -n "$old" ]; then kill "$old" 2>/dev/null; fi',
-	'ps -axo pid=,args= | awk -v bin="$cpu_bin" \'index($0, bin " cpu_update") { print $1 }\' | while read -r pid; do',
-	'[ "$pid" != "$$" ] && kill "$pid" 2>/dev/null',
-	"done",
-	'"$cpu_bin" cpu_update 2.0 &',
-	'echo $! > "$pidfile"',
-}, "\n"))
+-- 在 begin_config 结束、订阅已生效后再启动，避免首个 cpu_update 事件丢失。
+local function restart_cpu_provider()
+	sbar.exec(table.concat({
+		'pidfile="${TMPDIR:-/tmp}/sketchybar_cpu_load.pid"',
+		'cpu_bin="$CONFIG_DIR/helpers/event_providers/cpu_load/bin/cpu_load"',
+		'old="$(cat "$pidfile" 2>/dev/null)"',
+		'case "$old" in ""|*[!0-9]*) old="" ;; esac',
+		'if [ -n "$old" ]; then kill "$old" 2>/dev/null; fi',
+		'ps -axo pid=,args= | awk -v bin="$cpu_bin" \'index($0, bin " cpu_update") { print $1 }\' | while read -r pid; do',
+		'[ "$pid" != "$$" ] && kill "$pid" 2>/dev/null',
+		"done",
+		'"$cpu_bin" cpu_update 2.0 &',
+		'echo $! > "$pidfile"',
+	}, "\n"))
+end
 
 local sys = sbar.add("item", "widgets.sys", {
 	position = "right",
@@ -213,3 +214,6 @@ sys:subscribe("cpu_update", function(env)
 	end)
 	initial_ready()
 end)
+
+-- delay(0) 从 event_loop 执行；此时 end_config 已提交 cpu_update 订阅。
+sbar.delay(0, restart_cpu_provider)
