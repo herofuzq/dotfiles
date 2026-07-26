@@ -832,9 +832,20 @@ do
 end
 
 -- ============================================================
--- CapsLock 单按由 macOS 原生切换输入法；Raycast 仅处理 Hyper 组合键。
+-- Hyperkey 把 Caps 呈现为孤立的左 Command 事件（实测：不发送 ⌃⌥⇧ 修饰，
+-- 组合键是改写后续按键的 flags 实现的）。因此 Caps 单击 = 孤立 Command 短按
+-- （期间不碰任何键或鼠标），松开时切换中英文；Command+键 的组合不受影响。
 -- 微信输入法会吞掉右 Command；纯 Command 事件只启动短时浮层检测。
 -- ============================================================
+local CMD_TAP_MAX_HOLD = 0.3
+local _cmdTapDownAt = nil
+local _cmdTapUsed = false
+
+local function toggleInputSource()
+	local target = isUsingAlternateInput() and EN or ZH
+	requestState(target)
+end
+
 _InputTap = hs.eventtap.new({
 	hs.eventtap.event.types.flagsChanged,
 	hs.eventtap.event.types.keyDown,
@@ -853,6 +864,21 @@ _InputTap = hs.eventtap.new({
 	end
 
 	if etype == hs.eventtap.event.types.flagsChanged then
+		if event:getKeyCode() == LEFT_COMMAND_KEYCODE then
+			if f.cmd and not _cmdTapDownAt then
+				_cmdTapDownAt = hs.timer.secondsSinceEpoch()
+				_cmdTapUsed = false
+			elseif not f.cmd and _cmdTapDownAt then
+				local held = hs.timer.secondsSinceEpoch() - _cmdTapDownAt
+				local used = _cmdTapUsed
+				_cmdTapDownAt = nil
+				_cmdTapUsed = false
+				-- 孤立 Command 短按（= Caps 单击）：期间未搭配任何按键/鼠标
+				if not used and held < CMD_TAP_MAX_HOLD then
+					toggleInputSource()
+				end
+			end
+		end
 		if wechatVoice.isProbeTrigger(
 			event:getKeyCode(),
 			f,
@@ -860,6 +886,13 @@ _InputTap = hs.eventtap.new({
 			LEFT_COMMAND_KEYCODE
 		) then
 			scheduleVoiceWindowProbe()
+		end
+	elseif etype == hs.eventtap.event.types.keyDown
+		or etype == hs.eventtap.event.types.leftMouseDown
+		or etype == hs.eventtap.event.types.rightMouseDown
+		or etype == hs.eventtap.event.types.otherMouseDown then
+		if _cmdTapDownAt then
+			_cmdTapUsed = true
 		end
 	end
 	if etype == hs.eventtap.event.types.keyDown then
