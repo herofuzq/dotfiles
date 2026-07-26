@@ -82,6 +82,7 @@ print(_floatingLevel_filter ~= nil, _windowWatcher_filter ~= nil)
 | 文档 | 用途 |
 |------|------|
 | [SETUP.md](./SETUP.md) | 新机器安装、Stow、Brewfile、Launchd |
+| [hammerspoon/.hammerspoon/README.md](./hammerspoon/.hammerspoon/README.md) | 输入法切换架构、Caps/Hyper 触发链路与踩坑记录 |
 | [sketchybar/.config/sketchybar/README.md](./sketchybar/.config/sketchybar/README.md) | SketchyBar 模块、事件流、调试入口 |
 | [nvim/.config/nvim/README.md](./nvim/.config/nvim/README.md) | Neovim 配置与插件说明 |
 
