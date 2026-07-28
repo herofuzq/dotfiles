@@ -99,6 +99,28 @@ assert(appearance.schemes.everforest.dark == "everforest_dark" and appearance.sc
 assert(appearance.schemes.kanagawa.dark == "kanagawa_wave" and appearance.schemes.kanagawa.light == "kanagawa_lotus")
 assert(appearance.schemes.gruvbox.dark == "gruvbox_dark" and appearance.schemes.gruvbox.light == "gruvbox_light")
 
+-- 每套 scheme 只登记一个代表色角色，dark/light 自动取各自 palette 的对应值。
+local border_roles = {
+	catppuccin = "mauve",
+	tokyonight = "blue",
+	rosepine = "rosewater",
+	everforest = "green",
+	kanagawa = "blue",
+	gruvbox = "peach",
+}
+for scheme_name, role in pairs(border_roles) do
+	local scheme = appearance.schemes[scheme_name]
+	assert(scheme.window_border == role, scheme_name .. " window_border 角色错误")
+	for _, flavor in ipairs({ "dark", "light" }) do
+		local p = appearance.palette[scheme[flavor]]
+		local colors = appearance.build_colors(p, scheme.window_border)
+		assert(
+			colors.identity.window_border == p[role],
+			scheme_name .. "." .. flavor .. " window_border 颜色错误"
+		)
+	end
+end
+
 -- 每个色板必须填满 26 槽（结构一致，防漏槽/笔误多槽）
 for name, p in pairs(appearance.palette) do
 	local n = 0
@@ -113,6 +135,9 @@ local active_built = appearance.build_colors(appearance.flavor_palette(appearanc
 assert(appearance.colors.status.ok == active_built.status.ok)
 assert(appearance.colors.identity.music_text == active_built.identity.music_text)
 assert(appearance.colors.press == active_built.press)
+local active_scheme = appearance.schemes[appearance.scheme]
+local active_palette = appearance.palette[active_scheme[appearance.active]]
+assert(appearance.colors.identity.window_border == active_palette[active_scheme.window_border])
 
 -- ========== 两主题 key 集合完全一致（原地更新的前置约束）==========
 
@@ -218,6 +243,7 @@ assert(detected == appearance.active, "加载时 active 应与同步检测一致
 -- 已知 owner 必须在源文件中注册；新增主题相关模块必须同步加入本清单。
 local owner_sources = {
 	["appearance.core"] = "sketchybar/.config/sketchybar/appearance.lua",
+	window_border = "sketchybar/.config/sketchybar/helpers/window_border.lua",
 	apple = "sketchybar/.config/sketchybar/items/apple.lua",
 	spaces = "sketchybar/.config/sketchybar/items/spaces.lua",
 	borders = "sketchybar/.config/sketchybar/helpers/borders.lua",

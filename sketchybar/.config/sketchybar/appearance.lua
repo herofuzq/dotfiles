@@ -356,12 +356,12 @@ local palette = {
 -- 切换色系：改 M.scheme（见下方 ⑤）+ sketchybar --reload。深浅仍跟随系统。
 -- 可用：catppuccin / tokyonight / rosepine / everforest / kanagawa / gruvbox
 local schemes = {
-	catppuccin = { dark = "mocha", light = "latte" },
-	tokyonight = { dark = "tokyonight_storm", light = "tokyonight_day" },
-	rosepine = { dark = "rosepine", light = "rosepine_dawn" },
-	everforest = { dark = "everforest_dark", light = "everforest_light" },
-	kanagawa = { dark = "kanagawa_wave", light = "kanagawa_lotus" },
-	gruvbox = { dark = "gruvbox_dark", light = "gruvbox_light" },
+	catppuccin = { dark = "mocha", light = "latte", window_border = "mauve" },
+	tokyonight = { dark = "tokyonight_storm", light = "tokyonight_day", window_border = "blue" },
+	rosepine = { dark = "rosepine", light = "rosepine_dawn", window_border = "rosewater" },
+	everforest = { dark = "everforest_dark", light = "everforest_light", window_border = "green" },
+	kanagawa = { dark = "kanagawa_wave", light = "kanagawa_lotus", window_border = "blue" },
+	gruvbox = { dark = "gruvbox_dark", light = "gruvbox_light", window_border = "peach" },
 }
 
 -- ========== (2) 工具函数（需在 build_colors 之前定义）==========
@@ -382,7 +382,7 @@ local A = {
 -- ========== (4) 构建实际颜色表（含 alpha）==========
 -- 三层语义：中性色（顶层）+ status（状态语义）+ identity（widget 固定强调色登记表）。
 -- widget 只许引用 colors.status.* / colors.identity.* / 中性色，禁止裸引用色板色。
-local function build_colors(P)
+local function build_colors(P, window_border_role)
 	return {
 		pill_bg = M.with_alpha(P.surface0, A.pill), -- surface0 @ 0.667
 		pill_fg = P.text,
@@ -439,6 +439,7 @@ local function build_colors(P)
 			spaces_ws = P.text, -- workspace 编号/front_app 收敛为中性
 			spaces_service = P.text, -- service mode 指示器可见时的颜色，与 apple 图标同色
 			spaces_win_highlight = P.red, -- 窗口标题高亮（信号色）
+			window_border = P[window_border_role or "mauve"], -- jankyborders 当前窗口外框
 		},
 	}
 end
@@ -446,11 +447,16 @@ end
 -- ========== (5) 切换 ==========
 -- 色系配置：catppuccin / tokyonight / rosepine / everforest / kanagawa / gruvbox（定义见 1.1 schemes 表）。
 -- flavor 统一用 "dark"/"light" 表示，具体色板由 scheme 映射决定。
-M.scheme = "everforest"
+M.scheme = "gruvbox"
 
 local function flavor_palette(flavor)
 	local scheme = schemes[M.scheme] or schemes.catppuccin
 	return palette[scheme[flavor]]
+end
+
+local function build_theme_colors(flavor)
+	local scheme = schemes[M.scheme] or schemes.catppuccin
+	return build_colors(palette[scheme[flavor]], scheme.window_border)
 end
 
 -- defaults read -g AppleInterfaceStyle：stdout 首行 "Dark" = 深色；
@@ -476,7 +482,7 @@ end
 -- 配置加载即确定主题：appearance 在 begin_config 前被首次 require，
 -- 浅色系统 reload 不会先显示深色 flavor 再切浅色。
 M.active = M.detect_system_theme_sync()
-M.colors = build_colors(flavor_palette(M.active))
+M.colors = build_theme_colors(M.active)
 -- 导出供测试与主题切换使用
 M.palette = palette
 M.schemes = schemes
@@ -531,7 +537,7 @@ function M.switch_theme(theme)
 		return false
 	end
 	M.active = theme
-	update_table_in_place(M.colors, build_colors(flavor_palette(theme)))
+	update_table_in_place(M.colors, build_theme_colors(theme))
 	local sbar = require("sketchybar")
 	local timing = require("helpers.timing")
 	sbar.animate("linear", timing.THEME_SWITCH_FRAMES, function()

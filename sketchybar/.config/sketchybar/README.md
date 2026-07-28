@@ -70,7 +70,7 @@ Main-bar icon/label colors and explicitly declared background/border colors are 
 | `init.lua` | `begin_config` / startup fade / `event_loop` |
 | `helpers/startup.lua` | Startup hide, batched configuration, and reveal timing |
 | `settings.lua` | Bar height, Dock-width detection, and default spacing |
-| `appearance.lua` | Catppuccin palette, semantic colors, global defaults |
+| `appearance.lua` | Theme palettes, semantic colors, global defaults |
 | `fonts.lua` | Font families and styles |
 | `icons.lua` | Shared icon definitions |
 | `bar.lua` | Bar-level geometry, blur, background |
@@ -89,6 +89,7 @@ Main-bar icon/label colors and explicitly declared background/border colors are 
 | `helpers/popup_animation.lua` | Popup show/hide alpha helpers |
 | `helpers/popup_utils.lua` | Deferred UI updates from popup event callbacks |
 | `helpers/borders.lua` | Focused workspace segment styling |
+| `helpers/window_border.lua` | Start and recolor jankyborders from the active theme |
 | `helpers/timing.lua` | Shared animation timing constants |
 | `helpers/services/*` | Docker compose config / status / control scripts |
 | `helpers/git/*` | Watched repos config + status script |
@@ -109,6 +110,7 @@ Main-bar icon/label colors and explicitly declared background/border colors are 
 | `aerospace_watch`, `docker_watch`, `input_method_watch`, `media_watch` | launchd LaunchAgents (`KeepAlive`) | `helper_build.lua` runs `launchctl kickstart` only after the corresponding binary rebuild succeeds |
 | `cpu_load` | `items/widgets/sys.lua` schedules it from the event loop after the `cpu_update` subscription is active (pidfile under `$TMPDIR`); the provider warms up for 100ms before its first real sample | killed/replaced on next reload of `sys.lua` |
 | `sys_watch` | only while sys popup is open | stopped in popup `on_hidden` |
+| `borders` (jankyborders) | `helpers/window_border.lua` starts it with the active theme color during SketchyBar config | updated in place on theme changes; no KeepAlive |
 
 ### Desktop Event Flow
 
@@ -269,7 +271,7 @@ helper 的编译产物不进 git，而是在实际运行路径里生成，例如
 | `sketchybarrc` | 入口：helpers + settings + `init` |
 | `init.lua` | `begin_config` / 启动渐入 / `event_loop` |
 | `settings.lua` | bar 高度、默认间距、自动显隐 helper |
-| `appearance.lua` | Catppuccin 色板、语义颜色、全局默认样式 |
+| `appearance.lua` | 多套主题色板、语义颜色、全局默认样式 |
 | `fonts.lua` | 字体族和样式 |
 | `icons.lua` | 共享图标定义 |
 | `bar.lua` | bar 几何、模糊、背景 |
@@ -289,6 +291,7 @@ helper 的编译产物不进 git，而是在实际运行路径里生成，例如
 | `helpers/popup_animation.lua` | popup 显隐 alpha |
 | `helpers/popup_utils.lua` | popup 事件回调中的延后 UI 更新 |
 | `helpers/borders.lua` | 工作区焦点分段样式 |
+| `helpers/window_border.lua` | 按当前主题启动 jankyborders 并热更新颜色 |
 | `helpers/timing.lua` | 共享动画时间常量 |
 | `helpers/services/*` | Docker Compose 配置 / 状态 / 控制脚本 |
 | `helpers/git/*` | 监视仓库配置 + 状态脚本 |
@@ -309,6 +312,7 @@ helper 的编译产物不进 git，而是在实际运行路径里生成，例如
 | `aerospace_watch` / `docker_watch` / `input_method_watch` / `media_watch` | launchd LaunchAgents（`KeepAlive`） | `helper_build.lua` 仅在对应 binary 成功重建后 `launchctl kickstart` |
 | `cpu_load` | `items/widgets/sys.lua` 在 `cpu_update` 订阅生效后从事件循环启动（pidfile 在 `$TMPDIR`）；provider 预热 100ms 后发送首个真实采样 | 下次 reload `sys.lua` 时 kill 旧进程再起 |
 | `sys_watch` | 仅在 sys popup 打开期间 | popup `on_hidden` 时停止 |
+| `borders`（jankyborders） | SketchyBar 配置期由 `helpers/window_border.lua` 带当前主题色启动 | 主题切换时原进程热更新；不做 KeepAlive |
 
 ### 桌面事件流
 

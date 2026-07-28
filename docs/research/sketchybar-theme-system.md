@@ -1,6 +1,6 @@
-# SketchyBar 主题系统方案（v2.1，架构已批准，进入阶段一）
+# SketchyBar 主题系统方案（v2.1，已实施）
 
-> 状态：方案阶段，未动代码。本文档办结后按惯例折叠进 sketchybar README 并删除。
+> 状态：已实施，作为主题架构的研究记录保留；长期运行说明已同步到 sketchybar README。
 > v1 → v2 修订：M.colors 原地更新防反弹；bar_bg 保留（v1 误判为死配置）；
 > 弃用 Swift theme_watch，改用 SketchyBar 原生分布式通知事件；启动同步检测；
 > dim/popup 默认值移出零变化阶段；注册覆盖测试加强；旧架构死因改为推断表述。
@@ -31,7 +31,8 @@ widget 残留旧色。重建必须用机制保证覆盖完整性，而非靠人�
 3. **身份色保留彩虹（路线 A）**：身份色集中到 `appearance.lua` 登记表命名管理，
    widget 禁止裸引用 `colors.peach` 等色板色。已知代价（警报色被装饰色稀释）用户认账。
 4. **切换方式**：热换色，**不 reload**。注册表驱动 + 0.2-0.3s 换色过渡。
-5. **边界**：只管 sketchybar 本体。borders（jankyborders）及其他应用不联动。
+5. **边界**：主题注册表管理 sketchybar 本体；后续扩展由 `window_border` owner
+   联动 jankyborders，其他应用不联动。
 
 ## 3. 架构设计
 
@@ -113,8 +114,8 @@ appearance.register_colors("battery", apply_colors)   -- 主题切换时重放
 - **`sbar.default` 只影响之后创建的 item**：重新调用不会重染现有 item、bracket 和
   popup，各 owner 的 apply_colors 必须显式覆盖现有对象。
 - **helpers/borders 特殊处理**：`borders.lua:18` 的 `local focused_bg = colors.red`
-  是模块级标量缓存（内部 workspace 高亮模块，不在"外部 jankyborders 不联动"的排除
-  范围内）。修复：`focused_bg` 改为运行时从语义色读取；且其 apply 重放**必须走
+  是模块级标量缓存（这里指内部 workspace 高亮模块，与外部 jankyborders 是两个模块）。
+  修复：`focused_bg` 改为运行时从语义色读取；且其 apply 重放**必须走
   `set_focused`/`set_inactive` 函数**而非直接 `sbar.set`——这两个函数会同步
   `enter_animation.update_target`（reveal 动画目标色缓存），直接 set 会导致下次
   reveal 闪回旧色。为此 borders 需记住最近一次 `distribute` 的参数

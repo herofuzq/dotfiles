@@ -1,14 +1,13 @@
 #!/bin/bash
 
-# active_color 与 aerospace.toml:15 after-startup-command 里的 borders 颜色保持同步,
-# 当前对齐 Catppuccin Mocha peach (0xfffab387)。手动启动本脚本会在已有 aerospace 进程外
-# 再启动一份 borders,通常用于调试;日常使用交给 aerospace 启动。
-options=(
-  style=round
-  width=6.0
-  hidpi=on
-  active_color=0xfffab387
-  inactive_color=0x00000000
-)
+# 窗口外框唯一参数源。SketchyBar 启动和切换主题时传入准确颜色；
+# 手动执行则使用当前默认 scheme (Everforest) 的 dark green。
+active_color="${BORDERS_ACTIVE_COLOR:-0xffa7c080}"
 
-borders "${options[@]}"
+borders \
+  style=round \
+  width=5.0 \
+  hidpi=on \
+  order=above \
+  active_color="$active_color" \
+  inactive_color=0x00000000

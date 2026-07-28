@@ -10,6 +10,7 @@ enter_animation.install()
 
 startup.configure(function()
 	require("appearance").install_defaults()
+	require("helpers.window_border").install()
 	require("bar")
 	require("items")
 
