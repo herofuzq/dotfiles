@@ -15,8 +15,6 @@ local settings = require("settings")
 local timing = require("helpers.timing")
 local enter_animation = require("helpers.enter_animation")
 
--- 阶段一仅语义改名；模块级标量缓存在阶段二改运行时读取。
-local focused_bg = colors.status.error
 local inactive_bg = 0x00000000
 local workspace_style = {
 	bracket_height = settings.height - 4,
@@ -62,7 +60,7 @@ end
 
 local function set_focused(name)
 	local props = {
-		background = { color = focused_bg },
+		background = { color = colors.status.error },
 		icon = { color = colors.crust, highlight_color = colors.crust },
 		label = { color = colors.crust, highlight_color = colors.crust },
 	}
@@ -80,7 +78,21 @@ local function set_inactive(name)
 	sbar.set(name, props)
 end
 
+-- 最近一次 distribute 的参数（主题切换时按同参数重放）。
+-- visible_workspace_names 可能被调用方复用，存副本；workspace_order 为 spaces 的常驻表，存引用。
+local last_distribute
+
 local function distribute(visible_workspace_names, focused_name, animated, workspace_order)
+	local visible_copy = {}
+	for i, name in ipairs(visible_workspace_names) do
+		visible_copy[i] = name
+	end
+	last_distribute = {
+		visible = visible_copy,
+		focused = focused_name,
+		order = workspace_order,
+	}
+
 	-- 第一步：segment 几何在 animation 之外一次设好（不被插值，避免 x_offset 跳 1px）
 	for i, name in ipairs(visible_workspace_names) do
 		set_segment_geometry(name, workspace_order)
@@ -103,6 +115,18 @@ local function distribute(visible_workspace_names, focused_name, animated, works
 		apply()
 	end
 end
+
+-- ========== 主题热换色：按记忆的参数重放 distribute ==========
+-- animated=false：switch_theme 外层已有 animate；set_focused/set_inactive
+-- 内部会同步 enter_animation.update_target（reveal 目标色缓存）。
+local function apply_colors(C)
+	if not last_distribute then
+		return
+	end
+	distribute(last_distribute.visible, last_distribute.focused, false, last_distribute.order)
+end
+apply_colors(colors)
+appearance.register_colors("borders", apply_colors)
 
 return {
 	distribute = distribute,

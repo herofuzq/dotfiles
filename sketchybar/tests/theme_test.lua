@@ -1,5 +1,13 @@
 package.path = "sketchybar/.config/sketchybar/?.lua;sketchybar/.config/sketchybar/?/init.lua;" .. package.path
 
+-- switch_theme 内部才 require("sketchybar")，mock 成 animate 立即执行回调
+package.preload["sketchybar"] = function()
+	return {
+		animate = function(_, _, callback) callback() end,
+		bar = function() end,
+	}
+end
+
 local appearance = require("appearance")
 
 -- ========== 阶段一：identity/status 语义层数值与原硬编码值逐一相等 ==========
@@ -77,5 +85,82 @@ end
 assert_same_keys(cm, cl, "top")
 assert_same_keys(cm.status, cl.status, "status")
 assert_same_keys(cm.identity, cl.identity, "identity")
+
+-- ========== 阶段二：原地更新 + 注册表 + 反弹 ==========
+
+-- appearance.core 在 appearance.lua 加载时即注册
+local registered = {}
+for _, name in ipairs(appearance.registered_names()) do
+	registered[name] = true
+end
+assert(registered["appearance.core"], "appearance.core 未注册")
+
+-- 注册一个探针回调，验证 switch_theme 调用恰好一次且收到新色板
+local probe_calls = 0
+local probe_color
+appearance.register_colors("test.probe", function(C)
+	probe_calls = probe_calls + 1
+	probe_color = C.status.ok
+end)
+
+-- 缓存表引用（模拟各 widget 顶部的 local colors = appearance.colors）
+local cached = appearance.colors
+local status_ref = cached.status
+local identity_ref = cached.identity
+
+assert(appearance.switch_theme("mocha") == false, "同主题应为 no-op")
+assert(appearance.switch_theme("dracula") == false, "未知主题应为 no-op")
+assert(probe_calls == 0, "no-op 不应触发回调")
+
+assert(appearance.switch_theme("latte") == true)
+assert(probe_calls == 1, "switch_theme 应调每个回调恰好一次")
+assert(probe_color == latte.green, "回调应收到新色板")
+
+-- 原地更新：表对象与子表对象均为同一引用
+assert(cached == appearance.colors, "M.colors 表对象被替换（会反弹）")
+assert(cached.status == status_ref, "status 子表对象被替换")
+assert(cached.identity == identity_ref, "identity 子表对象被替换")
+-- 缓存引用读到新值（状态刷新路径不反弹的关键）
+assert(cached.status.ok == latte.green)
+assert(cached.identity.music_text == latte.yellow)
+-- 旧 mocha 值无残留
+assert(cached.status.ok ~= mocha.green)
+
+-- 往返切换恢复 mocha
+assert(appearance.switch_theme("mocha") == true)
+assert(probe_calls == 2)
+assert(cached.status.ok == mocha.green)
+assert(cached.identity.spaces_win_highlight == mocha.red)
+
+-- ========== owner 注册静态检查（防旧架构式名单漂移）==========
+-- 已知 owner 必须在源文件中注册；新增主题相关模块必须同步加入本清单。
+local owner_sources = {
+	["appearance.core"] = "sketchybar/.config/sketchybar/appearance.lua",
+	apple = "sketchybar/.config/sketchybar/items/apple.lua",
+	spaces = "sketchybar/.config/sketchybar/items/spaces.lua",
+	borders = "sketchybar/.config/sketchybar/helpers/borders.lua",
+	calendar = "sketchybar/.config/sketchybar/items/calendar.lua",
+	git = "sketchybar/.config/sketchybar/items/git.lua",
+	services = "sketchybar/.config/sketchybar/items/services.lua",
+	media = "sketchybar/.config/sketchybar/items/widgets/media.lua",
+	network = "sketchybar/.config/sketchybar/items/widgets/network.lua",
+	input_method = "sketchybar/.config/sketchybar/items/widgets/input_method.lua",
+	clash_tun = "sketchybar/.config/sketchybar/items/widgets/clash_tun.lua",
+	battery = "sketchybar/.config/sketchybar/items/widgets/battery.lua",
+	sys = "sketchybar/.config/sketchybar/items/widgets/sys.lua",
+}
+for name, path in pairs(owner_sources) do
+	local f = assert(io.open(path, "r"), "无法打开 " .. path)
+	local src = f:read("*a")
+	f:close()
+	assert(src:find('register_colors("' .. name .. '"', 1, true), path .. " 缺少 register_colors(\"" .. name .. "\")")
+end
+-- status_widget 工厂按实例名动态注册 status_widget.dingtalk/wechat
+do
+	local f = assert(io.open("sketchybar/.config/sketchybar/status_widget.lua", "r"))
+	local src = f:read("*a")
+	f:close()
+	assert(src:find('register_colors("status_widget."', 1, true), "status_widget.lua 缺少按实例名的注册")
+end
 
 print("theme_test: ok")

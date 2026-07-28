@@ -91,6 +91,7 @@ end
 local popup_visible = false
 local last_popup_state = { entries = {}, max_branch_len = 0, max_info_len = 0 }
 local last_main_signature
+local last_total_dirty = 0
 
 local function render_popup(state)
 	local seen = {}
@@ -101,7 +102,7 @@ local function render_popup(state)
 		local pad_info = e.info .. string.rep(" ", state.max_info_len - vlen(e.info) + 2)
 		e.row:set({
 			drawing = true,
-			label = { string = icons.git .. "  " .. pad_label .. pad_branch .. pad_info .. e.path:gsub("^" .. os.getenv("HOME"), "~"), color = e.color },
+			label = { string = icons.git .. "  " .. pad_label .. pad_branch .. pad_info .. e.path:gsub("^" .. os.getenv("HOME"), "~"), color = status_color(e.status) },
 		})
 	end
 	for path, row in pairs(repo_rows) do
@@ -121,7 +122,6 @@ local function apply_status(output, force_main)
 			local path, label, branch, status, dirty, ahead, behind = f[2], f[3], f[4], f[5], f[6], f[7], f[8]
 			local row = repo_rows[path]
 			if row then
-				local color = status_color(status)
 				local info
 
 				if status == "ok" then
@@ -140,7 +140,7 @@ local function apply_status(output, force_main)
 				local b = tonumber(behind)
 				if b and b > 0 then info = info .. "  ↓" .. behind end
 
-				entries[#entries + 1] = { row = row, label = label, branch = branch, color = color, info = info, path = path }
+				entries[#entries + 1] = { row = row, label = label, branch = branch, status = status, info = info, path = path }
 				if vlen(branch) > max_branch_len then max_branch_len = vlen(branch) end
 				if vlen(info) > max_info_len then max_info_len = vlen(info) end
 			end
@@ -148,6 +148,7 @@ local function apply_status(output, force_main)
 	end
 
 	local bar_color = total_dirty > 0 and colors.status.warn or colors.status.ok
+	last_total_dirty = total_dirty
 	local main_signature = tostring(total_dirty) .. "|" .. tostring(bar_color)
 	if force_main or main_signature ~= last_main_signature then
 		last_main_signature = main_signature
@@ -238,3 +239,21 @@ git_item:subscribe({ "routine", "system_woke" }, refresh)
 refresh()
 
 git_item:set({ popup = { height = 16 } })
+
+-- ========== 主题热换色：按缓存的 git 状态重涂 ==========
+local function apply_colors(C)
+	-- 主条 label 沿用 apply_status 的 bar_color 规则；icon 在现有逻辑里恒为 status.ok
+	local bar_color = last_total_dirty > 0 and C.status.warn or C.status.ok
+	local popup_bg = appearance.popup_bg()
+	git_item:set({
+		icon = { color = C.status.ok },
+		label = { color = bar_color },
+		popup = { background = { color = popup_bg.color, border_color = popup_bg.border_color } },
+	})
+	-- popup 行颜色（render_popup 同样按 status_color 现算）
+	for _, e in ipairs(last_popup_state.entries) do
+		e.row:set({ label = { color = status_color(e.status) } })
+	end
+end
+apply_colors(colors)
+appearance.register_colors("git", apply_colors)

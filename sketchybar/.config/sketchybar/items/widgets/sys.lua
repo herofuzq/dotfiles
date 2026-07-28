@@ -193,12 +193,19 @@ end)
 stop_watcher()
 
 local last_cpu_signature
+local last_cpu_load
 local initial_ready = startup.track("sys.cpu")
+
+-- CPU 三档颜色：>70 error、>40 caution、其余 ok（主题切换时复用）
+local function cpu_tier_color(cpu_load)
+	return cpu_load > 70 and colors.status.error
+		or (cpu_load > 40 and colors.status.caution or colors.status.ok)
+end
 
 sys:subscribe("cpu_update", function(env)
 	local cpu_load = math.max(0, math.min(100, math.floor(tonumber(env.total_load) or 0)))
-	local cpu_color = cpu_load > 70 and colors.status.error
-		or (cpu_load > 40 and colors.status.caution or colors.status.ok)
+	last_cpu_load = cpu_load
+	local cpu_color = cpu_tier_color(cpu_load)
 	-- dedup: cpu 百分比和颜色档位都和上次一样就不 set
 	local signature = cpu_load .. "|" .. tostring(cpu_color)
 	if signature == last_cpu_signature then
@@ -217,3 +224,22 @@ end)
 
 -- delay(0) 从 event_loop 执行；此时 end_config 已提交 cpu_update 订阅。
 sbar.delay(0, restart_cpu_provider)
+
+-- ========== 主题热换色：按缓存的最近一次 cpu_load 重涂 ==========
+local function apply_colors(C)
+	-- 尚未拿到首次采样时保持创建期的 identity.sys_icon；
+	-- 有采样后 icon 颜色与 cpu_update 一致（三档色涂在 icon 上，label 恒为 pill_fg）
+	local icon_color = last_cpu_load and cpu_tier_color(last_cpu_load) or C.identity.sys_icon
+	local popup_bg = appearance.popup_bg()
+	sys:set({
+		icon = { color = icon_color },
+		label = { color = C.pill_fg },
+		popup = { background = { color = popup_bg.color, border_color = popup_bg.border_color } },
+	})
+	info:set({ label = { color = C.identity.sys_info } })
+	for _, item in ipairs(process_items) do
+		item:set({ label = { color = C.pill_fg } })
+	end
+end
+apply_colors(colors)
+appearance.register_colors("sys", apply_colors)

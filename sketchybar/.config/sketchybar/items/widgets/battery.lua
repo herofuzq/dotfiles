@@ -116,6 +116,17 @@ battery:subscribe("display_transition_begin", function()
 end)
 
 -- ========== 电池状态更新 ==========
+-- 颜色档位：电源/充电或 >40% 为 ok，21-40% caution，<=20% error（主题切换时复用）
+local function battery_color(state)
+	if state.ac or state.charging or state.percent > 40 then
+		return colors.status.ok
+	end
+	if state.percent > 20 then
+		return colors.status.caution
+	end
+	return colors.status.error
+end
+
 local function update_battery_display(state)
 	if not state then
 		if last_battery_signature == false then
@@ -138,7 +149,7 @@ local function update_battery_display(state)
 	end
 	last_battery_signature = signature
 
-	local color = colors.status.ok
+	local color = battery_color(state)
 	local icon
 	if state.ac or state.charging then
 		icon = icons.battery.charging
@@ -151,10 +162,8 @@ local function update_battery_display(state)
 			icon = icons.battery._50
 		elseif state.percent > 20 then
 			icon = icons.battery._25
-			color = colors.status.caution
 		else
 			icon = icons.battery._0
-			color = colors.status.error
 		end
 	end
 
@@ -177,3 +186,21 @@ end
 
 battery:subscribe({ "routine", "power_source_change", "system_woke" }, update_battery)
 update_battery()
+
+-- ========== 主题热换色：按缓存的电量/充电状态重涂 ==========
+local function apply_colors(C)
+	if last_battery_signature == nil then
+		return -- 尚未拿到首次状态，保持创建期颜色
+	end
+	-- last_state 为 nil 对应 update_battery_display 的不可用分支（icon surface1）
+	local icon_color = last_state and battery_color(last_state) or C.surface1
+	local popup_bg = appearance.popup_bg()
+	battery:set({
+		icon = { color = icon_color },
+		label = { color = C.pill_fg },
+		popup = { background = { color = popup_bg.color, border_color = popup_bg.border_color } },
+	})
+	batt_info:set({ label = { color = C.pill_fg } })
+end
+apply_colors(colors)
+appearance.register_colors("battery", apply_colors)

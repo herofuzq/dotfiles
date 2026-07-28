@@ -46,12 +46,24 @@ local services_anim = popup_animation.new(services_item, {
 })
 
 local BTN = {
-	start  = { icon = "\u{F04B}", color = colors.status.ok  },
-	stop   = { icon = "\u{F04D}", color = colors.status.error    },
-	pause  = { icon = "\u{F04C}", color = colors.status.warn  },
-	resume = { icon = "\u{F051}", color = colors.status.ok  },
-	quit   = { icon = "\u{F011}", color = colors.status.error    },
+	start  = { icon = "\u{F04B}" },
+	stop   = { icon = "\u{F04D}" },
+	pause  = { icon = "\u{F04C}" },
+	resume = { icon = "\u{F051}" },
+	quit   = { icon = "\u{F011}" },
 }
+
+-- 动作颜色：start/resume ok、pause warn、stop/quit error。
+-- 运行时现读 colors，主题切换后重涂同一规则。
+local function btn_color(action)
+	if action == "stop" or action == "quit" then
+		return colors.status.error
+	end
+	if action == "pause" then
+		return colors.status.warn
+	end
+	return colors.status.ok
+end
 
 local PF = fonts.popup
 local function pf()
@@ -110,7 +122,7 @@ local function btn_row(btn_id, depth, is_last, action, scope, gid, sid)
 		label = {
 			string = prefix .. def.icon .. " " .. (action:sub(1,1):upper() .. action:sub(2)),
 			font = pf(),
-			color = def.color,
+			color = btn_color(action),
 			padding_left = 8, padding_right = 14,
 		},
 		background = { drawing = false, height = 18, border_width = 0 },
@@ -303,7 +315,7 @@ for _, entry in ipairs(actions_list) do
 	local e = entry
 	entry.row:subscribe("mouse.clicked", function()
 		popup_utils.defer(function()
-			local c = (BTN[e.action] or BTN.start).color
+			local c = btn_color(e.action)
 			feedback(e.row, c)
 			status_row:set({ drawing = true, label = { string = e.action .. " " .. target_name(e) .. "...", color = colors.status.warn } })
 		end)
@@ -345,3 +357,30 @@ refresh()
 
 -- 覆盖 popup 行高（bar 默认 ~29px 钳制了 popup item 高度）
 services_item:set({ popup = { height = 16 } })
+
+-- ========== 主题热换色：按缓存的 docker 汇总状态重涂 ==========
+local function apply_colors(C)
+	-- 主条：与 apply_status 同一套 icon/count_color 规则（未拿到首次状态前保持创建期颜色）
+	if last_popup_state then
+		local sum = last_popup_state.sum
+		services_item:set({
+			icon = { color = sum.status == "error" and C.status.error or C.status.ok },
+			label = { color = count_color(sum.status, sum.running, sum.total) },
+		})
+	end
+	-- 树形文本行：docker 根行与组行 subtext1、服务行 text（与 render_popup 同色规则）
+	for key, entry in pairs(text_rows) do
+		local row_color = (key == "docker" or key:match("^group%.")) and C.subtext1 or C.text
+		entry.item:set({ label = { color = row_color } })
+	end
+	-- 动作按钮行
+	for _, entry in ipairs(actions_list) do
+		entry.row:set({ label = { color = btn_color(entry.action) } })
+	end
+	-- 状态行（render_popup 展示时恒为 surface1；进行中的 warn 为瞬态，不缓存）
+	status_row:set({ label = { color = C.surface1 } })
+	local popup_bg = appearance.popup_bg()
+	services_item:set({ popup = { background = { color = popup_bg.color, border_color = popup_bg.border_color } } })
+end
+apply_colors(colors)
+appearance.register_colors("services", apply_colors)

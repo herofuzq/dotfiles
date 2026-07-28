@@ -7,6 +7,7 @@ assert(timing.STANDARD_DURATION_FRAMES == 6)
 assert(timing.ENTER_BAR_FADE_FRAMES == 30)
 assert(timing.ENTER_ITEM_FADE_FRAMES == 30)
 assert(timing.STARTUP_READY_TIMEOUT_SECONDS == 1.0)
+assert(timing.THEME_SWITCH_FRAMES == 15)
 -- 与 spaces.lua 的 REFRESH_TIMEOUT（3.0）耦合：hold 超时必须大于单轮窗口刷新看门狗，
 -- 否则会在合法慢查询未结束时提前渐入。这里只能断言下界，无法跨文件读常量。
 assert(timing.HOLD_TIMEOUT_SECONDS > 3.0)

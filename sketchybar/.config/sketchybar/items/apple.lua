@@ -4,7 +4,8 @@
 local sbar = require("sketchybar")
 local icons = require("icons")
 local fonts = require("fonts")
-local colors = require("appearance").colors
+local appearance = require("appearance")
+local colors = appearance.colors
 local settings = require("settings")
 local timing = require("helpers.timing")
 local startup = require("helpers.startup")
@@ -105,3 +106,10 @@ apple:subscribe("display_topology_change", function()
 	end
 	schedule_dock_sync()
 end)
+
+-- ========== 主题热换色 ==========
+local function apply_colors(C)
+	apple:set({ icon = { color = C.identity.apple } })
+end
+apply_colors(colors)
+appearance.register_colors("apple", apply_colors)

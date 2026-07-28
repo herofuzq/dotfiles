@@ -140,9 +140,75 @@ end
 -- ========== (5) 切换 ==========
 M.active = "mocha"
 M.colors = build_colors(palette[M.active])
--- 导出供测试与主题切换（阶段二 update_colors_in_place）使用
+-- 导出供测试与主题切换使用
 M.palette = palette
 M.build_colors = build_colors
+
+-- ========== (5.1) 原地更新 + 注册表热换色 ==========
+-- M.colors 表对象终身不变：9+ 个模块缓存了 local colors = appearance.colors，
+-- 直接换表会让旧缓存指向旧色板，状态刷新时写回旧主题色（反弹）。
+-- 约束：模块生命周期内禁止缓存标量色值（local red = colors.red 禁止）；
+-- 只允许缓存表引用（表内容会被原地更新）。函数体内单次计算不受限。
+local function update_table_in_place(target, source)
+	for k in pairs(target) do
+		if source[k] == nil then
+			target[k] = nil
+		end
+	end
+	for k, v in pairs(source) do
+		if type(v) == "table" and type(target[k]) == "table" then
+			update_table_in_place(target[k], v) -- 子表保持引用，递归原地更新
+		else
+			target[k] = v
+		end
+	end
+end
+M.update_table_in_place = update_table_in_place -- 导出供测试
+
+-- 各 owner 注册的"应用颜色"回调：fn(colors) 按模块当前状态重算并 set 颜色。
+-- enter_animation 包装了 sbar.set/item:set，回调里的 set 会自动同步 reveal 目标色。
+local appliers = {}
+function M.register_colors(name, fn)
+	appliers[name] = fn
+end
+
+-- 已注册 owner 名单（测试用，防旧架构式名单漂移）
+function M.registered_names()
+	local list = {}
+	for name in pairs(appliers) do
+		list[#list + 1] = name
+	end
+	table.sort(list)
+	return list
+end
+
+-- 热切换主题：原地更新 M.colors 后遍历注册表重涂，不 reload。
+-- 同主题/未知主题为 no-op（防抖由调用方 detect 比较保证，这里双保险）。
+function M.switch_theme(theme)
+	if theme ~= "mocha" and theme ~= "latte" then
+		return false
+	end
+	if theme == M.active then
+		return false
+	end
+	M.active = theme
+	update_table_in_place(M.colors, build_colors(palette[theme]))
+	local sbar = require("sketchybar")
+	local timing = require("helpers.timing")
+	sbar.animate("linear", timing.THEME_SWITCH_FRAMES, function()
+		for _, fn in pairs(appliers) do
+			fn(M.colors)
+		end
+	end)
+	return true
+end
+
+-- bar 本体也是 owner：切换时重涂 bar_bg。
+-- 注意：这里只注册、不在配置期调用——配置期 bar 由 bar.lua 保持全透明，
+-- 启动 reveal 时 startup/enter_animation 会现读 appearance.colors.bar_bg 上色。
+M.register_colors("appearance.core", function(C)
+	require("sketchybar").bar({ color = C.bar_bg })
+end)
 
 -- ========== (6) 样式 helpers ==========
 -- 所有 widget 复用的标准样式，避免每个文件重抄。

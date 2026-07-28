@@ -87,3 +87,13 @@ end
 
 clash_tun:subscribe({ "routine", "system_woke" }, check_status)
 check_status()
+
+-- ========== 主题热换色：按缓存 state 用 color_for 重涂 ==========
+local function apply_colors(C)
+	clash_tun:set({
+		icon = { color = color_for(last_state) },
+		label = { color = C.pill_fg },
+	})
+end
+apply_colors(colors)
+appearance.register_colors("clash_tun", apply_colors)

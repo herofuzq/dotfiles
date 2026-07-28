@@ -40,37 +40,34 @@ local input_method = sbar.add("item", "widgets.input_method", {
 	background = appearance.pill_bg(),
 })
 
-local function apply_display(im_id, fcitx_mode)
+local last_im_id, last_fcitx_mode
+local display_initialized = false
+
+-- 各输入法分支的 (icon 颜色, label 文字)，主题切换时复用同一套分支
+local function display_state(im_id, fcitx_mode)
 	if im_id == "com.apple.keylayout.ABC" then
-		input_method:set({
-			icon = { string = icons.input_method.keyboard, color = colors.identity.input_a },
-			label = { string = "A", color = colors.pill_fg },
-		})
+		return colors.identity.input_a, "A"
 	elseif im_id == WETYPE_SRC then
-		input_method:set({
-			icon = { string = icons.input_method.keyboard, color = colors.identity.input_zh },
-			label = { string = "微", color = colors.pill_fg },
-		})
+		return colors.identity.input_zh, "微"
 	elseif im_id == "org.fcitx.inputmethod.Fcitx5.zhHans" then
 		if fcitx_mode == "2" then -- fcitx5-remote: 0=关闭, 1=不活跃, 2=中文
-			input_method:set({
-				icon = { string = icons.input_method.keyboard, color = colors.identity.input_ch },
-				label = { string = "CH", color = colors.pill_fg },
-			})
-		else
-			-- fcitx 英文模式
-			input_method:set({
-				icon = { string = icons.input_method.keyboard, color = colors.identity.input_en },
-				label = { string = "EN", color = colors.pill_fg },
-			})
+			return colors.identity.input_ch, "CH"
 		end
-	else
-		-- 未知输入法（macism 失败时 im_id 可能为 nil，加防护避免崩溃）
-		input_method:set({
-			icon = { string = icons.input_method.keyboard, color = colors.surface1 },
-			label = { string = (im_id and im_id:match("[^.]+$")) or "?", color = colors.pill_fg },
-		})
+		-- fcitx 英文模式
+		return colors.identity.input_en, "EN"
 	end
+	-- 未知输入法（macism 失败时 im_id 可能为 nil，加防护避免崩溃）
+	return colors.surface1, (im_id and im_id:match("[^.]+$")) or "?"
+end
+
+local function apply_display(im_id, fcitx_mode)
+	last_im_id, last_fcitx_mode = im_id, fcitx_mode
+	display_initialized = true
+	local icon_color, label_text = display_state(im_id, fcitx_mode)
+	input_method:set({
+		icon = { string = icons.input_method.keyboard, color = icon_color },
+		label = { string = label_text, color = colors.pill_fg },
+	})
 end
 
 local function update_display(im_id, fcitx_mode)
@@ -125,3 +122,17 @@ input_method:subscribe("input_method_change", function(env)
 end)
 input_method:subscribe("system_woke", check_status)
 check_status()
+
+-- ========== 主题热换色：按缓存的当前输入法分支重涂 ==========
+local function apply_colors(C)
+	if not display_initialized then
+		return -- 尚未完成首次检测，保持创建期颜色
+	end
+	local icon_color = display_state(last_im_id, last_fcitx_mode)
+	input_method:set({
+		icon = { color = icon_color },
+		label = { color = C.pill_fg },
+	})
+end
+apply_colors(colors)
+appearance.register_colors("input_method", apply_colors)

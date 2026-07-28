@@ -303,3 +303,16 @@ query_media(function(info)
 	apply_state(info, false)
 	initial_ready()
 end)
+
+-- ========== 主题热换色：直接重涂当前色（不触发换字动画，不动播放/暂停图标）==========
+local function apply_colors(C)
+	label:set({
+		icon = { color = C.identity.music_icon },
+		label = { color = C.identity.music_text },
+	})
+	play_pause:set({ icon = { color = C.pill_fg } })
+	next_item:set({ icon = { color = C.pill_fg } })
+	previous_item:set({ icon = { color = C.pill_fg } })
+end
+apply_colors(colors)
+appearance.register_colors("media", apply_colors)

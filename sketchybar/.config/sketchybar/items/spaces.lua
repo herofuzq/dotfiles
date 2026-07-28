@@ -1320,3 +1320,38 @@ end)
 
 -- 启动渐入：startup 在 end_config 之后揭示 bar，enter_animation 负责 item 渐入。
 -- spaces.root / aerospace_mode / popup 子项在 enter_animation 的 skip 名单里，不参与渐入。
+
+-- ========== 主题热换色：只按缓存状态重涂，不查询 AeroSpace ==========
+local function apply_colors(C)
+	-- aerospace_mode：与 set_mode_visibility 同规则（service 显示 / 否则透明）
+	mode_item:set({
+		label = { color = mode_visible and C.identity.spaces_service or transparent(C.identity.spaces_service) },
+	})
+	-- front_app 名称标签
+	if front_app then
+		front_app:set({ label = { color = C.identity.spaces_ws } })
+	end
+	-- workspaces.bracket 的 pill 背景（focused/inactive 分段颜色由 borders owner 重放，这里不重复）
+	sbar.set("workspaces.bracket", {
+		background = { color = C.pill_bg, border_color = C.border },
+	})
+	-- 窗口 popup 子项 + 各 workspace 的 popup 背景
+	local popup_bg = appearance.popup_bg()
+	for ws, items in pairs(_popup_items) do
+		for i = 1, MAX_POPUP_SLOTS do
+			local item = items[i]
+			if item then
+				item:set({
+					icon = { color = C.pill_fg, highlight_color = C.identity.spaces_win_highlight },
+					label = { color = C.text, highlight_color = C.identity.spaces_win_highlight },
+				})
+			end
+		end
+		local workspace = workspaces[ws]
+		if workspace then
+			workspace:set({ popup = { background = { color = popup_bg.color, border_color = popup_bg.border_color } } })
+		end
+	end
+end
+apply_colors(appearance.colors)
+appearance.register_colors("spaces", apply_colors)

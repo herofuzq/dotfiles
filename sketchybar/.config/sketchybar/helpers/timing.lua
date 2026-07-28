@@ -24,6 +24,10 @@ M.STANDARD_DURATION_FRAMES = 6
 M.ENTER_BAR_FADE_FRAMES = 30
 M.ENTER_ITEM_FADE_FRAMES = 30
 
+-- 主题切换换色过渡（约 250ms = 15 steps @ 60Hz）。
+-- 比局部 fade 慢、比启动渐入快：足够柔和，又不显得拖沓。
+M.THEME_SWITCH_FRAMES = 15
+
 -- 显示器拓扑变化确认后，hold() 等待 apply 完成的故障降级超时。
 -- 语义：防 bar 永久隐藏的兜底，不是"等所有刷新完成"的严格保证
 -- （窗口刷新的 pending 链理论上可达 2×REFRESH_TIMEOUT ≈ 6s）。

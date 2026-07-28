@@ -50,6 +50,7 @@ local CAL_GRID_PAD = 20
 local CAL_GRID_WIDTH = CAL_LABEL_WIDTH - CAL_GRID_PAD * 2
 local CAL_FONT = { family = "Menlo", style = "Bold", size = 15.0 }
 local cal_items = {}
+local cal_line_kinds = {} -- 每行的颜色角色（month/hdr/grid/doy），主题切换时按角色重涂
 
 for i = 1, CAL_LINES do
 	local item = sbar.add("item", "calendar.cal_" .. i, {
@@ -88,8 +89,8 @@ local function updatePopupContent()
 		hdr[#hdr + 1] = string.format(" %-2s ", wd)
 	end
 	local lines = {
-		{ string = string.format("%d年%d月", year, month), color = colors.identity.calendar_month },
-		{ string = table.concat(hdr):gsub("%s+$", ""), grid = true, color = colors.subtext1 },
+		{ string = string.format("%d年%d月", year, month), color = colors.identity.calendar_month, kind = "month" },
+		{ string = table.concat(hdr):gsub("%s+$", ""), grid = true, color = colors.subtext1, kind = "hdr" },
 	}
 
 	local cells = {}
@@ -102,7 +103,7 @@ local function updatePopupContent()
 			while #cells < 7 do
 				cells[#cells + 1] = "    "
 			end
-			lines[#lines + 1] = { string = table.concat(cells):gsub("%s+$", ""), grid = true, color = colors.text }
+			lines[#lines + 1] = { string = table.concat(cells):gsub("%s+$", ""), grid = true, color = colors.text, kind = "grid" }
 			cells = {}
 		end
 	end
@@ -112,11 +113,12 @@ local function updatePopupContent()
 		doy = doy + dinm[i]
 	end
 	local total = leap and 366 or 365
-	lines[#lines + 1] = { string = string.format("第 %d / %d 天", doy, total), color = colors.subtext1 }
+	lines[#lines + 1] = { string = string.format("第 %d / %d 天", doy, total), color = colors.subtext1, kind = "doy" }
 
 	for i = 1, CAL_LINES do
 		local line = lines[i]
 		if line and line.string ~= "" then
+			cal_line_kinds[i] = line.kind
 			cal_items[i]:set({
 				drawing = true,
 				label = {
@@ -129,6 +131,7 @@ local function updatePopupContent()
 				},
 			})
 		else
+			cal_line_kinds[i] = nil
 			cal_items[i]:set({ drawing = false })
 		end
 	end
@@ -166,3 +169,24 @@ cal:subscribe("display_transition_begin", function()
 		cal_popup:hide()
 	end
 end)
+
+-- ========== 主题热换色：按缓存的行角色重涂 ==========
+local function apply_colors(C)
+	local popup_bg = appearance.popup_bg()
+	cal:set({
+		icon = { color = C.pill_fg },
+		label = { color = C.pill_fg },
+		popup = { background = { color = popup_bg.color, border_color = popup_bg.border_color } },
+	})
+	-- 未生成过月历内容时 cal_line_kinds 为空，此循环为 no-op
+	for i = 1, CAL_LINES do
+		local kind = cal_line_kinds[i]
+		if kind then
+			local line_color = kind == "month" and C.identity.calendar_month
+				or (kind == "grid" and C.text or C.subtext1)
+			cal_items[i]:set({ label = { color = line_color } })
+		end
+	end
+end
+apply_colors(colors)
+appearance.register_colors("calendar", apply_colors)

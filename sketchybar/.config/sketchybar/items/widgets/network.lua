@@ -302,3 +302,18 @@ sbar.add("item", "widgets.system_bracket_spacer", {
 	padding_right = 0,
 	background = { drawing = false },
 })
+
+-- ========== 主题热换色：按缓存的网络类型重涂 ==========
+local function apply_colors(C)
+	-- 尚未完成首次检测时保持创建期的 identity.network
+	down:set({
+		icon = { color = current_network_kind and icon_color(current_network_kind) or C.identity.network },
+		label = { color = C.pill_fg },
+	})
+	up:set({ label = { color = C.pill_fg } })
+	sbar.set("widgets.system", {
+		background = { color = C.pill_bg, border_color = C.border },
+	})
+end
+apply_colors(colors)
+appearance.register_colors("network", apply_colors)
