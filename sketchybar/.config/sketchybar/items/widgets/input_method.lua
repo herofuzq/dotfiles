@@ -132,6 +132,7 @@ local function apply_colors(C)
 	input_method:set({
 		icon = { color = icon_color },
 		label = { color = C.pill_fg },
+		background = { color = C.pill_bg, border_color = C.border },
 	})
 end
 apply_colors(colors)

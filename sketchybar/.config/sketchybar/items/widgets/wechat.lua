@@ -23,7 +23,13 @@ status_widget({
 	label_padding_right = 2,
 })
 
-sbar.add("bracket", "widgets.social", { "widgets.dingtalk", "widgets.wechat" }, {
+local social = sbar.add("bracket", "widgets.social", { "widgets.dingtalk", "widgets.wechat" }, {
 	position = "right",
 	background = appearance.pill_bg(),
 })
+
+-- 主题热换色：social bracket 的 pill 背景（dingtalk/wechat 实例共享，不各自画背景）
+local function apply_social_colors(C)
+	social:set({ background = { color = C.pill_bg, border_color = C.border } })
+end
+appearance.register_colors("status_widget.social", apply_social_colors)

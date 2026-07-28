@@ -57,10 +57,11 @@ assert(cl.identity.music_icon == latte.peach)
 assert(cl.identity.input_a == latte.blue)
 assert(cl.identity.spaces_win_highlight == latte.red)
 
--- 当前生效表（active = mocha）与 build_colors(mocha) 一致
-assert(appearance.colors.status.ok == cm.status.ok)
-assert(appearance.colors.identity.music_text == cm.identity.music_text)
-assert(appearance.colors.press == cm.press)
+-- 当前生效表与 active 对应色板一致（加载即同步检测，active 随系统主题）
+local active_built = appearance.build_colors(appearance.palette[appearance.active])
+assert(appearance.colors.status.ok == active_built.status.ok)
+assert(appearance.colors.identity.music_text == active_built.identity.music_text)
+assert(appearance.colors.press == active_built.press)
 
 -- ========== 两主题 key 集合完全一致（原地更新的前置约束）==========
 
@@ -108,29 +109,45 @@ local cached = appearance.colors
 local status_ref = cached.status
 local identity_ref = cached.identity
 
-assert(appearance.switch_theme("mocha") == false, "同主题应为 no-op")
+-- 起点主题无关：当前系统是深色/浅色都可能（加载即检测）
+local start_theme = appearance.active
+local other_theme = start_theme == "mocha" and "latte" or "mocha"
+local start_palette = appearance.palette[start_theme]
+local other_palette = appearance.palette[other_theme]
+
+assert(appearance.switch_theme(start_theme) == false, "同主题应为 no-op")
 assert(appearance.switch_theme("dracula") == false, "未知主题应为 no-op")
 assert(probe_calls == 0, "no-op 不应触发回调")
 
-assert(appearance.switch_theme("latte") == true)
+assert(appearance.switch_theme(other_theme) == true)
 assert(probe_calls == 1, "switch_theme 应调每个回调恰好一次")
-assert(probe_color == latte.green, "回调应收到新色板")
+assert(probe_color == other_palette.green, "回调应收到新色板")
 
 -- 原地更新：表对象与子表对象均为同一引用
 assert(cached == appearance.colors, "M.colors 表对象被替换（会反弹）")
 assert(cached.status == status_ref, "status 子表对象被替换")
 assert(cached.identity == identity_ref, "identity 子表对象被替换")
 -- 缓存引用读到新值（状态刷新路径不反弹的关键）
-assert(cached.status.ok == latte.green)
-assert(cached.identity.music_text == latte.yellow)
--- 旧 mocha 值无残留
-assert(cached.status.ok ~= mocha.green)
+assert(cached.status.ok == other_palette.green)
+assert(cached.identity.music_text == other_palette.yellow)
+-- 旧主题值无残留
+assert(cached.status.ok ~= start_palette.green)
 
--- 往返切换恢复 mocha
-assert(appearance.switch_theme("mocha") == true)
+-- 往返切换恢复起点主题
+assert(appearance.switch_theme(start_theme) == true)
 assert(probe_calls == 2)
-assert(cached.status.ok == mocha.green)
-assert(cached.identity.spaces_win_highlight == mocha.red)
+assert(cached.status.ok == start_palette.green)
+assert(cached.identity.spaces_win_highlight == start_palette.red)
+
+-- ========== 阶段三：系统外观检测解析 ==========
+assert(appearance.parse_apple_interface_style("Dark") == "mocha")
+assert(appearance.parse_apple_interface_style("") == "latte") -- 键不存在（浅色）
+assert(appearance.parse_apple_interface_style(nil) == "latte") -- pcall 失败
+assert(appearance.parse_apple_interface_style("Light") == "latte") -- 异常输出不误判深色
+-- 同步检测必须返回合法主题名（真实读一次系统状态）
+local detected = appearance.detect_system_theme_sync()
+assert(detected == "mocha" or detected == "latte")
+assert(detected == appearance.active, "加载时 active 应与同步检测一致")
 
 -- ========== owner 注册静态检查（防旧架构式名单漂移）==========
 -- 已知 owner 必须在源文件中注册；新增主题相关模块必须同步加入本清单。
@@ -148,6 +165,7 @@ local owner_sources = {
 	clash_tun = "sketchybar/.config/sketchybar/items/widgets/clash_tun.lua",
 	battery = "sketchybar/.config/sketchybar/items/widgets/battery.lua",
 	sys = "sketchybar/.config/sketchybar/items/widgets/sys.lua",
+	["status_widget.social"] = "sketchybar/.config/sketchybar/items/widgets/wechat.lua", -- social bracket 背景
 }
 for name, path in pairs(owner_sources) do
 	local f = assert(io.open(path, "r"), "无法打开 " .. path)

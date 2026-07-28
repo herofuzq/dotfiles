@@ -138,7 +138,29 @@ local function build_colors(P)
 end
 
 -- ========== (5) 切换 ==========
-M.active = "mocha"
+-- defaults read -g AppleInterfaceStyle：stdout 首行 "Dark" = 深色；
+-- 键不存在（浅色）时命令失败、stdout 为空。
+function M.parse_apple_interface_style(output)
+	return output == "Dark" and "mocha" or "latte"
+end
+
+-- 启动同步检测：必须在做任何颜色决策前完成（io.popen 一次，<100ms）。
+-- 失败按浅色处理（与 macOS 键不存在语义一致）。
+function M.detect_system_theme_sync()
+	local ok, style = pcall(function()
+		local f = io.popen("defaults read -g AppleInterfaceStyle 2>/dev/null")
+		local line = f and f:read("*l") or nil
+		if f then
+			f:close()
+		end
+		return line
+	end)
+	return M.parse_apple_interface_style(ok and style or nil)
+end
+
+-- 配置加载即确定主题：appearance 在 begin_config 前被首次 require，
+-- 浅色系统 reload 不会先显示 mocha 再切 latte。
+M.active = M.detect_system_theme_sync()
 M.colors = build_colors(palette[M.active])
 -- 导出供测试与主题切换使用
 M.palette = palette

@@ -198,6 +198,7 @@ local function apply_colors(C)
 	battery:set({
 		icon = { color = icon_color },
 		label = { color = C.pill_fg },
+		background = { color = C.pill_bg, border_color = C.border },
 		popup = { background = { color = popup_bg.color, border_color = popup_bg.border_color } },
 	})
 	batt_info:set({ label = { color = C.pill_fg } })

@@ -12,6 +12,26 @@ startup.configure(function()
 	require("appearance").install_defaults()
 	require("bar")
 	require("items")
+
+	-- ========== 跟随系统外观自动切换主题 ==========
+	-- 事件源：SketchyBar 原生分布式通知映射（无需 Swift 守护进程）。
+	-- 通知不保证必达 → system_woke 复检兜底；异步 detect 用 generation 防抖。
+	sbar.add("event", "system_appearance_changed", "AppleInterfaceThemeChangedNotification")
+	local theme_trigger = sbar.add("item", "theme_trigger", { drawing = false })
+	local theme_detect_generation = 0
+	local function detect_and_switch()
+		theme_detect_generation = theme_detect_generation + 1
+		local generation = theme_detect_generation
+		sbar.exec("defaults read -g AppleInterfaceStyle 2>/dev/null", function(output)
+			if output == nil or generation ~= theme_detect_generation then
+				return -- nil = exec 失败（区别于键不存在的空输出），保持当前主题
+			end
+			local first_line = output:match("^%s*(.-)%s*$")
+			require("appearance").switch_theme(require("appearance").parse_apple_interface_style(first_line))
+		end)
+	end
+	theme_trigger:subscribe("system_appearance_changed", detect_and_switch)
+	theme_trigger:subscribe("system_woke", detect_and_switch)
 end)
 
 -- 首屏查询并行完成（最长等 1 秒）后，以真实内容作为目标统一渐入。
