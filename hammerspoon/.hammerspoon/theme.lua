@@ -23,55 +23,68 @@ M.schemes = {
 	gruvbox = { dark = "gruvbox_dark", light = "gruvbox_light" },
 }
 
--- HUD 只使用这 6 个槽。数值与 SketchyBar appearance.lua 保持一致，
+-- HUD 与主题预览只使用这些槽。accent 对应 SketchyBar 的 window_border 语义色；
+-- 数值与 SketchyBar appearance.lua 保持一致，
 -- hammerspoon/tests/theme_test.lua 会逐项对照，防止两边漂色。
 M.raw_palettes = {
 	mocha = {
 		base = 0xff1e1e2e, surface0 = 0xff313244, subtext1 = 0xffbac2de,
+		accent = 0xffcba6f7,
 		green = 0xffa6e3a1, yellow = 0xfff9e2af, red = 0xfff38ba8,
 	},
 	latte = {
 		base = 0xffeff1f5, surface0 = 0xffccd0da, subtext1 = 0xff5c5f77,
+		accent = 0xff8839ef,
 		green = 0xff40a02b, yellow = 0xffdf8e1d, red = 0xffd20f39,
 	},
 	tokyonight_storm = {
 		base = 0xff24283b, surface0 = 0xff292e42, subtext1 = 0xffa9b1d6,
+		accent = 0xff7aa2f7,
 		green = 0xff9ece6a, yellow = 0xffe0af68, red = 0xfff7768e,
 	},
 	tokyonight_day = {
 		base = 0xffe1e2e7, surface0 = 0xffc4c8da, subtext1 = 0xff6172b0,
+		accent = 0xff2e7de9,
 		green = 0xff587539, yellow = 0xff8c6c3e, red = 0xfff52a65,
 	},
 	rosepine = {
 		base = 0xff191724, surface0 = 0xff26233a, subtext1 = 0xff908caa,
+		accent = 0xffebbcba,
 		green = 0xff95b1ac, yellow = 0xfff6c177, red = 0xffeb6f92,
 	},
 	rosepine_dawn = {
 		base = 0xfffaf4ed, surface0 = 0xfff2e9e1, subtext1 = 0xff797593,
+		accent = 0xffd7827e,
 		green = 0xff6d8f89, yellow = 0xffea9d34, red = 0xffb4637a,
 	},
 	everforest_dark = {
 		base = 0xff2d353b, surface0 = 0xff343f44, subtext1 = 0xff9da9a0,
+		accent = 0xffa7c080,
 		green = 0xffa7c080, yellow = 0xffdbbc7f, red = 0xffe67e80,
 	},
 	everforest_light = {
 		base = 0xfffdf6e3, surface0 = 0xffefebd4, subtext1 = 0xff829181,
+		accent = 0xff8da101,
 		green = 0xff8da101, yellow = 0xffdfa000, red = 0xfff85552,
 	},
 	kanagawa_wave = {
 		base = 0xff1f1f28, surface0 = 0xff2a2a37, subtext1 = 0xffc8c093,
+		accent = 0xff7e9cd8,
 		green = 0xff98bb6c, yellow = 0xffe6c384, red = 0xffe46876,
 	},
 	kanagawa_lotus = {
 		base = 0xfff2ecbc, surface0 = 0xffe7dba0, subtext1 = 0xff716e61,
+		accent = 0xff4d699b,
 		green = 0xff6f894e, yellow = 0xff77713f, red = 0xffc84053,
 	},
 	gruvbox_dark = {
 		base = 0xff282828, surface0 = 0xff3c3836, subtext1 = 0xffd5c4a1,
+		accent = 0xfffe8019,
 		green = 0xffb8bb26, yellow = 0xfffabd2f, red = 0xfffb4934,
 	},
 	gruvbox_light = {
 		base = 0xfffbf1c7, surface0 = 0xffebdbb2, subtext1 = 0xff504945,
+		accent = 0xffaf3a03,
 		green = 0xff79740e, yellow = 0xffb57614, red = 0xff9d0006,
 	},
 }
@@ -156,6 +169,21 @@ function M.build_colors(scheme, flavor)
 			warning = color(palette.yellow, 1.0),
 			error = color(palette.red, 1.0),
 		},
+	}
+end
+
+function M.preview_colors(scheme, flavor)
+	local mapping = M.schemes[scheme]
+	if not mapping or (flavor ~= "dark" and flavor ~= "light") then
+		return nil
+	end
+	local palette = M.raw_palettes[mapping[flavor]]
+	return {
+		base = color(palette.base, 1.0),
+		accent = color(palette.accent, 1.0),
+		green = color(palette.green, 1.0),
+		yellow = color(palette.yellow, 1.0),
+		red = color(palette.red, 1.0),
 	}
 end
 

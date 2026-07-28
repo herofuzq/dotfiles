@@ -42,9 +42,10 @@ assert(missing_scheme == nil and missing_error == "missing")
 local unreadable_scheme, unreadable_error = theme.read_scheme("/dev/null/theme_scheme")
 assert(unreadable_scheme == nil and unreadable_error:find("unreadable:", 1, true) == 1)
 
--- Hammerspoon 只复制 HUD 所需的 6 个槽；数值必须与 SketchyBar 色板完全一致。
+-- Hammerspoon 复制 HUD 槽位及主题强调色；数值必须与 SketchyBar 色板完全一致。
 local slots = { "base", "surface0", "subtext1", "green", "yellow", "red" }
 for scheme_name, mapping in pairs(theme.schemes) do
+	local accent_role = appearance.schemes[scheme_name].window_border
 	for _, flavor in ipairs({ "dark", "light" }) do
 		local theme_palette = theme.raw_palettes[mapping[flavor]]
 		local sketchybar_palette = appearance.palette[appearance.schemes[scheme_name][flavor]]
@@ -54,8 +55,23 @@ for scheme_name, mapping in pairs(theme.schemes) do
 				scheme_name .. "." .. flavor .. "." .. slot .. " 与 SketchyBar 不一致"
 			)
 		end
+		assert(
+			theme_palette.accent == sketchybar_palette[accent_role],
+			scheme_name .. "." .. flavor .. ".accent 与 SketchyBar 不一致"
+		)
 	end
 end
+
+for _, flavor in ipairs({ "dark", "light" }) do
+	for _, scheme_name in ipairs(theme.scheme_names) do
+		local preview = assert(theme.preview_colors(scheme_name, flavor))
+		for _, slot in ipairs({ "base", "accent", "green", "yellow", "red" }) do
+			assert(preview[slot] and preview[slot].alpha == 1.0)
+		end
+	end
+end
+assert(theme.preview_colors("dracula", "dark") == nil)
+assert(theme.preview_colors("everforest", "auto") == nil)
 
 local dark = theme.build_colors("everforest", "dark")
 assert(dark.background.alpha == 0.42)
