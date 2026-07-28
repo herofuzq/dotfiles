@@ -30,13 +30,13 @@ local git_item = sbar.add("item", item_name, {
 	icon = {
 		string = icons.git,
 		font = appearance.font_icon_bold(16.0),
-		color = colors.green,
+		color = colors.status.ok,
 		padding_left = 4, padding_right = 4,
 	},
 	label = {
 		string = "0",
 		font = { family = fonts.font.text, style = fonts.font.style_map["Bold"], size = 12.0 },
-		color = colors.green,
+		color = colors.status.ok,
 		padding_left = 0, padding_right = 2,
 	},
 	background = { drawing = false, border_width = 0 },
@@ -83,8 +83,8 @@ local function spl(line)
 end
 
 local function status_color(status)
-	if status == "ok" then return colors.green end
-	if status == "dirty" then return colors.yellow end
+	if status == "ok" then return colors.status.ok end
+	if status == "dirty" then return colors.status.warn end
 	return colors.surface1
 end
 
@@ -147,7 +147,7 @@ local function apply_status(output, force_main)
 		end
 	end
 
-	local bar_color = total_dirty > 0 and colors.yellow or colors.green
+	local bar_color = total_dirty > 0 and colors.status.warn or colors.status.ok
 	local main_signature = tostring(total_dirty) .. "|" .. tostring(bar_color)
 	if force_main or main_signature ~= last_main_signature then
 		last_main_signature = main_signature

@@ -95,7 +95,7 @@ local mode_item = sbar.add("item", "aerospace_mode", {
 		},
 		padding_left = 4,
 		padding_right = 4,
-		color = transparent(appearance.colors.sapphire),
+		color = transparent(appearance.colors.identity.spaces_mode),
 	},
 	drawing = false,
 })
@@ -118,7 +118,7 @@ local function ensure_front_app()
 			padding_left = 8,
 			padding_right = 8,
 			align = "center",
-			color = appearance.colors.peach,
+			color = appearance.colors.identity.spaces_ws,
 		},
 		background = { drawing = false },
 	})
@@ -140,7 +140,7 @@ local function ensure_front_app()
 		front_app_initial_ready()
 		sbar.animate("linear", CONTENT_FADE_FRAMES, function()
 			front_app:set({
-				label = { color = transparent(appearance.colors.peach) },
+				label = { color = transparent(appearance.colors.identity.spaces_ws) },
 			})
 		end)
 		sbar.delay(timing.frames_to_seconds(CONTENT_FADE_FRAMES), function()
@@ -148,11 +148,11 @@ local function ensure_front_app()
 				return
 			end
 			front_app:set({
-				label = { string = name, color = transparent(appearance.colors.peach) },
+				label = { string = name, color = transparent(appearance.colors.identity.spaces_ws) },
 			})
 			sbar.animate("linear", CONTENT_FADE_FRAMES, function()
 				front_app:set({
-					label = { color = appearance.colors.peach },
+					label = { color = appearance.colors.identity.spaces_ws },
 				})
 			end)
 		end)
@@ -1106,7 +1106,7 @@ for _, ws in ipairs(initial_workspaces) do
 				padding_left = 12,
 				padding_right = 6,
 				color = appearance.colors.pill_fg,
-				highlight_color = appearance.colors.red,
+				highlight_color = appearance.colors.identity.spaces_win_highlight,
 			},
 			label = {
 				font = { family = fonts.font.text, style = fonts.font.style_map["Semibold"], size = 13.0 },
@@ -1114,7 +1114,7 @@ for _, ws in ipairs(initial_workspaces) do
 				padding_right = 16,
 				max_chars = 50,
 				color = appearance.colors.text,
-				highlight_color = appearance.colors.red,
+				highlight_color = appearance.colors.identity.spaces_win_highlight,
 			},
 			background = { drawing = false, border_width = 0 },
 		})
@@ -1266,15 +1266,15 @@ sbar.delay(0, function()
 				width = "dynamic",
 				padding_left = 2,
 				padding_right = 2,
-				label = { color = transparent(appearance.colors.sapphire) },
+				label = { color = transparent(appearance.colors.identity.spaces_service) },
 			})
 		end
 		-- 退出 service 时,动画结束后收起 drawing,避免空 item 占位
 		sbar.animate("linear", timing.STANDARD_DURATION_FRAMES, function()
 			mode_item:set({
 				label = {
-					color = is_service and appearance.colors.sapphire
-						or transparent(appearance.colors.sapphire),
+					color = is_service and appearance.colors.identity.spaces_service
+						or transparent(appearance.colors.identity.spaces_service),
 				},
 			})
 		end)

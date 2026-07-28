@@ -36,7 +36,7 @@ local apple = sbar.add("item", "apple", {
 		},
 		padding_left = icon_pad_left,
 		padding_right = icon_pad_right,
-		color = colors.green,
+		color = colors.identity.apple,
 		y_offset = 1,
 	},
 	label = { drawing = false },
@@ -63,11 +63,11 @@ apple:subscribe("mouse.clicked", function()
 	sbar.delay(0, function()
 		local frames = math.max(1, math.floor(timing.STANDARD_DURATION_FRAMES / 2))
 		sbar.animate("linear", frames, function()
-			apple:set({ icon = { color = colors.yellow } })
+			apple:set({ icon = { color = colors.press } })
 		end)
 		sbar.delay(timing.frames_to_seconds(frames), function()
 			sbar.animate("linear", frames, function()
-				apple:set({ icon = { color = colors.green } })
+				apple:set({ icon = { color = colors.identity.apple } })
 			end)
 		end)
 	end)

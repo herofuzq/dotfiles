@@ -31,16 +31,16 @@ local clash_tun = sbar.add("item", "widgets.clash_tun", {
 
 local function color_for(state)
 	if state == "all" then
-		return colors.mauve
+		return colors.identity.clash_all
 	end
 	if state == "tun" then
-		return colors.green
+		return colors.status.ok
 	end
 	if state == "sys" then
-		return colors.sapphire
+		return colors.identity.clash_sys
 	end
 	if state == "off" then
-		return colors.red
+		return colors.status.error
 	end
 	return colors.surface1
 end

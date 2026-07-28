@@ -46,7 +46,7 @@ local down = sbar.add("item", "widgets.network_down", {
 		drawing = true,
 		padding_left = 4,
 		padding_right = 0,
-		color = colors.sapphire,
+		color = colors.identity.network,
 	},
 	label = {
 		string = "—",
@@ -122,12 +122,12 @@ end
 
 local function icon_color(kind)
 	if kind == "offline" then
-		return colors.red
+		return colors.status.error
 	end
 	if kind == "hotspot" then
-		return colors.mauve
+		return colors.identity.network_hotspot
 	end
-	return colors.sapphire
+	return colors.identity.network
 end
 
 local net_iface, current_network_kind, last_interface_check

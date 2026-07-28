@@ -26,7 +26,7 @@ local services_item = sbar.add("item", item_name, {
 	icon = {
 		string = icons.services.docker,
 		font = appearance.font_icon_bold(16.0),
-		color = colors.green,
+		color = colors.status.ok,
 		padding_left = 2, padding_right = 4,
 	},
 	label = {
@@ -46,11 +46,11 @@ local services_anim = popup_animation.new(services_item, {
 })
 
 local BTN = {
-	start  = { icon = "\u{F04B}", color = colors.green  },
-	stop   = { icon = "\u{F04D}", color = colors.red    },
-	pause  = { icon = "\u{F04C}", color = colors.yellow  },
-	resume = { icon = "\u{F051}", color = colors.green  },
-	quit   = { icon = "\u{F011}", color = colors.red    },
+	start  = { icon = "\u{F04B}", color = colors.status.ok  },
+	stop   = { icon = "\u{F04D}", color = colors.status.error    },
+	pause  = { icon = "\u{F04C}", color = colors.status.warn  },
+	resume = { icon = "\u{F051}", color = colors.status.ok  },
+	quit   = { icon = "\u{F011}", color = colors.status.error    },
 }
 
 local PF = fonts.popup
@@ -202,10 +202,10 @@ local last_popup_state
 local popup_utils = require("helpers.popup_utils")
 
 local function count_color(status, running, total)
-	if status == "error" or total <= 0 then return colors.red end
-	if running >= total then return colors.green end
-	if running > 0 then return colors.yellow end
-	return colors.red
+	if status == "error" or total <= 0 then return colors.status.error end
+	if running >= total then return colors.status.ok end
+	if running > 0 then return colors.status.warn end
+	return colors.status.error
 end
 
 local function st_text(state)
@@ -260,7 +260,7 @@ local function apply_status(output, force_main)
 		end
 	end
 
-	local icon_color = sum.status == "error" and colors.red or colors.green
+	local icon_color = sum.status == "error" and colors.status.error or colors.status.ok
 	local count_color_value = count_color(sum.status, sum.running, sum.total)
 	local main_signature = table.concat({ sum.status, sum.running, sum.total, icon_color, count_color_value }, "|")
 	if force_main or main_signature ~= last_main_signature then
@@ -305,7 +305,7 @@ for _, entry in ipairs(actions_list) do
 		popup_utils.defer(function()
 			local c = (BTN[e.action] or BTN.start).color
 			feedback(e.row, c)
-			status_row:set({ drawing = true, label = { string = e.action .. " " .. target_name(e) .. "...", color = colors.yellow } })
+			status_row:set({ drawing = true, label = { string = e.action .. " " .. target_name(e) .. "...", color = colors.status.warn } })
 		end)
 		sbar.exec(cmd(e), function() refresh() end)
 	end)

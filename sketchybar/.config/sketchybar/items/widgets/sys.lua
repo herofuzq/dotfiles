@@ -47,7 +47,7 @@ local sys = sbar.add("item", "widgets.sys", {
 		font = appearance.font_icon_bold(),
 		padding_left = settings.item_padding.icon_label_item.icon.padding_left,
 		padding_right = 0,
-		color = colors.mauve,
+		color = colors.identity.sys_icon,
 	},
 	label = {
 		string = "0%",
@@ -87,7 +87,7 @@ local function popup_item(name, text, color)
 	})
 end
 
-local info = popup_item("widgets.sys.info", "正在读取温度和进程…", colors.peach)
+local info = popup_item("widgets.sys.info", "正在读取温度和进程…", colors.identity.sys_info)
 local process_items = {}
 for i = 1, 10 do
 	process_items[i] = popup_item("widgets.sys.process." .. i, " ")
@@ -197,8 +197,8 @@ local initial_ready = startup.track("sys.cpu")
 
 sys:subscribe("cpu_update", function(env)
 	local cpu_load = math.max(0, math.min(100, math.floor(tonumber(env.total_load) or 0)))
-	local cpu_color = cpu_load > 70 and colors.red
-		or (cpu_load > 40 and colors.peach or colors.green)
+	local cpu_color = cpu_load > 70 and colors.status.error
+		or (cpu_load > 40 and colors.status.caution or colors.status.ok)
 	-- dedup: cpu 百分比和颜色档位都和上次一样就不 set
 	local signature = cpu_load .. "|" .. tostring(cpu_color)
 	if signature == last_cpu_signature then

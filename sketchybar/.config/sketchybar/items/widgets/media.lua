@@ -90,7 +90,7 @@ local function update_label(info, animated)
 	local max_chars = textwidth.chars_within_width(title, TITLE_WIDTH_BUDGET)
 	if not title_initialized or not animated then
 		title_initialized = true
-		label:set({ label = { string = title, color = colors.yellow, max_chars = max_chars } })
+		label:set({ label = { string = title, color = colors.identity.music_text, max_chars = max_chars } })
 		return
 	end
 
@@ -98,14 +98,14 @@ local function update_label(info, animated)
 	local generation = title_generation
 	-- 统一规范：纯 alpha 渐隐，linear 曲线，100ms 对称
 	sbar.animate("linear", timing.STANDARD_DURATION_FRAMES, function()
-		label:set({ label = { color = appearance.with_alpha(colors.yellow, 0) } })
+		label:set({ label = { color = appearance.with_alpha(colors.identity.music_text, 0) } })
 	end)
 	sbar.delay(timing.frames_to_seconds(timing.STANDARD_DURATION_FRAMES), function()
 		if title_generation ~= generation then
 			return
 		end
 		sbar.animate("linear", timing.STANDARD_DURATION_FRAMES, function()
-			label:set({ label = { string = title, color = colors.yellow, max_chars = max_chars } })
+			label:set({ label = { string = title, color = colors.identity.music_text, max_chars = max_chars } })
 		end)
 	end)
 end
@@ -226,7 +226,7 @@ local previous_item = sbar.add("item", "widgets.media_previous", {
 local function press_feedback(item)
 	local frames = math.max(1, math.floor(timing.STANDARD_DURATION_FRAMES / 2))
 	sbar.animate("linear", frames, function()
-		item:set({ icon = { color = colors.yellow } })
+		item:set({ icon = { color = colors.press } })
 	end)
 	sbar.delay(timing.frames_to_seconds(frames), function()
 		sbar.animate("linear", frames, function()
@@ -275,7 +275,7 @@ label = sbar.add("item", "widgets.media_label", {
 	icon = {
 		string = ICON_MUSIC,
 		font = appearance.font_icon_bold(11.0),
-		color = colors.peach,
+		color = colors.identity.music_icon,
 		padding_left = 6,
 		padding_right = 2,
 	},
@@ -286,7 +286,7 @@ label = sbar.add("item", "widgets.media_label", {
 			style = fonts.font.style_map["Semibold"],
 			size = fonts.font.size,
 		},
-		color = colors.yellow,
+		color = colors.identity.music_text,
 		padding_left = 2,
 		padding_right = 6,
 		-- 占位值：update_label 每次 set 都按 TITLE_WIDTH_BUDGET 重新换算 max_chars

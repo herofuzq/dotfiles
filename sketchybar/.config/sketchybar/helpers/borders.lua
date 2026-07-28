@@ -15,7 +15,8 @@ local settings = require("settings")
 local timing = require("helpers.timing")
 local enter_animation = require("helpers.enter_animation")
 
-local focused_bg = colors.red
+-- 阶段一仅语义改名；模块级标量缓存在阶段二改运行时读取。
+local focused_bg = colors.status.error
 local inactive_bg = 0x00000000
 local workspace_style = {
 	bracket_height = settings.height - 4,

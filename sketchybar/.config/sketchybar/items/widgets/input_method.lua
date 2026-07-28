@@ -29,7 +29,7 @@ local input_method = sbar.add("item", "widgets.input_method", {
 		font = appearance.font_icon_bold(),
 		padding_left = settings.item_padding.icon_label_item.icon.padding_left,
 		padding_right = 2,
-		color = colors.sapphire,
+		color = colors.identity.input_default,
 	},
 	label = {
 		font = appearance.font_label_bold(),
@@ -43,24 +43,24 @@ local input_method = sbar.add("item", "widgets.input_method", {
 local function apply_display(im_id, fcitx_mode)
 	if im_id == "com.apple.keylayout.ABC" then
 		input_method:set({
-			icon = { string = icons.input_method.keyboard, color = colors.blue },
+			icon = { string = icons.input_method.keyboard, color = colors.identity.input_a },
 			label = { string = "A", color = colors.pill_fg },
 		})
 	elseif im_id == WETYPE_SRC then
 		input_method:set({
-			icon = { string = icons.input_method.keyboard, color = colors.green },
+			icon = { string = icons.input_method.keyboard, color = colors.identity.input_zh },
 			label = { string = "微", color = colors.pill_fg },
 		})
 	elseif im_id == "org.fcitx.inputmethod.Fcitx5.zhHans" then
 		if fcitx_mode == "2" then -- fcitx5-remote: 0=关闭, 1=不活跃, 2=中文
 			input_method:set({
-				icon = { string = icons.input_method.keyboard, color = colors.mauve },
+				icon = { string = icons.input_method.keyboard, color = colors.identity.input_ch },
 				label = { string = "CH", color = colors.pill_fg },
 			})
 		else
 			-- fcitx 英文模式
 			input_method:set({
-				icon = { string = icons.input_method.keyboard, color = colors.mauve },
+				icon = { string = icons.input_method.keyboard, color = colors.identity.input_en },
 				label = { string = "EN", color = colors.pill_fg },
 			})
 		end

@@ -88,7 +88,7 @@ local function updatePopupContent()
 		hdr[#hdr + 1] = string.format(" %-2s ", wd)
 	end
 	local lines = {
-		{ string = string.format("%d年%d月", year, month), color = colors.mauve },
+		{ string = string.format("%d年%d月", year, month), color = colors.identity.calendar_month },
 		{ string = table.concat(hdr):gsub("%s+$", ""), grid = true, color = colors.subtext1 },
 	}
 

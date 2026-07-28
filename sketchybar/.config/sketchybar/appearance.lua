@@ -78,6 +78,8 @@ local A = {
 }
 
 -- ========== (4) 构建实际颜色表（含 alpha）==========
+-- 三层语义：中性色（顶层）+ status（状态语义）+ identity（widget 固定强调色登记表）。
+-- widget 只许引用 colors.status.* / colors.identity.* / 中性色，禁止裸引用色板色。
 local function build_colors(P)
 	return {
 		pill_bg = M.with_alpha(P.surface0, A.pill), -- surface0 @ 0.667
@@ -101,12 +103,46 @@ local function build_colors(P)
 		overlay0 = P.overlay0,
 		overlay1 = P.overlay1,
 		crust = P.crust,
+		-- 按压反馈色（apple 图标、media 按钮共用）
+		press = P.yellow,
+		-- 状态语义色：电量/CPU/网络/git/docker/clash 等状态驱动场景专用
+		status = {
+			ok = P.green, -- 正常 / 开 / 全部运行
+			error = P.red, -- 异常 / 关 / 离线 / 低电
+			warn = P.yellow, -- 注意：git dirty、docker 部分运行、暂停、操作进行中
+			caution = P.peach, -- 中档警告：电量/CPU 中间档
+		},
+		-- 身份色登记表：widget 的固定强调色，与状态无关
+		identity = {
+			apple = P.green,
+			music_icon = P.peach,
+			music_text = P.yellow,
+			sys_icon = P.mauve,
+			sys_info = P.peach, -- sys popup 提示文字
+			calendar_month = P.mauve,
+			input_default = P.sapphire,
+			input_a = P.blue, -- 英文 ABC
+			input_zh = P.green, -- 中文「微」
+			input_ch = P.mauve,
+			input_en = P.mauve,
+			network = P.sapphire, -- 正常连接
+			network_hotspot = P.mauve, -- 热点
+			clash_all = P.mauve, -- 全局模式
+			clash_sys = P.sapphire, -- 系统代理
+			spaces_mode = P.sapphire, -- aerospace_mode
+			spaces_ws = P.peach, -- workspace 编号/标签
+			spaces_service = P.sapphire, -- service mode 标签
+			spaces_win_highlight = P.red, -- 窗口标题高亮
+		},
 	}
 end
 
 -- ========== (5) 切换 ==========
 M.active = "mocha"
 M.colors = build_colors(palette[M.active])
+-- 导出供测试与主题切换（阶段二 update_colors_in_place）使用
+M.palette = palette
+M.build_colors = build_colors
 
 -- ========== (6) 样式 helpers ==========
 -- 所有 widget 复用的标准样式，避免每个文件重抄。

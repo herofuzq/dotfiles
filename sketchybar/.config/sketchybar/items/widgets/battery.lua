@@ -138,7 +138,7 @@ local function update_battery_display(state)
 	end
 	last_battery_signature = signature
 
-	local color = colors.green
+	local color = colors.status.ok
 	local icon
 	if state.ac or state.charging then
 		icon = icons.battery.charging
@@ -151,10 +151,10 @@ local function update_battery_display(state)
 			icon = icons.battery._50
 		elseif state.percent > 20 then
 			icon = icons.battery._25
-			color = colors.peach
+			color = colors.status.caution
 		else
 			icon = icons.battery._0
-			color = colors.red
+			color = colors.status.error
 		end
 	end
 
