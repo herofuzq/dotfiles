@@ -99,18 +99,27 @@ function M.create(deps)
 	local state_path = deps.state_path
 	local command = assert(deps.command)
 	local notification = assert(deps.notification)
+	local image_for_scheme = deps.image_for_scheme
 
 	local controller = {}
 
 	function controller.choices()
 		local current = theme.current_scheme()
+		local flavor = image_for_scheme and theme.current_flavor()
 		local choices = {}
 		for _, name in ipairs(theme.scheme_names) do
 			local display = display_names[name] or name
-			choices[#choices + 1] = {
+			local choice = {
 				text = (name == current and "✓ " or "") .. display,
 				scheme = name,
 			}
+			if image_for_scheme then
+				local ok, image = pcall(image_for_scheme, name, flavor)
+				if ok and image then
+					choice.image = image
+				end
+			end
+			choices[#choices + 1] = choice
 		end
 		return choices
 	end
@@ -148,6 +157,36 @@ function M.create(deps)
 	return controller
 end
 
+local function palette_image(theme, scheme, flavor)
+	local preview = theme.preview_colors(scheme, flavor)
+	if not preview or not (_G.hs and hs.canvas) then
+		return nil
+	end
+
+	local canvas = hs.canvas.new({ x = 0, y = 0, w = 72, h = 34 })
+	if not canvas then
+		return nil
+	end
+
+	local ok, image = pcall(function()
+		local x = 0
+		local widths = { 24, 12, 12, 12, 12 }
+		local colors = { preview.base, preview.accent, preview.green, preview.yellow, preview.red }
+		for index, width in ipairs(widths) do
+			canvas:appendElements({
+				type = "rectangle",
+				action = "fill",
+				fillColor = colors[index],
+				frame = { x = x, y = 0, w = width, h = 34 },
+			})
+			x = x + width
+		end
+		return canvas:imageFromCanvas()
+	end)
+	canvas:delete()
+	return ok and image or nil
+end
+
 function M.install()
 	local theme = require("theme")
 	local controller = M.create({
@@ -156,6 +195,9 @@ function M.install()
 		state_path = theme.state_path(),
 		command = require("command"),
 		notification = require("notification_hud"),
+		image_for_scheme = function(scheme, flavor)
+			return palette_image(theme, scheme, flavor)
+		end,
 	})
 	local chooser = hs.chooser.new(function(choice)
 		if choice and choice.scheme then
@@ -163,6 +205,8 @@ function M.install()
 		end
 	end)
 	hs.hotkey.bind({ "cmd", "ctrl", "alt", "shift" }, "t", function()
+		local flavor_label = theme.current_flavor() == "dark" and "Dark" or "Light"
+		chooser:placeholderText("Theme · " .. flavor_label .. " · follows macOS")
 		chooser:choices(controller.choices())
 		chooser:show()
 	end)

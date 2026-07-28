@@ -21,6 +21,8 @@ assert(written == switcher.state_content("kanagawa"))
 
 local sequence = {}
 local current = "gruvbox"
+local image_calls = {}
+local preview_image = {}
 local controller = switcher.create({
 	theme = {
 		scheme_names = { "catppuccin", "tokyonight", "rosepine", "everforest", "kanagawa", "gruvbox" },
@@ -33,6 +35,7 @@ local controller = switcher.create({
 				or name == "gruvbox"
 		end,
 		current_scheme = function() return current end,
+		current_flavor = function() return "dark" end,
 		set_scheme = function(name)
 			sequence[#sequence + 1] = "theme:" .. name
 			current = name
@@ -55,6 +58,13 @@ local controller = switcher.create({
 			sequence[#sequence + 1] = "notify:" .. text
 		end,
 	},
+	image_for_scheme = function(name, flavor)
+		image_calls[#image_calls + 1] = name .. ":" .. flavor
+		if name == "rosepine" then
+			error("render failed")
+		end
+		return preview_image
+	end,
 })
 
 assert(controller.switch_to("gruvbox") == false, "当前主题应为 no-op")
@@ -69,6 +79,10 @@ assert(sequence[4] == "notify:Theme · Everforest")
 local choices = controller.choices()
 assert(#choices == 6)
 assert(choices[4].text == "✓ Everforest")
+assert(choices[1].image == preview_image)
+assert(choices[3].image == nil, "预览生成失败时应退回纯文字")
+assert(image_calls[1] == "catppuccin:dark")
+assert(image_calls[6] == "gruvbox:dark")
 
 local failed_theme_calls = 0
 local failed = switcher.create({

@@ -26,4 +26,10 @@ local switcher_install = assert(init:find('require("theme_switcher").install()',
 assert(theme_start < input_load, "theme 必须在 HUD consumer 之前启动")
 assert(switcher_install > input_load, "选择器应在 HUD consumer 注册后安装")
 
+local switcher = read("hammerspoon/.hammerspoon/theme_switcher.lua")
+assert(
+	switcher:find('chooser:placeholderText("Theme · " .. flavor_label .. " · follows macOS")', 1, true),
+	"主题选择器标题应显示当前 macOS flavor"
+)
+
 print("theme_integration_test: ok")

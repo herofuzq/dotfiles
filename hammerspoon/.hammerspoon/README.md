@@ -7,6 +7,7 @@
 
 - `theme.lua` 负责读取 `~/.local/state/dotfiles/theme_scheme`、维护 HUD 配色，并独立监听 macOS 深浅色。
 - `theme_switcher.lua` 原子写入 scheme，先更新 Input/Notification HUD，再异步通知 SketchyBar；通知失败只写日志，不回滚已经成功的本地切换。
+- 每个主题行左侧显示当前 macOS 深浅模式下的五色色板预览：背景、主题强调色、正常、警告、错误。预览由 `hs.canvas` 在内存中生成，失败时自动退回纯文字列表。
 - Input HUD 与 Notification HUD 只原地重染现有 canvas，不重建、不移动、不增加动画。
 - 深色/浅色不写入状态文件，始终跟随 macOS。状态缺失或无效时回退到 `gruvbox`。
 - 手工改状态文件后分别 reload Hammerspoon 与 SketchyBar；通过选择器切换则无需 reload。
