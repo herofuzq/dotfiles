@@ -118,7 +118,7 @@ local function ensure_front_app()
 			padding_left = 8,
 			padding_right = 8,
 			align = "center",
-			color = appearance.colors.identity.spaces_ws,
+			color = appearance.colors.identity.front_app,
 		},
 		background = { drawing = false },
 	})
@@ -140,7 +140,7 @@ local function ensure_front_app()
 		front_app_initial_ready()
 		sbar.animate("linear", CONTENT_FADE_FRAMES, function()
 			front_app:set({
-				label = { color = transparent(appearance.colors.identity.spaces_ws) },
+				label = { color = transparent(appearance.colors.identity.front_app) },
 			})
 		end)
 		sbar.delay(timing.frames_to_seconds(CONTENT_FADE_FRAMES), function()
@@ -148,11 +148,11 @@ local function ensure_front_app()
 				return
 			end
 			front_app:set({
-				label = { string = name, color = transparent(appearance.colors.identity.spaces_ws) },
+				label = { string = name, color = transparent(appearance.colors.identity.front_app) },
 			})
 			sbar.animate("linear", CONTENT_FADE_FRAMES, function()
 				front_app:set({
-					label = { color = appearance.colors.identity.spaces_ws },
+					label = { color = appearance.colors.identity.front_app },
 				})
 			end)
 		end)
@@ -1329,7 +1329,7 @@ local function apply_colors(C)
 	})
 	-- front_app 名称标签
 	if front_app then
-		front_app:set({ label = { color = C.identity.spaces_ws } })
+		front_app:set({ label = { color = C.identity.front_app } })
 	end
 	-- workspaces.bracket 的 pill 背景（focused/inactive 分段颜色由 borders owner 重放，这里不重复）
 	sbar.set("workspaces.bracket", {

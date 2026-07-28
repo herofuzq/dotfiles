@@ -34,7 +34,8 @@ assert(cm.count == mocha.peach) -- 计数统一色
 assert(cl.count == latte.peach)
 
 -- identity 登记表（C 两级制：内容型保留强调色，状态型常规态回归中性）
-assert(cm.identity.apple == mocha.text)
+assert(cm.identity.apple == mocha.mauve)
+assert(cm.identity.front_app == mocha.mauve)
 assert(cm.identity.music_icon == mocha.peach) -- bar 上唯一保留的固定强调色
 assert(cm.identity.music_text == mocha.text)
 assert(cm.identity.sys_icon == mocha.text)
@@ -54,7 +55,8 @@ assert(cm.identity.spaces_ws == mocha.text)
 assert(cm.identity.spaces_service == mocha.text) -- 与 apple 图标同色
 assert(cm.identity.spaces_win_highlight == mocha.red)
 -- latte 抽查（防止复制粘贴错行）
-assert(cl.identity.apple == latte.text)
+assert(cl.identity.apple == latte.mauve)
+assert(cl.identity.front_app == latte.mauve)
 assert(cl.identity.music_icon == latte.peach)
 assert(cl.identity.input_a == latte.text)
 assert(cl.identity.network == latte.sapphire)
@@ -118,6 +120,12 @@ for scheme_name, role in pairs(border_roles) do
 			colors.identity.window_border == p[role],
 			scheme_name .. "." .. flavor .. " window_border 颜色错误"
 		)
+		assert(colors.identity.apple == colors.identity.window_border, scheme_name .. "." .. flavor .. " apple 颜色错误")
+		assert(
+			colors.identity.front_app == colors.identity.window_border,
+			scheme_name .. "." .. flavor .. " front_app 颜色错误"
+		)
+		assert(colors.identity.spaces_ws == p.text, scheme_name .. "." .. flavor .. " workspace 编号不应跟随强调色")
 	end
 end
 

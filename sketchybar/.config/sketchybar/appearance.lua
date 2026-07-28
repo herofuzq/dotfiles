@@ -383,6 +383,7 @@ local A = {
 -- 三层语义：中性色（顶层）+ status（状态语义）+ identity（widget 固定强调色登记表）。
 -- widget 只许引用 colors.status.* / colors.identity.* / 中性色，禁止裸引用色板色。
 local function build_colors(P, window_border_role)
+	local theme_accent = P[window_border_role or "mauve"]
 	return {
 		pill_bg = M.with_alpha(P.surface0, A.pill), -- surface0 @ 0.667
 		pill_fg = P.text,
@@ -420,8 +421,9 @@ local function build_colors(P, window_border_role)
 		-- 身份色登记表：两级制——内容型 widget 保留强调色，状态型常规态回归中性色
 		-- （颜色 = 信号：只有状态变化才上色，由 colors.status.* 承担）
 		identity = {
-			apple = P.text, -- 原 green，收敛为中性
-			music_icon = P.peach, -- 内容主角：bar 上唯一保留的固定强调色
+			apple = theme_accent, -- 与 FrontApp / jankyborders 共用主题代表色
+			front_app = theme_accent,
+			music_icon = P.peach, -- 内容主角固定强调色
 			music_text = P.text, -- 原 yellow，收敛为中性
 			sys_icon = P.text,
 			sys_info = P.subtext1, -- sys popup 提示文字
@@ -435,11 +437,11 @@ local function build_colors(P, window_border_role)
 			network_hotspot = P.mauve, -- 热点是"状态"，保留信号色
 			clash_all = P.mauve, -- 全局模式（活跃状态，信号色）
 			clash_sys = P.sapphire, -- 系统代理（活跃状态，信号色）
-			spaces_mode = P.text, -- aerospace 指示器，与 apple 图标同色
-			spaces_ws = P.text, -- workspace 编号/front_app 收敛为中性
-			spaces_service = P.text, -- service mode 指示器可见时的颜色，与 apple 图标同色
+			spaces_mode = P.text, -- aerospace 指示器保持中性
+			spaces_ws = P.text, -- workspace 编号保持中性
+			spaces_service = P.text, -- service mode 指示器保持中性
 			spaces_win_highlight = P.red, -- 窗口标题高亮（信号色）
-			window_border = P[window_border_role or "mauve"], -- jankyborders 当前窗口外框
+			window_border = theme_accent, -- jankyborders 当前窗口外框
 		},
 	}
 end
