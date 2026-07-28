@@ -116,7 +116,7 @@ battery:subscribe("display_transition_begin", function()
 end)
 
 -- ========== 电池状态更新 ==========
--- 颜色档位：电源/充电或 >40% 为 ok，21-40% caution，<=20% error（主题切换时复用）
+-- 颜色档位：按电量高到低着色——>40%（含电源/充电）ok，21-40% caution，<=20% error（主题切换时复用）
 local function battery_color(state)
 	if state.ac or state.charging or state.percent > 40 then
 		return colors.status.ok

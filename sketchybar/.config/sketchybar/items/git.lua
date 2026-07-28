@@ -30,7 +30,7 @@ local git_item = sbar.add("item", item_name, {
 	icon = {
 		string = icons.git,
 		font = appearance.font_icon_bold(16.0),
-		color = colors.status.ok,
+		color = colors.text,
 		padding_left = 4, padding_right = 4,
 	},
 	label = {
@@ -147,12 +147,16 @@ local function apply_status(output, force_main)
 		end
 	end
 
-	local bar_color = total_dirty > 0 and colors.status.warn or colors.status.ok
+	local bar_color = total_dirty > 0 and colors.count or colors.pill_fg -- 计数统一色；干净时普通色
+	local icon_color = total_dirty > 0 and colors.status.ok or colors.text -- 图标：有计数绿，无计数普通色
 	last_total_dirty = total_dirty
-	local main_signature = tostring(total_dirty) .. "|" .. tostring(bar_color)
+	local main_signature = tostring(total_dirty) .. "|" .. tostring(bar_color) .. "|" .. tostring(icon_color)
 	if force_main or main_signature ~= last_main_signature then
 		last_main_signature = main_signature
-		git_item:set({ label = { string = tostring(total_dirty), color = bar_color } })
+		git_item:set({
+			icon = { color = icon_color },
+			label = { string = tostring(total_dirty), color = bar_color },
+		})
 	end
 	last_popup_state = {
 		entries = entries,
@@ -242,11 +246,11 @@ git_item:set({ popup = { height = 16 } })
 
 -- ========== 主题热换色：按缓存的 git 状态重涂 ==========
 local function apply_colors(C)
-	-- 主条 label 沿用 apply_status 的 bar_color 规则；icon 在现有逻辑里恒为 status.ok
-	local bar_color = last_total_dirty > 0 and C.status.warn or C.status.ok
+	-- 主条：icon 有计数绿、无计数普通色；label dirty>0 用计数统一色，干净时普通色
+	local bar_color = last_total_dirty > 0 and C.count or C.pill_fg
 	local popup_bg = appearance.popup_bg()
 	git_item:set({
-		icon = { color = C.status.ok },
+		icon = { color = last_total_dirty > 0 and C.status.ok or C.text },
 		label = { color = bar_color },
 		popup = { background = { color = popup_bg.color, border_color = popup_bg.border_color } },
 	})

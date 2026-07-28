@@ -196,7 +196,7 @@ local last_cpu_signature
 local last_cpu_load
 local initial_ready = startup.track("sys.cpu")
 
--- CPU 三档颜色：>70 error、>40 caution、其余 ok（主题切换时复用）
+-- CPU 颜色：<=40 ok（绿）、>40 caution、>70 error（主题切换时复用）
 local function cpu_tier_color(cpu_load)
 	return cpu_load > 70 and colors.status.error
 		or (cpu_load > 40 and colors.status.caution or colors.status.ok)

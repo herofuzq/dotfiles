@@ -26,7 +26,7 @@ local services_item = sbar.add("item", item_name, {
 	icon = {
 		string = icons.services.docker,
 		font = appearance.font_icon_bold(16.0),
-		color = colors.status.ok,
+		color = colors.text,
 		padding_left = 2, padding_right = 4,
 	},
 	label = {
@@ -213,11 +213,18 @@ local last_main_signature
 local last_popup_state
 local popup_utils = require("helpers.popup_utils")
 
+-- 计数色：关闭/异常=红，有运行容器=计数统一色（peach），为 0 时普通色
 local function count_color(status, running, total)
 	if status == "error" or total <= 0 then return colors.status.error end
-	if running >= total then return colors.status.ok end
-	if running > 0 then return colors.status.warn end
-	return colors.status.error
+	if running <= 0 then return colors.pill_fg end
+	return colors.count
+end
+
+-- 图标三级：关闭/异常=红，有运行容器=绿，开启但无计数=普通色
+local function icon_color_for(C, status, running)
+	if status == "error" then return C.status.error end
+	if running > 0 then return C.status.ok end
+	return C.text
 end
 
 local function st_text(state)
@@ -272,7 +279,7 @@ local function apply_status(output, force_main)
 		end
 	end
 
-	local icon_color = sum.status == "error" and colors.status.error or colors.status.ok
+	local icon_color = icon_color_for(colors, sum.status, sum.running)
 	local count_color_value = count_color(sum.status, sum.running, sum.total)
 	local main_signature = table.concat({ sum.status, sum.running, sum.total, icon_color, count_color_value }, "|")
 	if force_main or main_signature ~= last_main_signature then
@@ -364,7 +371,7 @@ local function apply_colors(C)
 	if last_popup_state then
 		local sum = last_popup_state.sum
 		services_item:set({
-			icon = { color = sum.status == "error" and C.status.error or C.status.ok },
+			icon = { color = icon_color_for(C, sum.status, sum.running) },
 			label = { color = count_color(sum.status, sum.running, sum.total) },
 		})
 	end

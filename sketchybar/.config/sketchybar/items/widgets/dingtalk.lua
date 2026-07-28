@@ -7,9 +7,9 @@ status_widget({
 	app_id = "com.alibaba.DingTalkMac",
 	update_freq = 32,
 	icon = ":dingtalk:",
-	icon_color = "blue",
-	icon_inactive_color = "blue",
-	label_color = "peach",
+	icon_color = "blue", -- 有消息亮起
+	icon_inactive_color = "text", -- 无消息普通色（与 input 一致）
+	label_color = "count", -- 计数统一色
 	label_inactive_color = "text",
 	shared_bracket = true,
 	padding_left = 0,

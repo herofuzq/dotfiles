@@ -9,9 +9,9 @@ status_widget({
 	app_id = "com.tencent.xinWeChat",
 	update_freq = 34,
 	icon = ":wechat:",
-	icon_color = "green",
-	icon_inactive_color = "green",
-	label_color = "green",
+	icon_color = "green", -- 有消息亮起
+	icon_inactive_color = "text", -- 无消息普通色（与 input 一致）
+	label_color = "count", -- 计数统一色
 	label_inactive_color = "text",
 	shared_bracket = true,
 	padding_left = 4,
