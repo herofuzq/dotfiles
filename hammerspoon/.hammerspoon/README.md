@@ -1,5 +1,16 @@
 # Hammerspoon 配置说明
 
+## 主题切换
+
+`Hyper+Shift+T` 打开主题选择器，可选：
+`catppuccin`、`tokyonight`、`rosepine`、`everforest`、`kanagawa`、`gruvbox`。
+
+- `theme.lua` 负责读取 `~/.local/state/dotfiles/theme_scheme`、维护 HUD 配色，并独立监听 macOS 深浅色。
+- `theme_switcher.lua` 原子写入 scheme，先更新 Input/Notification HUD，再异步通知 SketchyBar；通知失败只写日志，不回滚已经成功的本地切换。
+- Input HUD 与 Notification HUD 只原地重染现有 canvas，不重建、不移动、不增加动画。
+- 深色/浅色不写入状态文件，始终跟随 macOS。状态缺失或无效时回退到 `gruvbox`。
+- 手工改状态文件后分别 reload Hammerspoon 与 SketchyBar；通过选择器切换则无需 reload。
+
 ## 输入法切换（input.lua）
 
 ### 状态模型
@@ -55,5 +66,6 @@ Hyperkey 按住 Caps 发 Hyper（⌃⌥⌘⇧）用于组合键；单击时的�
 
 - Hammerspoon Console：`[Input]` 开头是 input.lua，`[caps_guard]` 开头是 caps_guard。
 - 语法检查：`luac -p ~/.hammerspoon/*.lua`。
+- 测试：在 dotfiles 根目录执行 `for t in hammerspoon/tests/*_test.lua; do lua "$t"; done`。
 - reload 语义：`hs.reload()` 使用全新 Lua 环境，旧全局变量不继承；
   需要 reload 前同步收尾的逻辑挂 `hs.shutdownCallback`（参考 input.lua 的按键补偿释放）。

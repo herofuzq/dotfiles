@@ -4,6 +4,7 @@
 -- 仅启用 ABC + 一个中文输入法时，“上一个输入源”切换最可靠。
 -- ============================================================
 local notification = require("notification_hud")
+local theme = require("theme")
 local wechatVoice = require("wechat_voice")
 local EN = 1
 local ZH = 2
@@ -203,18 +204,7 @@ local VOICE_WINDOW_PROBE_INTERVAL = 0.05
 local VOICE_WINDOW_PROBE_ATTEMPTS = 60
 local HUD_CORNER_RADIUS = 10
 local HUD_FADE_OUT_DURATION = 0.16
-local MOCHA_BASE = { red = 30 / 255, green = 30 / 255, blue = 46 / 255 }
-local MOCHA_SURFACE0 = { red = 49 / 255, green = 50 / 255, blue = 68 / 255 }
-local MOCHA_SUBTEXT1 = { red = 186 / 255, green = 194 / 255, blue = 222 / 255 }
-local MOCHA_GREEN = { red = 166 / 255, green = 227 / 255, blue = 161 / 255 }
-local MOCHA_YELLOW = { red = 249 / 255, green = 226 / 255, blue = 175 / 255 }
-local MOCHA_RED = { red = 243 / 255, green = 139 / 255, blue = 168 / 255 }
-local HUD_BG = { red = MOCHA_BASE.red, green = MOCHA_BASE.green, blue = MOCHA_BASE.blue, alpha = 0.42 }
-local HUD_TEXT = { red = MOCHA_SUBTEXT1.red, green = MOCHA_SUBTEXT1.green, blue = MOCHA_SUBTEXT1.blue, alpha = 1.0 }
-local HUD_PROGRESS_GREEN = { red = MOCHA_GREEN.red, green = MOCHA_GREEN.green, blue = MOCHA_GREEN.blue, alpha = 0.9 }
-local HUD_PROGRESS_YELLOW = { red = MOCHA_YELLOW.red, green = MOCHA_YELLOW.green, blue = MOCHA_YELLOW.blue, alpha = 0.9 }
-local HUD_PROGRESS_RED = { red = MOCHA_RED.red, green = MOCHA_RED.green, blue = MOCHA_RED.blue, alpha = 0.9 }
-local HUD_PROGRESS_EMPTY = { red = MOCHA_SURFACE0.red, green = MOCHA_SURFACE0.green, blue = MOCHA_SURFACE0.blue, alpha = 0.52 }
+local HUD_COLORS = theme.colors()
 
 local resetIdleTimer
 local hideInputHud
@@ -222,6 +212,7 @@ local _idleDeadline = nil
 local _idleTickTimer = nil
 local _keyTimestamps = {}
 local _inputHud = nil
+local _hudFilledSlots = 0
 local _hudMoveTimer = nil
 -- 暂时不等待异步验证，避免输入法切换链路增加体感延迟。
 local SOURCE_VERIFY_DELAY = 0
@@ -330,12 +321,29 @@ end
 local function progressSlotColor(index)
 	local fromRight = HUD_BAR_SLOTS - index + 1
 	if fromRight <= 4 then
-		return HUD_PROGRESS_GREEN
+		return HUD_COLORS.progress_green
 	elseif fromRight <= 7 then
-		return HUD_PROGRESS_YELLOW
+		return HUD_COLORS.progress_yellow
 	end
-	return HUD_PROGRESS_RED
+	return HUD_COLORS.progress_red
 end
+
+theme.subscribe("input_hud", function(colors)
+	HUD_COLORS = colors
+	if not _inputHud then
+		return
+	end
+	_inputHud:elementAttribute(1, "fillColor", HUD_COLORS.background)
+	_inputHud:elementAttribute(2, "textColor", HUD_COLORS.text)
+	_inputHud:elementAttribute(3, "textColor", HUD_COLORS.text)
+	for i = 1, HUD_BAR_SLOTS do
+		_inputHud:elementAttribute(
+			i + 3,
+			"fillColor",
+			i <= _hudFilledSlots and progressSlotColor(i) or HUD_COLORS.empty
+		)
+	end
+end)
 
 local function isInputActivityKey(event)
 	local char = event:getCharacters()
@@ -419,11 +427,12 @@ local function showInputHud(state, remaining, kpm)
 
 	local voiceShift = _voiceInputActive and HUD_VOICE_OFFSET or 0
 	local filledSlots = countdownFilledSlots(remaining, IDLE_TIMEOUT)
+	_hudFilledSlots = filledSlots
 	local elements = {
 		{
 			type = "rectangle",
 			action = "fill",
-			fillColor = HUD_BG,
+			fillColor = HUD_COLORS.background,
 			roundedRectRadii = { xRadius = HUD_CORNER_RADIUS, yRadius = HUD_CORNER_RADIUS },
 			frame = { x = 0, y = 0, w = HUD_WIDTH, h = HUD_HEIGHT },
 		},
@@ -432,7 +441,7 @@ local function showInputHud(state, remaining, kpm)
 			text = _voiceInputActive and "语音" or "中→英",
 			textFont = "SF Pro Text",
 			textSize = 13,
-			textColor = HUD_TEXT,
+			textColor = HUD_COLORS.text,
 			textAlignment = "left",
 			frame = { x = 12, y = 6, w = 42, h = 18 },
 		},
@@ -441,7 +450,7 @@ local function showInputHud(state, remaining, kpm)
 			text = string.format("%d kpm", kpm),
 			textFont = "SF Pro Text",
 			textSize = 13,
-			textColor = HUD_TEXT,
+			textColor = HUD_COLORS.text,
 			textAlignment = "right",
 			frame = { x = 140, y = 6, w = 60, h = 18 },
 		},
@@ -456,7 +465,7 @@ local function showInputHud(state, remaining, kpm)
 		table.insert(elements, {
 			type = "rectangle",
 			action = "fill",
-			fillColor = filled and progressSlotColor(i) or HUD_PROGRESS_EMPTY,
+			fillColor = filled and progressSlotColor(i) or HUD_COLORS.empty,
 			roundedRectRadii = { xRadius = 2, yRadius = 2 },
 			frame = { x = slotX + (i - 1) * (slotW + slotGap), y = slotY, w = slotW, h = slotH },
 		})
@@ -479,7 +488,7 @@ local function showInputHud(state, remaining, kpm)
 	_inputHud:elementAttribute(2, "text", _voiceInputActive and "语音" or "中→英")
 	_inputHud:elementAttribute(3, "text", string.format("%d kpm", kpm))
 	for i = 1, HUD_BAR_SLOTS do
-		_inputHud:elementAttribute(i + 3, "fillColor", i <= filledSlots and progressSlotColor(i) or HUD_PROGRESS_EMPTY)
+		_inputHud:elementAttribute(i + 3, "fillColor", i <= filledSlots and progressSlotColor(i) or HUD_COLORS.empty)
 	end
 end
 

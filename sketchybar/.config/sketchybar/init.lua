@@ -18,6 +18,7 @@ startup.configure(function()
 	-- 事件源：SketchyBar 原生分布式通知映射（无需 Swift 守护进程）。
 	-- 通知不保证必达 → system_woke 复检兜底；异步 detect 用 generation 防抖。
 	sbar.add("event", "system_appearance_changed", "AppleInterfaceThemeChangedNotification")
+	sbar.add("event", "theme_scheme_change")
 	local theme_trigger = sbar.add("item", "theme_trigger", { drawing = false })
 	local theme_detect_generation = 0
 	local function detect_and_switch()
@@ -33,6 +34,15 @@ startup.configure(function()
 	end
 	theme_trigger:subscribe("system_appearance_changed", detect_and_switch)
 	theme_trigger:subscribe("system_woke", detect_and_switch)
+	theme_trigger:subscribe("theme_scheme_change", function()
+		local appearance = require("appearance")
+		local scheme, err = appearance.read_scheme_state()
+		if scheme then
+			appearance.switch_scheme(scheme)
+		elseif err ~= "missing" then
+			print("[theme] unable to apply scheme state: " .. tostring(err))
+		end
+	end)
 end)
 
 -- 首屏查询并行完成（最长等 1 秒）后，以真实内容作为目标统一渐入。

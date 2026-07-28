@@ -58,6 +58,12 @@ helper 二进制会生成在实际运行路径，例如：
 
 Hammerspoon 不使用常驻轮询，主要依赖窗口事件和有限次数的 AeroSpace 查询重试。浮动窗口移入 SketchyBar 顶部区域时，会在实际发生归位后显示一次提示。
 
+## 桌面主题
+
+`Hyper+Shift+T` 通过 Hammerspoon 选择 `catppuccin`、`tokyonight`、`rosepine`、`everforest`、`kanagawa` 或 `gruvbox`。当前 scheme 保存在 `~/.local/state/dotfiles/theme_scheme`，SketchyBar、jankyborders 和 Hammerspoon HUD 共用该选择；深浅色分别跟随 macOS。
+
+选择器热切换无需 reload。手工修改状态文件后，需要分别 reload SketchyBar 与 Hammerspoon。
+
 ## 常用验证
 
 ```bash

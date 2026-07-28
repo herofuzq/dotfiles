@@ -1,6 +1,8 @@
 -- Shared transient notification HUD.
 -- It uses the same position and geometry as the input-method indicator.
 
+local theme = require("theme")
+
 local HUD_WIDTH = 212
 local HUD_HEIGHT = 26
 local HUD_BOTTOM_OFFSET = 30
@@ -8,24 +10,21 @@ local HUD_LANE_GAP = 8
 local HUD_CORNER_RADIUS = 10
 local HUD_FADE_OUT_DURATION = 0.16
 
-local MOCHA_BASE = { red = 30 / 255, green = 30 / 255, blue = 46 / 255 }
-local MOCHA_SUBTEXT1 = { red = 186 / 255, green = 194 / 255, blue = 222 / 255 }
-local MOCHA_GREEN = { red = 166 / 255, green = 227 / 255, blue = 161 / 255 }
-local MOCHA_YELLOW = { red = 249 / 255, green = 226 / 255, blue = 175 / 255 }
-local MOCHA_RED = { red = 243 / 255, green = 139 / 255, blue = 168 / 255 }
-
-local HUD_BG = { red = MOCHA_BASE.red, green = MOCHA_BASE.green, blue = MOCHA_BASE.blue, alpha = 0.42 }
-local TONE_COLORS = {
-	neutral = { red = MOCHA_SUBTEXT1.red, green = MOCHA_SUBTEXT1.green, blue = MOCHA_SUBTEXT1.blue, alpha = 1.0 },
-	success = { red = MOCHA_GREEN.red, green = MOCHA_GREEN.green, blue = MOCHA_GREEN.blue, alpha = 1.0 },
-	warning = { red = MOCHA_YELLOW.red, green = MOCHA_YELLOW.green, blue = MOCHA_YELLOW.blue, alpha = 1.0 },
-	error = { red = MOCHA_RED.red, green = MOCHA_RED.green, blue = MOCHA_RED.blue, alpha = 1.0 },
-}
+local HUD_COLORS = theme.colors()
 
 local M = {}
 local hud
+local hudTone = "neutral"
 local hideTimer
 local generation = 0
+
+theme.subscribe("notification_hud", function(colors)
+	HUD_COLORS = colors
+	if hud then
+		hud:elementAttribute(1, "fillColor", HUD_COLORS.background)
+		hud:elementAttribute(2, "textColor", HUD_COLORS.tones[hudTone] or HUD_COLORS.tones.neutral)
+	end
+end)
 
 local function hudFrame()
 	local screen = hs.mouse.getCurrentScreen() or hs.screen.mainScreen()
@@ -65,6 +64,7 @@ function M.show(text, tone, duration)
 	generation = generation + 1
 	local currentGeneration = generation
 	clearHud()
+	hudTone = tone or "neutral"
 
 	hud = hs.canvas.new(hudFrame())
 	if not hud then
@@ -74,7 +74,7 @@ function M.show(text, tone, duration)
 		{
 			type = "rectangle",
 			action = "fill",
-			fillColor = HUD_BG,
+			fillColor = HUD_COLORS.background,
 			roundedRectRadii = { xRadius = HUD_CORNER_RADIUS, yRadius = HUD_CORNER_RADIUS },
 			frame = { x = 0, y = 0, w = HUD_WIDTH, h = HUD_HEIGHT },
 		},
@@ -83,7 +83,7 @@ function M.show(text, tone, duration)
 			text = text,
 			textFont = "SF Pro Text",
 			textSize = 13,
-			textColor = TONE_COLORS[tone] or TONE_COLORS.neutral,
+			textColor = HUD_COLORS.tones[hudTone] or HUD_COLORS.tones.neutral,
 			textAlignment = "center",
 			frame = { x = 8, y = 5, w = HUD_WIDTH - 16, h = 18 },
 		},

@@ -101,6 +101,32 @@ assert(appearance.schemes.everforest.dark == "everforest_dark" and appearance.sc
 assert(appearance.schemes.kanagawa.dark == "kanagawa_wave" and appearance.schemes.kanagawa.light == "kanagawa_lotus")
 assert(appearance.schemes.gruvbox.dark == "gruvbox_dark" and appearance.schemes.gruvbox.light == "gruvbox_light")
 
+-- 共享状态文件只保存 scheme；注释、空行和首尾空白不影响解析。
+local expected_scheme_names = {
+	"catppuccin",
+	"tokyonight",
+	"rosepine",
+	"everforest",
+	"kanagawa",
+	"gruvbox",
+}
+assert(table.concat(appearance.scheme_names, ",") == table.concat(expected_scheme_names, ","))
+assert(
+	appearance.parse_scheme_state([[
+# 可选主题：catppuccin / tokyonight / rosepine / everforest / kanagawa / gruvbox
+
+scheme=everforest
+]]) == "everforest"
+)
+assert(appearance.parse_scheme_state("  scheme = kanagawa  \n") == "kanagawa")
+assert(appearance.parse_scheme_state("scheme=dracula\n") == nil)
+assert(appearance.parse_scheme_state("# scheme=gruvbox\n") == nil)
+assert(appearance.parse_scheme_state(nil) == nil)
+local missing_scheme, missing_error = appearance.read_scheme_state("/tmp/dotfiles-theme-state-does-not-exist")
+assert(missing_scheme == nil and missing_error == "missing")
+local unreadable_scheme, unreadable_error = appearance.read_scheme_state("/dev/null/theme_scheme")
+assert(unreadable_scheme == nil and unreadable_error:find("unreadable:", 1, true) == 1)
+
 -- 每套 scheme 只登记一个代表色角色，dark/light 自动取各自 palette 的对应值。
 local border_roles = {
 	catppuccin = "mauve",
@@ -237,6 +263,30 @@ assert(probe_calls == 2)
 assert(cached.status.ok == start_palette.green)
 assert(cached.identity.spaces_win_highlight == start_palette.red)
 
+-- scheme 热切换与 flavor 热切换共享同一注册表和原地更新约束。
+local start_scheme = appearance.scheme
+local other_scheme = start_scheme == "everforest" and "gruvbox" or "everforest"
+local calls_before_scheme_switch = probe_calls
+local scheme_colors = appearance.build_colors(
+	appearance.palette[appearance.schemes[other_scheme][appearance.active]],
+	appearance.schemes[other_scheme].window_border
+)
+
+assert(appearance.switch_scheme(start_scheme) == false, "同色系应为 no-op")
+assert(appearance.switch_scheme("dracula") == false, "未知色系应为 no-op")
+assert(probe_calls == calls_before_scheme_switch, "scheme no-op 不应触发回调")
+
+assert(appearance.switch_scheme(other_scheme) == true)
+assert(appearance.scheme == other_scheme)
+assert(probe_calls == calls_before_scheme_switch + 1)
+assert(cached == appearance.colors and cached.status == status_ref and cached.identity == identity_ref)
+assert(cached.status.ok == scheme_colors.status.ok)
+assert(cached.identity.window_border == scheme_colors.identity.window_border)
+
+assert(appearance.switch_scheme(start_scheme) == true)
+assert(appearance.scheme == start_scheme)
+assert(probe_calls == calls_before_scheme_switch + 2)
+
 -- ========== 阶段三：系统外观检测解析 ==========
 assert(appearance.parse_apple_interface_style("Dark") == "dark")
 assert(appearance.parse_apple_interface_style("") == "light") -- 键不存在（浅色）
@@ -278,6 +328,20 @@ do
 	local src = f:read("*a")
 	f:close()
 	assert(src:find('register_colors("status_widget."', 1, true), "status_widget.lua 缺少按实例名的注册")
+end
+
+-- 运行时 scheme 切换必须走自定义事件，不 reload SketchyBar。
+do
+	local f = assert(io.open("sketchybar/.config/sketchybar/init.lua", "r"))
+	local src = f:read("*a")
+	f:close()
+	assert(src:find('sbar.add("event", "theme_scheme_change")', 1, true), "init.lua 缺少 theme_scheme_change 事件")
+	assert(
+		src:find('theme_trigger:subscribe("theme_scheme_change"', 1, true),
+		"theme_trigger 未订阅 theme_scheme_change"
+	)
+	assert(src:find("read_scheme_state()", 1, true), "theme_scheme_change 应读取最终状态文件")
+	assert(not src:find("switch_scheme(env.SCHEME)", 1, true), "theme_scheme_change 不应信任可能乱序的事件参数")
 end
 
 print("theme_test: ok")

@@ -363,6 +363,14 @@ local schemes = {
 	kanagawa = { dark = "kanagawa_wave", light = "kanagawa_lotus", window_border = "blue" },
 	gruvbox = { dark = "gruvbox_dark", light = "gruvbox_light", window_border = "peach" },
 }
+local scheme_names = {
+	"catppuccin",
+	"tokyonight",
+	"rosepine",
+	"everforest",
+	"kanagawa",
+	"gruvbox",
+}
 
 -- ========== (2) 工具函数（需在 build_colors 之前定义）==========
 function M.with_alpha(color, alpha)
@@ -449,15 +457,64 @@ end
 -- ========== (5) 切换 ==========
 -- 色系配置：catppuccin / tokyonight / rosepine / everforest / kanagawa / gruvbox（定义见 1.1 schemes 表）。
 -- flavor 统一用 "dark"/"light" 表示，具体色板由 scheme 映射决定。
-M.scheme = "gruvbox"
+M.default_scheme = "gruvbox"
+M.scheme_names = scheme_names
+
+function M.parse_scheme_state(content)
+	if type(content) ~= "string" then
+		return nil
+	end
+	for line in content:gmatch("[^\r\n]+") do
+		local name = line:match("^%s*scheme%s*=%s*([%w_-]+)%s*$")
+		if name then
+			return schemes[name] and name or nil
+		end
+	end
+	return nil
+end
+
+function M.scheme_state_path()
+	local home = os.getenv("HOME")
+	return home and (home .. "/.local/state/dotfiles/theme_scheme") or nil
+end
+
+function M.read_scheme_state(path)
+	path = path or M.scheme_state_path()
+	if not path then
+		return nil, "HOME unavailable"
+	end
+	local file, open_error = io.open(path, "r")
+	if not file then
+		local message = tostring(open_error)
+		if message:find("No such file or directory", 1, true) then
+			return nil, "missing"
+		end
+		return nil, "unreadable: " .. message
+	end
+	local content = file:read("*a")
+	file:close()
+	local scheme = M.parse_scheme_state(content)
+	if not scheme then
+		return nil, "invalid"
+	end
+	return scheme
+end
+
+local stored_scheme, stored_scheme_error = M.read_scheme_state()
+if stored_scheme_error == "invalid" then
+	print("[theme] invalid scheme state, using " .. M.default_scheme)
+elseif stored_scheme_error ~= nil and stored_scheme_error ~= "missing" then
+	print("[theme] unable to read scheme state: " .. stored_scheme_error)
+end
+M.scheme = stored_scheme or M.default_scheme
 
 local function flavor_palette(flavor)
-	local scheme = schemes[M.scheme] or schemes.catppuccin
+	local scheme = schemes[M.scheme] or schemes[M.default_scheme]
 	return palette[scheme[flavor]]
 end
 
 local function build_theme_colors(flavor)
-	local scheme = schemes[M.scheme] or schemes.catppuccin
+	local scheme = schemes[M.scheme] or schemes[M.default_scheme]
 	return build_colors(palette[scheme[flavor]], scheme.window_border)
 end
 
@@ -529,17 +586,8 @@ function M.registered_names()
 	return list
 end
 
--- 热切换主题：原地更新 M.colors 后遍历注册表重涂，不 reload。
--- theme 为 flavor（"dark"/"light"）；同 flavor/未知值为 no-op。
-function M.switch_theme(theme)
-	if theme ~= "dark" and theme ~= "light" then
-		return false
-	end
-	if theme == M.active then
-		return false
-	end
-	M.active = theme
-	update_table_in_place(M.colors, build_theme_colors(theme))
+local function apply_current_colors()
+	update_table_in_place(M.colors, build_theme_colors(M.active))
 	local sbar = require("sketchybar")
 	local timing = require("helpers.timing")
 	sbar.animate("linear", timing.THEME_SWITCH_FRAMES, function()
@@ -547,6 +595,25 @@ function M.switch_theme(theme)
 			fn(M.colors)
 		end
 	end)
+end
+
+-- 热切换深浅 flavor：原地更新 M.colors 后遍历注册表重涂，不 reload。
+function M.switch_theme(theme)
+	if (theme ~= "dark" and theme ~= "light") or theme == M.active then
+		return false
+	end
+	M.active = theme
+	apply_current_colors()
+	return true
+end
+
+-- 热切换色系；深浅 flavor 保持不变，仍由 macOS 外观状态决定。
+function M.switch_scheme(scheme)
+	if not schemes[scheme] or scheme == M.scheme then
+		return false
+	end
+	M.scheme = scheme
+	apply_current_colors()
 	return true
 end
 

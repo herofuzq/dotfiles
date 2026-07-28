@@ -43,6 +43,14 @@ When debugging live behavior, inspect `~/.config/sketchybar` first. Source edits
 
 Main-bar icon/label colors and explicitly declared background/border colors are made transparent at `sbar.add` time. Only colors are restored, so later `drawing=false` changes used to join a shared bracket remain intact. Initial asynchronous status results are collected in parallel and their latest UI updates are released after the startup fade, preventing ordinary `set` calls from cancelling the animation halfway through.
 
+### Theme switching
+
+The shared scheme is stored in `~/.local/state/dotfiles/theme_scheme`. Available values are `catppuccin`, `tokyonight`, `rosepine`, `everforest`, `kanagawa`, and `gruvbox`; dark/light still follows macOS independently.
+
+Hammerspoon's `Hyper+Shift+T` chooser writes the state atomically, recolors its HUDs, then triggers `theme_scheme_change`. SketchyBar updates its registered color owners in place without a reload; jankyborders is updated in place as well. Missing or invalid state falls back to `gruvbox`.
+
+Manual state-file edits take effect on the next `sketchybar --reload`. This is Lua-only and does not require rebuilding a helper.
+
 **Pitfall — wrapping `sbar.add`:** always forward with `raw_add(...)`. Never call `raw_add(kind, name, props, nil)` for a 3-arg `add("item", name, props)`. Passing an explicit `nil` 4th argument makes SbarLua mis-parse the call (treats it like a 4-arg form); popup items can lose `position = "popup.…"` and appear as normal bar items (Docker/Git popup rows flooding the bar). The `install()` wrapper uses varargs on purpose.
 
 **Pitfall — helper `bin/` lives only under the live config dir, not in the git tree:**
@@ -263,6 +271,15 @@ helper 的编译产物不进 git，而是在实际运行路径里生成，例如
 - **错误：** `make -C ~/dotfiles/sketchybar/.config/sketchybar/helpers/...` — 会在**仓库树**下再生成一份 `bin/`，launchd 仍加载 `$HOME/.config/.../bin/...`，改了等于白改。
 - 若在 **dotfiles 检出目录**里看到 `helpers/**/bin`：当作误编译，删掉这些目录（本来就不进 git），再到 `~/.config` 下重编。
 - 改 Swift/C 后：看 `~/.config/sketchybar/helpers/**/bin/` 的 mtime，必要时 `launchctl kickstart -k gui/$(id -u)/com.fuzhuoqun.<agent>`。
+
+### 主题切换
+
+共享色系保存在 `~/.local/state/dotfiles/theme_scheme`。可选值：
+`catppuccin`、`tokyonight`、`rosepine`、`everforest`、`kanagawa`、`gruvbox`；深色/浅色仍由 SketchyBar 和 Hammerspoon 分别跟随 macOS。
+
+Hammerspoon 按 `Hyper+Shift+T` 打开选择器。选中后先原子写入状态文件，再更新 Hammerspoon HUD，最后触发 SketchyBar 的 `theme_scheme_change`。SketchyBar 和 jankyborders 都在原进程内换色，不 reload。状态文件缺失或内容无效时回退到 `gruvbox`。
+
+手工编辑状态文件后，需要分别 reload SketchyBar 和 Hammerspoon；选择器热切换不需要 reload。该功能只有 Lua，不编译 helper。
 
 ### 文件地图
 
