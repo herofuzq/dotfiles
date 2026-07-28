@@ -446,7 +446,7 @@ end
 -- ========== (5) 切换 ==========
 -- 色系配置：catppuccin / tokyonight / rosepine / everforest / kanagawa / gruvbox（定义见 1.1 schemes 表）。
 -- flavor 统一用 "dark"/"light" 表示，具体色板由 scheme 映射决定。
-M.scheme = "kanagawa"
+M.scheme = "everforest"
 
 local function flavor_palette(flavor)
 	local scheme = schemes[M.scheme] or schemes.catppuccin
