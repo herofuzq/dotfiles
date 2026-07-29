@@ -287,3 +287,6 @@ export AIZSH_PROMPT_MODEL=qwen3.5:2b
 
 # Added by the BaseRT installer
 export PATH="/Users/fuzhuoqun/.basert:$PATH"
+
+# Hermes Agent — ensure ~/.local/bin is on PATH
+export PATH="$HOME/.local/bin:$PATH"
