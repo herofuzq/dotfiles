@@ -8,6 +8,7 @@
 -- reload/退出前需要同步收尾的逻辑（如补偿释放已按下的按键）请挂 hs.shutdownCallback。
 
 require("theme").start() -- 主题状态 + macOS 深浅色监听，先于两个 HUD consumer
+require("yazi_theme").install() -- 主题/外观变化时同步 yazi flavor 并热重载
 require("caps_guard") -- 防止 Caps Lock 状态从 Raycast Hyper 映射中漏出
 require("input") -- 输入法切换 + 终端中文提醒（必须在 wps 之前）
 require("wps") -- WPS 右键自动切英文（通过 input 模块接口调用）

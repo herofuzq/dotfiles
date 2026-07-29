@@ -41,3 +41,6 @@ docs/superpowers/specs/
 # Temporary files
 *.tmp
 *.temp
+
+# yazi theme.toml 由 Hammerspoon yazi_theme 模块按主题状态生成，属本地状态
+yazi/.config/yazi/theme.toml
