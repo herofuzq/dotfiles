@@ -67,6 +67,7 @@ local sys = sbar.add("item", "widgets.sys", {
 		height = 30,
 	},
 })
+appearance.register_pill("widgets.sys")
 
 local function popup_item(name, text, color)
 	return sbar.add("item", name, {

@@ -34,6 +34,7 @@ local battery = sbar.add("item", "widgets.battery", {
 		height = 30,
 	},
 })
+appearance.register_pill("widgets.battery")
 
 -- ========== 电池信息 popup 子项 ==========
 local batt_info = sbar.add("item", "widgets.battery.info", {

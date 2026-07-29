@@ -152,6 +152,9 @@ function M.reveal()
 			if height and height > 0 and height ~= settings.height then
 				settings.height = height
 				sbar.bar({ height = height })
+				-- pill 背景与 workspace 几何同步重设（与 spaces.lua applySnapshot 一致）
+				appearance.sync_pill_heights()
+				require("helpers.borders").sync_bar_height()
 			end
 		end)
 	end)

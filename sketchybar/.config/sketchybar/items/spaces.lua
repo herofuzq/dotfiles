@@ -819,6 +819,9 @@ local function applySnapshot(snapshot, on_complete)
 	if snapshot.height_changed then
 		settings.height = snapshot.height
 		sbar.bar({ height = snapshot.height })
+		-- bar 高度变了，pill 背景与 workspace 几何同步重设（创建期的高度不跟随）
+		appearance.sync_pill_heights()
+		borders.sync_bar_height()
 	end
 	if snapshot.monitor_changed then
 		-- 映射变化后 AeroSpace 仍在 settle，focused workspace 缓存可能过期，

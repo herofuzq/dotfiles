@@ -128,8 +128,24 @@ end
 apply_colors(colors)
 appearance.register_colors("borders", apply_colors)
 
+-- ========== bar 高度同步：运行时变高度后重算 workspace 几何 ==========
+-- segment/bracket 高度在模块加载时由 settings.height 算成常量；
+-- 切显示器改变 bar 高度时由 spaces.lua / startup.lua 调用本函数重设。
+local function sync_bar_height()
+	workspace_style.bracket_height = settings.height - 4
+	workspace_style.segment_height = workspace_style.bracket_height - 2 * workspace_style.bracket_border_width
+	workspace_style.segment_radius = workspace_style.bracket_radius - 1
+	sbar.set("workspaces.bracket", { background = { height = workspace_style.bracket_height } })
+	if last_distribute then
+		for _, name in ipairs(last_distribute.visible) do
+			set_segment_geometry(name, last_distribute.order)
+		end
+	end
+end
+
 return {
 	distribute = distribute,
 	set_focused = set_focused,
+	sync_bar_height = sync_bar_height,
 	workspace_style = workspace_style,
 }

@@ -631,6 +631,9 @@ local fonts = require("fonts")
 
 -- 标准 pill 背景（widget 和 bracket 都用）。
 -- 用法: sbar.add("item", "widgets.battery", { background = appearance.pill_bg(), ... })
+-- 注意：pill 高度来自 install_defaults 的 sbar.default（settings.height - 4），
+-- 只在创建时生效。用 pill_bg() 的模块必须紧跟着 register_pill(item 名)，
+-- 让 bar 高度运行时变化（切显示器）时能同步重设（tests/pill_height_test.lua 静态检查）。
 function M.pill_bg()
 	return {
 		color = M.colors.pill_bg,
@@ -638,6 +641,24 @@ function M.pill_bg()
 		border_width = 2,
 		border_color = M.colors.border,
 	}
+end
+
+-- ========== (6.1) pill 高度同步登记 ==========
+local pill_names = {}
+function M.register_pill(name)
+	pill_names[name] = true
+end
+
+-- bar 高度运行时变化后调用：重设所有已登记 pill 的背景高度，
+-- 并刷新 sbar.default 让之后创建的 item 用新高度。
+function M.sync_pill_heights()
+	local settings = require("settings")
+	local h = settings.height - 4
+	local sbar = require("sketchybar")
+	sbar.default({ background = { height = h } })
+	for name in pairs(pill_names) do
+		sbar.set(name, { background = { height = h } })
+	end
 end
 
 -- 标准 popup 背景。统一 alpha 0.85 / 圆角 12 / 边框 2，

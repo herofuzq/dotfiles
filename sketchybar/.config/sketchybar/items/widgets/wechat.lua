@@ -27,6 +27,7 @@ local social = sbar.add("bracket", "widgets.social", { "widgets.dingtalk", "widg
 	position = "right",
 	background = appearance.pill_bg(),
 })
+appearance.register_pill("widgets.social")
 
 -- 主题热换色：social bracket 的 pill 背景（dingtalk/wechat 实例共享，不各自画背景）
 local function apply_social_colors(C)

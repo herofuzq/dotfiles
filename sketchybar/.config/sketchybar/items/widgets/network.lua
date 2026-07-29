@@ -291,6 +291,7 @@ sbar.add("bracket", "widgets.system", {
 	position = "right",
 	background = appearance.pill_bg(),
 })
+appearance.register_pill("widgets.system")
 
 -- spacer：system bracket 与 social bracket 之间的水平间隙（硬编码，改 network 字号/padding 时需同步）。
 -- 公式约 = network_down 可视宽度 + system bracket 左右 border。

@@ -39,6 +39,7 @@ local input_method = sbar.add("item", "widgets.input_method", {
 	},
 	background = appearance.pill_bg(),
 })
+appearance.register_pill("widgets.input_method")
 
 local last_im_id, last_fcitx_mode
 local display_initialized = false
