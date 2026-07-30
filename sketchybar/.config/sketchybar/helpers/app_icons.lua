@@ -497,7 +497,6 @@ return {
 	["Karten"] = ":maps:",
 	["Keychain Access"] = ":keychain_access:",
 	["KiCad"] = ":kicad:",
-	["Kiro"] = ":kiro:",
 	["Kodi"] = ":kodi:",
 	["LanguageTool for Desktop"] = ":languagetool_for_desktop:",
 	["Legcord"] = ":legcord:",

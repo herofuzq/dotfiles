@@ -239,8 +239,6 @@ cask "istat-menus"
 cask "karabiner-elements"
 # Blocks all Keyboard and TouchBar input
 cask "keyboardcleantool"
-# AI-powered productivity tool for the command-line
-cask "kiro-cli"
 # GPU-based terminal emulator
 cask "kitty"
 # Tool to show what is persistently installed on the computer
