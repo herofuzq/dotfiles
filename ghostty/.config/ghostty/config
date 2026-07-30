@@ -19,11 +19,11 @@ macos-secure-input-indication = true
 font-family = JetBrains Maple Mono
 font-thicken = true
 font-thicken-strength = 128
-font-size = 16
+font-size = 17
 # -------------------------------------------------- #
 # Custom 
 # -------------------------------------------------- #
-theme = dark:Gruvbox Dark Hard,light:Gruvbox Light Hard
+theme = dark:Gruvbox Material Dark,light:Gruvbox Material Light
 background-opacity      = 1
 background-blur         = 0
 mouse-hide-while-typing = true
