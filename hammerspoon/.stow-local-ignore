@@ -1,2 +1,4 @@
 ^.omo
+# 测试只跑在仓库内，不镜像到 ~/tests
+^tests
 .DS_Store
