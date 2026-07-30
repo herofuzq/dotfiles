@@ -277,14 +277,6 @@ export EDITOR=nvim
 alias poff='proxy_all_off'
 alias pst='proxy_all_status'
 
-# =============================================================================
-# zsh-ai-autocomplete — local ollama ghost text completion
-# =============================================================================
-export AIZSH_PROVIDER=ollama
-export AIZSH_GHOST_MODEL=qwen2.5-coder:1.5b
-export AIZSH_PROMPT_MODEL=qwen3.5:2b
-# source ~/.config/ai-zsh/ai-zsh.plugin.zsh
-
 # Added by the BaseRT installer
 export PATH="/Users/fuzhuoqun/.basert:$PATH"
 
