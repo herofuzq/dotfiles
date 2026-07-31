@@ -283,3 +283,6 @@ export PATH="/Users/fuzhuoqun/.basert:$PATH"
 
 # Hermes Agent — ensure ~/.local/bin is on PATH
 export PATH="$HOME/.local/bin:$PATH"
+
+
+[[ -f ~/.inshellisense/init/zsh/init.zsh ]] && source ~/.inshellisense/init/zsh/init.zsh
