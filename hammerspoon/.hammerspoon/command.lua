@@ -45,12 +45,21 @@ local aerospace = M.find({
 	"/usr/local/bin/aerospace",
 }, "aerospace")
 
+local ya = M.find({
+	"/opt/homebrew/bin/ya",
+	"/usr/local/bin/ya",
+}, "ya")
+
 function M.sketchybar(args, callback)
 	return M.start(sketchybar, args, callback)
 end
 
 function M.aerospace(args, callback)
 	return M.start(aerospace, args, callback)
+end
+
+function M.ya(args, callback)
+	return M.start(ya, args, callback)
 end
 
 return M

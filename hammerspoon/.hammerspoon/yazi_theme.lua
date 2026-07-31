@@ -56,16 +56,14 @@ local function hot_reload()
 	if not (_G.hs and hs.task) then
 		return
 	end
-	local task = hs.task.new("/usr/bin/env", function(exit_code, _, stderr)
+	local started, start_error = require("command").ya({ "emit-to", "0", "app:theme" }, function(exit_code, _, stderr)
 		if exit_code ~= 0 then
 			print("[YaziTheme] ya emit-to 0 app:theme 失败: " .. tostring(stderr or exit_code))
 		end
-	end, { "ya", "emit-to", "0", "app:theme" })
-	if not task then
-		print("[YaziTheme] 无法创建 ya emit 任务")
-		return
+	end)
+	if not started then
+		print("[YaziTheme] 无法创建 ya emit 任务: " .. tostring(start_error))
 	end
-	task:start()
 end
 
 function M.write(scheme, flavor)
