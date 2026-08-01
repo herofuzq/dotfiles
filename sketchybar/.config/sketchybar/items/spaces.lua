@@ -213,7 +213,7 @@ local function withWindows(f)
 		"aerospace list-workspaces --visible --monitor all --format '%{workspace}%{monitor-appkit-nsscreen-screens-id}' --json"
 
 	sbar.exec(get_windows, function(workspace_and_windows)
-		if not workspace_and_windows then
+		if type(workspace_and_windows) ~= "table" then
 			check_done()
 			return
 		end
@@ -257,7 +257,7 @@ local function withWindows(f)
 	end
 
 	sbar.exec(query_visible_workspaces, function(visible_workspaces)
-		if not visible_workspaces then
+		if type(visible_workspaces) ~= "table" then
 			results.visible_workspaces = {}
 		else
 			results.visible_workspaces = visible_workspaces
@@ -314,7 +314,8 @@ local function visible_monitor_id(workspace_index, visible_workspaces)
 	for _, vw in ipairs(visible_workspaces) do
 		if workspace_index == vw["workspace"] then
 			local raw_id = vw["monitor-appkit-nsscreen-screens-id"]
-			return raw_id and math.floor(raw_id)
+			local n = raw_id and tonumber(raw_id)
+			return n and math.floor(n)
 		end
 	end
 	return nil
@@ -724,7 +725,7 @@ local query_monitors = "aerospace list-monitors --format '%{monitor-id}|%{monito
 local function queryMonitorSnapshot(on_done)
 	sbar.exec(query_workspaces, function(workspaces_and_monitors)
 		local snapshot = { monitor_valid = false, monitor_changed = false }
-		if not workspaces_and_monitors then
+		if type(workspaces_and_monitors) ~= "table" then
 			on_done(snapshot)
 			return
 		end
@@ -732,7 +733,8 @@ local function queryMonitorSnapshot(on_done)
 		for _, entry in ipairs(workspaces_and_monitors) do
 			local space_index = entry.workspace
 			local raw_id = entry["monitor-appkit-nsscreen-screens-id"]
-			local monitor_id = raw_id and math.floor(raw_id)
+			local n = raw_id and tonumber(raw_id)
+			local monitor_id = n and math.floor(n)
 			if space_index and monitor_id then
 				workspace_monitor[space_index] = monitor_id
 			end
@@ -1124,7 +1126,13 @@ for _, ws in ipairs(initial_workspaces) do
 		_popup_items[ws][i] = popup_item
 	end
 	local workspace_index = ws
-	_popup_animations[workspace_index] = popup_animation.new(workspace)
+	-- 背景色与 popup 创建时（appearance.popup_bg()，alpha 0.85）保持一致；
+	-- 函数形式让每次 show 取最新值，热换色后不会残留旧色。
+	_popup_animations[workspace_index] = popup_animation.new(workspace, {
+		background_color = function()
+			return appearance.popup_bg().color
+		end,
+	})
 end
 
 local workspace_names = {}

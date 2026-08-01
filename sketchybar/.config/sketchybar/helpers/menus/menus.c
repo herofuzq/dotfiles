@@ -175,6 +175,7 @@ AXUIElementRef ax_get_extra_menu_item(char* alias) {
                                             &size_ref        );
         if (!position_ref || !size_ref) {
           if (position_ref) CFRelease(position_ref);
+          if (size_ref) CFRelease(size_ref);
           continue;
         }
 
@@ -184,9 +185,8 @@ AXUIElementRef ax_get_extra_menu_item(char* alias) {
         AXValueGetValue(size_ref, kAXValueCGSizeType, &size);
         CFRelease(position_ref);
         CFRelease(size_ref);
-        if (error == kAXErrorSuccess
-            && fabs(position.x - bounds.origin.x) <= 10) {
-          result = item;
+        if (fabs(position.x - bounds.origin.x) <= 10) {
+          result = (AXUIElementRef)CFRetain(item);
           break;
         }
       }

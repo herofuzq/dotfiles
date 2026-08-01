@@ -32,6 +32,10 @@ var shouldRun = true
 var fullscreenCheckScheduled = false
 var fullscreenCheckInFlight = false
 var fullscreenCheckPending = false
+// 当前 aerospace subscribe 子进程：SIGTERM 时由主队列 handler terminate，
+// 订阅循环在 global queue 写，需要锁保护。
+let subscribeTaskLock = NSLock()
+var subscribeTask: Process?
 var fullscreenSnapshotInitialized = false
 var lastFullscreenSignature = ""
 var fullscreenTriggerScheduled = false
@@ -499,7 +503,13 @@ func runSubscribeOnce() {
         sleep(2)
         return
     }
+    subscribeTaskLock.lock()
+    subscribeTask = task
+    subscribeTaskLock.unlock()
     task.waitUntilExit()
+    subscribeTaskLock.lock()
+    subscribeTask = nil
+    subscribeTaskLock.unlock()
     pipe.fileHandleForReading.readabilityHandler = nil
 }
 
@@ -507,6 +517,11 @@ signal(SIGTERM, SIG_IGN)
 let sigtermSource = DispatchSource.makeSignalSource(signal: SIGTERM, queue: .main)
 sigtermSource.setEventHandler {
     shouldRun = false
+    // 先 terminate aerospace subscribe 子进程再退出，避免孤儿进程残留。
+    subscribeTaskLock.lock()
+    let child = subscribeTask
+    subscribeTaskLock.unlock()
+    child?.terminate()
     exit(0)
 }
 sigtermSource.resume()

@@ -129,7 +129,11 @@ task.standardError = FileHandle.nullDevice
 task.terminationHandler = { _ in exit(0) }
 guard (try? task.run()) != nil else { exit(1) }
 
-updateFromCurrentState()
+// 派发到 stateQueue：与 readabilityHandler 里的 updateState 同队列，
+// 避免主线程与 stateQueue 并发读写 lastState。
+stateQueue.async {
+    updateFromCurrentState()
+}
 
 var buffer = ""
 pipe.fileHandleForReading.readabilityHandler = { handle in
@@ -153,5 +157,15 @@ pipe.fileHandleForReading.readabilityHandler = { handle in
         }
     }
 }
+
+// Graceful shutdown on SIGTERM (launchd stop)：先 terminate
+// media-control stream 子进程再退出，避免孤儿进程残留。
+signal(SIGTERM, SIG_IGN)
+let sigtermSource = DispatchSource.makeSignalSource(signal: SIGTERM, queue: .main)
+sigtermSource.setEventHandler {
+    task.terminate()
+    exit(0)
+}
+sigtermSource.resume()
 
 CFRunLoopRun()

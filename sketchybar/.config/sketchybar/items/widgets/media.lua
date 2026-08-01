@@ -19,8 +19,11 @@ local function media_exec(args_suffix, callback)
 	sbar.exec(shell_quote(MEDIA) .. " " .. args_suffix, callback)
 end
 
--- Only the state query needs a deadline. Control commands retain their normal
--- completion callbacks so a late `next`/`pause` cannot be discarded by a query.
+-- Control commands retain their normal completion callbacks so a late
+-- `next`/`pause` cannot be discarded by a query.
+-- 状态查询不设超时清空：media-control get 卡顿时保留旧状态（否则歌名会闪成
+-- "未播放"、播放键回 ▶）。迟到的结果照常生效；进程永不返回时，由下一次查询
+-- 递增 generation 使本次结果失效兜底。
 local media_query_generation = 0
 local function query_media(callback)
 	media_query_generation = media_query_generation + 1
@@ -33,9 +36,6 @@ local function query_media(callback)
 		finished = true
 		callback(output)
 	end
-	sbar.delay(2, function()
-		finish(nil)
-	end)
 	sbar.exec(shell_quote(MEDIA) .. " get 2>/dev/null", finish)
 end
 

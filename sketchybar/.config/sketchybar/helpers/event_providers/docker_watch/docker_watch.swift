@@ -24,6 +24,10 @@ var triggerScheduled = false
 var shouldRun = true
 let commandTimeout: TimeInterval = 1.0
 var dockerAvailable = false
+// 当前 docker events 子进程：SIGTERM 时由主队列 handler terminate，
+// 订阅循环在 global queue 写，需要锁保护。
+let eventsTaskLock = NSLock()
+var eventsTask: Process?
 
 func waitForProcess(_ task: Process, timeout: TimeInterval) -> Bool {
     let finished = DispatchSemaphore(value: 0)
@@ -108,7 +112,13 @@ func runEventsOnce() {
     }
 
     guard (try? task.run()) != nil else { return }
+    eventsTaskLock.lock()
+    eventsTask = task
+    eventsTaskLock.unlock()
     task.waitUntilExit()
+    eventsTaskLock.lock()
+    eventsTask = nil
+    eventsTaskLock.unlock()
     pipe.fileHandleForReading.readabilityHandler = nil
 }
 
@@ -116,6 +126,11 @@ signal(SIGTERM, SIG_IGN)
 let sigtermSource = DispatchSource.makeSignalSource(signal: SIGTERM, queue: .main)
 sigtermSource.setEventHandler {
     shouldRun = false
+    // 先 terminate docker events 子进程再退出，避免孤儿进程残留。
+    eventsTaskLock.lock()
+    let child = eventsTask
+    eventsTaskLock.unlock()
+    child?.terminate()
     exit(0)
 }
 sigtermSource.resume()
