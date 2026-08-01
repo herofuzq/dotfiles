@@ -13,4 +13,13 @@ function M.tmp_path(name)
 	return base .. "/" .. tostring(name)
 end
 
+-- sysctl -n kern.boottime 输出形如：
+--   { sec = 1785589567, usec = 410328 } Sat Aug  1 21:06:07 2026
+function M.parse_boot_epoch(output)
+	if type(output) ~= "string" then
+		return nil
+	end
+	return tonumber(output:match("sec%s*=%s*(%d+)"))
+end
+
 return M

@@ -9,6 +9,7 @@ package.preload["sketchybar"] = function()
 		bar = function(props) bar_updates[#bar_updates + 1] = props end,
 		begin_config = function() end,
 		end_config = function() end,
+		set = function() end,
 		animate = function(_, _, callback) callback() end,
 		delay = function(seconds, callback)
 			delayed[#delayed + 1] = { seconds = seconds, callback = callback }
@@ -21,6 +22,8 @@ package.preload["appearance"] = function()
 		with_alpha = function(color, alpha)
 			return (color & 0x00ffffff) | (math.floor(alpha * 255) * 0x1000000)
 		end,
+		sync_pill_heights = function() end,
+		register_colors = function() end,
 	}
 end
 package.preload["settings"] = function()

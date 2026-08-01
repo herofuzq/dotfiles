@@ -212,7 +212,6 @@ func publishInputMethodChange(inputSourceID: String, fcitxMode: String) {
     let isFcitx = inputSourceID.hasPrefix(fcitx5SourcePrefix)
     let signature = "\(inputSourceID)|\(fcitxMode)"
     guard signature != lastSignature else { return }
-    lastSignature = signature
 
     let task = Process()
     task.launchPath = sketchybarPath
@@ -225,6 +224,7 @@ func publishInputMethodChange(inputSourceID: String, fcitxMode: String) {
     task.standardOutput = FileHandle.nullDevice
     task.standardError = FileHandle.nullDevice
     guard (try? task.run()) != nil else { return }
+    lastSignature = signature
     // The watcher must not wait for SketchyBar; a slow reload should not delay
     // input-source notifications on the main run loop.
     DispatchQueue.global().async {

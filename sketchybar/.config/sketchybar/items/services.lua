@@ -243,18 +243,28 @@ end
 
 local function render_popup(state)
 	local sum, grps, svcs = state.sum, state.grps, state.svcs
+	local visible_rows = {}
 	for gid, g in pairs(grps) do
-		local entry = text_rows["group." .. gid]
+		local key = "group." .. gid
+		visible_rows[key] = true
+		local entry = text_rows[key]
 		if entry then
-			entry.item:set({ label = { string = entry.prefix .. icons.services.docker .. " " .. string.format("%s  %d/%d", g.label, g.running, g.total), color = colors.subtext1 } })
+			entry.item:set({ drawing = true, label = { string = entry.prefix .. icons.services.docker .. " " .. string.format("%s  %d/%d", g.label, g.running, g.total), color = colors.subtext1 } })
 		end
 	end
 	for key, s in pairs(svcs) do
 		local gid, sid = key:match("^(.-)\0(.*)$")
-		local entry = text_rows[(gid or "") .. "." .. (sid or "")]
+		local row_key = (gid or "") .. "." .. (sid or "")
+		visible_rows[row_key] = true
+		local entry = text_rows[row_key]
 		if entry then
 			local port = s.port ~= "" and (" :" .. s.port) or ""
-			entry.item:set({ label = { string = entry.prefix .. "• " .. string.format("%s  %s%s", s.label, st_text(s.state), port), color = colors.text } })
+			entry.item:set({ drawing = true, label = { string = entry.prefix .. "• " .. string.format("%s  %s%s", s.label, st_text(s.state), port), color = colors.text } })
+		end
+	end
+	for key, entry in pairs(text_rows) do
+		if key ~= "docker" and not visible_rows[key] then
+			entry.item:set({ drawing = false })
 		end
 	end
 	if sum.status == "error" then

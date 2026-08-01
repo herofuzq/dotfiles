@@ -169,20 +169,25 @@ AXUIElementRef ax_get_extra_menu_item(char* alias) {
         AXUIElementRef item = CFArrayGetValueAtIndex(children_ref, i);
         CFTypeRef position_ref = NULL;
         CFTypeRef size_ref = NULL;
-        AXUIElementCopyAttributeValue(item, kAXPositionAttribute,
-                                            &position_ref        );
-        AXUIElementCopyAttributeValue(item, kAXSizeAttribute,
-                                            &size_ref        );
-        if (!position_ref || !size_ref) {
+        AXError pos_error = AXUIElementCopyAttributeValue(item, kAXPositionAttribute,
+                                                          &position_ref  );
+        AXError size_error = AXUIElementCopyAttributeValue(item, kAXSizeAttribute,
+                                                           &size_ref     );
+        if (pos_error != kAXErrorSuccess || size_error != kAXErrorSuccess
+            || !position_ref || !size_ref) {
           if (position_ref) CFRelease(position_ref);
           if (size_ref) CFRelease(size_ref);
           continue;
         }
 
         CGPoint position = CGPointZero;
-        AXValueGetValue(position_ref, kAXValueCGPointType, &position);
         CGSize size = CGSizeZero;
-        AXValueGetValue(size_ref, kAXValueCGSizeType, &size);
+        if (!AXValueGetValue(position_ref, kAXValueCGPointType, &position)
+            || !AXValueGetValue(size_ref, kAXValueCGSizeType, &size)) {
+          CFRelease(position_ref);
+          CFRelease(size_ref);
+          continue;
+        }
         CFRelease(position_ref);
         CFRelease(size_ref);
         if (fabs(position.x - bounds.origin.x) <= 10) {

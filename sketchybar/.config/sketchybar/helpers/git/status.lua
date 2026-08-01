@@ -32,14 +32,17 @@ for _, repo in ipairs(config.repos or {}) do
 	local path = repo.path
 	local label = repo.label or path
 
-	local f = io.open(path .. "/.git/HEAD")
-	if not f then
-		emit("repo", path, label, "-", "missing", "-", "-", "-")
-	else
-		f:close()
+	local probe_cmd = shell_quote(git) .. " -C " .. shell_quote(path) .. " rev-parse --is-inside-work-tree 2>/dev/null"
+	local probe = io.popen(probe_cmd)
+	local is_repo = false
+	if probe then
+		is_repo = (probe:read("*a") or ""):match("^%s*true%s*$") ~= nil
+		probe:close()
 	end
 
-	if f then
+	if not is_repo then
+		emit("repo", path, label, "-", "missing", "-", "-", "-")
+	else
 		local cmd = shell_quote(git) .. " -C " .. shell_quote(path) .. " status --porcelain -b 2>/dev/null"
 		local h = io.popen(cmd)
 		if not h then

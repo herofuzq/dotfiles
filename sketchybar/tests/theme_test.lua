@@ -1,10 +1,11 @@
 package.path = "sketchybar/.config/sketchybar/?.lua;sketchybar/.config/sketchybar/?/init.lua;" .. package.path
 
 -- switch_theme 内部才 require("sketchybar")，mock 成 animate 立即执行回调
+local bar_calls = {}
 package.preload["sketchybar"] = function()
 	return {
 		animate = function(_, _, callback) callback() end,
-		bar = function() end,
+		bar = function(props) bar_calls[#bar_calls + 1] = props end,
 	}
 end
 
@@ -246,6 +247,8 @@ assert(probe_calls == 0, "no-op 不应触发回调")
 assert(appearance.switch_theme(other_theme) == true)
 assert(probe_calls == 1, "switch_theme 应调每个回调恰好一次")
 assert(probe_color == other_palette.green, "回调应收到新色板")
+assert(#bar_calls > 0, "theme switch must touch the bar")
+assert(bar_calls[#bar_calls].border_color ~= nil, "theme switch must recolor the bar border")
 
 -- 原地更新：表对象与子表对象均为同一引用
 assert(cached == appearance.colors, "M.colors 表对象被替换（会反弹）")

@@ -135,20 +135,19 @@ stateQueue.async {
     updateFromCurrentState()
 }
 
-var buffer = ""
+var dataBuffer = Data()
 pipe.fileHandleForReading.readabilityHandler = { handle in
     let data = handle.availableData
-    guard !data.isEmpty, let chunk = String(data: data, encoding: .utf8) else {
+    guard !data.isEmpty else {
         stateQueue.async { exit(0) }
         return
     }
     stateQueue.async {
-        buffer += chunk
-        while let newline = buffer.firstIndex(of: "\n") {
-            let line = String(buffer[...newline].dropLast())
-            buffer.removeSubrange(buffer.startIndex...newline)
-            guard let data = line.data(using: .utf8),
-                  let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+        dataBuffer.append(data)
+        while let newlineIndex = dataBuffer.firstIndex(of: 0x0A) {
+            let lineData = dataBuffer.subdata(in: dataBuffer.startIndex..<newlineIndex)
+            dataBuffer.removeSubrange(dataBuffer.startIndex...newlineIndex)
+            guard let json = try? JSONSerialization.jsonObject(with: lineData) as? [String: Any],
                   let payloadObject = json["payload"],
                   let state = mediaState(from: payloadObject) else {
                 continue

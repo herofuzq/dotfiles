@@ -26,7 +26,7 @@ var sensorTask: Process?
 var processTask: Process?
 var processTimer: DispatchSourceTimer?
 var sensorTimer: DispatchSourceTimer?
-var sensorBuffer = ""
+var dataBuffer = Data()
 var sensorReceived = false
 var lastHeader = ""
 var lastRows = Array(repeating: "", count: 10)
@@ -209,7 +209,7 @@ func startSensorRefresh() {
     applyCachedSensors()
 
     sensorReceived = false
-    sensorBuffer = ""
+    dataBuffer = Data()
     let task = Process()
     let pipe = Pipe()
     task.executableURL = URL(fileURLWithPath: mactop)
@@ -227,14 +227,13 @@ func startSensorRefresh() {
     }
     pipe.fileHandleForReading.readabilityHandler = { handle in
         let data = handle.availableData
-        guard !data.isEmpty, let chunk = String(data: data, encoding: .utf8) else { return }
+        guard !data.isEmpty else { return }
         queue.async {
-            sensorBuffer += chunk
-            while let newline = sensorBuffer.firstIndex(of: "\n") {
-                let line = String(sensorBuffer[..<newline])
-                sensorBuffer.removeSubrange(sensorBuffer.startIndex...newline)
-                guard let data = line.data(using: .utf8),
-                      let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+            dataBuffer.append(data)
+            while let newlineIndex = dataBuffer.firstIndex(of: 0x0A) {
+                let lineData = dataBuffer.subdata(in: dataBuffer.startIndex..<newlineIndex)
+                dataBuffer.removeSubrange(dataBuffer.startIndex...newlineIndex)
+                guard let json = try? JSONSerialization.jsonObject(with: lineData) as? [String: Any],
                       applySensors(json) else {
                     continue
                 }

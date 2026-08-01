@@ -479,19 +479,16 @@ func runSubscribeOnce() {
     task.standardOutput = pipe
     task.standardError = FileHandle.nullDevice
 
-    var buffer = ""
+    var dataBuffer = Data()
     pipe.fileHandleForReading.readabilityHandler = { handle in
         let data = handle.availableData
-        guard !data.isEmpty, let chunk = String(data: data, encoding: .utf8) else {
-            return
-        }
+        guard !data.isEmpty else { return }
         eventQueue.async {
-            buffer += chunk
-            while let newline = buffer.firstIndex(of: "\n") {
-                let line = String(buffer[..<newline])
-                buffer.removeSubrange(buffer.startIndex...newline)
-                guard let data = line.data(using: .utf8),
-                      let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            dataBuffer.append(data)
+            while let newlineIndex = dataBuffer.firstIndex(of: 0x0A) {
+                let lineData = dataBuffer.subdata(in: dataBuffer.startIndex..<newlineIndex)
+                dataBuffer.removeSubrange(dataBuffer.startIndex...newlineIndex)
+                guard let json = try? JSONSerialization.jsonObject(with: lineData) as? [String: Any] else {
                     continue
                 }
                 handleEvent(json)

@@ -621,7 +621,7 @@ end
 -- 注意：这里只注册、不在配置期调用——配置期 bar 由 bar.lua 保持全透明，
 -- 启动 reveal 时 startup/enter_animation 会现读 appearance.colors.bar_bg 上色。
 M.register_colors("appearance.core", function(C)
-	require("sketchybar").bar({ color = C.bar_bg })
+	require("sketchybar").bar({ color = C.bar_bg, border_color = C.border })
 end)
 
 -- ========== (6) 样式 helpers ==========

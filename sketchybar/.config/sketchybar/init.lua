@@ -59,13 +59,14 @@ end)
 -- 无门控超时日志），手动 --reload 在风暴平息后重建窗口即恢复（与 wake 重建同族）。
 -- 这里把手动操作自动化：开机 120s 内加载配置时，延时 20s 自 reload 一次。
 -- marker 以 boot epoch 命名：自 reload 引发的二次加载会命中已有 marker，不会循环排程。
+local utils = require("helpers.utils")
 local boot_f = io.popen("sysctl -n kern.boottime 2>/dev/null")
-local boot_epoch = tonumber(boot_f and boot_f:read("*a") or "")
+local boot_epoch = utils.parse_boot_epoch(boot_f and boot_f:read("*a") or "")
 if boot_f then
 	boot_f:close()
 end
 if boot_epoch and (os.time() - boot_epoch) < 120 then
-	local marker = require("helpers.utils").tmp_path("sketchybar_boot_selfheal." .. boot_epoch)
+	local marker = utils.tmp_path("sketchybar_boot_selfheal." .. boot_epoch)
 	local mf = io.open(marker, "r")
 	if mf then
 		mf:close() -- 本次开机已排程（含自愈 reload 的二次加载）
