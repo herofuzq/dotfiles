@@ -53,5 +53,34 @@ startup.when_ready(function()
 	enter_animation.run()
 end)
 
+-- ========== 开机自愈：登录初期显示器重构风暴下的原生窗口不可见 ==========
+-- 排查结论（2026-08-01）：开机后 sketchybar 在会话开始 ~4s 创建 bar 窗口，撞上
+-- 外接显示器初始化风暴，原生窗口不可见；Lua hidden 链路无异常（stderr 无报错、
+-- 无门控超时日志），手动 --reload 在风暴平息后重建窗口即恢复（与 wake 重建同族）。
+-- 这里把手动操作自动化：开机 120s 内加载配置时，延时 20s 自 reload 一次。
+-- marker 以 boot epoch 命名：自 reload 引发的二次加载会命中已有 marker，不会循环排程。
+local boot_f = io.popen("sysctl -n kern.boottime 2>/dev/null")
+local boot_epoch = tonumber(boot_f and boot_f:read("*a") or "")
+if boot_f then
+	boot_f:close()
+end
+if boot_epoch and (os.time() - boot_epoch) < 120 then
+	local marker = require("helpers.utils").tmp_path("sketchybar_boot_selfheal." .. boot_epoch)
+	local mf = io.open(marker, "r")
+	if mf then
+		mf:close() -- 本次开机已排程（含自愈 reload 的二次加载）
+	else
+		local wf = io.open(marker, "w")
+		if wf then
+			wf:write(tostring(os.time()))
+			wf:close()
+		end
+		io.stderr:write(os.date("sketchybar: boot self-heal scheduled at %H:%M:%S (reload in 20s)\n"))
+		sbar.delay(20, function()
+			sbar.exec("/opt/homebrew/bin/sketchybar --reload", function() end)
+		end)
+	end
+end
+
 -- 启动事件循环（必须！否则所有回调函数不会执行）
 sbar.event_loop()
