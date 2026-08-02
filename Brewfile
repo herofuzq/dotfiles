@@ -157,8 +157,6 @@ brew "joelekstrom/repo/terminal-mines"
 brew "k06a/tap/macpow"
 # macOS Input Source Manager
 brew "laishulu/homebrew/macism"
-# Coordinates SketchyBar and the native macOS menu bar
-brew "malpern/tap/sketchybar-toggle", trusted: true
 # A tool for managing macOS Time Machine exclusions for developer projects
 brew "mdnmdn/asimeow/asimeow", trusted: true
 # AeroSpace is an i3-like tiling window manager for macOS
@@ -215,6 +213,8 @@ cask "font-sf-pro"
 cask "font-sketchybar-app-font"
 # Terminal emulator that uses platform-native UI and GPU acceleration
 cask "ghostty"
+# Ghostty-based terminal with vertical tabs and notifications for AI coding agents
+cask "cmux"
 # File synchronisation and backup software
 cask "goodsync"
 # Desktop automation application

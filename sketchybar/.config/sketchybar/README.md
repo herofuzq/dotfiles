@@ -28,6 +28,10 @@ When debugging live behavior, inspect `~/.config/sketchybar` first. Source edits
 3. After `end_config`, `helpers/enter_animation.lua` records the fade set; `helpers/startup.lua` reveals the bar immediately, then item foregrounds and explicit backgrounds fade together.
 4. `sbar.event_loop()` receives SketchyBar native events and custom triggers from helper daemons.
 
+### Boot self-heal
+
+When the config loads within 120 seconds of boot, `init.lua` schedules one `sketchybar --reload` 20 seconds later. A per-boot marker under `$TMPDIR` prevents the reloaded config from scheduling another one.
+
 ### Startup fade
 
 | Step | Module | Behavior |
@@ -75,7 +79,7 @@ Manual state-file edits take effect on the next `sketchybar --reload`. This is L
 | Path | Purpose |
 |------|---------|
 | `sketchybarrc` | Entry: helpers + settings + `init` |
-| `init.lua` | `begin_config` / startup fade / `event_loop` |
+| `init.lua` | `begin_config` / startup fade / boot self-heal / `event_loop` |
 | `helpers/startup.lua` | Startup hide, batched configuration, and reveal timing |
 | `settings.lua` | Bar height, Dock-width detection, and default spacing |
 | `appearance.lua` | Theme palettes, semantic colors, global defaults |
@@ -235,6 +239,10 @@ helper 的编译产物不进 git，而是在实际运行路径里生成，例如
 2. `init.lua` 执行 `begin_config` → 外观默认、`bar.lua`（仍 hidden）、`items/`。
 3. `end_config` 之后：首屏查询并行完成即放行，最长等待 1 秒；先填入已返回的真实内容，再统一归零并渐入。
 4. `sbar.event_loop()` 接收 SketchyBar 原生事件和 helper 守护进程的自定义 trigger。
+
+### 开机自愈
+
+开机 120 秒内加载配置时，`init.lua` 会排程一次 20 秒后的 `sketchybar --reload`。marker 以本次 boot epoch 命名，自愈 reload 触发的二次加载会命中 marker，不会循环排程。
 
 ### 启动渐入
 

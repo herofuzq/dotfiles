@@ -22,7 +22,7 @@
 | Kitty / Ghostty | `~/.config/kitty`, `~/.config/ghostty` | 终端配置 |
 | Neovim | `~/.config/nvim` | 编辑器配置 |
 | Zed | `~/.config/zed` | 编辑器配置（settings.json） |
-| fcitx5 | `~/.config/fcitx5` | 中文输入法配置 |
+| fcitx5 | `~/.config/fcitx5` | 中文输入法配置（非 brew，需手动安装） |
 | Shell / TUI | `~/.zshrc`, `~/.zprofile`, `~/.zshenv`, `~/.bashrc`, `~/.config/{yazi,lazygit,starship}` | Shell、文件管理和 Git TUI |
 
 ## SketchyBar 提醒
@@ -72,6 +72,9 @@ luac -p ~/.config/sketchybar/items/spaces.lua
 make -C ~/.config/sketchybar/helpers/event_providers/aerospace_watch
 launchctl print gui/$(id -u)/com.fuzhuoqun.aerospace_watch
 sketchybar --reload
+
+# SketchyBar 单元测试
+for t in sketchybar/tests/*_test.lua; do lua "$t"; done
 
 # Hammerspoon Lua 语法
 luac -p ~/.hammerspoon/*.lua
