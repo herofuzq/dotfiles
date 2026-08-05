@@ -155,8 +155,8 @@ SketchyBar rebuilds every bar window on wake/unlock and display reconfiguration 
 
 - `system_will_sleep` → `hidden=on` immediately; device wake, the 500ms resent wake, and lock-screen time all stay hidden. A 75s failsafe (generation-bound) arms on the first wake and can only force `settling` — never `hidden=off` directly.
 - `screen_unlocked` (custom event on `com.apple.screenIsUnlocked`) is the normal release gate: probe every 0.2s until two consecutive identical valid snapshots (height + workspace→display mapping + `aerospace list-monitors` topology) plus 0.8s of event silence, then apply the snapshot while still hidden and play one ~0.5s reload-style fade.
-- Awake `display_change` → `hidden=on` immediately and the same settling path (probe decides what to apply, not whether to conceal; the first native rebuild frame is still unmaskable while awake).
-- After a sleep reveal, events in the first 3s are absorbed as the same storm; for the following 12s, a late wake/display cluster is verified once while visible. An unchanged snapshot is ignored, while a real height/topology change re-enters the full hidden gate.
+- Awake `display_change` / `system_woke` → probe first while visible; only a confirmed height/topology change enters the hidden settling path, so duplicate/no-op events do not hide or fade (the first native rebuild frame is still unmaskable while awake).
+- After a sleep reveal, events in the first 3s are absorbed as the same storm; later wake/display clusters stay probe-only. An unchanged snapshot is ignored, while a real height/topology change re-enters the full hidden gate.
 - Fault bounds: 0.8s quiet-window stability, a 10s settling-session ceiling, a 12s hidden-hold disaster fallback, and the 75s sleep failsafe; recovery is `sketchybar --bar hidden=off && sketchybar --reload`.
 - On a confirmed change from the `system_woke` path, spaces.lua triggers `display_topology_change`; `items/apple.lua` re-measures Dock width on it, but ignores it if a raw `display_change` arrived within the last 2 seconds.
 
@@ -370,8 +370,8 @@ SketchyBar 在唤醒/解锁和显示器重构时会**先把全部 bar 窗口销�
 
 - `system_will_sleep` → 立即 `hidden=on`；设备唤醒、500ms 补发唤醒、锁屏期间全程保持。首次 wake 武装 75s failsafe（generation 绑定），只能强制进入 `settling`，绝不直接 `hidden=off`。
 - `screen_unlocked`（监听 `com.apple.screenIsUnlocked` 的自定义事件）是正常释放入口：每 0.2s probe，连续两份有效且相同的快照（高度 + workspace→显示器映射 + `aerospace list-monitors` 拓扑签名）+ 最后事件后 0.8s 静默判定稳定 → 在 hidden 状态下应用快照 → 播一次约 0.5s 的 reload 同款整体渐入。
-- 清醒 `display_change` → 立即 `hidden=on` 并走同样的 settling（probe 只决定应用什么，不决定是否遮罩；清醒态第一帧原生重建仍无法遮罩）。
-- 睡眠恢复第一次渐入完成后的 3s 内直接吸收同一事件风暴；随后 12s 内若又来迟到的 wake/display 事件，先保持可见并静默核验一次。快照无变化则忽略，确有高度/拓扑变化才重新进入完整 hidden 门控。
+- 清醒 `display_change` / `system_woke` → 先保持可见并 probe，只有确认高度/拓扑变化才进入 hidden settling；重复/无变化事件不再隐藏或渐入（清醒态第一帧原生重建仍无法遮罩）。
+- 睡眠恢复第一次渐入完成后的 3s 内直接吸收同一事件风暴；之后迟到的 wake/display 事件同样保持 probe-only。快照无变化则忽略，确有高度/拓扑变化才重新进入完整 hidden 门控。
 - 故障边界：0.8s 静默稳定窗、10s settling 会话上限、12s hidden hold 灾难兜底，以及 75s 睡眠 failsafe；恢复命令 `sketchybar --bar hidden=off && sketchybar --reload`。
 - system_woke 路径确认变化后由 spaces.lua 触发 `display_topology_change`；`items/apple.lua` 据此重测 Dock 宽度，但若 2 秒内已收到 raw `display_change` 则忽略。
 

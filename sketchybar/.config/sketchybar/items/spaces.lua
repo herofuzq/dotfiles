@@ -12,6 +12,7 @@
 local appearance = require("appearance")
 local app_icons = require("helpers.app_icons")
 local borders = require("helpers.borders")
+local display_policy = require("helpers.display_policy")
 local enter_animation = require("helpers.enter_animation")
 local popup_animation = require("helpers.popup_animation")
 local timing = require("helpers.timing")
@@ -990,23 +991,45 @@ local function gate_verify_post_sleep_event(source_event)
 	end)
 end
 
+-- 清醒状态收到 display/wake 事件时先验证：只有确认高度/拓扑变化才进入遮罩，
+-- 避免 macOS 多发一次“无变化事件”时出现 hidden→fade 两次闪动。
+local function gate_verify_awake_event(source_event)
+	gate_aftershock_generation = gate_aftershock_generation + 1
+	local verify_generation = gate_aftershock_generation
+	sbar.delay(SETTLE_PROBE_INTERVAL, function()
+		if verify_generation ~= gate_aftershock_generation or gate_state ~= "idle" then
+			return
+		end
+		probeDisplayState(function(snapshot)
+			if verify_generation ~= gate_aftershock_generation or gate_state ~= "idle" then
+				return
+			end
+			if not snapshot.height_changed and not snapshot.monitor_changed then
+				return
+			end
+			gate_session_from_sleep = false
+			gate_post_sleep_verify_until = 0
+			gate_had_wake = source_event == "system_woke"
+			close_popups()
+			sbar.trigger("display_transition_begin")
+			gate_enter_settling()
+		end)
+	end)
+end
+
 -- display_change / system_woke 统一入口
 local function gate_on_display_event(source_event)
-	-- 余震窗口：reveal 后数秒内的迟到事件属于上一风暴，只吸收不开新会话
-	if gate_state == "idle"
-		and gate_revealed_at > 0
-		and (os.time() - gate_revealed_at) <= REVEAL_GRACE_SECONDS then
+	local action = display_policy.classify(
+		gate_state,
+		os.time(),
+		gate_revealed_at,
+		gate_post_sleep_verify_until,
+		REVEAL_GRACE_SECONDS
+	)
+	if action == "ignore" or action == "absorb" then
 		return
 	end
-	if gate_state == "idle"
-		and gate_post_sleep_verify_until > 0
-		and os.time() <= gate_post_sleep_verify_until then
-		gate_verify_post_sleep_event(source_event)
-		return
-	end
-	if gate_state == "sleep_hidden" then
-		-- 睡眠会话：只记录并武装 failsafe（一次），等解锁；不 bump generation，
-		-- 否则 failsafe 会被吸收事件作废。
+	if action == "absorb_wake" then
 		gate_had_wake = true
 		if not gate_failsafe_armed then
 			gate_failsafe_armed = true
@@ -1020,17 +1043,19 @@ local function gate_on_display_event(source_event)
 		end
 		return
 	end
-	if gate_state == "idle" then
-		gate_session_from_sleep = false
-		gate_post_sleep_verify_until = 0
-		gate_had_wake = source_event == "system_woke"
-		-- popup 状态一致性：hidden 本身会关 popup，这里同步各模块内部标志
-		close_popups()
-		sbar.trigger("display_transition_begin")
-	else
-		gate_had_wake = gate_had_wake or source_event == "system_woke"
+	if action == "verify_post_sleep" then
+		gate_verify_post_sleep_event(source_event)
+		return
 	end
-	gate_enter_settling()
+	if action == "renew" then
+		gate_had_wake = gate_had_wake or source_event == "system_woke"
+		gate_enter_settling()
+		return
+	end
+	if action == "verify" then
+		gate_verify_awake_event(source_event)
+		return
+	end
 end
 
 local function gate_on_will_sleep()
