@@ -862,6 +862,9 @@ local SETTLE_ABSOLUTE_MAX_SECONDS = 10
 local GATE_HOLD_TIMEOUT_SECONDS = 12
 -- reveal 后的余震窗口：同一风暴迟到的 wake/display_change 不开新会话。
 local REVEAL_GRACE_SECONDS = 3
+-- 纯锁屏（无 wake/display 事件）不需要 0.8s 稳定探测；给原生重建留一个
+-- 短窗口后直接渐入，避免解锁后长时间空白。
+local LOCK_FAST_RELEASE_DELAY_SECONDS = 0.2
 -- 睡眠恢复比普通切屏更容易在数秒后收到第二簇 wake/display_change。
 -- 3s 无条件吸收窗之后、12s 内只做一次静默核验：无实际变化则不再 hidden/fade；
 -- 确有高度或拓扑变化才恢复完整门控，避免吞掉扩展坞真正迟到的显示器。
@@ -880,6 +883,8 @@ local gate_failsafe_armed = false
 local gate_session_from_sleep = false
 local gate_post_sleep_verify_until = 0
 local gate_aftershock_generation = 0
+local gate_fast_release_scheduled = false
+local gate_fast_release_generation = 0
 
 local gate_probe -- 前向声明
 
@@ -965,6 +970,23 @@ local function gate_enter_settling()
 	gate_probe(gate_generation)
 end
 
+-- 纯锁屏解锁：没有 wake/display 事件时跳过稳定探测，短延时后直接渐入。
+-- 若短延时期间来了真实的 wake/display，事件路径会取消本次快速释放并转完整 settling。
+local function gate_schedule_fast_release()
+	if gate_fast_release_scheduled then
+		return
+	end
+	gate_fast_release_scheduled = true
+	local fast_gen = gate_fast_release_generation
+	sbar.delay(LOCK_FAST_RELEASE_DELAY_SECONDS, function()
+		gate_fast_release_scheduled = false
+		if gate_state ~= "sleep_hidden" or gate_fast_release_generation ~= fast_gen then
+			return
+		end
+		gate_reveal({ height_changed = false, monitor_changed = false, monitor_valid = true })
+	end)
+end
+
 -- 睡眠恢复后的迟到事件先验证再决定是否重新遮罩。这个例外只在第一次 reveal
 -- 完成后的短窗口内生效；普通清醒 display_change 仍保持“事件即 hidden”。
 local function gate_verify_post_sleep_event(source_event)
@@ -1031,6 +1053,13 @@ local function gate_on_display_event(source_event)
 	end
 	if action == "absorb_wake" then
 		gate_had_wake = true
+		if gate_fast_release_scheduled then
+			-- 解锁后的迟到 wake/display：说明不是纯锁屏，转完整 settling。
+			gate_fast_release_scheduled = false
+			gate_fast_release_generation = gate_fast_release_generation + 1
+			gate_enter_settling()
+			return
+		end
 		if not gate_failsafe_armed then
 			gate_failsafe_armed = true
 			local gen = gate_generation
@@ -1061,6 +1090,8 @@ end
 local function gate_on_will_sleep()
 	gate_state = "sleep_hidden"
 	gate_generation = gate_generation + 1 -- 作废旧会话的所有回调
+	gate_fast_release_generation = gate_fast_release_generation + 1
+	gate_fast_release_scheduled = false
 	gate_failsafe_armed = false
 	gate_had_wake = false
 	gate_session_from_sleep = true
@@ -1073,7 +1104,11 @@ end
 
 local function gate_on_unlock()
 	if gate_state == "sleep_hidden" then
-		gate_enter_settling()
+		if gate_had_wake then
+			gate_enter_settling()
+		else
+			gate_schedule_fast_release()
+		end
 	end
 end
 
