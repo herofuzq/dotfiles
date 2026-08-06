@@ -862,9 +862,9 @@ local SETTLE_ABSOLUTE_MAX_SECONDS = 10
 local GATE_HOLD_TIMEOUT_SECONDS = 12
 -- reveal 后的余震窗口：同一风暴迟到的 wake/display_change 不开新会话。
 local REVEAL_GRACE_SECONDS = 3
--- 纯锁屏（无 wake/display 事件）不需要 0.8s 稳定探测；给原生重建留一个
--- 短窗口后直接渐入，避免解锁后长时间空白。
-local LOCK_FAST_RELEASE_DELAY_SECONDS = 0.2
+-- 纯锁屏（无 wake/display 事件）不需要 0.8s 稳定探测；screen_unlocked 会连发多次，
+-- 每次通知都重置这个短窗口，等最后一次通知后再渐入，避免重建未完成就 unhide。
+local LOCK_FAST_RELEASE_DELAY_SECONDS = 0.25
 -- 睡眠恢复比普通切屏更容易在数秒后收到第二簇 wake/display_change。
 -- 3s 无条件吸收窗之后、12s 内只做一次静默核验：无实际变化则不再 hidden/fade；
 -- 确有高度或拓扑变化才恢复完整门控，避免吞掉扩展坞真正迟到的显示器。
@@ -971,18 +971,17 @@ local function gate_enter_settling()
 end
 
 -- 纯锁屏解锁：没有 wake/display 事件时跳过稳定探测，短延时后直接渐入。
--- 若短延时期间来了真实的 wake/display，事件路径会取消本次快速释放并转完整 settling。
+-- screen_unlocked 连发时每次都会重置计时（debounce），确保原生重建稳定后再释放；
+-- 若窗口期内来了真实的 wake/display，事件路径会取消本次快速释放并转完整 settling。
 local function gate_schedule_fast_release()
-	if gate_fast_release_scheduled then
-		return
-	end
-	gate_fast_release_scheduled = true
+	gate_fast_release_generation = gate_fast_release_generation + 1
 	local fast_gen = gate_fast_release_generation
+	gate_fast_release_scheduled = true
 	sbar.delay(LOCK_FAST_RELEASE_DELAY_SECONDS, function()
-		gate_fast_release_scheduled = false
 		if gate_state ~= "sleep_hidden" or gate_fast_release_generation ~= fast_gen then
 			return
 		end
+		gate_fast_release_scheduled = false
 		gate_reveal({ height_changed = false, monitor_changed = false, monitor_valid = true })
 	end)
 end

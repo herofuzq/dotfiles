@@ -155,7 +155,7 @@ SketchyBar rebuilds every bar window on wake/unlock and display reconfiguration 
 
 - `system_will_sleep` → `hidden=on` immediately; device wake, the 500ms resent wake, and lock-screen time all stay hidden. A 75s failsafe (generation-bound) arms on the first wake and can only force `settling` — never `hidden=off` directly.
 - Pure screen lock (without sleep) also enters the same hidden path via `com.apple.screenIsLocked`, so unlock never exposes a freshly rebuilt default bar.
-- Pure lock/unlock with no wake/display events skips the settling probes and releases after a short delay (~0.2s); a real wake/display during that window switches back to full settling.
+- Pure lock/unlock with no wake/display events skips the settling probes and releases after a short debounce window (~0.25s, reset by repeated `screen_unlocked`); a real wake/display during that window switches back to full settling.
 - `screen_unlocked` (custom event on `com.apple.screenIsUnlocked`) is the normal release gate: probe every 0.2s until two consecutive identical valid snapshots (height + workspace→display mapping + `aerospace list-monitors` topology) plus 0.8s of event silence, then apply the snapshot while still hidden and play one ~0.5s reload-style fade.
 - Awake `display_change` / `system_woke` → probe first while visible; only a confirmed height/topology change enters the hidden settling path, so duplicate/no-op events do not hide or fade (the first native rebuild frame is still unmaskable while awake).
 - After a sleep reveal, events in the first 3s are absorbed as the same storm; later wake/display clusters stay probe-only. An unchanged snapshot is ignored, while a real height/topology change re-enters the full hidden gate.
@@ -373,7 +373,7 @@ SketchyBar 在唤醒/解锁和显示器重构时会**先把全部 bar 窗口销�
 
 - `system_will_sleep` → 立即 `hidden=on`；设备唤醒、500ms 补发唤醒、锁屏期间全程保持。首次 wake 武装 75s failsafe（generation 绑定），只能强制进入 `settling`，绝不直接 `hidden=off`。
 - 纯锁屏（不进入睡眠）也通过 `com.apple.screenIsLocked` 进入同一 hidden 路径，避免解锁时先露出重建后的默认 bar。
-- 纯锁屏解锁且没有 wake/display 事件时，跳过稳定探测，短延时（约 0.2s）后直接渐入；若窗口期内有真实 wake/display，则切回完整 settling。
+- 纯锁屏解锁且没有 wake/display 事件时，跳过稳定探测，短 debounce 窗口（约 0.25s，重复 `screen_unlocked` 会重置）后直接渐入；若窗口期内有真实 wake/display，则切回完整 settling。
 - `screen_unlocked`（监听 `com.apple.screenIsUnlocked` 的自定义事件）是正常释放入口：每 0.2s probe，连续两份有效且相同的快照（高度 + workspace→显示器映射 + `aerospace list-monitors` 拓扑签名）+ 最后事件后 0.8s 静默判定稳定 → 在 hidden 状态下应用快照 → 播一次约 0.5s 的 reload 同款整体渐入。
 - 清醒 `display_change` / `system_woke` → 先保持可见并 probe，只有确认高度/拓扑变化才进入 hidden settling；重复/无变化事件不再隐藏或渐入（清醒态第一帧原生重建仍无法遮罩）。
 - 睡眠恢复第一次渐入完成后的 3s 内直接吸收同一事件风暴；之后迟到的 wake/display 事件同样保持 probe-only。快照无变化则忽略，确有高度/拓扑变化才重新进入完整 hidden 门控。
