@@ -17,9 +17,10 @@ local REVEAL_GRACE_SECONDS = 3
 -- 第一次解锁后只等一个固定短窗口；后续重复 unlock 不再重置，
 -- 避免 macOS 分两波投递 screen_unlocked 时把等待拖到 1s 以上。
 local LOCK_FAST_RELEASE_DELAY_SECONDS = 0.5
--- 纯锁屏冷静期：第一次解锁后保持 hidden，期间后续事件全部忽略，
--- 等原生重建风暴结束后再一次性渐入。
-local LOCK_COOLDOWN_SECONDS = 1.2
+-- 纯锁屏安静窗口：每次事件都重置，连续 0.3s 没有新事件才释放；
+-- 4s 是兜底，防止事件风暴无限延长隐藏。
+local LOCK_QUIET_SECONDS = 0.3
+local LOCK_QUIET_MAX_SECONDS = 4
 local POST_SLEEP_VERIFY_SECONDS = 12
 
 local gate_state = "idle"
@@ -40,6 +41,8 @@ local gate_fast_release_generation = 0
 local gate_had_display_change = false
 local gate_from_system_sleep = false
 local gate_cooldown_active = false
+local gate_quiet_generation = 0
+local gate_quiet_max_generation = 0
 
 local gate_probe
 local gate_reveal
@@ -203,15 +206,29 @@ gate_schedule_fast_verify = function()
 	end)
 end
 
--- 纯锁屏冷静期：第一次解锁后排程一次性释放，期间后续事件全部忽略。
-local function gate_schedule_cooldown_release()
-	if gate_cooldown_active then
-		return
+-- 纯锁屏安静窗口：每次事件都重置 0.3s 计时，连续安静后才释放；
+-- 4s 兜底保证事件风暴无限延长时也能强制释放。
+local function gate_schedule_quiet_release()
+	if not gate_cooldown_active then
+		gate_cooldown_active = true
+		gate_quiet_max_generation = gate_quiet_max_generation + 1
+		local max_gen = gate_quiet_max_generation
+		sbar.delay(LOCK_QUIET_MAX_SECONDS, function()
+			if gate_quiet_max_generation ~= max_gen or not gate_cooldown_active then
+				return
+			end
+			gate_cooldown_active = false
+			gate_reveal({ height_changed = false, monitor_changed = false, monitor_valid = true })
+		end)
 	end
-	gate_cooldown_active = true
-	local cooldown_gen = gate_generation
-	sbar.delay(LOCK_COOLDOWN_SECONDS, function()
-		if gate_state ~= "sleep_hidden" or gate_generation ~= cooldown_gen then
+
+	gate_quiet_generation = gate_quiet_generation + 1
+	local quiet_gen = gate_quiet_generation
+	sbar.delay(LOCK_QUIET_SECONDS, function()
+		if not gate_cooldown_active or gate_quiet_generation ~= quiet_gen then
+			return
+		end
+		if gate_state ~= "sleep_hidden" then
 			return
 		end
 		gate_cooldown_active = false
@@ -267,7 +284,8 @@ gate_verify_awake_event = function(source_event)
 end
 
 local function gate_on_display_event(source_event)
-	if gate_cooldown_active and gate_state == "sleep_hidden" then
+	if gate_cooldown_active and gate_state == "sleep_hidden" and not gate_from_system_sleep then
+		gate_schedule_quiet_release()
 		return
 	end
 	local action = display_policy.classify(
@@ -328,6 +346,8 @@ gate_on_will_sleep = function(from_system_sleep)
 	gate_had_display_change = false
 	gate_from_system_sleep = from_system_sleep == true
 	gate_cooldown_active = false
+	gate_quiet_generation = gate_quiet_generation + 1
+	gate_quiet_max_generation = gate_quiet_max_generation + 1
 	gate_session_from_sleep = true
 	gate_post_sleep_verify_until = 0
 	gate_aftershock_generation = gate_aftershock_generation + 1
@@ -338,13 +358,14 @@ end
 
 gate_on_unlock = function()
 	if gate_cooldown_active then
+		gate_schedule_quiet_release()
 		return
 	end
 	if gate_state == "sleep_hidden" then
 		if gate_had_display_change then
 			gate_enter_settling()
 		elseif not gate_from_system_sleep then
-			gate_schedule_cooldown_release()
+			gate_schedule_quiet_release()
 		elseif gate_had_wake then
 			gate_schedule_fast_verify()
 		else

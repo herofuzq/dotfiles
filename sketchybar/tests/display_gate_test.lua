@@ -78,32 +78,34 @@ assert(calls.close_popups == 1)
 assert(calls.trigger[#calls.trigger] == "display_transition_begin")
 
 gate.on_unlock()
-local cooldown_callback
+local quiet_callback
 for _, entry in ipairs(calls.delay) do
-	if entry.seconds == 1.2 then
-		cooldown_callback = entry.callback
+	if entry.seconds == 0.3 then
+		quiet_callback = entry.callback
 	end
 end
-assert(cooldown_callback, "pure lock must schedule a cooldown release")
-cooldown_callback()
-assert(#calls.release == 1, "pure lock cooldown must release once")
-assert(#calls.probe == 1, "pure lock cooldown must not add a probe")
+assert(quiet_callback, "pure lock must schedule a quiet release")
+quiet_callback()
+assert(#calls.release == 1, "pure lock quiet release must release once")
+assert(#calls.probe == 1, "pure lock quiet release must not add a probe")
 
--- 冷静期内 system_woke / display_change 全部忽略，不再重复隐藏或转 settling。
+-- 安静窗口内 system_woke / display_change 会重置计时，但不会重复隐藏或转 settling。
 gate.on_lock()
 gate.on_unlock()
+local delays_before_events = #calls.delay
 gate.on_display_event("system_woke")
 gate.on_display_event("display_change")
 assert(#calls.hold == 2, "cooldown must ignore all late events")
-local cooldown2
+assert(#calls.delay > delays_before_events, "late events must reset the quiet timer")
+local quiet2
 for _, entry in ipairs(calls.delay) do
-	if entry.seconds == 1.2 then
-		cooldown2 = entry.callback
+	if entry.seconds == 0.3 then
+		quiet2 = entry.callback
 	end
 end
-assert(cooldown2, "second pure lock must schedule another cooldown release")
-cooldown2()
-assert(#calls.release == 2, "second cooldown must release once")
+assert(quiet2, "second pure lock must schedule another quiet release")
+quiet2()
+assert(#calls.release == 2, "second quiet release must release once")
 
 -- 真睡眠：system_will_sleep 后解锁走单次快速 probe，无变化再释放。
 gate.on_will_sleep()
