@@ -105,41 +105,47 @@ local function update_live_target(name, props)
 	return entry
 end
 
+local function strip_color_section(section)
+	if type(section) ~= "table" then
+		return nil
+	end
+	local copy
+	for key, value in pairs(section) do
+		if key ~= "color" and key ~= "border_color" then
+			copy = copy or {}
+			copy[key] = value
+		end
+	end
+	return copy
+end
+
 -- display_change/system_woke 的透明窗口内，组件仍可能提交新状态。
--- 记录最新目标色并把这次提交保持为透明，避免网络、Docker 等先单独冒出来。
+-- 记录最新目标色，但门控期间不发送颜色 IPC：非动画 set 会取消正在进行的渐入。
+-- 非颜色字段（string/drawing/geometry 等）照常透传。
 local function runtime_props(name, props)
 	local entry = update_live_target(name, props)
 	if not _runtime_active or not entry then return props end
 
 	local result
+	for key, value in pairs(props) do
+		if key ~= "icon" and key ~= "label" and key ~= "background" then
+			result = result or {}
+			result[key] = value
+		end
+	end
 	for _, key in ipairs({ "icon", "label" }) do
-		local section = props[key]
-		local color = type(section) == "table" and parse_color(section.color) or nil
-		if color then
-			result = result or copy_table(props)
-			local section_copy = copy_table(section)
-			section_copy.color = fade_color(color, 0)
-			result[key] = section_copy
+		local stripped = strip_color_section(props[key])
+		if stripped then
+			result = result or {}
+			result[key] = stripped
 		end
 	end
-
-	local background = props.background
-	if type(background) == "table" then
-		local color = parse_color(background.color)
-		local border = parse_color(background.border_color)
-		if color or border then
-			result = result or copy_table(props)
-			local background_copy = copy_table(background)
-			if color then
-				background_copy.color = fade_color(color, 0)
-			end
-			if border then
-				background_copy.border_color = fade_color(border, 0)
-			end
-			result.background = background_copy
-		end
+	local background = strip_color_section(props.background)
+	if background then
+		result = result or {}
+		result.background = background
 	end
-	return result or props
+	return result
 end
 
 local function track_name(name, props)
@@ -235,7 +241,9 @@ function M.install()
 	_installed = true
 	local raw_add = sbar.add
 	sbar.set = function(name, props, ...)
-		return raw_set(name, runtime_props(name, props), ...)
+		local next_props = runtime_props(name, props)
+		if next_props == nil then return end
+		return raw_set(name, next_props, ...)
 	end
 	-- 必须用 ... 原样转发。若 3 参 add 却传入 nil 第 4 参，SbarLua 会误解析，
 	-- popup item 丢失 position，全部铺到主条上。
@@ -259,12 +267,14 @@ function M.install()
 		end
 		local item = raw_add(table.unpack(args))
 		if tracked and type(item) == "table" then
-			if type(item.set) == "function" then
-				local raw_item_set = item.set
-				item.set = function(self, updates, ...)
-					return raw_item_set(self, runtime_props(a, updates), ...)
+				if type(item.set) == "function" then
+					local raw_item_set = item.set
+					item.set = function(self, updates, ...)
+						local next_updates = runtime_props(a, updates)
+						if next_updates == nil then return end
+						return raw_item_set(self, next_updates, ...)
+					end
 				end
-			end
 		end
 		return item
 	end

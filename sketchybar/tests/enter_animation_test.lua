@@ -92,10 +92,23 @@ assert((last_applied("demo").props.icon.color >> 24) == 0, "hold must conceal cu
 assert((bars[1].color >> 24) == 0, "hold must conceal bar")
 
 -- sbar.set 与 item:set 共用同一个运行时颜色闸门。
+-- 纯颜色更新只记录最新目标色，不发 IPC，避免非动画 set 取消正在进行的渐入。
+local applied_before_color = #applied
 sbar.set("demo", { icon = { color = 0xaa010203 } })
-assert((last_applied("demo").props.icon.color >> 24) == 0, "late runtime color must remain concealed")
+assert(#applied == applied_before_color, "pure sbar.set color must not send IPC during hold")
 objects.demo:set({ label = { color = 0xaa040506 } })
-assert((last_applied("demo").props.label.color >> 24) == 0, "late item:set color must remain concealed")
+assert(#applied == applied_before_color, "pure item:set color must not send IPC during hold")
+
+-- 带字符串的更新仍要发送，但颜色字段必须剥离。
+sbar.set("demo", {
+	icon = { color = 0xaa010203, string = "X" },
+	label = { string = "Y" },
+})
+local mixed = last_applied("demo")
+assert(mixed.props.icon.string == "X", "non-color icon update must still be sent")
+assert(mixed.props.icon.color == nil, "color must be stripped from icon update during hold")
+assert(mixed.props.label.string == "Y", "non-color label update must still be sent")
+assert(mixed.props.label.color == nil, "color must be stripped from label update during hold")
 
 -- 过期 token 不能释放当前 hold。
 local bar_count = #bars
