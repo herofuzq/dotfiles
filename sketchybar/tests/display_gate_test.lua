@@ -115,4 +115,19 @@ assert(#calls.probe == 2, "system sleep fast verify must probe once")
 calls.probe[2]({ height_changed = false, monitor_changed = false, monitor_valid = true })
 assert(#calls.release == 2, "system sleep no-change fast verify must release")
 
+-- 余震窗口内迟到事件：快速重遮罩 + 一次快速验证后释放。
+gate.on_display_event("system_woke")
+local regate_callback
+for _, entry in ipairs(calls.delay) do
+	if entry.seconds == 0.5 then
+		regate_callback = entry.callback
+	end
+end
+assert(regate_callback, "regate must schedule fast verify")
+regate_callback()
+assert(#calls.hold == 5, "regate must hold again")
+assert(#calls.probe == 3, "regate must probe once")
+calls.probe[3]({ height_changed = false, monitor_changed = false, monitor_valid = true })
+assert(#calls.release == 3, "regate must release after no-change verify")
+
 print("display_gate_test: ok")

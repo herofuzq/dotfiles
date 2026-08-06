@@ -199,6 +199,25 @@ gate_schedule_fast_verify = function()
 	end)
 end
 
+-- 余震窗口/渐入中又收到原生重建事件：快速重新遮罩，再做一次快速验证后渐入。
+local function gate_regate()
+	gate_fast_release_generation = gate_fast_release_generation + 1
+	gate_fast_release_scheduled = false
+	gate_generation = gate_generation + 1
+	gate_state = "sleep_hidden"
+	gate_failsafe_armed = false
+	gate_had_wake = false
+	gate_had_display_change = false
+	gate_from_system_sleep = false
+	gate_session_from_sleep = true
+	gate_post_sleep_verify_until = 0
+	gate_aftershock_generation = gate_aftershock_generation + 1
+	close_popups()
+	trigger_transition_begin()
+	gate_token = enter_animation.hold({ hidden = true, no_timeout = true })
+	gate_schedule_fast_verify()
+end
+
 gate_verify_post_sleep_event = function(source_event)
 	gate_aftershock_generation = gate_aftershock_generation + 1
 	local verify_generation = gate_aftershock_generation
@@ -254,6 +273,10 @@ local function gate_on_display_event(source_event)
 		gate_post_sleep_verify_until,
 		REVEAL_GRACE_SECONDS
 	)
+	if action == "regate" then
+		gate_regate()
+		return
+	end
 	if action == "ignore" or action == "absorb" then
 		return
 	end
