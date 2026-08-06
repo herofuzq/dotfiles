@@ -71,33 +71,39 @@ assert(#calls.probe == 1, "awake event must probe once")
 calls.probe[1]({ height_changed = false, monitor_changed = false, monitor_valid = true })
 assert(#calls.hold == 0, "no-change probe must not enter settling")
 
--- 纯锁屏：立即 hidden，解锁后走快速释放，不 probe。
+-- 纯锁屏：立即 hidden，第一次解锁进入冷静期，期间不 probe。
 gate.on_lock()
 assert(#calls.hold == 1 and calls.hold[1].hidden == true and calls.hold[1].no_timeout == true)
 assert(calls.close_popups == 1)
 assert(calls.trigger[#calls.trigger] == "display_transition_begin")
 
 gate.on_unlock()
-local fast_callback
+local cooldown_callback
 for _, entry in ipairs(calls.delay) do
-	if entry.seconds == 0.5 then
-		fast_callback = entry.callback
+	if entry.seconds == 1.2 then
+		cooldown_callback = entry.callback
 	end
 end
-assert(fast_callback, "pure lock must schedule a fast release")
-fast_callback()
-assert(#calls.release == 1, "pure lock fast release must release once")
-assert(#calls.probe == 1, "pure lock fast release must not add a probe")
+assert(cooldown_callback, "pure lock must schedule a cooldown release")
+cooldown_callback()
+assert(#calls.release == 1, "pure lock cooldown must release once")
+assert(#calls.probe == 1, "pure lock cooldown must not add a probe")
 
--- system_woke 单独出现不算真实显示器变化，不取消快速释放；
--- display_change 才算真实变化，必须转完整 settling。
+-- 冷静期内 system_woke / display_change 全部忽略，不再重复隐藏或转 settling。
 gate.on_lock()
 gate.on_unlock()
 gate.on_display_event("system_woke")
-assert(#calls.hold == 2, "system_woke alone must not cancel fast release")
 gate.on_display_event("display_change")
-assert(#calls.hold == 3, "display_change during fast window must enter settling")
-assert(#calls.release == 1, "display_change during fast window must cancel the fast release")
+assert(#calls.hold == 2, "cooldown must ignore all late events")
+local cooldown2
+for _, entry in ipairs(calls.delay) do
+	if entry.seconds == 1.2 then
+		cooldown2 = entry.callback
+	end
+end
+assert(cooldown2, "second pure lock must schedule another cooldown release")
+cooldown2()
+assert(#calls.release == 2, "second cooldown must release once")
 
 -- 真睡眠：system_will_sleep 后解锁走单次快速 probe，无变化再释放。
 gate.on_will_sleep()
@@ -113,21 +119,6 @@ assert(sleep_verify_callback, "system sleep unlock must schedule fast verify")
 sleep_verify_callback()
 assert(#calls.probe == 2, "system sleep fast verify must probe once")
 calls.probe[2]({ height_changed = false, monitor_changed = false, monitor_valid = true })
-assert(#calls.release == 2, "system sleep no-change fast verify must release")
-
--- 余震窗口内迟到事件：快速重遮罩 + 一次快速验证后释放。
-gate.on_display_event("system_woke")
-local regate_callback
-for _, entry in ipairs(calls.delay) do
-	if entry.seconds == 0.5 then
-		regate_callback = entry.callback
-	end
-end
-assert(regate_callback, "regate must schedule fast verify")
-regate_callback()
-assert(#calls.hold == 5, "regate must hold again")
-assert(#calls.probe == 3, "regate must probe once")
-calls.probe[3]({ height_changed = false, monitor_changed = false, monitor_valid = true })
-assert(#calls.release == 3, "regate must release after no-change verify")
+assert(#calls.release == 3, "system sleep no-change fast verify must release")
 
 print("display_gate_test: ok")

@@ -8,8 +8,8 @@ local policy = require("helpers.display_policy")
 assert(policy.classify("idle", 100, 90, nil, 3) == "verify")
 assert(policy.classify("idle", 100, 0, nil, 3) == "verify")
 
--- Events inside the post-reveal grace window trigger a quick re-gate.
-assert(policy.classify("idle", 92, 90, nil, 3) == "regate")
+-- Events inside the post-reveal grace window are absorbed.
+assert(policy.classify("idle", 92, 90, nil, 3) == "absorb")
 
 -- Post-sleep events stay probe-only while the verify window is open.
 assert(policy.classify("idle", 100, 90, 105, 3) == "verify_post_sleep")
@@ -17,8 +17,8 @@ assert(policy.classify("idle", 100, 90, 105, 3) == "verify_post_sleep")
 -- Wake events while sleeping are absorbed until unlock.
 assert(policy.classify("sleep_hidden", 100, nil, nil, 3) == "absorb_wake")
 
--- Settling storms renew the session; revealing re-gates on late events.
+-- Settling storms renew the session; revealing ignores late events.
 assert(policy.classify("settling", 100, nil, nil, 3) == "renew")
-assert(policy.classify("revealing", 100, nil, nil, 3) == "regate")
+assert(policy.classify("revealing", 100, nil, nil, 3) == "ignore")
 
 print("display_policy_test: ok")
