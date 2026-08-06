@@ -14,6 +14,10 @@ local sbar = require("sketchybar")
 local appearance = require("appearance")
 local timing = require("helpers.timing")
 
+-- 与 startup.reveal 的 bar blur 保持一致；hold 期间必须关掉，否则
+-- 只压 color alpha 时毛玻璃背景仍会留在屏幕上。
+local BAR_BLUR_RADIUS = 15
+
 local M = {}
 
 local ITEM_FADE_FRAMES = timing.ENTER_ITEM_FADE_FRAMES or 30
@@ -366,6 +370,7 @@ local function do_release(token, on_complete)
 			hidden = "off",
 			color = appearance.with_alpha(appearance.colors.bar_bg, 0),
 			border_color = appearance.with_alpha(appearance.colors.border, 0),
+			blur_radius = 0,
 		})
 	end
 	sbar.animate("linear", ITEM_FADE_FRAMES, function()
@@ -373,6 +378,7 @@ local function do_release(token, on_complete)
 		sbar.bar({
 			color = appearance.colors.bar_bg,
 			border_color = appearance.colors.border,
+			blur_radius = BAR_BLUR_RADIUS,
 		})
 	end)
 	sbar.delay(timing.frames_to_seconds(ITEM_FADE_FRAMES), function()
@@ -420,9 +426,10 @@ function M.hold(opts)
 	sbar.bar({
 		color = appearance.with_alpha(appearance.colors.bar_bg, 0),
 		border_color = appearance.with_alpha(appearance.colors.border, 0),
+		blur_radius = 0,
 	})
 	if _hold_hidden then
-		sbar.bar({ hidden = "on" })
+		sbar.bar({ hidden = "on", blur_radius = 0 })
 	end
 
 	if not (opts and opts.no_timeout) then

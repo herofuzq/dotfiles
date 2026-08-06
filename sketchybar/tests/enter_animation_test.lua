@@ -145,6 +145,7 @@ delayed[#delayed]() -- release 的 finalizer
 local htoken = animation.hold({ hidden = true })
 local last_bar = bars[#bars]
 assert(last_bar.hidden == "on", "hidden hold must set bar hidden=on")
+assert(last_bar.blur_radius == 0, "hidden hold must disable bar blur")
 
 local ops_before_release = #ops
 local release_completed = false
@@ -166,7 +167,9 @@ for index = ops_before_release + 1, unhide_index - 1 do
 	end
 end
 assert((ops[unhide_index].props.color >> 24) == 0, "bar background must be alpha 0 at hidden=off")
+assert(ops[unhide_index].props.blur_radius == 0, "unhide frame must keep bar blur off")
 assert((last_applied("demo").props.icon.color >> 24) ~= 0, "fade must restore item colors")
+assert(bars[#bars].blur_radius == 15, "fade must restore bar blur")
 assert(not release_completed, "release completion must wait for the fade finalizer")
 delayed[#delayed]() -- finalizer
 assert(release_completed, "release completion must run after the fade finalizer")
