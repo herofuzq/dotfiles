@@ -33,6 +33,7 @@ local gate_aftershock_generation = 0
 local gate_fast_release_scheduled = false
 local gate_fast_release_generation = 0
 local gate_had_display_change = false
+local gate_from_system_sleep = false
 
 local gate_probe
 local gate_reveal
@@ -286,7 +287,7 @@ local function gate_on_display_event(source_event)
 	end
 end
 
-gate_on_will_sleep = function()
+gate_on_will_sleep = function(from_system_sleep)
 	gate_state = "sleep_hidden"
 	gate_generation = gate_generation + 1
 	gate_fast_release_generation = gate_fast_release_generation + 1
@@ -294,6 +295,7 @@ gate_on_will_sleep = function()
 	gate_failsafe_armed = false
 	gate_had_wake = false
 	gate_had_display_change = false
+	gate_from_system_sleep = from_system_sleep == true
 	gate_session_from_sleep = true
 	gate_post_sleep_verify_until = 0
 	gate_aftershock_generation = gate_aftershock_generation + 1
@@ -306,6 +308,8 @@ gate_on_unlock = function()
 	if gate_state == "sleep_hidden" then
 		if gate_had_display_change then
 			gate_enter_settling()
+		elseif not gate_from_system_sleep then
+			gate_schedule_fast_release()
 		elseif gate_had_wake then
 			gate_schedule_fast_verify()
 		else
@@ -323,7 +327,11 @@ function M.on_display_event(source_event)
 end
 
 function M.on_will_sleep()
-	gate_on_will_sleep()
+	gate_on_will_sleep(true)
+end
+
+function M.on_lock()
+	gate_on_will_sleep(false)
 end
 
 function M.on_unlock()

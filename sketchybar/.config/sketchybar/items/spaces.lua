@@ -1049,7 +1049,7 @@ sbar.delay(0, function()
 	-- 避免解锁时 SketchyBar 原生重建先露出默认白底再闪入内容。
 	sbar.add("event", "screen_locked", "com.apple.screenIsLocked")
 	root:subscribe("screen_locked", function()
-		display_gate.on_will_sleep()
+		display_gate.on_lock()
 	end)
 
 	-- 解锁是锁屏/睡眠会话的正常释放入口（期间保持 hidden）。

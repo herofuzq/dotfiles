@@ -10,6 +10,7 @@ assert(spaces:find("helpers.display_gate", 1, true), "spaces must delegate to di
 assert(spaces:find("display_gate.on_display_event", 1, true), "display/wake events must route into display_gate")
 assert(spaces:find("display_gate.on_will_sleep", 1, true), "sleep/lock events must route into display_gate")
 assert(spaces:find("display_gate.on_unlock", 1, true), "unlock must route into display_gate")
+assert(spaces:find("display_gate.on_lock", 1, true), "pure screen lock must route into display_gate.on_lock")
 assert(spaces:find('"com.apple.screenIsLocked"', 1, true), "pure screen lock must be subscribed")
 assert(spaces:find('root:subscribe("screen_locked"', 1, true), "screen lock must route into the gate")
 
