@@ -16,7 +16,7 @@ local GATE_HOLD_TIMEOUT_SECONDS = 12
 local REVEAL_GRACE_SECONDS = 3
 -- 第一次解锁后只等一个固定短窗口；后续重复 unlock 不再重置，
 -- 避免 macOS 分两波投递 screen_unlocked 时把等待拖到 1s 以上。
-local LOCK_FAST_RELEASE_DELAY_SECONDS = 0.35
+local LOCK_FAST_RELEASE_DELAY_SECONDS = 0.5
 local POST_SLEEP_VERIFY_SECONDS = 12
 
 local gate_state = "idle"

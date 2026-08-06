@@ -80,7 +80,7 @@ assert(calls.trigger[#calls.trigger] == "display_transition_begin")
 gate.on_unlock()
 local fast_callback
 for _, entry in ipairs(calls.delay) do
-	if entry.seconds == 0.35 then
+	if entry.seconds == 0.5 then
 		fast_callback = entry.callback
 	end
 end
@@ -105,7 +105,7 @@ gate.on_display_event("system_woke")
 gate.on_unlock()
 local sleep_verify_callback
 for _, entry in ipairs(calls.delay) do
-	if entry.seconds == 0.35 then
+	if entry.seconds == 0.5 then
 		sleep_verify_callback = entry.callback
 	end
 end
