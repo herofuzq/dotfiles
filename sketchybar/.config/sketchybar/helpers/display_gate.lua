@@ -32,11 +32,13 @@ local gate_post_sleep_verify_until = 0
 local gate_aftershock_generation = 0
 local gate_fast_release_scheduled = false
 local gate_fast_release_generation = 0
+local gate_had_display_change = false
 
 local gate_probe
 local gate_reveal
 local gate_enter_settling
 local gate_schedule_fast_release
+local gate_schedule_fast_verify
 local gate_verify_post_sleep_event
 local gate_verify_awake_event
 local gate_on_will_sleep
@@ -162,6 +164,32 @@ gate_schedule_fast_release = function()
 	end)
 end
 
+gate_schedule_fast_verify = function()
+	gate_fast_release_generation = gate_fast_release_generation + 1
+	local fast_gen = gate_fast_release_generation
+	gate_fast_release_scheduled = true
+	sbar.delay(LOCK_FAST_RELEASE_DELAY_SECONDS, function()
+		if gate_state ~= "sleep_hidden" or gate_fast_release_generation ~= fast_gen then
+			return
+		end
+		gate_fast_release_scheduled = false
+		probe(function(snapshot)
+			if gate_state ~= "sleep_hidden" or gate_fast_release_generation ~= fast_gen then
+				return
+			end
+			if snapshot.height_changed or snapshot.monitor_changed then
+				gate_session_from_sleep = false
+				gate_had_wake = true
+				close_popups()
+				trigger_transition_begin()
+				gate_enter_settling()
+			else
+				gate_reveal({ height_changed = false, monitor_changed = false, monitor_valid = true })
+			end
+		end)
+	end)
+end
+
 gate_verify_post_sleep_event = function(source_event)
 	gate_aftershock_generation = gate_aftershock_generation + 1
 	local verify_generation = gate_aftershock_generation
@@ -222,7 +250,10 @@ local function gate_on_display_event(source_event)
 	end
 	if action == "absorb_wake" then
 		gate_had_wake = true
-		if gate_fast_release_scheduled then
+		if source_event == "display_change" then
+			gate_had_display_change = true
+		end
+		if gate_fast_release_scheduled and gate_had_display_change then
 			gate_fast_release_scheduled = false
 			gate_fast_release_generation = gate_fast_release_generation + 1
 			gate_enter_settling()
@@ -262,6 +293,7 @@ gate_on_will_sleep = function()
 	gate_fast_release_scheduled = false
 	gate_failsafe_armed = false
 	gate_had_wake = false
+	gate_had_display_change = false
 	gate_session_from_sleep = true
 	gate_post_sleep_verify_until = 0
 	gate_aftershock_generation = gate_aftershock_generation + 1
@@ -272,8 +304,10 @@ end
 
 gate_on_unlock = function()
 	if gate_state == "sleep_hidden" then
-		if gate_had_wake then
+		if gate_had_display_change then
 			gate_enter_settling()
+		elseif gate_had_wake then
+			gate_schedule_fast_verify()
 		else
 			gate_schedule_fast_release()
 		end

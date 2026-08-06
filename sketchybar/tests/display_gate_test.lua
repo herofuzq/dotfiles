@@ -89,11 +89,14 @@ fast_callback()
 assert(#calls.release == 1, "pure lock fast release must release once")
 assert(#calls.probe == 1, "pure lock fast release must not add a probe")
 
--- 快速释放窗口内来了真实 wake：取消快速释放并转完整 settling。
+-- system_woke 单独出现不算真实显示器变化，不取消快速释放；
+-- display_change 才算真实变化，必须转完整 settling。
 gate.on_will_sleep()
 gate.on_unlock()
 gate.on_display_event("system_woke")
-assert(#calls.hold == 3, "wake during fast window must enter settling")
-assert(#calls.release == 1, "wake during fast window must cancel the fast release")
+assert(#calls.hold == 2, "system_woke alone must not cancel fast release")
+gate.on_display_event("display_change")
+assert(#calls.hold == 3, "display_change during fast window must enter settling")
+assert(#calls.release == 1, "display_change during fast window must cancel the fast release")
 
 print("display_gate_test: ok")
