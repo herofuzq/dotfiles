@@ -12,8 +12,7 @@
 local appearance = require("appearance")
 local app_icons = require("helpers.app_icons")
 local borders = require("helpers.borders")
-local display_policy = require("helpers.display_policy")
-local enter_animation = require("helpers.enter_animation")
+local display_gate = require("helpers.display_gate")
 local popup_animation = require("helpers.popup_animation")
 local timing = require("helpers.timing")
 local window_filter = require("helpers.window_filter")
@@ -837,279 +836,14 @@ local function applySnapshot(snapshot, on_complete)
 	end
 end
 
--- ========== 显示器/睡眠可见性门控（四态状态机）==========
--- 背景（SketchyBar v2.24 源码确认）：system_woke/display_change 到达 Lua 之前，
--- SketchyBar 已经销毁并重建了全部 bar 窗口（首次 wake 还会 ~500ms 后再来一次；
--- 解锁通知同样转成 SYSTEM_WOKE）。原生重建就是切换时"闪好几次"的来源。
--- hidden 状态由 bar_manager 保留并应用到重建后的新窗口（alpha 做不到），
--- 因此用 hidden 做跨重建门控：
---   idle         → 正常显示
---   sleep_hidden → will_sleep 立即 hidden；设备 wake/补发 wake/锁屏等待都保持；
---                  正常释放入口是 screen_unlocked；首次 wake 武装 75s failsafe
---                  （解锁通知丢失时兜底，只能进 settling，绝不直接 hidden=off）
---   settling     → 已解锁（或清醒 display_change 立即进入）：0.2s 一探，
---                  连续两份有效且相同快照 + 最后事件后 0.8s 静默判定稳定；
---                  单次静默等待 3.5s、整个事件风暴最多 10s，hidden hold
---                  另有 12s 灾难兜底
---   revealing    → 应用快照后 release 一次整体渐入，随后回 idle
-local SETTLE_PROBE_INTERVAL = 0.2
-local SETTLE_QUIET_PROBES = 4 -- 最后事件后至少 0.8s 静默（4×0.2）
-local SETTLE_MAX_SECONDS = 3.5
-local SLEEP_FAILSAFE_SECONDS = 75
--- 会话绝对上限：慢机器（DisplayLink 等）解锁后稳定可能需 ~8s，
--- 到 10s 强制收尾；hold 兜底超时相应放宽到 12s（纯灾难兜底，正常不会触发）。
-local SETTLE_ABSOLUTE_MAX_SECONDS = 10
-local GATE_HOLD_TIMEOUT_SECONDS = 12
--- reveal 后的余震窗口：同一风暴迟到的 wake/display_change 不开新会话。
-local REVEAL_GRACE_SECONDS = 3
--- 纯锁屏（无 wake/display 事件）不需要 0.8s 稳定探测；screen_unlocked 会连发多次，
--- 每次通知都重置这个短窗口，等最后一次通知后再渐入，避免重建未完成就 unhide。
-local LOCK_FAST_RELEASE_DELAY_SECONDS = 0.25
--- 睡眠恢复比普通切屏更容易在数秒后收到第二簇 wake/display_change。
--- 3s 无条件吸收窗之后、12s 内只做一次静默核验：无实际变化则不再 hidden/fade；
--- 确有高度或拓扑变化才恢复完整门控，避免吞掉扩展坞真正迟到的显示器。
-local POST_SLEEP_VERIFY_SECONDS = 12
-
-local gate_state = "idle"
-local gate_generation = 0
-local gate_token = nil
-local gate_probes_since_event = 0
-local gate_last_valid_key = nil
-local gate_settling_started = 0
-local gate_session_started = 0
-local gate_revealed_at = 0
-local gate_had_wake = false
-local gate_failsafe_armed = false
-local gate_session_from_sleep = false
-local gate_post_sleep_verify_until = 0
-local gate_aftershock_generation = 0
-local gate_fast_release_scheduled = false
-local gate_fast_release_generation = 0
-
-local gate_probe -- 前向声明
-
-local function gate_reveal(snapshot)
-	gate_state = "revealing"
-	local reveal_generation = gate_generation
-	local reveal_token = gate_token
-	local reveal_from_sleep = gate_session_from_sleep
-	if not snapshot.monitor_valid then
-		-- 收尾时映射仍无效：fallback 高度-only（映射保持旧值）
-		snapshot.monitor_changed = false
-	end
-	local function on_reveal_complete()
-		if gate_generation ~= reveal_generation or gate_state ~= "revealing" then
-			return
-		end
-		gate_revealed_at = os.time()
-		gate_post_sleep_verify_until = reveal_from_sleep
-			and (gate_revealed_at + POST_SLEEP_VERIFY_SECONDS)
-			or 0
-		gate_session_from_sleep = false
-		gate_state = "idle"
-	end
-	if snapshot.height_changed or snapshot.monitor_changed then
-		if gate_had_wake then
-			sbar.trigger("display_topology_change")
-		end
-		applySnapshot(snapshot, function()
-			enter_animation.release(reveal_token, on_reveal_complete)
-		end)
-	else
-		enter_animation.release(reveal_token, on_reveal_complete)
-	end
-end
-
-gate_probe = function(gen)
-	sbar.delay(SETTLE_PROBE_INTERVAL, function()
-		if gen ~= gate_generation or gate_state ~= "settling" then
-			return
-		end
-		probeDisplayState(function(snapshot)
-			if gen ~= gate_generation or gate_state ~= "settling" then
-				return
-			end
-			gate_probes_since_event = gate_probes_since_event + 1
-			local timed_out = (os.time() - gate_settling_started) >= SETTLE_MAX_SECONDS
-				or (os.time() - gate_session_started) >= SETTLE_ABSOLUTE_MAX_SECONDS
-			if snapshot.monitor_valid and not timed_out then
-				local valid_key = tostring(snapshot.height) .. "|" .. snapshot.monitor_signature
-					.. "|" .. tostring(snapshot.topology_signature)
-				local stable = gate_last_valid_key == valid_key
-				gate_last_valid_key = valid_key
-				if not stable or gate_probes_since_event < SETTLE_QUIET_PROBES then
-					gate_probe(gen)
-					return
-				end
-			elseif not timed_out then
-				-- AeroSpace 数据不完整：不计入稳定性，继续等下一轮
-				gate_probe(gen)
-				return
-			end
-			gate_reveal(snapshot)
-		end)
-	end)
-end
-
--- 进入/续期 settling：generation 作废旧回调，hold 续期并重武装兜底，
--- 静默计数清零。revealing 中的事件属于同一风暴，忽略。
-local function gate_enter_settling()
-	if gate_state == "revealing" then
-		return
-	end
-	if gate_state ~= "settling" then
-		-- 新会话起点（续期不重置，配合绝对上限）
-		gate_session_started = os.time()
-	end
-	gate_state = "settling"
-	gate_generation = gate_generation + 1
-	gate_token = enter_animation.hold({ hidden = true, timeout = GATE_HOLD_TIMEOUT_SECONDS })
-	gate_probes_since_event = 0
-	gate_last_valid_key = nil
-	gate_settling_started = os.time()
-	gate_probe(gate_generation)
-end
-
--- 纯锁屏解锁：没有 wake/display 事件时跳过稳定探测，短延时后直接渐入。
--- screen_unlocked 连发时每次都会重置计时（debounce），确保原生重建稳定后再释放；
--- 若窗口期内来了真实的 wake/display，事件路径会取消本次快速释放并转完整 settling。
-local function gate_schedule_fast_release()
-	gate_fast_release_generation = gate_fast_release_generation + 1
-	local fast_gen = gate_fast_release_generation
-	gate_fast_release_scheduled = true
-	sbar.delay(LOCK_FAST_RELEASE_DELAY_SECONDS, function()
-		if gate_state ~= "sleep_hidden" or gate_fast_release_generation ~= fast_gen then
-			return
-		end
-		gate_fast_release_scheduled = false
-		gate_reveal({ height_changed = false, monitor_changed = false, monitor_valid = true })
-	end)
-end
-
--- 睡眠恢复后的迟到事件先验证再决定是否重新遮罩。这个例外只在第一次 reveal
--- 完成后的短窗口内生效；普通清醒 display_change 仍保持“事件即 hidden”。
-local function gate_verify_post_sleep_event(source_event)
-	gate_aftershock_generation = gate_aftershock_generation + 1
-	local verify_generation = gate_aftershock_generation
-	sbar.delay(SETTLE_PROBE_INTERVAL, function()
-		if verify_generation ~= gate_aftershock_generation or gate_state ~= "idle" then
-			return
-		end
-		probeDisplayState(function(snapshot)
-			if verify_generation ~= gate_aftershock_generation or gate_state ~= "idle" then
-				return
-			end
-			if snapshot.height_changed or snapshot.monitor_changed then
-				gate_post_sleep_verify_until = 0
-				gate_session_from_sleep = false
-				gate_had_wake = source_event == "system_woke"
-				close_popups()
-				sbar.trigger("display_transition_begin")
-				gate_enter_settling()
-				return
-			end
-		end)
-	end)
-end
-
--- 清醒状态收到 display/wake 事件时先验证：只有确认高度/拓扑变化才进入遮罩，
--- 避免 macOS 多发一次“无变化事件”时出现 hidden→fade 两次闪动。
-local function gate_verify_awake_event(source_event)
-	gate_aftershock_generation = gate_aftershock_generation + 1
-	local verify_generation = gate_aftershock_generation
-	sbar.delay(SETTLE_PROBE_INTERVAL, function()
-		if verify_generation ~= gate_aftershock_generation or gate_state ~= "idle" then
-			return
-		end
-		probeDisplayState(function(snapshot)
-			if verify_generation ~= gate_aftershock_generation or gate_state ~= "idle" then
-				return
-			end
-			if not snapshot.height_changed and not snapshot.monitor_changed then
-				return
-			end
-			gate_session_from_sleep = false
-			gate_post_sleep_verify_until = 0
-			gate_had_wake = source_event == "system_woke"
-			close_popups()
-			sbar.trigger("display_transition_begin")
-			gate_enter_settling()
-		end)
-	end)
-end
-
--- display_change / system_woke 统一入口
-local function gate_on_display_event(source_event)
-	local action = display_policy.classify(
-		gate_state,
-		os.time(),
-		gate_revealed_at,
-		gate_post_sleep_verify_until,
-		REVEAL_GRACE_SECONDS
-	)
-	if action == "ignore" or action == "absorb" then
-		return
-	end
-	if action == "absorb_wake" then
-		gate_had_wake = true
-		if gate_fast_release_scheduled then
-			-- 解锁后的迟到 wake/display：说明不是纯锁屏，转完整 settling。
-			gate_fast_release_scheduled = false
-			gate_fast_release_generation = gate_fast_release_generation + 1
-			gate_enter_settling()
-			return
-		end
-		if not gate_failsafe_armed then
-			gate_failsafe_armed = true
-			local gen = gate_generation
-			sbar.delay(SLEEP_FAILSAFE_SECONDS, function()
-				if gate_state == "sleep_hidden" and gate_generation == gen then
-					io.stderr:write("display_gate: 75s failsafe fired, force settling\n")
-					gate_enter_settling()
-				end
-			end)
-		end
-		return
-	end
-	if action == "verify_post_sleep" then
-		gate_verify_post_sleep_event(source_event)
-		return
-	end
-	if action == "renew" then
-		gate_had_wake = gate_had_wake or source_event == "system_woke"
-		gate_enter_settling()
-		return
-	end
-	if action == "verify" then
-		gate_verify_awake_event(source_event)
-		return
-	end
-end
-
-local function gate_on_will_sleep()
-	gate_state = "sleep_hidden"
-	gate_generation = gate_generation + 1 -- 作废旧会话的所有回调
-	gate_fast_release_generation = gate_fast_release_generation + 1
-	gate_fast_release_scheduled = false
-	gate_failsafe_armed = false
-	gate_had_wake = false
-	gate_session_from_sleep = true
-	gate_post_sleep_verify_until = 0
-	gate_aftershock_generation = gate_aftershock_generation + 1
-	close_popups()
-	sbar.trigger("display_transition_begin")
-	gate_token = enter_animation.hold({ hidden = true, no_timeout = true })
-end
-
-local function gate_on_unlock()
-	if gate_state == "sleep_hidden" then
-		if gate_had_wake then
-			gate_enter_settling()
-		else
-			gate_schedule_fast_release()
-		end
-	end
-end
+display_gate.configure({
+	probe = probeDisplayState,
+	apply = applySnapshot,
+	close_popups = close_popups,
+	on_topology_change = function()
+		sbar.trigger("display_topology_change")
+	end,
+})
 
 -- ========== 初始化：begin_config 批量创建 workspace（性能优化）==========
 -- AeroSpace 配置固定使用 persistent-workspaces，启动时直接创建这些常驻工作区。
@@ -1300,29 +1034,28 @@ sbar.delay(0, function()
 	-- 不再使用 window_focus_change（主条只高亮工作区段）。
 
 	-- 唤醒与显示器变化统一走可见性门控（gate_on_display_event）：
-	-- 清醒路径立即 hidden 进 settling；睡眠路径只记录并武装 failsafe，等解锁。
 	root:subscribe({ "display_change", "system_woke" }, function(env)
-		gate_on_display_event(env.SENDER)
+		display_gate.on_display_event(env.SENDER)
 	end)
 
 	-- 睡前立即 hidden：SketchyBar 在 wake 事件送达 Lua 之前就重建了全部 bar
 	-- 窗口，事件后再遮罩遮不住第一帧旧画面。hidden 状态由 bar_manager 保留，
 	-- 跨原生重建有效；睡眠期间定时器不跑，hold 不武装超时。
 	root:subscribe("system_will_sleep", function()
-		gate_on_will_sleep()
+		display_gate.on_will_sleep()
 	end)
 
 	-- 纯锁屏不会触发 system_will_sleep：锁屏瞬间先 hidden，
 	-- 避免解锁时 SketchyBar 原生重建先露出默认白底再闪入内容。
 	sbar.add("event", "screen_locked", "com.apple.screenIsLocked")
 	root:subscribe("screen_locked", function()
-		gate_on_will_sleep()
+		display_gate.on_will_sleep()
 	end)
 
 	-- 解锁是锁屏/睡眠会话的正常释放入口（期间保持 hidden）。
 	sbar.add("event", "screen_unlocked", "com.apple.screenIsUnlocked")
 	root:subscribe("screen_unlocked", function()
-		gate_on_unlock()
+		display_gate.on_unlock()
 	end)
 
 	-- 全屏状态变化后刷新完整快照，并把标记显示在对应工作区编号左侧。
