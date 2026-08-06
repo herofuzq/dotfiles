@@ -14,7 +14,9 @@ local SLEEP_FAILSAFE_SECONDS = 75
 local SETTLE_ABSOLUTE_MAX_SECONDS = 10
 local GATE_HOLD_TIMEOUT_SECONDS = 12
 local REVEAL_GRACE_SECONDS = 3
-local LOCK_FAST_RELEASE_DELAY_SECONDS = 0.25
+-- 第一次解锁后只等一个固定短窗口；后续重复 unlock 不再重置，
+-- 避免 macOS 分两波投递 screen_unlocked 时把等待拖到 1s 以上。
+local LOCK_FAST_RELEASE_DELAY_SECONDS = 0.35
 local POST_SLEEP_VERIFY_SECONDS = 12
 
 local gate_state = "idle"
@@ -153,6 +155,9 @@ gate_enter_settling = function()
 end
 
 gate_schedule_fast_release = function()
+	if gate_fast_release_scheduled then
+		return
+	end
 	gate_fast_release_generation = gate_fast_release_generation + 1
 	local fast_gen = gate_fast_release_generation
 	gate_fast_release_scheduled = true
@@ -166,6 +171,9 @@ gate_schedule_fast_release = function()
 end
 
 gate_schedule_fast_verify = function()
+	if gate_fast_release_scheduled then
+		return
+	end
 	gate_fast_release_generation = gate_fast_release_generation + 1
 	local fast_gen = gate_fast_release_generation
 	gate_fast_release_scheduled = true
