@@ -160,14 +160,28 @@ for index, op in ipairs(ops) do
 	end
 end
 assert(unhide_index, "release must unhide the bar")
+local prep_index
+for index = ops_before_release + 1, unhide_index - 1 do
+	local op = ops[index]
+	if op.t == "bar"
+		and op.props.hidden == nil
+		and op.props.blur_radius == 0
+		and op.props.color
+		and (op.props.color >> 24) == 0 then
+		prep_index = index
+		break
+	end
+end
+assert(prep_index, "release must re-apply transparent bar while still hidden")
+assert(prep_index < unhide_index, "transparent bar must be applied before hidden=off")
 for index = ops_before_release + 1, unhide_index - 1 do
 	local op = ops[index]
 	if op.t == "set" and op.props.icon then
 		assert((op.props.icon.color >> 24) == 0, "items must be alpha 0 before hidden=off")
 	end
 end
-assert((ops[unhide_index].props.color >> 24) == 0, "bar background must be alpha 0 at hidden=off")
-assert(ops[unhide_index].props.blur_radius == 0, "unhide frame must keep bar blur off")
+assert(ops[unhide_index].props.color == nil, "hidden=off must not race a color write")
+assert(ops[unhide_index].props.blur_radius == nil, "hidden=off must not carry blur")
 assert((last_applied("demo").props.icon.color >> 24) ~= 0, "fade must restore item colors")
 assert(bars[#bars].blur_radius == 15, "fade must restore bar blur")
 assert(not release_completed, "release completion must wait for the fade finalizer")

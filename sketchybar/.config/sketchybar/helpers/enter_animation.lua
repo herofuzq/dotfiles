@@ -366,12 +366,14 @@ local function do_release(token, on_complete)
 		-- 先确保 item 全透明，再放行 hidden；顺序不可交换，
 		-- 否则取消 hidden 时会暴露未准备好的第一帧。
 		for _, entry in ipairs(_runtime_pending) do apply(entry, 0) end
+		-- 重建后的新窗口 alpha 不保留：先趁 hidden 状态重压透明背景，
+		-- 再单独 unhide，避免 hidden=off 的第一帧露出默认白底。
 		sbar.bar({
-			hidden = "off",
 			color = appearance.with_alpha(appearance.colors.bar_bg, 0),
 			border_color = appearance.with_alpha(appearance.colors.border, 0),
 			blur_radius = 0,
 		})
+		sbar.bar({ hidden = "off" })
 	end
 	sbar.animate("linear", ITEM_FADE_FRAMES, function()
 		for _, entry in ipairs(_runtime_pending) do apply(entry, 1) end
