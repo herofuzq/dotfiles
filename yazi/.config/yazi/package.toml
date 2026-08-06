@@ -75,7 +75,7 @@ hash = "1c0465351f2a344e842f065ab316f265"
 
 [[plugin.deps]]
 use = "yazi-rs/plugins:zoom"
-rev = "56d6277"
+rev = "b9598e6"
 hash = "e8e279463ee99c940e6945a14cf4aa9e"
 
 [[flavor.deps]]
