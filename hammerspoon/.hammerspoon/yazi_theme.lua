@@ -5,6 +5,8 @@
 
 local M = {}
 
+local util = require("util")
+
 -- scheme -> yazi flavor 目录名（~/.config/yazi/flavors/<name>.yazi）
 -- 与 hammerspoon/tests/yazi_theme_test.lua 对照，防漂移
 M.flavor_names = {
@@ -23,31 +25,6 @@ end
 function M.theme_toml_path()
 	local home = os.getenv("HOME")
 	return home and (home .. "/.config/yazi/theme.toml") or nil
-end
-
--- 原子写入，失败返回 nil, err
-local function write_file_atomic(path, content)
-	local temporary = string.format("%s.tmp.%d.%d", path, os.time(), math.random(100000, 999999))
-	local file, open_error = io.open(temporary, "w")
-	if not file then
-		return nil, tostring(open_error)
-	end
-	local wrote, write_error = file:write(content)
-	if not wrote then
-		file:close()
-		os.remove(temporary)
-		return nil, tostring(write_error)
-	end
-	if not file:close() then
-		os.remove(temporary)
-		return nil, "close failed"
-	end
-	local renamed, rename_error = os.rename(temporary, path)
-	if not renamed then
-		os.remove(temporary)
-		return nil, tostring(rename_error)
-	end
-	return true
 end
 
 -- 通知运行中的 yazi 实例热重载主题（receiver 0 = 广播到所有实例，见 yazi DDS 文档；
@@ -79,7 +56,7 @@ function M.write(scheme, flavor)
 	if not path then
 		return nil, "HOME unavailable"
 	end
-	local ok, err = write_file_atomic(path, M.render(flavor_name))
+	local ok, err = util.atomic_write(path, M.render(flavor_name))
 	if not ok then
 		return nil, err
 	end

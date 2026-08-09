@@ -6,6 +6,7 @@
 local notification = require("notification_hud")
 local theme = require("theme")
 local wechatVoice = require("wechat_voice")
+local util = require("util")
 local EN = 1
 local ZH = 2
 
@@ -194,16 +195,16 @@ local IDLE_TIMEOUT = 10
 local IDLE_TICK_INTERVAL = 1
 local KEY_RATE_WINDOW = 60
 local HUD_BAR_SLOTS = 10
-local HUD_WIDTH = 212
-local HUD_HEIGHT = 26
-local HUD_BOTTOM_OFFSET = 30
+local HUD_WIDTH = util.hud.width
+local HUD_HEIGHT = util.hud.height
+local HUD_BOTTOM_OFFSET = util.hud.bottom_offset
 local HUD_VOICE_OFFSET = 40  -- 语音模式下向上位移，避让微信语音栏
 local HUD_MOVE_DURATION = 0.20
 local HUD_MOVE_INTERVAL = 1 / 60
 local VOICE_WINDOW_PROBE_INTERVAL = 0.05
 local VOICE_WINDOW_PROBE_ATTEMPTS = 60
-local HUD_CORNER_RADIUS = 10
-local HUD_FADE_OUT_DURATION = 0.16
+local HUD_CORNER_RADIUS = util.hud.corner_radius
+local HUD_FADE_OUT_DURATION = util.hud.fade_out_duration
 local HUD_COLORS = theme.colors()
 
 local resetIdleTimer

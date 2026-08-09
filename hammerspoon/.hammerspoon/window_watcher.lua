@@ -22,9 +22,8 @@ local placementAnimating = {}
 local placementClearTimers = {}
 local command = require("command")
 local notification = require("notification_hud")
-local SKIP_BUNDLE_IDS = {
-	["pl.maketheweb.cleanshotx"] = true,
-}
+local util = require("util")
+local SKIP_BUNDLE_IDS = util.SKIP_BUNDLE_IDS
 
 local function safeTopForWindow(window)
 	local screen = window and window:screen()

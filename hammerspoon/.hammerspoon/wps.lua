@@ -13,8 +13,6 @@ local notification = require("notification_hud")
 -- ---- 内部状态 ----
 local _switched = false
 local RECOVER_DELAY = 0.3
--- hs.reload() 安全：_wpsTap / _recoverTimer 需要暴露为全局变量，
--- 让 init.lua 在 reload 时停止旧实例（模块级 local reload 后无法访问旧作用域）。
 _WpsTap = nil
 _WpsRecoverTimer = nil
 local _sessionGeneration = 0

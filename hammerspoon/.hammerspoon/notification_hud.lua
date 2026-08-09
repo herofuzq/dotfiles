@@ -1,14 +1,15 @@
 -- Shared transient notification HUD.
--- It uses the same position and geometry as the input-method indicator.
+-- Shares geometry constants with the input-method indicator, but sits one lane above it.
 
 local theme = require("theme")
+local util = require("util")
 
-local HUD_WIDTH = 212
-local HUD_HEIGHT = 26
-local HUD_BOTTOM_OFFSET = 30
+local HUD_WIDTH = util.hud.width
+local HUD_HEIGHT = util.hud.height
+local HUD_BOTTOM_OFFSET = util.hud.bottom_offset
 local HUD_LANE_GAP = 8
-local HUD_CORNER_RADIUS = 10
-local HUD_FADE_OUT_DURATION = 0.16
+local HUD_CORNER_RADIUS = util.hud.corner_radius
+local HUD_FADE_OUT_DURATION = util.hud.fade_out_duration
 
 local HUD_COLORS = theme.colors()
 

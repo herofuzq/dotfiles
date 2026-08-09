@@ -3,11 +3,14 @@
 
 local command = require("command")
 local notification = require("notification_hud")
+local util = require("util")
 
-local SKIP_BUNDLE_IDS = {
-	["pl.maketheweb.cleanshotx"] = true,
-	["now.typeless.desktop"] = true,
-}
+-- cleanshotx 由 util 共享；typeless 桌面仅本模块跳过。
+local SKIP_BUNDLE_IDS = {}
+for bundle_id in pairs(util.SKIP_BUNDLE_IDS) do
+	SKIP_BUNDLE_IDS[bundle_id] = true
+end
+SKIP_BUNDLE_IDS["now.typeless.desktop"] = true
 
 local WINDOW_FORMAT = "%{window-id}|%{app-bundle-id}|%{workspace}|%{window-layout}|%{window-parent-container-layout}"
 local lastFocusedID = nil

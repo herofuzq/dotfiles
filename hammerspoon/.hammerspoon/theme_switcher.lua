@@ -3,6 +3,8 @@
 
 local M = {}
 
+local util = require("util")
+
 local display_names = {
 	catppuccin = "Catppuccin",
 	tokyonight = "Tokyo Night",
@@ -68,29 +70,7 @@ function M.write_state_atomic(path, scheme)
 	if not directory_ok then
 		return false, directory_error
 	end
-
-	local temporary = string.format("%s.tmp.%d.%d", path, os.time(), math.random(100000, 999999))
-	local file, open_error = io.open(temporary, "w")
-	if not file then
-		return false, tostring(open_error)
-	end
-	local wrote, write_error = file:write(content)
-	if not wrote then
-		file:close()
-		os.remove(temporary)
-		return false, tostring(write_error)
-	end
-	local closed, close_error = file:close()
-	if not closed then
-		os.remove(temporary)
-		return false, tostring(close_error)
-	end
-	local renamed, rename_error = os.rename(temporary, path)
-	if not renamed then
-		os.remove(temporary)
-		return false, tostring(rename_error)
-	end
-	return true
+	return util.atomic_write(path, content)
 end
 
 function M.create(deps)
