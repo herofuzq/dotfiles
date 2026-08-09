@@ -117,8 +117,7 @@ fi
 
 # Completions must be in fpath BEFORE Zim's completion module runs compinit.
 # - Docker CLI completions
-# - Grok CLI completions
-fpath=($HOME/.docker/completions $HOME/.grok/completions/zsh $fpath)
+fpath=($HOME/.docker/completions $fpath)
 
 # AI ghost text strategy — must be set BEFORE Zim loads zsh-autosuggestions
 ZSH_AUTOSUGGEST_STRATEGY=(history)
@@ -166,11 +165,6 @@ path=($BUN_INSTALL/bin $path)
 
 # --- LM Studio CLI (lms) ---
 path=($path $HOME/.lmstudio/bin)
-
-# --- Grok CLI ---
-# Completions fpath is set before Zim init above. Do NOT call compinit here —
-# Zim's completion module already runs it once.
-path=($HOME/.grok/bin $path)
 
 # =============================================================================
 # NVM (Node Version Manager) — lazy load
