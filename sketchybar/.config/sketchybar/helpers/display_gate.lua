@@ -17,6 +17,7 @@ local REVEAL_GRACE_SECONDS = 3
 -- 第一次解锁后只等一个固定短窗口；后续重复 unlock 不再重置，
 -- 避免 macOS 分两波投递 screen_unlocked 时把等待拖到 1s 以上。
 local LOCK_FAST_RELEASE_DELAY_SECONDS = 0.5
+local LOCK_FAST_VERIFY_TIMEOUT_SECONDS = 2.0
 -- 纯锁屏安静窗口：每次事件都重置，连续 0.3s 没有新事件才释放；
 -- 4s 是兜底，防止事件风暴无限延长隐藏。
 local LOCK_QUIET_SECONDS = 0.3
@@ -44,8 +45,13 @@ local gate_from_system_sleep = false
 local gate_cooldown_active = false
 local gate_quiet_generation = 0
 local gate_quiet_max_generation = 0
+local gate_settle_request_id = 0
+local gate_settle_active_request = nil
+local gate_settle_pending_request = nil
 
 local gate_probe
+local gate_issue_settling_probe
+local gate_drain_settling_probe
 local gate_reveal
 local gate_enter_settling
 local gate_schedule_fast_release
@@ -85,6 +91,17 @@ local function trigger_topology_change()
 	end
 end
 
+local function invalidate_settling_probe_ownership()
+	gate_settle_active_request = nil
+	gate_settle_pending_request = nil
+end
+
+local function settling_request_is_current(request)
+	return gate_state == "settling"
+		and request.session_id == gate_session_id
+		and request.generation == gate_generation
+end
+
 gate_reveal = function(snapshot)
 	gate_state = "revealing"
 	local reveal_generation = gate_generation
@@ -116,33 +133,64 @@ gate_reveal = function(snapshot)
 	end
 end
 
-gate_probe = function(gen)
-	sbar.delay(SETTLE_PROBE_INTERVAL, function()
-		if gen ~= gate_generation or gate_state ~= "settling" then
+gate_drain_settling_probe = function()
+	local pending = gate_settle_pending_request
+	gate_settle_pending_request = nil
+	if pending and settling_request_is_current(pending) then
+		gate_issue_settling_probe(pending)
+	end
+end
+
+gate_issue_settling_probe = function(request)
+	gate_settle_request_id = gate_settle_request_id + 1
+	request.request_id = gate_settle_request_id
+	gate_settle_active_request = request
+	probe(function(snapshot)
+		if not gate_settle_active_request
+			or gate_settle_active_request.request_id ~= request.request_id
+		then
 			return
 		end
-		probe(function(snapshot)
-			if gen ~= gate_generation or gate_state ~= "settling" then
+
+		-- 匹配的回调先释放自己的 owner；旧 generation 也必须让最新 pending 有机会接棒。
+		gate_settle_active_request = nil
+		if not settling_request_is_current(request) then
+			gate_drain_settling_probe()
+			return
+		end
+
+		gate_probes_since_event = gate_probes_since_event + 1
+		local timed_out = (os.time() - gate_settling_started) >= SETTLE_MAX_SECONDS
+			or (os.time() - gate_session_started) >= SETTLE_ABSOLUTE_MAX_SECONDS
+		if snapshot.monitor_valid and not timed_out then
+			local valid_key = tostring(snapshot.height) .. "|" .. snapshot.monitor_signature
+				.. "|" .. tostring(snapshot.topology_signature)
+			local stable = gate_last_valid_key == valid_key
+			gate_last_valid_key = valid_key
+			if not stable or gate_probes_since_event < SETTLE_QUIET_PROBES then
+				gate_probe(request.generation)
 				return
 			end
-			gate_probes_since_event = gate_probes_since_event + 1
-			local timed_out = (os.time() - gate_settling_started) >= SETTLE_MAX_SECONDS
-				or (os.time() - gate_session_started) >= SETTLE_ABSOLUTE_MAX_SECONDS
-			if snapshot.monitor_valid and not timed_out then
-				local valid_key = tostring(snapshot.height) .. "|" .. snapshot.monitor_signature
-					.. "|" .. tostring(snapshot.topology_signature)
-				local stable = gate_last_valid_key == valid_key
-				gate_last_valid_key = valid_key
-				if not stable or gate_probes_since_event < SETTLE_QUIET_PROBES then
-					gate_probe(gen)
-					return
-				end
-			elseif not timed_out then
-				gate_probe(gen)
-				return
-			end
-			gate_reveal(snapshot)
-		end)
+		elseif not timed_out then
+			gate_probe(request.generation)
+			return
+		end
+		gate_reveal(snapshot)
+	end)
+end
+
+gate_probe = function(gen)
+	local session_id = gate_session_id
+	sbar.delay(SETTLE_PROBE_INTERVAL, function()
+		if session_id ~= gate_session_id or gen ~= gate_generation or gate_state ~= "settling" then
+			return
+		end
+		local request = { session_id = session_id, generation = gen }
+		if gate_settle_active_request then
+			gate_settle_pending_request = request
+			return
+		end
+		gate_issue_settling_probe(request)
 	end)
 end
 
@@ -158,6 +206,7 @@ gate_enter_settling = function()
 			if gate_state ~= "settling" or gate_session_id ~= session_id then
 				return
 			end
+			invalidate_settling_probe_ownership()
 			gate_generation = gate_generation + 1
 			gate_reveal({ height_changed = false, monitor_changed = false, monitor_valid = true })
 		end)
@@ -198,12 +247,22 @@ gate_schedule_fast_verify = function()
 		if gate_state ~= "sleep_hidden" or gate_fast_release_generation ~= fast_gen then
 			return
 		end
-		gate_fast_release_scheduled = false
-		probe(function(snapshot)
-			if gate_state ~= "sleep_hidden" or gate_fast_release_generation ~= fast_gen then
+		local terminal = false
+		local function finish_fast_verify(snapshot)
+			if terminal
+				or gate_state ~= "sleep_hidden"
+				or gate_fast_release_generation ~= fast_gen
+				or not gate_fast_release_scheduled
+			then
 				return
 			end
-			if snapshot.height_changed or snapshot.monitor_changed then
+			terminal = true
+			gate_fast_release_scheduled = false
+			if not snapshot
+				or snapshot.monitor_valid ~= true
+				or snapshot.height_changed
+				or snapshot.monitor_changed
+			then
 				gate_session_from_sleep = false
 				gate_had_wake = true
 				close_popups()
@@ -212,7 +271,11 @@ gate_schedule_fast_verify = function()
 			else
 				gate_reveal({ height_changed = false, monitor_changed = false, monitor_valid = true })
 			end
+		end
+		sbar.delay(LOCK_FAST_VERIFY_TIMEOUT_SECONDS, function()
+			finish_fast_verify(nil)
 		end)
+		probe(finish_fast_verify)
 	end)
 end
 
@@ -349,6 +412,7 @@ end
 gate_on_will_sleep = function(from_system_sleep)
 	gate_state = "sleep_hidden"
 	gate_generation = gate_generation + 1
+	invalidate_settling_probe_ownership()
 	gate_fast_release_generation = gate_fast_release_generation + 1
 	gate_fast_release_scheduled = false
 	gate_failsafe_armed = false
