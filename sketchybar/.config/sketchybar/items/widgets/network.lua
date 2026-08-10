@@ -12,6 +12,7 @@ local NETWORK_SAMPLE_INTERVAL = 3
 local INTERFACE_REFRESH_INTERVAL = 60
 local OFFLINE_RETRY_INTERVAL = 15
 local MAX_CONSECUTIVE_FAILURES = 2
+local SAMPLE_TIMEOUT = 1.5
 
 -- ========== ↑ 上传（上排，y_offset 偏下）==========
 local up = sbar.add("item", "widgets.network_up", {
@@ -92,7 +93,7 @@ local function detect_network(callback)
 	}, "; ")
 	sbar.exec(command, function(output, exit_code)
 		if tonumber(exit_code) ~= 0 then
-			callback(nil, "offline")
+			callback(nil, "offline", true)
 			return
 		end
 		output = output or ""
@@ -109,7 +110,7 @@ local function detect_network(callback)
 			end
 		end
 		if not iface or not iface:match("^[%w%._-]+$") then
-			callback(nil, "offline")
+			callback(nil, "offline", true)
 			return
 		end
 
@@ -120,7 +121,7 @@ local function detect_network(callback)
 				break
 			end
 		end
-		callback(iface, parsers.network_kind(port, iface))
+		callback(iface, parsers.network_kind(port, iface), true)
 	end)
 end
 
@@ -134,13 +135,19 @@ local function icon_color(kind)
 	return colors.identity.network
 end
 
-local net_iface, current_network_kind, next_interface_check_at
+local net_iface, current_network_kind, next_interface_check_at, next_sample_at
 local last_up_str, last_down_str
 local consecutive_failures = 0
 local unavailable = false
-local interface_check_in_flight = false
-local interface_check_pending = false
 local interface_check_generation = 0
+local interface_check_in_flight
+local interface_check_pending
+local retained_detection_intent
+local interface_epoch = 0
+local sample_generation = 0
+local sample_request_generation = 0
+local active_sample_request
+local forced_sample_pending = false
 
 local function set_network_icon(kind)
 	local next_kind = kind or "offline"
@@ -160,108 +167,217 @@ local function set_network_icon(kind)
 end
 
 local function show_unavailable()
-	if unavailable then
+	if unavailable and not last_up_str and not last_down_str then
 		return
 	end
 	unavailable = true
 	last_up_str, last_down_str = nil, nil
-	set_network_icon("offline")
 	startup.after_reveal("network.values", function()
 		up:set({ label = "↑ —" })
 		down:set({ label = "↓ —" })
 	end)
 end
 
-local function sample_network()
+local function reset_sample_epoch()
+	interface_epoch = interface_epoch + 1
+	sample_generation = sample_generation + 1
+	consecutive_failures = 0
+	next_sample_at = nil
+	forced_sample_pending = false
+	show_unavailable()
+end
+
+local function invalidate_sample_generation()
+	sample_generation = sample_generation + 1
+end
+
+local function failure_delay(failure_count)
+	if failure_count == 1 then return 3 end
+	if failure_count == 2 then return 6 end
+	if failure_count == 3 then return 12 end
+	return 15
+end
+
+local sample_network
+
+local function finish_sample(request_id, source, raw, exit_code)
+	local request = active_sample_request
+	if not request or request.id ~= request_id then
+		return
+	end
+
+	-- Clear only this request's ownership before checking whether its result is stale.
+	active_sample_request = nil
+	local pending_force = forced_sample_pending
+	forced_sample_pending = false
+	local current = request.iface == net_iface
+		and request.epoch == interface_epoch
+		and request.generation == sample_generation
+
+	if pending_force then
+		sample_network(true)
+		return
+	end
+
+	if not current then
+		return
+	end
+
+	local down_raw, up_raw
+	if source == "callback" and tonumber(exit_code) == 0 then
+		local data = ""
+		for line in (raw or ""):gmatch("[^\n]+") do
+			if #line > 0 and not line:match("^%s*$") then
+				data = line
+			end
+		end
+		down_raw, up_raw = data:match("%s*(%S+)%s+(%S+)")
+	end
+
+	if source == "timeout" or not tonumber(down_raw) or not tonumber(up_raw) then
+		consecutive_failures = consecutive_failures + 1
+		next_sample_at = os.time() + failure_delay(consecutive_failures)
+		if consecutive_failures >= MAX_CONSECUTIVE_FAILURES then
+			show_unavailable()
+		end
+		initial_ready()
+		return
+	end
+
+	consecutive_failures = 0
+	next_sample_at = os.time() + NETWORK_SAMPLE_INTERVAL
+	unavailable = false
+	local up_str = "↑" .. format_speed(up_raw)
+	local down_str = "↓" .. format_speed(down_raw)
+	if up_str ~= last_up_str or down_str ~= last_down_str then
+		last_up_str = up_str
+		last_down_str = down_str
+		startup.after_reveal("network.values", function()
+			up:set({ label = up_str })
+			down:set({ label = down_str })
+		end)
+	end
+	initial_ready()
+end
+
+sample_network = function(force)
 	if not IFSTAT or not net_iface then
-		consecutive_failures = 0
 		show_unavailable()
 		initial_ready()
 		return
 	end
-	sbar.exec(
-		shell_quote(IFSTAT) .. " -i " .. shell_quote(net_iface) .. " -b 0.1 1 2>/dev/null",
-		function(raw)
-			-- ifstat 输出 N 行 header + 1 行数据，取最后非空行避免依赖 header 行数
-			local data = ""
-			for line in (raw or ""):gmatch("[^\n]+") do
-				if #line > 0 and not line:match("^%s*$") then
-					data = line
-				end
-			end
-			local down_raw, up_raw = data:match("%s*(%S+)%s+(%S+)")
-			if not tonumber(down_raw) or not tonumber(up_raw) then
-				consecutive_failures = consecutive_failures + 1
-				if consecutive_failures >= MAX_CONSECUTIVE_FAILURES then
-					show_unavailable()
-				end
-				initial_ready()
-				return
-			end
+	if active_sample_request then
+		if force then forced_sample_pending = true end
+		return
+	end
+	if not force and next_sample_at and os.time() < next_sample_at then
+		return
+	end
 
-			consecutive_failures = 0
-			unavailable = false
-			local up_str = "↑" .. format_speed(up_raw)
-			local down_str = "↓" .. format_speed(down_raw)
-			-- dedup: 上下行速度和上次一样就不 set
-			if up_str == last_up_str and down_str == last_down_str then
-				initial_ready()
-				return
-			end
-			last_up_str = up_str
-			last_down_str = down_str
-			startup.after_reveal("network.values", function()
-				up:set({ label = up_str })
-				down:set({ label = down_str })
-			end)
-			initial_ready()
+	sample_request_generation = sample_request_generation + 1
+	local request = {
+		id = sample_request_generation,
+		iface = net_iface,
+		epoch = interface_epoch,
+		generation = sample_generation,
+		finished = false,
+	}
+	active_sample_request = request
+
+	sbar.exec(
+		shell_quote(IFSTAT) .. " -i " .. shell_quote(request.iface) .. " -b 0.1 1 2>/dev/null",
+		function(raw, exit_code)
+			if request.finished then return end
+			request.finished = true
+			finish_sample(request.id, "callback", raw, exit_code)
 		end
 	)
+	sbar.delay(SAMPLE_TIMEOUT, function()
+		if request.finished then return end
+		request.finished = true
+		finish_sample(request.id, "timeout")
+	end)
 end
 
-local function update_network(force_interface_check)
-	local now = os.time()
-	local needs_interface_check = force_interface_check
-		or not next_interface_check_at
-		or now >= next_interface_check_at
-	if not needs_interface_check then
-		sample_network()
-		return
-	end
-	if interface_check_in_flight then
-		if force_interface_check then
-			interface_check_pending = true
-		end
-		return
-	end
+local function intent_for_reason(reason)
+	return {
+		reason = reason,
+		force_check = reason ~= "routine",
+		reset_epoch = reason == "wifi_change",
+		force_sample_after_check = reason == "system_woke" or reason == "wifi_change",
+	}
+end
 
+local function merge_intents(left, right)
+	if not left then return right end
+	if not right then return left end
+	local reset_epoch = left.reset_epoch or right.reset_epoch
+	local force_sample_after_check = left.force_sample_after_check or right.force_sample_after_check
+	local reason
+	if reset_epoch then
+		reason = "wifi_change"
+	elseif force_sample_after_check then
+		reason = "system_woke"
+	elseif left.reason == "initial" or right.reason == "initial" then
+		reason = "initial"
+	else
+		reason = right.reason or left.reason
+	end
+	return {
+		reason = reason,
+		force_check = left.force_check or right.force_check,
+		reset_epoch = reset_epoch,
+		force_sample_after_check = force_sample_after_check,
+	}
+end
+
+local update_network
+
+local function launch_interface_check(intent)
 	interface_check_generation = interface_check_generation + 1
 	local generation = interface_check_generation
-	interface_check_in_flight = generation
+	interface_check_in_flight = { generation = generation, intent = intent }
 
 	local function finish(iface, kind, apply_result)
-		if interface_check_in_flight ~= generation then
+		local active = interface_check_in_flight
+		if not active or active.generation ~= generation then
 			return
 		end
-		interface_check_in_flight = false
-		local pending_force = interface_check_pending
-		interface_check_pending = false
-		if pending_force then
-			update_network(true)
+		interface_check_in_flight = nil
+		local pending = interface_check_pending
+		interface_check_pending = nil
+		if pending then
+			launch_interface_check(merge_intents(intent, pending))
 			return
 		end
 
 		local retry_interval = apply_result and iface and INTERFACE_REFRESH_INTERVAL or OFFLINE_RETRY_INTERVAL
 		next_interface_check_at = os.time() + retry_interval
-		if apply_result then
-			net_iface = iface
-			set_network_icon(kind)
-			if iface then
-				unavailable = false
-			end
-		end
-		sample_network()
 		if not apply_result then
+			if intent.force_sample_after_check then
+				retained_detection_intent = merge_intents(retained_detection_intent, intent)
+			else
+				sample_network(false)
+			end
+			initial_ready()
+			return
+		end
+
+		local interface_changed = iface ~= net_iface
+		if interface_changed then
+			reset_sample_epoch()
+			net_iface = iface
+		elseif not iface then
+			show_unavailable()
+		end
+		set_network_icon(kind)
+		if iface then
+			retained_detection_intent = nil
+			sample_network(intent.force_sample_after_check or interface_changed)
+		else
+			if intent.force_sample_after_check then
+				retained_detection_intent = merge_intents(retained_detection_intent, intent)
+			end
 			initial_ready()
 		end
 	end
@@ -270,20 +386,53 @@ local function update_network(force_interface_check)
 		finish(nil, nil, false)
 	end)
 
-	detect_network(function(iface, kind)
-		finish(iface, kind, true)
+	detect_network(function(iface, kind, apply_result)
+		finish(iface, kind, apply_result)
 	end)
 end
 
+update_network = function(reason)
+	local intent = intent_for_reason(reason)
+	if intent.reset_epoch then
+		reset_sample_epoch()
+		next_interface_check_at = nil
+	elseif reason == "system_woke" then
+		invalidate_sample_generation()
+	end
+
+	if interface_check_in_flight then
+		if intent.force_check then
+			interface_check_pending = merge_intents(interface_check_pending, intent)
+		end
+		return
+	end
+
+	local now = os.time()
+	local needs_interface_check = intent.force_check
+		or not next_interface_check_at
+		or now >= next_interface_check_at
+	if needs_interface_check then
+		intent = merge_intents(retained_detection_intent, intent)
+		retained_detection_intent = nil
+		launch_interface_check(intent)
+	elseif not retained_detection_intent or not retained_detection_intent.force_sample_after_check then
+		sample_network(false)
+	end
+end
+
 down:subscribe("routine", function()
-	update_network(false)
+	update_network("routine")
 end)
 
-down:subscribe({ "wifi_change", "system_woke" }, function()
-	update_network(true)
+down:subscribe("wifi_change", function()
+	update_network("wifi_change")
 end)
 
-update_network(true)
+down:subscribe("system_woke", function()
+	update_network("system_woke")
+end)
+
+update_network("initial")
 
 -- ========== system bracket（clash_tun + network_up/down）==========
 -- clash_tun、network 子项及子 bracket 创建时均不绘制背景。
