@@ -111,7 +111,7 @@ local function update_label(info, animated)
 end
 
 local function info_from_env(env)
-	if not env or (env.TITLE == nil and env.ARTIST == nil and env.ALBUM == nil and env.PLAYING == nil) then
+	if not env or env.TITLE == nil or env.ARTIST == nil or env.ALBUM == nil or env.PLAYING == nil then
 		return nil
 	end
 	return {
@@ -158,11 +158,14 @@ local function refresh(env)
 	fallback_refresh_generation = fallback_refresh_generation + 1
 	local info = info_from_env(env)
 	if info then
+		media_query_generation = media_query_generation + 1
 		apply_state(info, true)
+		initial_ready()
 		return
 	end
 	query_media(function(info)
 		apply_state(info, true)
+		initial_ready()
 	end)
 end
 
