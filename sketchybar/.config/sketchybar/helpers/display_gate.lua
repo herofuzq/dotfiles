@@ -25,6 +25,7 @@ local POST_SLEEP_VERIFY_SECONDS = 12
 
 local gate_state = "idle"
 local gate_generation = 0
+local gate_session_id = 0
 local gate_token = nil
 local gate_probes_since_event = 0
 local gate_last_valid_key = nil
@@ -151,6 +152,15 @@ gate_enter_settling = function()
 	end
 	if gate_state ~= "settling" then
 		gate_session_started = os.time()
+		gate_session_id = gate_session_id + 1
+		local session_id = gate_session_id
+		sbar.delay(SETTLE_ABSOLUTE_MAX_SECONDS, function()
+			if gate_state ~= "settling" or gate_session_id ~= session_id then
+				return
+			end
+			gate_generation = gate_generation + 1
+			gate_reveal({ height_changed = false, monitor_changed = false, monitor_valid = true })
+		end)
 	end
 	gate_state = "settling"
 	gate_generation = gate_generation + 1
