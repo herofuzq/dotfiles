@@ -77,12 +77,6 @@ local function fade_color(color, progress)
 	return appearance.with_alpha(color, target_alpha * progress)
 end
 
-local function copy_table(value)
-	local copy = {}
-	for key, entry in pairs(value) do copy[key] = entry end
-	return copy
-end
-
 local function update_live_target(name, props)
 	if not _name_set[name] or type(props) ~= "table" then return nil end
 	local entry = _live_by_name[name]

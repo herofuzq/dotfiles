@@ -49,9 +49,6 @@ gate.configure({
 	close_popups = function()
 		calls.close_popups = calls.close_popups + 1
 	end,
-	on_transition_begin = function()
-		sbar.trigger("display_transition_begin")
-	end,
 	on_topology_change = function()
 		sbar.trigger("display_topology_change")
 	end,
@@ -153,9 +150,6 @@ local function fresh_gate()
 		end,
 		close_popups = function()
 			calls.close_popups = calls.close_popups + 1
-		end,
-		on_transition_begin = function()
-			sbar.trigger("display_transition_begin")
 		end,
 		on_topology_change = function()
 			sbar.trigger("display_topology_change")
