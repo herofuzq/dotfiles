@@ -8,8 +8,7 @@ local M = {}
 local handlers = {}
 
 local SETTLE_PROBE_INTERVAL = 0.2
-local SETTLE_QUIET_PROBES = 4
-local SETTLE_MAX_SECONDS = 3.5
+local SETTLE_QUIET_SECONDS = 0.8
 local SLEEP_FAILSAFE_SECONDS = 75
 local SETTLE_ABSOLUTE_MAX_SECONDS = 10
 local GATE_HOLD_TIMEOUT_SECONDS = 12
@@ -28,10 +27,6 @@ local gate_state = "idle"
 local gate_generation = 0
 local gate_session_id = 0
 local gate_token = nil
-local gate_probes_since_event = 0
-local gate_last_valid_key = nil
-local gate_settling_started = 0
-local gate_session_started = 0
 local gate_revealed_at = 0
 local gate_had_wake = false
 local gate_failsafe_armed = false
@@ -48,10 +43,13 @@ local gate_quiet_max_generation = 0
 local gate_settle_request_id = 0
 local gate_settle_active_request = nil
 local gate_settle_pending_request = nil
+local gate_settle_quiet_generation = 0
+local gate_settle_stable_key = nil
 
-local gate_probe
 local gate_issue_settling_probe
 local gate_drain_settling_probe
+local gate_queue_settling_probe
+local gate_schedule_settling_retry
 local gate_reveal
 local gate_enter_settling
 local gate_schedule_fast_release
@@ -100,6 +98,7 @@ local function settling_request_is_current(request)
 	return gate_state == "settling"
 		and request.session_id == gate_session_id
 		and request.generation == gate_generation
+		and request.quiet_generation == gate_settle_quiet_generation
 end
 
 gate_reveal = function(snapshot)
@@ -159,38 +158,47 @@ gate_issue_settling_probe = function(request)
 			return
 		end
 
-		gate_probes_since_event = gate_probes_since_event + 1
-		local timed_out = (os.time() - gate_settling_started) >= SETTLE_MAX_SECONDS
-			or (os.time() - gate_session_started) >= SETTLE_ABSOLUTE_MAX_SECONDS
-		if snapshot.monitor_valid and not timed_out then
+		if snapshot.monitor_valid then
 			local valid_key = tostring(snapshot.height) .. "|" .. snapshot.monitor_signature
 				.. "|" .. tostring(snapshot.topology_signature)
-			local stable = gate_last_valid_key == valid_key
-			gate_last_valid_key = valid_key
-			if not stable or gate_probes_since_event < SETTLE_QUIET_PROBES then
-				gate_probe(request.generation)
+			if gate_settle_stable_key == valid_key then
+				gate_reveal(snapshot)
 				return
 			end
-		elseif not timed_out then
-			gate_probe(request.generation)
-			return
+			gate_settle_stable_key = valid_key
+		else
+			gate_settle_stable_key = nil
 		end
-		gate_reveal(snapshot)
+		gate_schedule_settling_retry(request)
 	end)
 end
 
-gate_probe = function(gen)
-	local session_id = gate_session_id
+gate_queue_settling_probe = function(session_id, generation, quiet_generation)
+	local request = {
+		session_id = session_id,
+		generation = generation,
+		quiet_generation = quiet_generation,
+	}
+	if not settling_request_is_current(request) then
+		return
+	end
+	if gate_settle_active_request then
+		gate_settle_pending_request = request
+		return
+	end
+	gate_issue_settling_probe(request)
+end
+
+gate_schedule_settling_retry = function(request)
 	sbar.delay(SETTLE_PROBE_INTERVAL, function()
-		if session_id ~= gate_session_id or gen ~= gate_generation or gate_state ~= "settling" then
+		if not settling_request_is_current(request) then
 			return
 		end
-		local request = { session_id = session_id, generation = gen }
-		if gate_settle_active_request then
-			gate_settle_pending_request = request
-			return
-		end
-		gate_issue_settling_probe(request)
+		gate_queue_settling_probe(
+			request.session_id,
+			request.generation,
+			request.quiet_generation
+		)
 	end)
 end
 
@@ -199,7 +207,6 @@ gate_enter_settling = function()
 		return
 	end
 	if gate_state ~= "settling" then
-		gate_session_started = os.time()
 		gate_session_id = gate_session_id + 1
 		local session_id = gate_session_id
 		sbar.delay(SETTLE_ABSOLUTE_MAX_SECONDS, function()
@@ -207,6 +214,8 @@ gate_enter_settling = function()
 				return
 			end
 			invalidate_settling_probe_ownership()
+			gate_settle_quiet_generation = gate_settle_quiet_generation + 1
+			gate_settle_stable_key = nil
 			gate_generation = gate_generation + 1
 			gate_reveal({ height_changed = false, monitor_changed = false, monitor_valid = true })
 		end)
@@ -214,10 +223,15 @@ gate_enter_settling = function()
 	gate_state = "settling"
 	gate_generation = gate_generation + 1
 	gate_token = enter_animation.hold({ hidden = true, timeout = GATE_HOLD_TIMEOUT_SECONDS })
-	gate_probes_since_event = 0
-	gate_last_valid_key = nil
-	gate_settling_started = os.time()
-	gate_probe(gate_generation)
+	gate_settle_pending_request = nil
+	gate_settle_stable_key = nil
+	gate_settle_quiet_generation = gate_settle_quiet_generation + 1
+	local session_id = gate_session_id
+	local generation = gate_generation
+	local quiet_generation = gate_settle_quiet_generation
+	sbar.delay(SETTLE_QUIET_SECONDS, function()
+		gate_queue_settling_probe(session_id, generation, quiet_generation)
+	end)
 end
 
 gate_schedule_fast_release = function()
@@ -413,6 +427,8 @@ gate_on_will_sleep = function(from_system_sleep)
 	gate_state = "sleep_hidden"
 	gate_generation = gate_generation + 1
 	invalidate_settling_probe_ownership()
+	gate_settle_quiet_generation = gate_settle_quiet_generation + 1
+	gate_settle_stable_key = nil
 	gate_fast_release_generation = gate_fast_release_generation + 1
 	gate_fast_release_scheduled = false
 	gate_failsafe_armed = false

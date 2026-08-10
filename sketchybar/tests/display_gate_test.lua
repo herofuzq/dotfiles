@@ -197,8 +197,17 @@ local function start_settling(fresh)
 		topology_signature = "topology-a",
 	})
 	return assert(last_delay(10), "new settling session must arm a 10s watchdog"),
-		assert(last_delay(0.2), "settling session must schedule a probe")
+		assert(last_delay(0.8), "settling session must arm a 0.8s quiet timer")
 end
+
+local stable_snapshot = {
+	height = 30,
+	height_changed = false,
+	monitor_changed = false,
+	monitor_valid = true,
+	monitor_signature = "display-a",
+	topology_signature = "topology-a",
+}
 
 local function start_fast_verify(fresh)
 	fresh.on_will_sleep()
@@ -211,19 +220,93 @@ local function start_fast_verify(fresh)
 	return verify_probe, verify_timeout
 end
 
--- renew 期间已有 settling probe 在途时，只保留最新 pending；旧 generation
--- 回调须先释放自己的 owner、丢弃 payload，再立即排空当前 pending。
+-- 进入 settling 后先等待完整 0.8s 安静窗口，不得继承旧的即时 probe。
 do
 	local fresh = fresh_gate()
-	local _, old_probe_delay = start_settling(fresh)
-	old_probe_delay.callback()
-	local old_probe = assert(calls.probe[#calls.probe], "settling delay must invoke the old probe")
+	local _, quiet = start_settling(fresh)
+	assert(#calls.probe == 1, "settling must not probe before the 0.8s quiet timer")
+	quiet.callback()
+	assert(#calls.probe == 2, "latest 0.8s quiet timer must launch the first settling probe")
+end
+
+-- renew 重置安静窗口但不新建或推迟 10s watchdog；旧 quiet 失效。
+do
+	local fresh = fresh_gate()
+	local watchdog, old_quiet = start_settling(fresh)
+	assert(count_delays(10) == 1 and count_delays(0.8) == 1,
+		"new session must arm one watchdog and one quiet timer")
+	fresh.on_display_event("display_change")
+	local current_quiet = assert(last_delay(0.8), "renew must arm a new quiet timer")
+	assert(count_delays(10) == 1 and count_delays(0.8) == 2,
+		"renew must reset quiet time without arming another watchdog")
+	old_quiet.callback()
+	assert(#calls.probe == 1, "superseded quiet timer must not launch a probe")
+	current_quiet.callback()
+	assert(#calls.probe == 2, "latest quiet timer must launch the settling probe")
+	watchdog.callback()
+	assert(#calls.release == 1 and calls.release[1].token == 2,
+		"original watchdog must release the token current after renew")
+end
+
+-- 两个连续、有效且相同的 post-quiet snapshot 才能 reveal。
+do
+	local fresh = fresh_gate()
+	local _, quiet = start_settling(fresh)
+	quiet.callback()
+	local first_probe = assert(calls.probe[2], "quiet timer must launch the first comparison")
+	first_probe(stable_snapshot)
+	assert(#calls.release == 0, "one valid post-quiet snapshot must not reveal")
+	local retry = assert(last_delay(0.2), "first valid snapshot must schedule a serialized retry")
+	retry.callback()
+	local second_probe = assert(calls.probe[3], "retry must launch the second comparison")
+	second_probe(stable_snapshot)
+	assert(#calls.release == 1, "two identical valid post-quiet snapshots must reveal")
+end
+
+-- invalid 会打断连续性，mismatch 只更新候选 key；两者都串行 0.2s 重试。
+do
+	local fresh = fresh_gate()
+	local _, quiet = start_settling(fresh)
+	quiet.callback()
+	local first_probe = assert(calls.probe[2], "quiet timer must launch the first comparison")
+	first_probe({ height_changed = false, monitor_changed = false, monitor_valid = false })
+	assert(#calls.release == 0 and #calls.probe == 2,
+		"invalid snapshot must not reveal or launch a parallel probe")
+	assert(last_delay(0.2), "invalid snapshot must schedule a retry").callback()
+	local valid_a = assert(calls.probe[3], "invalid retry must launch one probe")
+	valid_a(stable_snapshot)
+	assert(#calls.release == 0 and #calls.probe == 3,
+		"first valid snapshot after invalid must start a new pair")
+	assert(last_delay(0.2), "first valid snapshot must retry serially").callback()
+	local mismatch_snapshot = {
+		height = 30,
+		height_changed = false,
+		monitor_changed = false,
+		monitor_valid = true,
+		monitor_signature = "display-b",
+		topology_signature = "topology-b",
+	}
+	local valid_b_first = assert(calls.probe[4], "valid retry must launch one probe")
+	valid_b_first(mismatch_snapshot)
+	assert(#calls.release == 0 and #calls.probe == 4,
+		"mismatched valid snapshot must not reveal or launch a parallel probe")
+	assert(last_delay(0.2), "mismatched snapshot must schedule a retry").callback()
+	local valid_b_second = assert(calls.probe[5], "mismatch retry must launch one probe")
+	valid_b_second(mismatch_snapshot)
+	assert(#calls.release == 1, "a consecutive identical pair after mismatch must reveal")
+end
+
+-- renew 期间已有 settling probe 在途时，旧回调须先释放自己的 owner
+-- 并丢弃 payload；若它早于新 quiet 到达，绝不能启动下一个 probe。
+do
+	local fresh = fresh_gate()
+	local _, old_quiet = start_settling(fresh)
+	old_quiet.callback()
+	local old_probe = assert(calls.probe[#calls.probe], "quiet timer must invoke the old probe")
 	local probes_before_renew = #calls.probe
 
 	fresh.on_display_event("display_change")
-	assert(last_delay(0.2), "renew must schedule the latest settling request").callback()
-	assert(#calls.probe == probes_before_renew,
-		"renew while active must retain one pending request instead of issuing a second probe")
+	local new_quiet = assert(last_delay(0.8), "renew must schedule the latest quiet timer")
 
 	old_probe({
 		height = 99,
@@ -233,28 +316,32 @@ do
 		monitor_signature = "stale-display",
 		topology_signature = "stale-topology",
 	})
-	assert(#calls.probe == probes_before_renew + 1,
-		"same-session old-generation callback must drain the eligible current pending request")
+	assert(#calls.probe == probes_before_renew,
+		"old callback before renewed quiet must not launch another probe")
 	assert(#calls.apply == 0 and #calls.release == 0,
 		"same-session old-generation callback must discard its stale payload")
+	new_quiet.callback()
+	assert(#calls.probe == probes_before_renew + 1,
+		"renewed quiet timer may launch the next probe after the old owner clears")
 end
 
--- 已排空 pending 并产生新 owner 后，旧 request 的重复回调不能清掉新 owner。
+-- quiet 到期时旧 owner 仍在途，只保留一个当前 pending；旧 request
+-- 的重复回调不能清掉新 owner。
 do
 	local fresh = fresh_gate()
-	local _, first_probe_delay = start_settling(fresh)
-	first_probe_delay.callback()
+	local _, first_quiet = start_settling(fresh)
+	first_quiet.callback()
 	local first_probe = assert(calls.probe[#calls.probe], "first settling probe must be active")
 
 	fresh.on_display_event("display_change")
-	assert(last_delay(0.2), "first renew must schedule pending work").callback()
+	assert(last_delay(0.8), "first renew must schedule a quiet timer").callback()
 	first_probe({ height_changed = false, monitor_changed = false, monitor_valid = false })
 	local second_probe = assert(calls.probe[#calls.probe], "old callback must drain the second probe")
 	local probes_with_second_active = #calls.probe
 
 	first_probe({ height_changed = false, monitor_changed = false, monitor_valid = false })
 	fresh.on_display_event("display_change")
-	assert(last_delay(0.2), "second renew must schedule pending work").callback()
+	assert(last_delay(0.8), "second renew must schedule a quiet timer").callback()
 	assert(#calls.probe == probes_with_second_active,
 		"mismatched stale request must not clear the newer active owner")
 
@@ -326,9 +413,9 @@ end
 -- 永久丢失 settling probe 回调时，绝对 watchdog 仍会在 10s 释放当前 token。
 do
 	local fresh = fresh_gate()
-	local watchdog, settling_probe = start_settling(fresh)
-	settling_probe.callback()
-	assert(#calls.probe == 2, "settling delay must invoke the probe handler")
+	local watchdog, quiet = start_settling(fresh)
+	quiet.callback()
+	assert(#calls.probe == 2, "quiet timer must invoke the probe handler")
 	local lost_probe = calls.probe[2]
 	watchdog.callback()
 	assert(#calls.release == 1 and calls.release[1].token == 1,
@@ -338,29 +425,38 @@ do
 	assert(#calls.release == 1, "watchdog must invalidate the lost settling request")
 end
 
--- renew 只续探测 generation，不得新建或推迟当前会话的绝对 watchdog。
+-- 持续 invalid snapshot 不再有3.5s 等旧绝对释放；只有 10s watchdog 能终止。
 do
 	local fresh = fresh_gate()
-	local watchdog = start_settling(fresh)
-	assert(count_delays(10) == 1, "new session must arm exactly one watchdog")
-	fresh.on_display_event("display_change")
-	assert(count_delays(10) == 1, "renew must not arm another watchdog")
+	local watchdog, quiet = start_settling(fresh)
+	quiet.callback()
+	local invalid_probe = assert(calls.probe[2], "quiet timer must launch a comparison")
+	now = 109
+	invalid_probe({ height_changed = false, monitor_changed = false, monitor_valid = false })
+	assert(#calls.release == 0, "invalid snapshot before 10s watchdog must stay gated")
+	local retry = assert(last_delay(0.2), "invalid snapshot must keep retrying")
+	retry.callback()
+	assert(#calls.probe == 3 and #calls.release == 0,
+		"serialized retry must continue without an absolute probe timeout")
 	watchdog.callback()
-	assert(#calls.release == 1 and calls.release[1].token == 2,
-		"original watchdog must release the token current after renew")
+	assert(#calls.release == 1 and calls.release[1].token == 1,
+		"10s watchdog must be the sole absolute release")
 end
 
 -- 已正常结束的旧会话 watchdog 不能释放随后建立的新会话。
 do
+	now = 100
 	local fresh = fresh_gate()
-	local old_watchdog, old_probe_delay = start_settling(fresh)
-	now = 104
-	old_probe_delay.callback()
-	local old_probe = assert(calls.probe[#calls.probe], "settling delay must invoke the probe handler")
-	old_probe({ height_changed = false, monitor_changed = false, monitor_valid = false })
-	assert(#calls.release == 1, "legacy probe timeout must end the old session")
+	local old_watchdog, old_quiet = start_settling(fresh)
+	old_quiet.callback()
+	local first_probe = assert(calls.probe[#calls.probe], "quiet timer must launch the first comparison")
+	first_probe(stable_snapshot)
+	assert(last_delay(0.2), "first valid snapshot must schedule a retry").callback()
+	local second_probe = assert(calls.probe[#calls.probe], "retry must launch the second comparison")
+	second_probe(stable_snapshot)
+	assert(#calls.release == 1, "stable pair must end the old session")
 
-	now = 108
+	now = 104
 	local current_watchdog = start_settling(fresh)
 	old_watchdog.callback()
 	assert(#calls.release == 1, "old session watchdog must not release a newer session")
@@ -373,21 +469,13 @@ end
 do
 	now = 200
 	local fresh = fresh_gate()
-	local old_watchdog = start_settling(fresh)
-	local stable_snapshot = {
-		height = 30,
-		height_changed = false,
-		monitor_changed = false,
-		monitor_valid = true,
-		monitor_signature = "display-a",
-		topology_signature = "topology-a",
-	}
-	for _ = 1, 4 do
-		local probe_delay = assert(last_delay(0.2), "stable settling session must keep probing")
-		probe_delay.callback()
-		local probe_callback = assert(calls.probe[#calls.probe], "probe delay must invoke the probe handler")
-		probe_callback(stable_snapshot)
-	end
+	local old_watchdog, quiet = start_settling(fresh)
+	quiet.callback()
+	local first_probe = assert(calls.probe[#calls.probe], "quiet timer must launch the first comparison")
+	first_probe(stable_snapshot)
+	assert(last_delay(0.2), "first valid snapshot must schedule a retry").callback()
+	local second_probe = assert(calls.probe[#calls.probe], "retry must launch the second comparison")
+	second_probe(stable_snapshot)
 	assert(#calls.release == 1, "stable probes must reveal the first session")
 
 	fresh.on_will_sleep()
