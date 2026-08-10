@@ -90,7 +90,11 @@ local function detect_network(callback)
 		"printf '\\n---NWI---\\n'",
 		"scutil --nwi 2>/dev/null",
 	}, "; ")
-	sbar.exec(command, function(output)
+	sbar.exec(command, function(output, exit_code)
+		if tonumber(exit_code) ~= 0 then
+			callback(nil, "offline")
+			return
+		end
 		output = output or ""
 		local route_output, services_output, nwi_output = output:match("^(.-)\n%-%-%-SERVICES%-%-%-\n(.-)\n%-%-%-NWI%-%-%-\n(.*)$")
 		route_output, services_output, nwi_output = route_output or "", services_output or "", nwi_output or ""
@@ -130,7 +134,7 @@ local function icon_color(kind)
 	return colors.identity.network
 end
 
-local net_iface, current_network_kind, last_interface_check
+local net_iface, current_network_kind, next_interface_check_at
 local last_up_str, last_down_str
 local consecutive_failures = 0
 local unavailable = false
@@ -217,10 +221,9 @@ end
 
 local function update_network(force_interface_check)
 	local now = os.time()
-	local interface_refresh_interval = net_iface and INTERFACE_REFRESH_INTERVAL or OFFLINE_RETRY_INTERVAL
 	local needs_interface_check = force_interface_check
-		or not last_interface_check
-		or now - last_interface_check >= interface_refresh_interval
+		or not next_interface_check_at
+		or now >= next_interface_check_at
 	if not needs_interface_check then
 		sample_network()
 		return
@@ -232,41 +235,43 @@ local function update_network(force_interface_check)
 		return
 	end
 
-	interface_check_in_flight = true
 	interface_check_generation = interface_check_generation + 1
 	local generation = interface_check_generation
-	last_interface_check = now
+	interface_check_in_flight = generation
 
-	sbar.delay(5, function()
-		if not interface_check_in_flight or interface_check_generation ~= generation then
+	local function finish(iface, kind, apply_result)
+		if interface_check_in_flight ~= generation then
 			return
 		end
-		last_interface_check = os.time()
 		interface_check_in_flight = false
-		if interface_check_pending then
-			interface_check_pending = false
+		local pending_force = interface_check_pending
+		interface_check_pending = false
+		if pending_force then
 			update_network(true)
-		else
-			sample_network()
+			return
 		end
-		initial_ready()
+
+		local retry_interval = apply_result and iface and INTERFACE_REFRESH_INTERVAL or OFFLINE_RETRY_INTERVAL
+		next_interface_check_at = os.time() + retry_interval
+		if apply_result then
+			net_iface = iface
+			set_network_icon(kind)
+			if iface then
+				unavailable = false
+			end
+		end
+		sample_network()
+		if not apply_result then
+			initial_ready()
+		end
+	end
+
+	sbar.delay(5, function()
+		finish(nil, nil, false)
 	end)
 
 	detect_network(function(iface, kind)
-		if not interface_check_in_flight or interface_check_generation ~= generation then
-			return
-		end
-		interface_check_in_flight = false
-		net_iface = iface
-		set_network_icon(kind)
-		if iface then
-			unavailable = false
-		end
-		sample_network()
-		if interface_check_pending then
-			interface_check_pending = false
-			update_network(true)
-		end
+		finish(iface, kind, true)
 	end)
 end
 
