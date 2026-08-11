@@ -27,8 +27,6 @@ local APP_ICON_FONT = "sketchybar-app-font:Regular:14.0"
 local EMPTY_APP_FONT = appearance.font_label_bold()
 local REFRESH_TIMEOUT = 3.0
 local WINDOW_REFRESH_DELAY_DEFAULT = 0.30
-local WINDOW_REFRESH_DELAY_CREATED = 0.30
-local WINDOW_REFRESH_DELAY_DESTROYED = 0.05
 
 local shell_quote = require("helpers.utils").shell_quote
 
@@ -1020,14 +1018,7 @@ sbar.delay(0, function()
 	--   1. SketchyBar 原生事件：窗口创建/销毁后触发，负责关闭窗口的实时刷新；
 	--   2. aerospace_watch 自定义 trigger：AeroSpace 检测到新窗口后补一发 created。
 	root:subscribe("space_windows_change", function(env)
-		local event = env and env.WINDOW_EVENT
-		local delay = WINDOW_REFRESH_DELAY_DEFAULT
-		if event == "created" then
-			delay = WINDOW_REFRESH_DELAY_CREATED
-		elseif event == "destroyed" or event == "terminated" then
-			delay = WINDOW_REFRESH_DELAY_DESTROYED
-		end
-		scheduleUpdateWindows(delay)
+		scheduleUpdateWindows(WINDOW_REFRESH_DELAY_DEFAULT)
 	end)
 
 	-- fullscreen 变化由 aerospace_watch 在 focus/workspace 等事件后 diff，触发 aerospace_fullscreen_change。

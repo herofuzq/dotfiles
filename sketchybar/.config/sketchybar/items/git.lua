@@ -49,8 +49,11 @@ local function pf()
 end
 
 local repo_rows = {}
+local repo_specs = {}
+local repo_spec_by_path = {}
 
 for ri, repo in ipairs(config.repos or {}) do
+	local label = repo.label or repo.path
 	local item = sbar.add("item", item_name .. ".popup.repo." .. ri, {
 		position = "popup." .. item_name,
 		-- Keep the pre-created rows drawable so the first click has popup geometry
@@ -60,7 +63,7 @@ for ri, repo in ipairs(config.repos or {}) do
 		padding_left = 0, padding_right = 0,
 		icon = { drawing = false },
 		label = {
-			string = icons.git .. " " .. (repo.label or repo.path),
+			string = icons.git .. " " .. label,
 			font = pf(),
 			color = colors.text,
 			padding_left = 8, padding_right = 14,
@@ -68,11 +71,14 @@ for ri, repo in ipairs(config.repos or {}) do
 		background = { drawing = false, height = 18, border_width = 0 },
 	})
 	repo_rows[repo.path] = item
+	local spec = { path = repo.path, label = label, row = item }
+	repo_specs[#repo_specs + 1] = spec
+	repo_spec_by_path[repo.path] = spec
 end
 
 local max_label_len = 0
-for _, repo in ipairs(config.repos or {}) do
-	local l = vlen(repo.label or repo.path)
+for _, repo in ipairs(repo_specs) do
+	local l = vlen(repo.label)
 	if l > max_label_len then max_label_len = l end
 end
 
@@ -112,41 +118,8 @@ local function render_popup(state)
 	end
 end
 
-local function apply_status(output, force_main)
-	local total_dirty = 0
-	local entries, max_branch_len, max_info_len = {}, 0, 0
-
-	for line in tostring(output or ""):gmatch("[^\n]+") do
-		local f = spl(line)
-		if f[1] == "repo" then
-			local path, label, branch, status, dirty, ahead, behind = f[2], f[3], f[4], f[5], f[6], f[7], f[8]
-			local row = repo_rows[path]
-			if row then
-				local info
-
-				if status == "ok" then
-					info = "clean"
-				elseif status == "dirty" then
-					info = dirty .. " dirty"
-					total_dirty = total_dirty + (tonumber(dirty) or 0)
-				elseif status == "error" then
-					info = "unavailable"
-				else
-					info = "missing"
-				end
-
-				local a = tonumber(ahead)
-				if a and a > 0 then info = info .. "  ↑" .. ahead end
-				local b = tonumber(behind)
-				if b and b > 0 then info = info .. "  ↓" .. behind end
-
-				entries[#entries + 1] = { row = row, label = label, branch = branch, status = status, info = info, path = path }
-				if vlen(branch) > max_branch_len then max_branch_len = vlen(branch) end
-				if vlen(info) > max_info_len then max_info_len = vlen(info) end
-			end
-		end
-	end
-
+local function apply_status(state, force_main)
+	local total_dirty = state.total_dirty
 	local bar_color = total_dirty > 0 and colors.count or colors.pill_fg -- 计数统一色；干净时普通色
 	local icon_color = total_dirty > 0 and colors.status.ok or colors.text -- 图标：有计数绿，无计数普通色
 	last_total_dirty = total_dirty
@@ -158,14 +131,97 @@ local function apply_status(output, force_main)
 			label = { string = tostring(total_dirty), color = bar_color },
 		})
 	end
-	last_popup_state = {
-		entries = entries,
-		max_branch_len = max_branch_len,
-		max_info_len = max_info_len,
-	}
+	last_popup_state = state
 	if popup_visible then
 		render_popup(last_popup_state)
 	end
+end
+
+local function is_uint(value)
+	return type(value) == "string" and value:match("^%d+$") ~= nil
+end
+
+local function make_state(entries, total_dirty)
+	local max_branch_len, max_info_len = 0, 0
+	for _, entry in ipairs(entries) do
+		if vlen(entry.branch) > max_branch_len then max_branch_len = vlen(entry.branch) end
+		if vlen(entry.info) > max_info_len then max_info_len = vlen(entry.info) end
+	end
+	return {
+		entries = entries,
+		max_branch_len = max_branch_len,
+		max_info_len = max_info_len,
+		total_dirty = total_dirty,
+	}
+end
+
+local function unavailable_state()
+	local entries = {}
+	for _, spec in ipairs(repo_specs) do
+		entries[#entries + 1] = {
+			row = spec.row,
+			label = spec.label,
+			branch = "-",
+			status = "error",
+			info = "unavailable",
+			path = spec.path,
+		}
+	end
+	return make_state(entries, 0)
+end
+
+local function parse_snapshot(output)
+	local entries, seen = {}, {}
+	local total_dirty = 0
+	local text = tostring(output or "")
+	if text:sub(-1) == "\n" then text = text:sub(1, -2) end
+	if text == "" or text:sub(1, 1) == "\n" or text:sub(-1) == "\n" or text:find("\n\n", 1, true) then return nil end
+
+	for line in (text .. "\n"):gmatch("(.-)\n") do
+		local f = spl(line)
+		if #f ~= 8 or f[1] ~= "repo" then return nil end
+
+		local path, label, branch, status, dirty, ahead, behind = f[2], f[3], f[4], f[5], f[6], f[7], f[8]
+		local spec = repo_spec_by_path[path]
+		if path == "" or not spec or seen[path] or label ~= spec.label then return nil end
+		seen[path] = true
+
+		local info
+		if status == "ok" then
+			if branch == "" or branch == "-" or dirty ~= "0" or not is_uint(ahead) or not is_uint(behind) then return nil end
+			info = "clean"
+		elseif status == "dirty" then
+			if branch == "" or branch == "-" or not is_uint(dirty) or tonumber(dirty) <= 0
+				or not is_uint(ahead) or not is_uint(behind) then return nil end
+			info = dirty .. " dirty"
+			total_dirty = total_dirty + tonumber(dirty)
+		elseif status == "error" or status == "missing" then
+			if branch ~= "-" or dirty ~= "-" or ahead ~= "-" or behind ~= "-" then return nil end
+			info = status == "error" and "unavailable" or "missing"
+		else
+			return nil
+		end
+
+		local a = tonumber(ahead)
+		if a and a > 0 then info = info .. "  ↑" .. ahead end
+		local b = tonumber(behind)
+		if b and b > 0 then info = info .. "  ↓" .. behind end
+
+		entries[#entries + 1] = {
+			row = spec.row,
+			label = spec.label,
+			branch = branch,
+			status = status,
+			info = info,
+			path = path,
+		}
+	end
+
+	if #entries ~= #repo_specs then return nil end
+	for _, spec in ipairs(repo_specs) do
+		if not seen[spec.path] then return nil end
+	end
+	return make_state(entries, total_dirty)
 end
 
 local inflight = false
@@ -180,19 +236,19 @@ local function refresh()
 	refresh_generation = refresh_generation + 1
 	local generation = refresh_generation
 	local settled = false
-	local function finish(output)
+	local function finish(output, exit_code)
 		if settled or generation ~= refresh_generation then return end
 		settled = true
 		inflight = false
-		if output ~= nil then
-			local force_main = first_status
-			first_status = false
-			startup.after_reveal("git.status", function() apply_status(output, force_main) end)
-		end
+		local state = tonumber(exit_code) == 0 and parse_snapshot(output) or nil
+		if not state then state = unavailable_state() end
+		local force_main = first_status
+		first_status = false
+		startup.after_reveal("git.status", function() apply_status(state, force_main) end)
 		initial_ready()
 		if pending then pending = false; refresh() end
 	end
-	sbar.delay(REFRESH_TIMEOUT, function() finish(nil) end)
+	sbar.delay(REFRESH_TIMEOUT, function() finish(nil, nil) end)
 	sbar.exec(shell_quote(lua_bin) .. " " .. shell_quote(status_script), finish)
 end
 

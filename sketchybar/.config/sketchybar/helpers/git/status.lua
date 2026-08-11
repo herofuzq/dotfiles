@@ -32,58 +32,45 @@ for _, repo in ipairs(config.repos or {}) do
 	local path = repo.path
 	local label = repo.label or path
 
-	local probe_cmd = shell_quote(git) .. " -C " .. shell_quote(path) .. " rev-parse --is-inside-work-tree 2>/dev/null"
-	local probe = io.popen(probe_cmd)
-	local is_repo = false
-	if probe then
-		is_repo = (probe:read("*a") or ""):match("^%s*true%s*$") ~= nil
-		probe:close()
-	end
-
-	if not is_repo then
-		emit("repo", path, label, "-", "missing", "-", "-", "-")
+	local cmd = shell_quote(git) .. " -C " .. shell_quote(path) .. " status --porcelain=v1 -b 2>/dev/null"
+	local h = io.popen(cmd)
+	if not h then
+		emit("repo", path, label, "-", "error", "-", "-", "-")
 	else
-		local cmd = shell_quote(git) .. " -C " .. shell_quote(path) .. " status --porcelain -b 2>/dev/null"
-		local h = io.popen(cmd)
-		if not h then
+		local output = h:read("*a") or ""
+		local ok = h:close()
+		if not ok then
 			emit("repo", path, label, "-", "error", "-", "-", "-")
 		else
-			local branch = "-"
+			local branch
 			local ahead = "0"
 			local behind = "0"
 			local dirty_count = 0
 			local first = true
 
-			for line in h:lines() do
+			for line in (output .. "\n"):gmatch("(.-)\n") do
 				if first then
 					first = false
 					local rest = line:match("^## (.+)$")
 					if rest then
-						-- 跟踪分支形如 "main...origin/main [ahead 1, behind 2]"
-						-- 取 "..." 前一段为本地分支名；无远程时取第一个非空白/非 [ 词。
-						branch = rest:match("^(.-)%.%.%.") or rest:match("^([^%s%[]+)") or rest
+						branch = rest:match("^No commits yet on (.+)$")
+							or rest:match("^Initial commit on (.+)$")
+							or rest:match("^(.-)%.%.%.")
+							or rest:match("^([^%s%[]+)")
 						-- 宽松匹配：同时有 ahead/behind 时也能解析
 						ahead = rest:match("ahead (%d+)") or "0"
 						behind = rest:match("behind (%d+)") or "0"
 					end
-				else
+				elseif line ~= "" then
 					dirty_count = dirty_count + 1
 				end
 			end
 
-			local ok = h:close()
-			local status_keyword
-			if ok and not first then
-				status_keyword = dirty_count > 0 and "dirty" or "ok"
+			if branch then
+				emit("repo", path, label, branch, dirty_count > 0 and "dirty" or "ok", dirty_count, ahead, behind)
 			else
-				status_keyword = "error"
-				branch = "-"
-				ahead = "-"
-				behind = "-"
-				dirty_count = "-"
+				emit("repo", path, label, "-", "error", "-", "-", "-")
 			end
-
-			emit("repo", path, label, branch, status_keyword, dirty_count, ahead, behind)
 		end
 	end
 end
