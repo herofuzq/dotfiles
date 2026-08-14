@@ -46,11 +46,14 @@ startup.configure(function()
 end)
 
 -- 首屏查询并行完成（最长等 1 秒）后，以真实内容作为目标统一渐入。
+-- 锁屏门控：若此刻屏幕仍锁定则延迟到解锁后再执行渐入，避免锁屏上露出 bar。
 startup.when_ready(function()
-	enter_animation.prepare()
-	enter_animation.conceal()
-	startup.reveal()
-	enter_animation.run()
+	startup.reveal_on_unlock(function()
+		enter_animation.prepare()
+		enter_animation.conceal()
+		startup.reveal()
+		enter_animation.run()
+	end)
 end)
 
 -- ========== 开机自愈：登录初期显示器重构风暴下的原生窗口不可见 ==========

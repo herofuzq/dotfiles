@@ -160,4 +160,48 @@ function M.reveal()
 	end)
 end
 
+-- ========== 锁屏门控的 reveal ==========
+-- reload 发生在锁屏时，无条件 reveal 会在锁屏上短暂露出 bar。
+-- 这里按屏幕锁状态决定立即 reveal 还是延迟到解锁后：
+--   - unlocked → 立即回调；
+--   - locked   → fail-closed，轮询到显式 No 才回调（unknown 也继续等）；
+--   - unknown  → 0.5s 后重试一次；两次仍 unknown 则记录日志并 fail-open。
+-- fail-closed 只轮询 IOConsoleLocked，不依赖 screen_unlocked 通知
+-- 单独必达（与 display_gate 的 fail-closed 语义一致）。
+local LOCK_RECHECK_SECONDS = 1.0
+local LOCK_UNKNOWN_RETRY_SECONDS = 0.5
+
+function M.reveal_on_unlock(callback)
+	local lock_state = require("helpers.lock_state")
+
+	local function poll()
+		local state = lock_state.detect_sync()
+		if state == "unlocked" then
+			callback()
+		else
+			sbar.delay(LOCK_RECHECK_SECONDS, poll)
+		end
+	end
+
+	local first = lock_state.detect_sync()
+	if first == "unlocked" then
+		callback()
+	elseif first == "locked" then
+		-- 已明确锁定：转入 fail-closed，不再按次数放行。
+		sbar.delay(LOCK_RECHECK_SECONDS, poll)
+	else
+		sbar.delay(LOCK_UNKNOWN_RETRY_SECONDS, function()
+			local second = lock_state.detect_sync()
+			if second == "unlocked" then
+				callback()
+			elseif second == "locked" then
+				sbar.delay(LOCK_RECHECK_SECONDS, poll)
+			else
+				io.stderr:write("sketchybar: startup lock state unknown after retry, revealing (fail-open)\n")
+				callback()
+			end
+		end)
+	end
+end
+
 return M
