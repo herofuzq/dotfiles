@@ -6,6 +6,19 @@ local settings = require("settings")
 local startup = require("helpers.startup")
 
 return function(opts)
+	-- 先校验 app_id 再注册 item：非法 bundle id 会在 sbar.add 之前返回，
+	-- 不留带 update_freq 的僵尸 item（Factory 返回 nil 时调用方拿不到句柄）。
+	local raw_id = opts.app_id or ""
+	local safe_id = raw_id:gsub("[^%w%.%-]", "")
+	if safe_id == "" then
+		io.stderr:write("sketchybar: status_widget: missing app_id\n")
+		return
+	end
+	if not safe_id:match("%.") then
+		io.stderr:write("sketchybar: status_widget: invalid bundle id format: " .. safe_id .. "\n")
+		return
+	end
+
 	local function resolve_color(key)
 		if key == nil then
 			return colors.surface1
@@ -82,16 +95,6 @@ return function(opts)
 		end)
 	end
 
-	local raw_id = opts.app_id or ""
-	local safe_id = raw_id:gsub("[^%w%.%-]", "")
-	if safe_id == "" then
-		io.stderr:write("sketchybar: status_widget: missing app_id\n")
-		return
-	end
-	if not safe_id:match("%.") then
-		io.stderr:write("sketchybar: status_widget: invalid bundle id format: " .. safe_id .. "\n")
-		return
-	end
 	local initial_ready = startup.track(opts.name .. ".status")
 
 	local function check_status()
