@@ -518,29 +518,73 @@ local function build_theme_colors(flavor)
 	return build_colors(palette[scheme[flavor]], scheme.window_border)
 end
 
--- defaults read -g AppleInterfaceStyle：stdout 首行 "Dark" = 深色；
--- 键不存在（浅色）时命令失败、stdout 为空。
-function M.parse_apple_interface_style(output)
-	return output == "Dark" and "dark" or "light"
+-- 读取并验证完整 NSGlobalDomain 后再判断 AppleInterfaceStyle：
+-- key 缺失才代表浅色；导出失败、空/坏 plist、错类型或未知值均为 unknown。
+function M.build_system_theme_probe_command(producer, style_extractor)
+	producer = producer or "/usr/bin/defaults export NSGlobalDomain - 2>/dev/null"
+	style_extractor = style_extractor
+		or "/usr/bin/plutil -extract AppleInterfaceStyle raw -expect string -o - - 2>/dev/null"
+	return table.concat({
+		"sketchybar_theme_plist=$({ " .. producer .. "; })",
+		"sketchybar_theme_source_status=$?",
+		'[ "$sketchybar_theme_source_status" -eq 0 ] || exit 20',
+		'[ -n "$sketchybar_theme_plist" ] || exit 21',
+		"/usr/bin/printf '%s' \"$sketchybar_theme_plist\" | /usr/bin/plutil -lint - >/dev/null 2>&1 || exit 22",
+		"if /usr/bin/printf '%s' \"$sketchybar_theme_plist\" | /usr/bin/plutil -insert AppleInterfaceStyle -string __SketchyBarThemeProbeMissing__ -o /dev/null - >/dev/null 2>&1; then /usr/bin/printf 'light\\n'; exit 0; fi",
+		"sketchybar_theme_style=$({ /usr/bin/printf '%s' \"$sketchybar_theme_plist\" | { " .. style_extractor .. "; } || exit 23; /usr/bin/printf '__SKETCHYBAR_THEME_PROBE_OK__'; }) || exit 23",
+		"sketchybar_theme_expected=$(/usr/bin/printf 'Dark\\n__SKETCHYBAR_THEME_PROBE_OK__')",
+		'[ "$sketchybar_theme_style" = "$sketchybar_theme_expected" ] || exit 24',
+		"/usr/bin/printf 'dark\\n'",
+	}, "\n")
 end
 
--- 启动同步检测：必须在做任何颜色决策前完成（io.popen 一次，<100ms）。
--- 失败按浅色处理（与 macOS 键不存在语义一致）。
-function M.detect_system_theme_sync()
-	local ok, style = pcall(function()
-		local f = io.popen("defaults read -g AppleInterfaceStyle 2>/dev/null")
-		local line = f and f:read("*l") or nil
-		if f then
-			f:close()
+function M.parse_system_theme_probe_result(output, exit_code)
+	if type(output) ~= "string" or tonumber(exit_code) ~= 0 then
+		return nil
+	end
+	local theme = output:match("^%s*(.-)%s*$")
+	if theme == "dark" or theme == "light" then
+		return theme
+	end
+	return nil
+end
+
+function M.apply_system_theme_probe_result(output, exit_code)
+	local theme = M.parse_system_theme_probe_result(output, exit_code)
+	if not theme then
+		return nil
+	end
+	return M.switch_theme(theme)
+end
+
+-- 启动同步检测：必须在做任何颜色决策前完成。
+-- unknown 不伪装成浅色，由调用方采用稳定的深色 fallback。
+function M.detect_system_theme_sync(command)
+	local ok, output, exit_code = pcall(function()
+		local f = io.popen(command or M.build_system_theme_probe_command())
+		if not f then
+			return nil, nil
 		end
-		return line
+		local probe_output = f:read("*a")
+		local closed, reason, code = f:close()
+		if closed then
+			return probe_output, 0
+		end
+		return probe_output, reason == "exit" and code or nil
 	end)
-	return M.parse_apple_interface_style(ok and style or nil)
+	if not ok then
+		return nil
+	end
+	return M.parse_system_theme_probe_result(output, exit_code)
+end
+
+function M.detect_initial_system_theme(command)
+	return M.detect_system_theme_sync(command) or "dark"
 end
 
 -- 配置加载即确定主题：appearance 在 begin_config 前被首次 require，
 -- 浅色系统 reload 不会先显示深色 flavor 再切浅色。
-M.active = M.detect_system_theme_sync()
+M.active = M.detect_initial_system_theme()
 M.colors = build_theme_colors(M.active)
 -- 导出供测试与主题切换使用
 M.palette = palette

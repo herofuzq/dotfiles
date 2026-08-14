@@ -290,15 +290,90 @@ assert(appearance.switch_scheme(start_scheme) == true)
 assert(appearance.scheme == start_scheme)
 assert(probe_calls == calls_before_scheme_switch + 2)
 
--- ========== 阶段三：系统外观检测解析 ==========
-assert(appearance.parse_apple_interface_style("Dark") == "dark")
-assert(appearance.parse_apple_interface_style("") == "light") -- 键不存在（浅色）
-assert(appearance.parse_apple_interface_style(nil) == "light") -- pcall 失败
-assert(appearance.parse_apple_interface_style("Light") == "light") -- 异常输出不误判深色
--- 同步检测必须返回合法 flavor（真实读一次系统状态）
-local detected = appearance.detect_system_theme_sync()
+-- ========== 阶段三：系统外观探测 ==========
+-- 探测结果只有在命令完整成功、输出为已知标签时才可信。
+assert(appearance.parse_system_theme_probe_result("dark\n", 0) == "dark")
+assert(appearance.parse_system_theme_probe_result(" light \n", 0) == "light")
+assert(appearance.parse_system_theme_probe_result(nil, nil) == nil)
+assert(appearance.parse_system_theme_probe_result("", nil) == nil)
+assert(appearance.parse_system_theme_probe_result("", 0) == nil)
+assert(appearance.parse_system_theme_probe_result("dark", 1) == nil)
+assert(appearance.parse_system_theme_probe_result("light", 143) == nil)
+assert(appearance.parse_system_theme_probe_result("Light", 0) == nil)
+
+local original_theme = appearance.active
+if appearance.active ~= "dark" then
+	assert(appearance.switch_theme("dark") == true)
+end
+local calls_before_invalid_probe = probe_calls
+assert(appearance.apply_system_theme_probe_result("", 143) == nil)
+assert(appearance.active == "dark", "无效探测必须保持当前主题")
+assert(probe_calls == calls_before_invalid_probe, "无效探测不能触发颜色重涂")
+assert(appearance.apply_system_theme_probe_result("light\n", 0) == true)
+assert(appearance.active == "light", "有效探测必须应用新主题")
+if original_theme == "dark" then
+	assert(appearance.switch_theme("dark") == true)
+end
+
+-- 完整 NSGlobalDomain 成功后，key 存在且为 Dark 才是深色；
+-- 有效 plist 缺 key 才是正常浅色。空/坏 plist、错类型、未知值和 producer
+-- 非零（即使带部分 stdout）都必须保持 unknown，不能误切浅色。
+local plist_prefix = [[<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>]]
+local plist_suffix = [[</dict></plist>]]
+local function shell_single_quote(value)
+	return "'" .. value:gsub("'", "'\\''") .. "'"
+end
+local function run_probe_fixture(plist, producer_exit, style_extractor)
+	local producer = "/usr/bin/printf %s " .. shell_single_quote(plist or "")
+	if producer_exit and producer_exit ~= 0 then
+		producer = producer .. "; exit " .. tostring(producer_exit)
+	end
+	local command = appearance.build_system_theme_probe_command(producer, style_extractor)
+	local pipe = assert(io.popen(command))
+	local output = pipe:read("*a")
+	local _, _, exit_code = pipe:close()
+	return appearance.parse_system_theme_probe_result(output, exit_code), exit_code
+end
+
+local dark_plist = plist_prefix .. "<key>AppleInterfaceStyle</key><string>Dark</string>" .. plist_suffix
+local light_plist = plist_prefix .. "<key>Unrelated</key><true/>" .. plist_suffix
+local bool_plist = plist_prefix .. "<key>AppleInterfaceStyle</key><true/>" .. plist_suffix
+local unknown_plist = plist_prefix .. "<key>AppleInterfaceStyle</key><string>Light</string>" .. plist_suffix
+local newline_plist = plist_prefix .. "<key>AppleInterfaceStyle</key><string>Dark&#10;</string>" .. plist_suffix
+local array_plist = [[<?xml version="1.0"?><plist version="1.0"><array><string>Dark</string></array></plist>]]
+local string_plist = [[<?xml version="1.0"?><plist version="1.0"><string>Dark</string></plist>]]
+
+assert(run_probe_fixture(dark_plist, 0) == "dark")
+assert(run_probe_fixture(light_plist, 0) == "light")
+local _, empty_exit = run_probe_fixture("", 0)
+assert(empty_exit ~= 0, "空 global domain 必须是 unknown")
+local _, truncated_exit = run_probe_fixture(plist_prefix, 0)
+assert(truncated_exit ~= 0, "损坏 plist 必须是 unknown")
+local _, bool_exit = run_probe_fixture(bool_plist, 0)
+assert(bool_exit ~= 0, "AppleInterfaceStyle 错类型必须是 unknown")
+local _, unknown_exit = run_probe_fixture(unknown_plist, 0)
+assert(unknown_exit ~= 0, "AppleInterfaceStyle 未知值必须是 unknown")
+local _, newline_exit = run_probe_fixture(newline_plist, 0)
+assert(newline_exit ~= 0, "带尾随换行的 Dark 不能被 shell 命令替换吞掉后误接受")
+local _, array_exit = run_probe_fixture(array_plist, 0)
+assert(array_exit ~= 0, "合法 array 根节点不能误判为 key 缺失")
+local _, string_exit = run_probe_fixture(string_plist, 0)
+assert(string_exit ~= 0, "合法 string 根节点不能误判为 key 缺失")
+local _, producer_exit = run_probe_fixture(dark_plist, 7)
+assert(producer_exit ~= 0, "producer 非零不能接受部分 stdout")
+local _, extractor_exit = run_probe_fixture(dark_plist, 0, "/usr/bin/printf 'Dark\\n'; exit 7")
+assert(extractor_exit ~= 0, "extractor 输出完整值后非零也必须是 unknown")
+
+-- 同步执行必须消费 close status；失败返回 unknown，由启动入口采用 dark fallback。
+assert(appearance.detect_system_theme_sync("/usr/bin/printf 'dark\\n'") == "dark")
+assert(appearance.detect_system_theme_sync("/usr/bin/printf 'light\\n'") == "light")
+assert(appearance.detect_system_theme_sync("/usr/bin/false") == nil)
+assert(appearance.detect_initial_system_theme("/usr/bin/false") == "dark")
+local detected = appearance.detect_initial_system_theme()
 assert(detected == "dark" or detected == "light")
-assert(detected == appearance.active, "加载时 active 应与同步检测一致")
+assert(detected == appearance.active, "加载时 active 应与同步检测或 fallback 一致")
 
 -- ========== owner 注册静态检查（防旧架构式名单漂移）==========
 -- 已知 owner 必须在源文件中注册；新增主题相关模块必须同步加入本清单。
@@ -339,6 +414,11 @@ do
 	local src = f:read("*a")
 	f:close()
 	assert(src:find('sbar.add("event", "theme_scheme_change")', 1, true), "init.lua 缺少 theme_scheme_change 事件")
+	assert(src:find("function(output, exit_code)", 1, true), "主题探测回调必须接收 exit_code")
+	assert(
+		src:find("apply_system_theme_probe_result(output, exit_code)", 1, true),
+		"主题探测回调必须按 output + exit_code 解析"
+	)
 	assert(
 		src:find('theme_trigger:subscribe("theme_scheme_change"', 1, true),
 		"theme_trigger 未订阅 theme_scheme_change"

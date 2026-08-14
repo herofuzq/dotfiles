@@ -24,12 +24,12 @@ startup.configure(function()
 	local function detect_and_switch()
 		theme_detect_generation = theme_detect_generation + 1
 		local generation = theme_detect_generation
-		sbar.exec("defaults read -g AppleInterfaceStyle 2>/dev/null", function(output)
-			if output == nil or generation ~= theme_detect_generation then
-				return -- nil = exec 失败（区别于键不存在的空输出），保持当前主题
+		local appearance = require("appearance")
+		sbar.exec(appearance.build_system_theme_probe_command(), function(output, exit_code)
+			if generation ~= theme_detect_generation then
+				return
 			end
-			local first_line = output:match("^%s*(.-)%s*$")
-			require("appearance").switch_theme(require("appearance").parse_apple_interface_style(first_line))
+			appearance.apply_system_theme_probe_result(output, exit_code)
 		end)
 	end
 	theme_trigger:subscribe("system_appearance_changed", detect_and_switch)
