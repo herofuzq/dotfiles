@@ -16,5 +16,7 @@
     <true/>
     <key>ProcessType</key>
     <string>Background</string>
+    <key>StandardErrorPath</key>
+    <string>/tmp/sketchybar-aerospace_watch.stderr.log</string>
 </dict>
 </plist>

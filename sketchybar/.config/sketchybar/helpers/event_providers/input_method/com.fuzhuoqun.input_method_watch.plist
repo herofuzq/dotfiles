@@ -16,5 +16,7 @@
     <true/>
     <key>ProcessType</key>
     <string>Background</string>
+    <key>StandardErrorPath</key>
+    <string>/tmp/sketchybar-input_method_watch.stderr.log</string>
 </dict>
 </plist>
