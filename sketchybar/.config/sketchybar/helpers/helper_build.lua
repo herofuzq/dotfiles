@@ -11,6 +11,7 @@ local M = {}
 function M.specs(cfg)
 	local h = cfg .. "/helpers"
 	local swift_mk = h .. "/swift.mk"
+	local helper_compile = h .. "/helper_compile.sh"
 	return {
 		{
 			id = "cpu_load",
@@ -21,6 +22,7 @@ function M.specs(cfg)
 				h .. "/event_providers/cpu_load/cpu.h",
 				h .. "/event_providers/sketchybar.h",
 				h .. "/event_providers/cpu_load/makefile",
+				helper_compile,
 			},
 		},
 		{
@@ -32,6 +34,7 @@ function M.specs(cfg)
 				h .. "/event_providers/aerospace_watch/aerospace_watch.swift",
 				h .. "/event_providers/aerospace_watch/makefile",
 				swift_mk,
+				helper_compile,
 			},
 		},
 		{
@@ -43,6 +46,7 @@ function M.specs(cfg)
 				h .. "/event_providers/docker_watch/docker_watch.swift",
 				h .. "/event_providers/docker_watch/makefile",
 				swift_mk,
+				helper_compile,
 			},
 		},
 		{
@@ -54,6 +58,7 @@ function M.specs(cfg)
 				h .. "/event_providers/input_method/input_method_watch.swift",
 				h .. "/event_providers/input_method/makefile",
 				swift_mk,
+				helper_compile,
 			},
 		},
 		{
@@ -65,6 +70,7 @@ function M.specs(cfg)
 				h .. "/event_providers/media_watch/media_watch.swift",
 				h .. "/event_providers/media_watch/makefile",
 				swift_mk,
+				helper_compile,
 			},
 		},
 		{
@@ -75,25 +81,26 @@ function M.specs(cfg)
 				h .. "/event_providers/sys_watch/sys_watch.swift",
 				h .. "/event_providers/sys_watch/makefile",
 				swift_mk,
+				helper_compile,
 			},
 		},
 		{
 			id = "menus",
 			target = h .. "/menus/bin/menus",
 			build_dir = h .. "/menus",
-			sources = { h .. "/menus/menus.c", h .. "/menus/makefile" },
+			sources = { h .. "/menus/menus.c", h .. "/menus/makefile", helper_compile },
 		},
 		{
 			id = "bar_height",
 			target = h .. "/bar_height/bin/bar_height",
 			build_dir = h .. "/bar_height",
-			sources = { h .. "/bar_height/main.swift", h .. "/bar_height/makefile", swift_mk },
+			sources = { h .. "/bar_height/main.swift", h .. "/bar_height/makefile", swift_mk, helper_compile },
 		},
 		{
 			id = "dock_width",
 			target = h .. "/dock_width/bin/dock_width",
 			build_dir = h .. "/dock_width",
-			sources = { h .. "/dock_width/main.swift", h .. "/dock_width/makefile", swift_mk },
+			sources = { h .. "/dock_width/main.swift", h .. "/dock_width/makefile", swift_mk, helper_compile },
 		},
 	}
 end
@@ -160,7 +167,8 @@ end
 -- 锁文件长期存在是正常的，绝不能删除「陈旧锁文件」）。锁覆盖 make + 发布 +
 -- kickstart + marker 写入，权威逻辑在 helpers/helper_apply.sh 里。
 -- 计划（plan）只是优化：获得锁后仍由 helper_apply.sh 里的 make 重新判断
--- freshness（make 幂等）。手工直接运行 make 不受此锁保护。
+-- freshness（make 幂等）。手工 make 则由 leaf recipe 的 helper_compile.sh
+-- 获取同一把锁。
 local LOCKF_BIN = "/usr/bin/lockf"
 
 function M.spec_lock_path(spec)
@@ -182,16 +190,13 @@ function M.helper_apply_path(cfg)
 end
 
 -- lockf 包裹 helper_apply.sh 的调用（不带头进程管理，纯命令串，供测试断言）。
-local function apply_command(spec, script, timeout_zero)
+local function apply_command(spec, script)
 	local label = spec.restart_label or ""
 	local args = { LOCKF_BIN }
-	if timeout_zero then
-		args[#args + 1] = "-t"
-		args[#args + 1] = "0"
-	end
 	args[#args + 1] = "-k"
 	args[#args + 1] = shell_quote(M.spec_lock_path(spec))
 	args[#args + 1] = shell_quote(script)
+	args[#args + 1] = shell_quote(spec.id)
 	args[#args + 1] = shell_quote(spec.build_dir)
 	args[#args + 1] = shell_quote(spec.target)
 	args[#args + 1] = shell_quote(label)
@@ -202,7 +207,7 @@ end
 
 -- 同步构建（missing）：lockf -k 默认无限等待。返回值证明 make+apply 成功。
 local function run_sync(spec, script)
-	local command = apply_command(spec, script, false) .. "; printf '\\n%s' \"$?\""
+	local command = apply_command(spec, script) .. "; printf '\\n%s' \"$?\""
 	local pipe = io.popen(command)
 	if not pipe then return false end
 	local output = pipe:read("*a") or ""
@@ -214,14 +219,15 @@ function M.compile_sync(spec, script)
 	return run_sync(spec, script)
 end
 
--- detached worker：nohup sh -c 'lockf -t 0 -k ...' </dev/null ... &
--- 独立于 Lua callback 生存（不受 SbarLua 60s alarm 影响），busy 时 lockf 以
--- EX_TEMPFAIL(75) 退出即「交由当前 owner 收口」。os.execute 只证明 worker
--- 已启动，不能据此推进 marker。
+-- detached worker：nohup sh -c 'lockf -k ...' </dev/null ... &
+-- 独立于 Lua callback 生存（不受 SbarLua 60s alarm 影响），并在当前 owner
+-- 退出后继续完成 apply。当前 owner 可能只是手工 make，只负责发布 target，
+-- 因此不能在 busy 时退出并假定它会收口 kickstart/marker。os.execute 只证明
+-- worker 已启动，不能据此推进 marker。
 function M.spawn_worker(spec, script)
-	local worker = apply_command(spec, script, true)
+	local worker = apply_command(spec, script)
 	local command = "/usr/bin/nohup /bin/sh -c " .. shell_quote(worker)
-		.. " </dev/null >/dev/null 2>&1 &"
+		.. " </dev/null >>" .. shell_quote(M.spec_log_path(spec)) .. " 2>&1 &"
 	os.execute(command)
 end
 

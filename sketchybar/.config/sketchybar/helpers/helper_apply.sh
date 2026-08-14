@@ -1,5 +1,5 @@
 #!/bin/bash
-# helper_apply.sh <build_dir> <target> <label> <marker> <log>
+# helper_apply.sh <spec-id> <build_dir> <target> <label> <marker> <log>
 #
 # 在调用方已持有的 per-spec lockf 所有权锁内执行（锁覆盖 make + 发布 +
 # kickstart + marker 写入）。这里是唯一的 build + apply 权威路径：
@@ -19,15 +19,26 @@
 
 set -u
 
-build_dir="$1"
-target="$2"
-label="$3"
-marker="$4"
-log="$5"
+[ "$#" -eq 6 ] || {
+  echo "usage: helper_apply.sh <spec-id> <build_dir> <target> <label> <marker> <log>" >&2
+  exit 64
+}
+
+spec_id="$1"
+build_dir="$2"
+target="$3"
+label="$4"
+marker="$5"
+log="$6"
 
 : > "$log" 2>/dev/null || true
 
-if ! make -C "$build_dir" >> "$log" 2>&1; then
+if [ "${target##*/}" != "$spec_id" ]; then
+  echo "TARGET_OWNER_MISMATCH: $spec_id -> $target" >> "$log"
+  exit 64
+fi
+
+if ! SKETCHYBAR_BUILD_LOCK_HELD="$spec_id" make -C "$build_dir" >> "$log" 2>&1; then
   echo "BUILD_FAIL" >> "$log"
   exit 2
 fi
