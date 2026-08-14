@@ -13,6 +13,7 @@ assert(spaces:find("display_gate.on_unlock", 1, true), "unlock must route into d
 assert(spaces:find("display_gate.on_lock", 1, true), "pure screen lock must route into display_gate.on_lock")
 assert(spaces:find('"com.apple.screenIsLocked"', 1, true), "pure screen lock must be subscribed")
 assert(spaces:find('root:subscribe("screen_locked"', 1, true), "screen lock must route into the gate")
+assert(spaces:find('popup_utils.defer', 1, true), "mouse hover/click must defer UI mutations (#794)")
 
 local gate = read("sketchybar/.config/sketchybar/helpers/display_gate.lua")
 assert(gate:find("gate_verify_awake_event = function", 1, true), "awake events must have a verify-first path")
