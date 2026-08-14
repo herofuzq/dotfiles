@@ -155,6 +155,42 @@ function M.plan(specs, mtimes)
 	return plan
 end
 
+-- ========== 所有权锁 + per-spec 日志 ==========
+-- 每个 spec 一把 lockf 所有权锁（BSD flock 语义：进程退出内核自动释放，
+-- 锁文件长期存在是正常的，绝不能删除「陈旧锁文件」）。锁覆盖 make + 发布 +
+--（B2）kickstart + marker 写入。计划（plan）只是优化：获得锁后仍由 make
+-- 重新判断 freshness（make 幂等）。手工直接运行 make 不受此锁保护。
+local LOCKF_BIN = "/usr/bin/lockf"
+local EX_TEMPFAIL = 75 -- sysexits：锁已被其它进程持有
+
+function M.spec_lock_path(spec)
+	return tmp_path("sketchybar_build_lock." .. spec.id)
+end
+
+function M.spec_log_path(spec)
+	return tmp_path("sketchybar_make." .. spec.id .. ".log")
+end
+
+-- 单 spec 的 lockf 包裹 build 命令。truncate_mode 决定 busy 行为：
+--   false（missing 同步构建）→ 默认无限等待；
+--   true（stale/fresh 后台对账）→ -t 0，busy 即 EX_TEMPFAIL(75) 交给当前 owner。
+function M.build_command_for(spec, truncate_mode)
+	local inner = ": > " .. shell_quote(M.spec_log_path(spec))
+		.. "; make -C " .. shell_quote(spec.build_dir)
+		.. " >> " .. shell_quote(M.spec_log_path(spec)) .. " 2>&1"
+	local args = { LOCKF_BIN }
+	if truncate_mode then
+		args[#args + 1] = "-t"
+		args[#args + 1] = "0"
+	end
+	args[#args + 1] = "-k"
+	args[#args + 1] = shell_quote(M.spec_lock_path(spec))
+	args[#args + 1] = "sh"
+	args[#args + 1] = "-c"
+	args[#args + 1] = shell_quote(inner)
+	return table.concat(args, " ")
+end
+
 local function restart_event_providers(specs)
 	local commands = {}
 	for _, spec in ipairs(specs) do
@@ -166,9 +202,8 @@ local function restart_event_providers(specs)
 	if #commands > 0 then os.execute(table.concat(commands, "; ") .. " &") end
 end
 
-local function run_sync(spec, log_path)
-	local command = "make -C " .. shell_quote(spec.build_dir)
-		.. " >> " .. shell_quote(log_path) .. " 2>&1; printf '\n%s' \"$?\""
+local function run_sync(spec)
+	local command = M.build_command_for(spec, false) .. "; printf '\\n%s' \"$?\""
 	local pipe = io.popen(command)
 	if not pipe then return false end
 	local output = pipe:read("*a") or ""
@@ -176,37 +211,50 @@ local function run_sync(spec, log_path)
 	return tonumber(output:match("(%d+)%s*$") or "1") == 0
 end
 
-local function build_missing(specs, log_path)
+function M.compile_sync(spec)
+	return run_sync(spec)
+end
+
+local function build_missing(specs)
 	local succeeded = {}
 	for _, spec in ipairs(specs) do
-		if run_sync(spec, log_path) then
+		if run_sync(spec) then
 			succeeded[#succeeded + 1] = spec
 		else
-			io.stderr:write("sketchybar: helper compile failed: " .. spec.id .. ", see " .. log_path .. "\n")
+			io.stderr:write(
+				"sketchybar: helper compile failed: " .. spec.id
+				.. ", see " .. M.spec_log_path(spec) .. "\n"
+			)
 		end
 	end
 	restart_event_providers(succeeded)
 end
 
-local function build_stale(specs, log_path)
+local function build_stale(specs)
 	if #specs == 0 then return end
 	local script = {}
 	for index, spec in ipairs(specs) do
-		script[#script + 1] = "if make -C " .. shell_quote(spec.build_dir)
-			.. " >> " .. shell_quote(log_path)
-			.. " 2>&1; then printf 'OK " .. index
-			.. "\\n'; else printf 'FAIL " .. index .. "\\n'; fi"
+		script[#script + 1] = M.build_command_for(spec, true)
+		script[#script + 1] = table.concat({
+			"_rc=$?; if [ \"$_rc\" -eq 0 ]; then echo 'OK " .. index .. "';",
+			"elif [ \"$_rc\" -eq " .. EX_TEMPFAIL .. " ]; then echo 'SKIP " .. index .. "';",
+			"else echo 'FAIL " .. index .. "'; fi",
+		}, " ")
 	end
 
 	require("sketchybar").exec(table.concat(script, "\n"), function(output)
 		local succeeded = {}
+		local failed = false
 		for index in (output or ""):gmatch("OK%s+(%d+)") do
 			local spec = specs[tonumber(index)]
 			if spec then succeeded[#succeeded + 1] = spec end
 		end
-		restart_event_providers(succeeded)
 		if (output or ""):find("FAIL ", 1, true) then
-			io.stderr:write("sketchybar: background helper compile failed, see " .. log_path .. "\n")
+			failed = true
+		end
+		restart_event_providers(succeeded)
+		if failed then
+			io.stderr:write("sketchybar: background helper compile failed\n")
 		end
 	end)
 end
@@ -216,13 +264,10 @@ function M.ensure(cfg)
 	local plan = M.plan(specs, M.read_mtimes(specs))
 	if #plan.sync == 0 and #plan.background == 0 then return end
 
-	local log_path = tmp_path("sketchybar_make.log")
-	local log = io.open(log_path, "w")
-	if log then log:close() end
 	if #plan.sync > 0 then
-		build_missing(plan.sync, log_path)
+		build_missing(plan.sync)
 	end
-	build_stale(plan.background, log_path)
+	build_stale(plan.background)
 end
 
 return M
