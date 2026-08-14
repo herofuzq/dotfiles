@@ -155,13 +155,13 @@ function M.plan(specs, mtimes)
 	return plan
 end
 
--- ========== 所有权锁 + per-spec 日志 ==========
+-- ========== 所有权锁 + digest/applied marker + 统一 worker ==========
 -- 每个 spec 一把 lockf 所有权锁（BSD flock 语义：进程退出内核自动释放，
 -- 锁文件长期存在是正常的，绝不能删除「陈旧锁文件」）。锁覆盖 make + 发布 +
---（B2）kickstart + marker 写入。计划（plan）只是优化：获得锁后仍由 make
--- 重新判断 freshness（make 幂等）。手工直接运行 make 不受此锁保护。
+-- kickstart + marker 写入，权威逻辑在 helpers/helper_apply.sh 里。
+-- 计划（plan）只是优化：获得锁后仍由 helper_apply.sh 里的 make 重新判断
+-- freshness（make 幂等）。手工直接运行 make 不受此锁保护。
 local LOCKF_BIN = "/usr/bin/lockf"
-local EX_TEMPFAIL = 75 -- sysexits：锁已被其它进程持有
 
 function M.spec_lock_path(spec)
 	return tmp_path("sketchybar_build_lock." .. spec.id)
@@ -171,39 +171,38 @@ function M.spec_log_path(spec)
 	return tmp_path("sketchybar_make." .. spec.id .. ".log")
 end
 
--- 单 spec 的 lockf 包裹 build 命令。truncate_mode 决定 busy 行为：
---   false（missing 同步构建）→ 默认无限等待；
---   true（stale/fresh 后台对账）→ -t 0，busy 即 EX_TEMPFAIL(75) 交给当前 owner。
-function M.build_command_for(spec, truncate_mode)
-	local inner = ": > " .. shell_quote(M.spec_log_path(spec))
-		.. "; make -C " .. shell_quote(spec.build_dir)
-		.. " >> " .. shell_quote(M.spec_log_path(spec)) .. " 2>&1"
+function M.applied_marker_path(spec)
+	return tmp_path("sketchybar_applied." .. spec.id)
+end
+
+-- helper_apply.sh 的绝对路径。spec.build_dir = <cfg>/helpers/...，脚本在同一
+-- helpers 目录下；测试用 fake cfg 时可覆写。
+function M.helper_apply_path(cfg)
+	return cfg .. "/helpers/helper_apply.sh"
+end
+
+-- lockf 包裹 helper_apply.sh 的调用（不带头进程管理，纯命令串，供测试断言）。
+local function apply_command(spec, script, timeout_zero)
+	local label = spec.restart_label or ""
 	local args = { LOCKF_BIN }
-	if truncate_mode then
+	if timeout_zero then
 		args[#args + 1] = "-t"
 		args[#args + 1] = "0"
 	end
 	args[#args + 1] = "-k"
 	args[#args + 1] = shell_quote(M.spec_lock_path(spec))
-	args[#args + 1] = "sh"
-	args[#args + 1] = "-c"
-	args[#args + 1] = shell_quote(inner)
+	args[#args + 1] = shell_quote(script)
+	args[#args + 1] = shell_quote(spec.build_dir)
+	args[#args + 1] = shell_quote(spec.target)
+	args[#args + 1] = shell_quote(label)
+	args[#args + 1] = shell_quote(M.applied_marker_path(spec))
+	args[#args + 1] = shell_quote(M.spec_log_path(spec))
 	return table.concat(args, " ")
 end
 
-local function restart_event_providers(specs)
-	local commands = {}
-	for _, spec in ipairs(specs) do
-		if spec.restart_label then
-			commands[#commands + 1] = "launchctl kickstart -k gui/$(id -u)/"
-				.. spec.restart_label .. " >/dev/null 2>&1"
-		end
-	end
-	if #commands > 0 then os.execute(table.concat(commands, "; ") .. " &") end
-end
-
-local function run_sync(spec)
-	local command = M.build_command_for(spec, false) .. "; printf '\\n%s' \"$?\""
+-- 同步构建（missing）：lockf -k 默认无限等待。返回值证明 make+apply 成功。
+local function run_sync(spec, script)
+	local command = apply_command(spec, script, false) .. "; printf '\\n%s' \"$?\""
 	local pipe = io.popen(command)
 	if not pipe then return false end
 	local output = pipe:read("*a") or ""
@@ -211,63 +210,71 @@ local function run_sync(spec)
 	return tonumber(output:match("(%d+)%s*$") or "1") == 0
 end
 
-function M.compile_sync(spec)
-	return run_sync(spec)
+function M.compile_sync(spec, script)
+	return run_sync(spec, script)
 end
 
-local function build_missing(specs)
-	local succeeded = {}
+-- detached worker：nohup sh -c 'lockf -t 0 -k ...' </dev/null ... &
+-- 独立于 Lua callback 生存（不受 SbarLua 60s alarm 影响），busy 时 lockf 以
+-- EX_TEMPFAIL(75) 退出即「交由当前 owner 收口」。os.execute 只证明 worker
+-- 已启动，不能据此推进 marker。
+function M.spawn_worker(spec, script)
+	local worker = apply_command(spec, script, true)
+	local command = "/usr/bin/nohup /bin/sh -c " .. shell_quote(worker)
+		.. " </dev/null >/dev/null 2>&1 &"
+	os.execute(command)
+end
+
+-- fresh 但带 restart_label 的 spec 仍须 reconcile：digest 与 marker 不一致
+-- 说明 kickstart 曾经丢失（或首次升级无 marker），需要重新 apply。
+local function digest_matches(spec)
+	local pipe = io.popen("/usr/bin/shasum -a 256 " .. shell_quote(spec.target) .. " 2>/dev/null")
+	if not pipe then return false end
+	local out = pipe:read("*a") or ""
+	pipe:close()
+	local digest = out:match("^(%x+)")
+	if not digest then return false end
+	local f = io.open(M.applied_marker_path(spec), "r")
+	if not f then return false end
+	local content = f:read("*a")
+	f:close()
+	local applied_label, applied_digest = content:match("^(.-)\n(%x+)\n?$")
+	return applied_label == spec.restart_label and applied_digest == digest
+end
+
+local function build_missing(specs, script)
 	for _, spec in ipairs(specs) do
-		if run_sync(spec) then
-			succeeded[#succeeded + 1] = spec
-		else
+		if not run_sync(spec, script) then
 			io.stderr:write(
 				"sketchybar: helper compile failed: " .. spec.id
 				.. ", see " .. M.spec_log_path(spec) .. "\n"
 			)
 		end
 	end
-	restart_event_providers(succeeded)
-end
-
-local function build_stale(specs)
-	if #specs == 0 then return end
-	local script = {}
-	for index, spec in ipairs(specs) do
-		script[#script + 1] = M.build_command_for(spec, true)
-		script[#script + 1] = table.concat({
-			"_rc=$?; if [ \"$_rc\" -eq 0 ]; then echo 'OK " .. index .. "';",
-			"elif [ \"$_rc\" -eq " .. EX_TEMPFAIL .. " ]; then echo 'SKIP " .. index .. "';",
-			"else echo 'FAIL " .. index .. "'; fi",
-		}, " ")
-	end
-
-	require("sketchybar").exec(table.concat(script, "\n"), function(output)
-		local succeeded = {}
-		local failed = false
-		for index in (output or ""):gmatch("OK%s+(%d+)") do
-			local spec = specs[tonumber(index)]
-			if spec then succeeded[#succeeded + 1] = spec end
-		end
-		if (output or ""):find("FAIL ", 1, true) then
-			failed = true
-		end
-		restart_event_providers(succeeded)
-		if failed then
-			io.stderr:write("sketchybar: background helper compile failed\n")
-		end
-	end)
 end
 
 function M.ensure(cfg)
 	local specs = M.specs(cfg)
 	local plan = M.plan(specs, M.read_mtimes(specs))
-	if #plan.sync == 0 and #plan.background == 0 then return end
+	local script = M.helper_apply_path(cfg)
 
+	-- missing → 同步构建（后续配置可能立即使用二进制）。
 	if #plan.sync > 0 then
-		build_missing(plan.sync)
+		build_missing(plan.sync, script)
 	end
-	build_stale(plan.background)
+
+	-- stale（所有 spec）→ detached worker。
+	for _, spec in ipairs(plan.background) do
+		M.spawn_worker(spec, script)
+	end
+
+	-- fresh 但带 restart_label → 仍须 reconcile marker（即使 target 判 fresh
+	-- 也不能跳过：kickstart 可能在上次 reload 时丢失）。
+	for _, spec in ipairs(plan.fresh) do
+		if spec.restart_label and not digest_matches(spec) then
+			M.spawn_worker(spec, script)
+		end
+	end
 end
 
 return M
