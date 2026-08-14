@@ -61,10 +61,12 @@ startup.when_ready(function()
 end)
 
 -- ========== 开机自愈：登录初期显示器重构风暴下的原生窗口不可见 ==========
--- 排查结论（2026-08-01）：开机后 sketchybar 在会话开始 ~4s 创建 bar 窗口，撞上
--- 外接显示器初始化风暴，原生窗口不可见；Lua hidden 链路无异常（stderr 无报错、
+-- 排查结论（2026-08-01）：登录后 sketchybar 在会话开始 ~4s 创建 bar 窗口，撞上
+-- 显示器初始化风暴，原生窗口不可见；Lua hidden 链路无异常（stderr 无报错、
 -- 无门控超时日志），手动 --reload 在风暴平息后重建窗口即恢复（与 wake 重建同族）。
--- 这里把手动操作自动化：开机 120s 内加载配置时，延时 20s 自 reload 一次。
+-- 这里把手动操作自动化：每次开机的首次配置加载都延时 20s 自 reload 一次。
+-- 注意：风暴只发生在「登录后」，与开机时间无关——用户可能开机后很久才输入密码，
+-- 因此不能拿 kern.boottime 距今的时长做门槛（会漏掉晚登录的场景）。
 -- marker 以 boot epoch 命名：自 reload 引发的二次加载会命中已有 marker，不会循环排程。
 local utils = require("helpers.utils")
 local boot_f = io.popen("sysctl -n kern.boottime 2>/dev/null")
@@ -72,7 +74,7 @@ local boot_epoch = utils.parse_boot_epoch(boot_f and boot_f:read("*a") or "")
 if boot_f then
 	boot_f:close()
 end
-if boot_epoch and (os.time() - boot_epoch) < 120 then
+if boot_epoch then
 	local marker = utils.tmp_path("sketchybar_boot_selfheal." .. boot_epoch)
 	local mf = io.open(marker, "r")
 	if mf then
