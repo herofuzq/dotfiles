@@ -557,25 +557,69 @@ function M.apply_system_theme_probe_result(output, exit_code)
 	return M.switch_theme(theme)
 end
 
--- 启动同步检测：必须在做任何颜色决策前完成。
+local SYSTEM_THEME_SYNC_STATUS_PREFIX = "__SKETCHYBAR_THEME_SYNC_STATUS_v1__="
+
+-- 同步入口单独包一层 subshell：原 probe 内部会 exit 20..24，
+-- 必须让 exit 只结束子 shell，外层才能把其状态精确写进 stdout。
+-- 异步 sbar.exec 仍直接使用 build_system_theme_probe_command()，不消费此帧。
+function M.build_system_theme_sync_command(command)
+	command = command or M.build_system_theme_probe_command()
+	return table.concat({
+		"(",
+		command,
+		")",
+		"sketchybar_theme_sync_status=$?",
+		"/usr/bin/printf '\\n" .. SYSTEM_THEME_SYNC_STATUS_PREFIX
+			.. "%s\\n' \"$sketchybar_theme_sync_status\"",
+	}, "\n")
+end
+
+function M.parse_system_theme_sync_result(output)
+	if type(output) ~= "string" then
+		return nil
+	end
+	local frame_count = 0
+	local search_from = 1
+	while true do
+		local found = output:find(SYSTEM_THEME_SYNC_STATUS_PREFIX, search_from, true)
+		if not found then
+			break
+		end
+		frame_count = frame_count + 1
+		search_from = found + #SYSTEM_THEME_SYNC_STATUS_PREFIX
+	end
+	if frame_count ~= 1 then
+		return nil
+	end
+	local payload, embedded_status = output:match(
+		"^(.-)\n__SKETCHYBAR_THEME_SYNC_STATUS_v1__=(%d+)\n$"
+	)
+	if not payload or not embedded_status then
+		return nil
+	end
+	return M.parse_system_theme_probe_result(payload, embedded_status)
+end
+
+-- 启动同步检测：必须在做任何颜色决策前完成。SbarLua 会让
+-- popen:close() 失去子进程状态，因此 close 只负责资源清理，唯一状态来源是 stdout frame。
 -- unknown 不伪装成浅色，由调用方采用稳定的深色 fallback。
 function M.detect_system_theme_sync(command)
-	local ok, output, exit_code = pcall(function()
-		local f = io.popen(command or M.build_system_theme_probe_command())
+	local ok, output = pcall(function()
+		local f = io.popen(M.build_system_theme_sync_command(command))
 		if not f then
-			return nil, nil
+			return nil
 		end
-		local probe_output = f:read("*a")
-		local closed, reason, code = f:close()
-		if closed then
-			return probe_output, 0
+		local read_ok, probe_output = pcall(f.read, f, "*a")
+		pcall(f.close, f)
+		if not read_ok then
+			return nil
 		end
-		return probe_output, reason == "exit" and code or nil
+		return probe_output
 	end)
 	if not ok then
 		return nil
 	end
-	return M.parse_system_theme_probe_result(output, exit_code)
+	return M.parse_system_theme_sync_result(output)
 end
 
 function M.detect_initial_system_theme(command)

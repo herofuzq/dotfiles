@@ -23,6 +23,8 @@ local LOCK_FAST_VERIFY_TIMEOUT_SECONDS = 2.0
 local LOCK_QUIET_SECONDS = 0.3
 local LOCK_QUIET_MAX_SECONDS = 4
 local POST_SLEEP_VERIFY_SECONDS = 12
+local STARTUP_LOCK_RECHECK_SECONDS = 1.0
+local STARTUP_UNKNOWN_RETRY_SECONDS = 0.5
 
 local gate_state = "idle"
 local gate_generation = 0
@@ -30,7 +32,9 @@ local gate_session_id = 0
 local gate_token = nil
 local gate_revealed_at = 0
 local gate_had_wake = false
-local gate_lock_recheck_armed = false
+local gate_lock_recheck_request_id = 0
+local gate_lock_recheck_active = nil
+local gate_lock_session_id = 0
 local gate_lock_unknown_streak = 0
 local gate_session_from_sleep = false
 local gate_post_sleep_verify_until = 0
@@ -47,6 +51,22 @@ local gate_settle_active_request = nil
 local gate_settle_pending_request = nil
 local gate_settle_quiet_generation = 0
 local gate_settle_stable_key = nil
+
+-- startup hidden 与 runtime FSM 分开记账：上层已经隐藏 bar 时，
+-- 锁/睡事件只记录证据，不创建第二个 enter_animation hold。
+local startup_phase = "runtime"
+local startup_generation = 0
+local startup_explicit_evidence = false
+local startup_unlock_evidence = false
+local startup_reveal_requested = false
+local startup_reveal_authorized = false
+local startup_reveal_callback = nil
+local startup_reveal_gate_generation = nil
+local startup_unknown_count = 0
+local startup_probe_request_id = 0
+local startup_probe_active = nil
+local startup_probe_schedule_generation = 0
+local startup_pending_display_event = nil
 
 local gate_issue_settling_probe
 local gate_drain_settling_probe
@@ -389,6 +409,11 @@ local function gate_on_display_event(source_event)
 		return
 	end
 	if action == "absorb_wake" then
+		if gate_lock_recheck_active and gate_lock_recheck_active.phase == "probing" then
+			-- probe 启动后又收到新 wake/display 证据：保留 owner 防并发，
+			-- 但该 probe 的 payload 已不再能授权释放。
+			gate_lock_recheck_active.invalidated = true
+		end
 		gate_had_wake = true
 		if source_event == "display_change" then
 			gate_had_display_change = true
@@ -421,12 +446,13 @@ end
 gate_on_will_sleep = function(from_system_sleep)
 	gate_state = "sleep_hidden"
 	gate_generation = gate_generation + 1
+	gate_lock_session_id = gate_lock_session_id + 1
 	invalidate_settling_probe_ownership()
 	gate_settle_quiet_generation = gate_settle_quiet_generation + 1
 	gate_settle_stable_key = nil
 	gate_fast_release_generation = gate_fast_release_generation + 1
 	gate_fast_release_scheduled = false
-	gate_lock_recheck_armed = false
+	gate_lock_recheck_active = nil
 	gate_lock_unknown_streak = 0
 	gate_had_wake = false
 	gate_had_display_change = false
@@ -473,54 +499,269 @@ end
 --   - unknown  → 继续隐藏并重新排程，连续 3 次只限频记一次日志。
 -- 未知绝不授权释放：只有 unlock 通知或严格 IOConsoleLocked=No 才能放行。
 gate_schedule_lock_recheck = function()
-	if gate_lock_recheck_armed then
+	if gate_lock_recheck_active then
 		return
 	end
-	gate_lock_recheck_armed = true
-	local generation = gate_generation
+	gate_lock_recheck_request_id = gate_lock_recheck_request_id + 1
+	local request = {
+		request_id = gate_lock_recheck_request_id,
+		generation = gate_generation,
+		session_id = gate_lock_session_id,
+		phase = "timer",
+		invalidated = false,
+	}
+	gate_lock_recheck_active = request
 	sbar.delay(SLEEP_FAILSAFE_SECONDS, function()
-		gate_lock_recheck_armed = false
-		if gate_state ~= "sleep_hidden" or gate_generation ~= generation then
+		if gate_lock_recheck_active ~= request then
 			return
 		end
-		local state = lock_state.detect_sync()
-		if state == "unlocked" then
-			gate_lock_unknown_streak = 0
-			gate_on_unlock()
-		else
-			if state ~= "locked" then
-				gate_lock_unknown_streak = gate_lock_unknown_streak + 1
-				if gate_lock_unknown_streak % 3 == 0 then
-					io.stderr:write(
-						"display_gate: lock recheck unknown (" .. gate_lock_unknown_streak
-						.. "x), bar stays hidden, retrying in " .. SLEEP_FAILSAFE_SECONDS .. "s\n"
-					)
-				end
-			else
-				gate_lock_unknown_streak = 0
+		if gate_state ~= "sleep_hidden"
+			or gate_generation ~= request.generation
+			or gate_lock_session_id ~= request.session_id
+		then
+			gate_lock_recheck_active = nil
+			return
+		end
+		request.phase = "probing"
+		lock_state.probe(function(state)
+			if gate_lock_recheck_active ~= request then
+				return
 			end
-			gate_schedule_lock_recheck()
+			-- owner 覆盖 timer + async probe 全生命周期；terminal 只清自己的槽。
+			gate_lock_recheck_active = nil
+			if gate_state ~= "sleep_hidden"
+				or gate_generation ~= request.generation
+				or gate_lock_session_id ~= request.session_id
+			then
+				return
+			end
+			if request.invalidated then
+				gate_schedule_lock_recheck()
+				return
+			end
+			if state == "unlocked" then
+				gate_lock_unknown_streak = 0
+				gate_on_unlock()
+			else
+				if state == "locked" then
+					gate_lock_unknown_streak = 0
+				else
+					gate_lock_unknown_streak = gate_lock_unknown_streak + 1
+					if gate_lock_unknown_streak % 3 == 0 then
+						io.stderr:write(
+							"display_gate: lock recheck unknown (" .. gate_lock_unknown_streak
+							.. "x), bar stays hidden, retrying in " .. SLEEP_FAILSAFE_SECONDS .. "s\n"
+						)
+					end
+				end
+				gate_schedule_lock_recheck()
+			end
+		end)
+	end)
+end
+
+-- ========== 启动期可见性所有权 ==========
+-- helpers.startup 只负责执行渐入；是否允许开始渐入由本门控唯一决策。
+local startup_schedule_probe
+
+local function invalidate_startup_probe()
+	startup_probe_active = nil
+	startup_probe_schedule_generation = startup_probe_schedule_generation + 1
+end
+
+local function startup_authorize_reveal()
+	if startup_phase ~= "hidden"
+		or not startup_reveal_requested
+		or startup_reveal_authorized
+	then
+		return
+	end
+	startup_reveal_authorized = true
+	startup_phase = "revealing"
+	startup_reveal_gate_generation = gate_generation
+	invalidate_startup_probe()
+	local callback = startup_reveal_callback
+	startup_reveal_callback = nil
+	if callback then
+		callback()
+	end
+end
+
+local function startup_start_probe()
+	if startup_phase ~= "hidden"
+		or not startup_reveal_requested
+		or startup_reveal_authorized
+		or startup_probe_active
+	then
+		return
+	end
+	startup_probe_request_id = startup_probe_request_id + 1
+	local request = {
+		request_id = startup_probe_request_id,
+		generation = startup_generation,
+	}
+	startup_probe_active = request
+	lock_state.probe(function(state)
+		if startup_probe_active ~= request then
+			return
+		end
+		startup_probe_active = nil
+		if startup_phase ~= "hidden"
+			or not startup_reveal_requested
+			or startup_generation ~= request.generation
+		then
+			return
+		end
+		if state == "unlocked" then
+			startup_unknown_count = 0
+			startup_authorize_reveal()
+		elseif state == "locked" then
+			startup_explicit_evidence = true
+			startup_unknown_count = 0
+			startup_schedule_probe(STARTUP_LOCK_RECHECK_SECONDS)
+		elseif startup_explicit_evidence then
+			startup_schedule_probe(STARTUP_LOCK_RECHECK_SECONDS)
+		else
+			startup_unknown_count = startup_unknown_count + 1
+			if startup_unknown_count >= 2 then
+				io.stderr:write(
+					"sketchybar: startup lock state unknown after retry, revealing (fail-open)\n"
+				)
+				startup_authorize_reveal()
+			else
+				startup_schedule_probe(STARTUP_UNKNOWN_RETRY_SECONDS)
+			end
 		end
 	end)
+end
+
+startup_schedule_probe = function(delay_seconds)
+	if startup_phase ~= "hidden"
+		or not startup_reveal_requested
+		or startup_reveal_authorized
+	then
+		return
+	end
+	startup_probe_schedule_generation = startup_probe_schedule_generation + 1
+	local schedule_generation = startup_probe_schedule_generation
+	local generation = startup_generation
+	if not delay_seconds or delay_seconds <= 0 then
+		startup_start_probe()
+		return
+	end
+	sbar.delay(delay_seconds, function()
+		if startup_phase ~= "hidden"
+			or startup_generation ~= generation
+			or startup_probe_schedule_generation ~= schedule_generation
+		then
+			return
+		end
+		startup_start_probe()
+	end)
+end
+
+local function startup_record_explicit_evidence()
+	if startup_phase ~= "hidden" then
+		return
+	end
+	startup_explicit_evidence = true
+	startup_unlock_evidence = false
+	startup_unknown_count = 0
+	invalidate_startup_probe()
+	if startup_reveal_requested then
+		startup_schedule_probe(STARTUP_LOCK_RECHECK_SECONDS)
+	end
 end
 
 function M.configure(options)
 	handlers = options or {}
 end
 
+function M.begin_startup()
+	startup_phase = "hidden"
+	startup_generation = startup_generation + 1
+	startup_explicit_evidence = false
+	startup_unlock_evidence = false
+	startup_reveal_requested = false
+	startup_reveal_authorized = false
+	startup_reveal_callback = nil
+	startup_reveal_gate_generation = nil
+	startup_unknown_count = 0
+	startup_pending_display_event = nil
+	invalidate_startup_probe()
+end
+
+function M.request_startup_reveal(callback)
+	if startup_phase == "runtime" then
+		callback()
+		return
+	end
+	if startup_phase ~= "hidden" or startup_reveal_requested then
+		return
+	end
+	startup_reveal_requested = true
+	startup_reveal_callback = callback
+	if startup_unlock_evidence then
+		startup_authorize_reveal()
+	else
+		startup_schedule_probe(0)
+	end
+end
+
+function M.finish_startup_reveal()
+	if startup_phase ~= "revealing" then
+		return
+	end
+	local pending_display_event = startup_pending_display_event
+	local reveal_generation = startup_reveal_gate_generation
+	startup_pending_display_event = nil
+	startup_phase = "runtime"
+	invalidate_startup_probe()
+	-- 交接只结束 startup owner，绝不重置 runtime FSM/token。若 fade 期间
+	-- 已进入新的锁/睡会话，该会话保持 sleep_hidden，也不重放旧 display 事件。
+	if pending_display_event
+		and gate_generation == reveal_generation
+		and gate_state == "idle"
+	then
+		gate_on_display_event(pending_display_event)
+	end
+end
+
 function M.on_display_event(source_event)
+	if startup_phase == "hidden" then
+		startup_pending_display_event = source_event
+		if source_event == "system_woke" then
+			startup_record_explicit_evidence()
+		end
+		return
+	end
 	gate_on_display_event(source_event)
 end
 
 function M.on_will_sleep()
+	if startup_phase == "hidden" then
+		startup_record_explicit_evidence()
+		return
+	end
 	gate_on_will_sleep(true)
 end
 
 function M.on_lock()
+	if startup_phase == "hidden" then
+		startup_record_explicit_evidence()
+		return
+	end
 	gate_on_will_sleep(false)
 end
 
 function M.on_unlock()
+	if startup_phase == "hidden" then
+		if startup_explicit_evidence then
+			startup_unlock_evidence = true
+			startup_authorize_reveal()
+		end
+		return
+	end
 	gate_on_unlock()
 end
 

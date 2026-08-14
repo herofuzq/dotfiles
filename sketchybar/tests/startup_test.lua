@@ -35,13 +35,16 @@ end
 
 local startup = require("helpers.startup")
 local applied = {}
+local reveal_completions = 0
 local initial_ready = startup.track("slow.status")
 startup.after_reveal("status", function() applied[#applied + 1] = "old" end)
 startup.after_reveal("status", function() applied[#applied + 1] = "latest" end)
 local timed_out
 startup.when_ready(function(timeout)
 	timed_out = timeout
-	startup.reveal()
+	startup.reveal(function()
+		reveal_completions = reveal_completions + 1
+	end)
 end)
 
 assert(#applied == 0 and timed_out == nil, "readiness barrier must keep the bar hidden")
@@ -53,6 +56,7 @@ assert(type(timeout_callback) == "function", "barrier must install a one-second 
 timeout_callback()
 assert(timed_out == true, "fallback must report a readiness timeout")
 assert(#applied == 1 and applied[1] == "latest", "latest state must be primed before reveal")
+assert(reveal_completions == 0, "startup completion must wait for the fade finalizer")
 
 local finish_callback
 for _, entry in ipairs(delayed) do
@@ -62,6 +66,9 @@ assert(type(finish_callback) == "function", "reveal must schedule completion")
 finish_callback()
 assert(#applied == 2 and applied[2] == "latest", "latest keyed update should finish the fade")
 assert(bar_updates[#bar_updates].height == 31, "bar-height correction should run after reveal")
+assert(reveal_completions == 1, "startup completion must run exactly after the fade finalizer")
+finish_callback()
+assert(reveal_completions == 1, "startup completion must be idempotent")
 
 initial_ready() -- late completion after timeout must be harmless
 

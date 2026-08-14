@@ -2,14 +2,14 @@ local source = debug.getinfo(1, "S").source:sub(2)
 local repo_root = source:match("^(.*)sketchybar/tests/") or ""
 package.path = repo_root .. "sketchybar/.config/sketchybar/?.lua;" .. package.path
 
--- scripted lock_state mock：测试逐个弹出探针结果。
-local lock_results = {}
+-- async lock_state boundary：测试显式决定 callback/timeout 到达顺序。
+local lock_callbacks = {}
 local lock_probe_count = 0
 package.preload["helpers.lock_state"] = function()
 	return {
-		detect_sync = function()
+		probe = function(callback)
 			lock_probe_count = lock_probe_count + 1
-			return table.remove(lock_results, 1)
+			lock_callbacks[#lock_callbacks + 1] = callback
 		end,
 	}
 end
@@ -59,7 +59,7 @@ gate.configure({
 
 local function fresh_gate()
 	calls = { hold = {}, release = {}, delay = {}, trigger = {}, probe = {} }
-	lock_results = {}
+	lock_callbacks = {}
 	lock_probe_count = 0
 	package.loaded["helpers.display_gate"] = nil
 	local fresh = require("helpers.display_gate")
@@ -116,9 +116,11 @@ end
 do
 	local fresh = fresh_gate()
 	fresh.on_lock()
-	lock_results = { "locked" }
 	assert(#calls.release == 0)
 	fire_last_75()()
+	assert(lock_probe_count == 1 and #lock_callbacks == 1,
+		"matching timer must start one async lock probe")
+	lock_callbacks[1]("locked")
 	assert(#calls.release == 0, "locked recheck must not reveal")
 	assert(lock_probe_count == 1, "locked recheck must probe once")
 	assert(#delays_with(75) == 2, "locked recheck must re-arm")
@@ -128,8 +130,8 @@ end
 do
 	local fresh = fresh_gate()
 	fresh.on_lock()
-	lock_results = { "unlocked", "unlocked" }
 	fire_last_75()()
+	lock_callbacks[1]("unlocked")
 	-- gate_on_unlock 对纯锁走 quiet release：0.3s 安静窗口后 release，而不是直接 settle。
 	assert(#calls.release == 0, "unlock via recheck must not release immediately (quiet window)")
 	local quiet = assert(delays_with(0.3)[#delays_with(0.3)], "quiet release must be scheduled")
@@ -142,8 +144,8 @@ end
 do
 	local fresh = fresh_gate()
 	fresh.on_lock()
-	lock_results = { nil }
 	fire_last_75()()
+	lock_callbacks[1](nil, "timeout")
 	assert(#calls.release == 0, "unknown recheck must not reveal")
 	assert(#delays_with(75) == 2, "unknown recheck must re-arm")
 end
@@ -152,9 +154,9 @@ end
 do
 	local fresh = fresh_gate()
 	fresh.on_lock()
-	for _ = 1, 3 do
-		lock_results = { nil }
+	for index = 1, 3 do
 		fire_last_75()()
+		lock_callbacks[index](nil, "invalid")
 	end
 	assert(#calls.release == 0, "repeated unknown must never reveal")
 	assert(#delays_with(75) == 4, "each unknown recheck must re-arm")
@@ -170,9 +172,75 @@ do
 	assert(delays_with(0.3)[#delays_with(0.3)], "normal unlock must schedule quiet release").callback()
 	assert(#calls.release == 1, "normal unlock must reveal")
 	local releases_after_unlock = #calls.release
-	lock_results = { "unlocked" }
 	stale()
 	assert(#calls.release == releases_after_unlock, "stale recheck must not act after session ended")
+	assert(lock_probe_count == 0, "stale timer must not start a probe after session ended")
+end
+
+-- ===== 旧会话 timer 不得清理新会话的 active owner =====
+do
+	local fresh = fresh_gate()
+	fresh.on_lock()
+	local old_timer = fire_last_75()
+	fresh.on_unlock()
+	assert(delays_with(0.3)[#delays_with(0.3)]).callback()
+	fresh.on_lock()
+	local new_timer = fire_last_75()
+	assert(#delays_with(75) == 2, "each lock session must own one recheck timer")
+
+	old_timer()
+	assert(lock_probe_count == 0, "old timer must not consume the new owner's slot")
+	fresh.on_display_event("display_change")
+	assert(#delays_with(75) == 2,
+		"an event after the old timer must still observe the new active owner")
+	new_timer()
+	assert(lock_probe_count == 1 and #lock_callbacks == 1,
+		"new session timer must remain active after the old timer fires")
+	lock_callbacks[1]("locked")
+	assert(#delays_with(75) == 3, "current callback must be able to re-arm its session")
+end
+
+-- ===== 旧会话 async callback 迟到时不得释放或破坏新 owner =====
+do
+	local fresh = fresh_gate()
+	fresh.on_lock()
+	local old_timer = fire_last_75()
+	old_timer()
+	local stale_callback = assert(lock_callbacks[1])
+
+	fresh.on_unlock()
+	assert(delays_with(0.3)[#delays_with(0.3)]).callback()
+	fresh.on_lock()
+	local new_timer = fire_last_75()
+	stale_callback("unlocked")
+	assert(#calls.release == 1, "stale async unlocked result must not release the new session")
+
+	new_timer()
+	assert(lock_probe_count == 2, "stale callback must not suppress the new session probe")
+	lock_callbacks[2]("locked")
+	assert(#delays_with(75) == 3, "new session callback must retain re-arm ownership")
+end
+
+-- ===== timer 发火后 owner 必须覆盖整个 async probe 生命周期 =====
+-- probe 在途时新到的同会话 display/wake 证据使旧 payload 过期；
+-- 迟到 unlocked 不得进入 quiet/settling/reveal，只能重新武装复查。
+for _, source_event in ipairs({ "display_change", "system_woke" }) do
+	local fresh = fresh_gate()
+	fresh.on_lock()
+	local timer = fire_last_75()
+	timer()
+	local in_flight = assert(lock_callbacks[1], "75s timer must start one async probe")
+	assert(#delays_with(75) == 1, "in-flight probe must retain the timer owner")
+
+	fresh.on_display_event(source_event)
+	assert(#delays_with(75) == 1,
+		"same-session " .. source_event .. " must not arm a second timer while probe is active")
+	in_flight("unlocked")
+	assert(#calls.hold == 1, "stale unlocked must not enter settling")
+	assert(#calls.release == 0, "stale unlocked must not reveal")
+	assert(#delays_with(10) == 0, "stale unlocked must not arm a settling watchdog")
+	assert(#delays_with(0.3) == 0, "stale unlocked must not schedule a quiet release")
+	assert(#delays_with(75) == 2, "stale probe completion must re-arm one owned recheck")
 end
 
 -- ===== gate_session_from_sleep 仅跟随 from_system_sleep（静态守卫）=====

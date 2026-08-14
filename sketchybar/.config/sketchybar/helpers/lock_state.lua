@@ -1,7 +1,7 @@
 -- ========== 屏幕锁状态探测 ==========
 -- 读取 IOConsoleLocked（IORegistry Root 节点的布尔属性）判断屏幕是否锁定。
 -- 严格三态：locked / unlocked / unknown。
--- unknown 覆盖：ioreg 非零退出、输出缺失、属性缺失、取值冲突（同时出现 Yes 与 No）。
+-- unknown 覆盖：ioreg 非零退出、输出缺失、属性缺失、重复/冲突/不完整取值。
 -- 调用方必须把 unknown 当作「没有新证据」，绝不能据此授权显示。
 
 local M = {}
@@ -18,36 +18,49 @@ function M.parse(output, exit_code)
 	if type(output) ~= "string" or tonumber(exit_code) ~= 0 then
 		return nil
 	end
-	local yes = output:find('"IOConsoleLocked"%s*=%s*Yes', 1, false)
-	local no = output:find('"IOConsoleLocked"%s*=%s*No', 1, false)
-	if yes and not no then
-		return "locked"
+	local matches = 0
+	local state
+	for line in (output .. "\n"):gmatch("(.-)\n") do
+		local normalized_line = line:gsub("\r$", "")
+		if normalized_line:find('"IOConsoleLocked"', 1, true) then
+			matches = matches + 1
+			local value = normalized_line:match('^%s*"IOConsoleLocked"%s*=%s*(%a+)%s*$')
+			if value == "Yes" then
+				state = "locked"
+			elseif value == "No" then
+				state = "unlocked"
+			else
+				return nil
+			end
+		end
 	end
-	if no and not yes then
-		return "unlocked"
-	end
-	return nil
+	return matches == 1 and state or nil
 end
 
--- 同步探测（io.popen，~20ms）。阻塞式无超时上限；ioreg 稳定且极快，
--- 若未来需要严格超时再改异步 sbar.exec + delay 守卫。
-function M.detect_sync(command)
-	local ok, output, exit_code = pcall(function()
-		local f = io.popen(command or M.build_probe_command())
-		if not f then
-			return nil, nil
+-- 异步探测：exec callback 与 2s timeout 共享 first-wins 终止守卫。
+-- SbarLua 事件循环不再被 ioreg 阻塞，迟到 callback 也不会二次通知调用方。
+function M.probe(callback)
+	local sbar = require("sketchybar")
+	local terminal = false
+	local function finish(state, reason)
+		if terminal then
+			return
 		end
-		local out = f:read("*a")
-		local closed, reason, code = f:close()
-		if closed then
-			return out, 0
-		end
-		return out, reason == "exit" and code or nil
-	end)
-	if not ok then
-		return nil
+		terminal = true
+		callback(state, reason)
 	end
-	return M.parse(output, exit_code)
+
+	sbar.delay(2.0, function()
+		finish(nil, "timeout")
+	end)
+	sbar.exec(M.build_probe_command(), function(output, exit_code)
+		local state = M.parse(output, exit_code)
+		if state then
+			finish(state, nil)
+		else
+			finish(nil, "invalid")
+		end
+	end)
 end
 
 return M

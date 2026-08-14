@@ -20,6 +20,14 @@ local sbar = {
 	end,
 }
 package.preload["sketchybar"] = function() return sbar end
+local startup_lock_callbacks = {}
+package.preload["helpers.lock_state"] = function()
+	return {
+		probe = function(callback)
+			startup_lock_callbacks[#startup_lock_callbacks + 1] = callback
+		end,
+	}
+end
 package.preload["helpers.enter_animation"] = function()
 	return {
 		hold = function(opts)
@@ -483,6 +491,43 @@ do
 	current_watchdog.callback()
 	assert(#calls.release == 2 and calls.release[2].token == 3,
 		"same-second current watchdog must release the current token")
+end
+
+-- Startup reveal 已获授权但 fade 尚未结束时若收到新锁/睡事件，
+-- 必须立刻转入 runtime hidden；startup completion 不得重置新 FSM/token。
+for _, scenario in ipairs({
+	{
+		name = "lock",
+		enter_hidden = function(gate) gate.on_lock() end,
+		release_delay = 0.3,
+	},
+	{
+		name = "sleep",
+		enter_hidden = function(gate) gate.on_will_sleep() end,
+		release_delay = 0.5,
+	},
+}) do
+	startup_lock_callbacks = {}
+	local fresh = fresh_gate()
+	fresh.begin_startup()
+	local authorizations = 0
+	fresh.request_startup_reveal(function()
+		authorizations = authorizations + 1
+	end)
+	assert(#startup_lock_callbacks == 1)
+	startup_lock_callbacks[1]("unlocked")
+	assert(authorizations == 1, "strict unlocked must authorize startup reveal")
+
+	scenario.enter_hidden(fresh)
+	assert(#calls.hold == 1 and calls.hold[1].hidden == true and calls.hold[1].no_timeout == true,
+		scenario.name .. " during startup fade must enter the runtime hidden gate")
+	fresh.finish_startup_reveal()
+	fresh.on_unlock()
+	local release_timer = assert(last_delay(scenario.release_delay),
+		"startup completion must preserve the newer " .. scenario.name .. " runtime state")
+	release_timer.callback()
+	assert(#calls.release == 1 and calls.release[1].token == 1,
+		"preserved runtime gate must release its own token after " .. scenario.name .. " unlock")
 end
 
 os.time = real_os_time

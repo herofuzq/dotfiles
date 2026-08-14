@@ -1,9 +1,11 @@
 -- ========== sketchybar 主入口 ==========
 local sbar = require("sketchybar")
 local enter_animation = require("helpers.enter_animation")
+local display_gate = require("helpers.display_gate")
 local startup = require("helpers.startup")
 
 -- bar hidden 已在 helpers/init.lua 最早设过；这里不再重复 sbar.bar。
+display_gate.begin_startup()
 
 -- 登记主条 item，并在 add 时预置渐入所需的透明颜色。
 enter_animation.install()
@@ -46,12 +48,14 @@ startup.configure(function()
 end)
 
 -- 首屏查询并行完成（最长等 1 秒）后，以真实内容作为目标统一渐入。
--- 锁屏门控：若此刻屏幕仍锁定则延迟到解锁后再执行渐入，避免锁屏上露出 bar。
+-- 可见性由 display_gate 唯一授权；渐入结束后再完成 startup → runtime 交接。
 startup.when_ready(function()
-	startup.reveal_on_unlock(function()
+	display_gate.request_startup_reveal(function()
 		enter_animation.prepare()
 		enter_animation.conceal()
-		startup.reveal()
+		startup.reveal(function()
+			display_gate.finish_startup_reveal()
+		end)
 		enter_animation.run()
 	end)
 end)

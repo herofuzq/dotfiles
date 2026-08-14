@@ -1,4 +1,7 @@
-package.path = "sketchybar/.config/sketchybar/?.lua;sketchybar/.config/sketchybar/?/init.lua;" .. package.path
+local source = debug.getinfo(1, "S").source:sub(2)
+local repo_root = source:match("^(.*)sketchybar/tests/") or ""
+local config_module_path = repo_root .. "sketchybar/.config/sketchybar/?.lua;"
+package.path = config_module_path .. repo_root .. "sketchybar/.config/sketchybar/?/init.lua;" .. package.path
 
 -- switch_theme 内部才 require("sketchybar")，mock 成 animate 立即执行回调
 local bar_calls = {}
@@ -366,9 +369,82 @@ assert(producer_exit ~= 0, "producer 非零不能接受部分 stdout")
 local _, extractor_exit = run_probe_fixture(dark_plist, 0, "/usr/bin/printf 'Dark\\n'; exit 7")
 assert(extractor_exit ~= 0, "extractor 输出完整值后非零也必须是 unknown")
 
--- 同步执行必须消费 close status；失败返回 unknown，由启动入口采用 dark fallback。
+-- 同步入口从 stdout 中的唯一精确状态帧取结果，不依赖
+-- popen:close() 的子进程状态（SbarLua 将 SIGCHLD 设为 SIG_IGN）。
+assert(appearance.parse_system_theme_sync_result(
+	"dark\n__SKETCHYBAR_THEME_SYNC_STATUS_v1__=0\n"
+) == "dark")
+assert(appearance.parse_system_theme_sync_result(
+	"light\n\n__SKETCHYBAR_THEME_SYNC_STATUS_v1__=0\n"
+) == "light")
+assert(appearance.parse_system_theme_sync_result("dark\n") == nil, "missing status frame must be unknown")
+assert(appearance.parse_system_theme_sync_result(
+	"dark\n__SKETCHYBAR_THEME_SYNC_STATUS_v1__=nope\n"
+) == nil, "malformed status frame must be unknown")
+assert(appearance.parse_system_theme_sync_result(
+	"dark\n__SKETCHYBAR_THEME_SYNC_STATUS_v1__=7\n"
+) == nil, "nonzero embedded status must be unknown")
+assert(appearance.parse_system_theme_sync_result(
+	"dark\n__SKETCHYBAR_THEME_SYNC_STATUS_v1__=0\n"
+		.. "__SKETCHYBAR_THEME_SYNC_STATUS_v1__=0\n"
+) == nil, "duplicate status frame must be unknown")
+assert(appearance.parse_system_theme_sync_result(
+	"dark\n__SKETCHYBAR_THEME_SYNC_STATUS_v1__=0\ntrailing"
+) == nil, "data after the status frame must be unknown")
+
+-- 真实 shell wrapper 先产生 status 0/7 帧，再确定性模拟 ECHILD。
+-- 这同时验证帧的真实形状和 close 无法给出退出状态时的解析边界，
+-- 不依赖已部署的 SbarLua 或它的安装路径。
+do
+	local original_popen = io.popen
+	local function capture_real_frame(command)
+		local pipe = assert(original_popen(appearance.build_system_theme_sync_command(command)))
+		local output = pipe:read("*a")
+		pipe:close()
+		return output
+	end
+	local success_frame = capture_real_frame("/usr/bin/printf 'dark\\n'")
+	local failure_frame = capture_real_frame("/usr/bin/printf 'dark\\n'; exit 7")
+	assert(appearance.parse_system_theme_sync_result(success_frame) == "dark",
+		"real status-0 wrapper must emit a valid dark frame")
+	assert(appearance.parse_system_theme_sync_result(failure_frame) == nil,
+		"real nonzero wrapper status must remain unknown")
+
+	local function detect_with_unavailable_close(frame, close_throws)
+		local detected
+		local ok, err = xpcall(function()
+			io.popen = function()
+				return {
+					read = function(_, mode)
+						assert(mode == "*a")
+						return frame
+					end,
+					close = function()
+						if close_throws then
+							error("close unavailable")
+						end
+						return nil, "No child processes", 10
+					end,
+				}
+			end
+			detected = appearance.detect_system_theme_sync("/usr/bin/false")
+		end, debug.traceback)
+		io.popen = original_popen
+		assert(ok, err)
+		return detected
+	end
+
+	assert(detect_with_unavailable_close(success_frame, false) == "dark",
+		"embedded status must survive unavailable popen close status")
+	assert(detect_with_unavailable_close(failure_frame, false) == nil,
+		"embedded nonzero status must remain authoritative when close has no status")
+	assert(detect_with_unavailable_close(success_frame, true) == "dark",
+		"embedded status must survive a throwing close cleanup")
+end
+
 assert(appearance.detect_system_theme_sync("/usr/bin/printf 'dark\\n'") == "dark")
 assert(appearance.detect_system_theme_sync("/usr/bin/printf 'light\\n'") == "light")
+assert(appearance.detect_system_theme_sync("/usr/bin/printf 'dark\\n'; exit 7") == nil)
 assert(appearance.detect_system_theme_sync("/usr/bin/false") == nil)
 assert(appearance.detect_initial_system_theme("/usr/bin/false") == "dark")
 local detected = appearance.detect_initial_system_theme()
