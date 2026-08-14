@@ -132,11 +132,15 @@ appearance.register_colors("battery", apply_colors)   -- 主题切换时重放
   **不需要** Swift 常驻进程、makefile、plist、helper_build 登记、LaunchAgent 维护。
   （分布式通知不保证必达，故仍需 wake 复检兜底。）
 - **启动检测（同步）**：首次配置必须在 `begin_config` **之前**知道主题，否则浅色模式
-  reload 会先显示 mocha 再切 latte。启动时同步 `defaults read -g AppleInterfaceStyle`
-  一次（输出 `Dark` = 深色；无输出/命令失败 = 浅色），设好 M.active 再 begin_config。
-  同步读取只此一次（<100ms），可接受。
-- **运行期检测（异步）**：通知回调里异步 `defaults read` + 与 M.active 比较，
-  相同则零动作；generation token 防抖防重入。
+  reload 会先显示 mocha 再切 latte。启动时同步跑一次 `appearance.lua` 的
+  `build_system_theme_probe_command()`：导出完整 NSGlobalDomain 并 `plutil` 校验，
+  仅「key 缺失 = 浅色」/「AppleInterfaceStyle = Dark = 深色」为已知结果；空/坏 plist、
+  错类型、未知值、producer/extractor 非零退出都归 unknown。unknown 不伪装浅色，
+  启动 fallback 深色（fail-closed），由后续成功的探测纠正。
+  同步读取只此一次（~20-30ms），可接受。
+- **运行期检测（异步）**：通知回调里异步跑同一探针，`sbar.exec` 回调按
+  `(output, exit_code)` 解析（依赖 SbarLua 的 exec ABI）；与 M.active 相同则零动作；
+  generation token 防抖防重入。
 - **兜底**：订阅 `system_woke` 复检一次（睡眠期间错过通知）。不要 120s 轮询。
 
 ### 3.5 换色过渡动画
