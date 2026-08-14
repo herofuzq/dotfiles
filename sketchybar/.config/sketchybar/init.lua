@@ -80,8 +80,13 @@ if boot_epoch and (os.time() - boot_epoch) < 120 then
 			wf:close()
 		end
 		io.stderr:write(os.date("sketchybar: boot self-heal scheduled at %H:%M:%S (reload in 20s)\n"))
+		local find_binary = require("helpers.find_binary").find
+		local sketchybar_bin = find_binary(
+			{ "/opt/homebrew/bin/sketchybar", "/usr/local/bin/sketchybar" },
+			"sketchybar"
+		)
 		sbar.delay(20, function()
-			sbar.exec("/opt/homebrew/bin/sketchybar --reload", function() end)
+			sbar.exec(sketchybar_bin .. " --reload", function() end)
 		end)
 	end
 end
