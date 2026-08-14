@@ -133,7 +133,9 @@ appearance.register_colors("battery", apply_colors)   -- 主题切换时重放
   （分布式通知不保证必达，故仍需 wake 复检兜底。）
 - **启动检测（同步）**：首次配置必须在 `begin_config` **之前**知道主题，否则浅色模式
   reload 会先显示 mocha 再切 latte。启动时同步跑一次 `appearance.lua` 的
-  `build_system_theme_probe_command()`：导出完整 NSGlobalDomain 并 `plutil` 校验，
+  `build_system_theme_sync_command()`：内层探针导出完整 NSGlobalDomain 并 `plutil` 校验，
+  外层 shell 把精确退出状态帧追加到 stdout；Lua 只信任该帧，不依赖
+  SbarLua 宿主下可能丢失状态的 `popen:close()`。
   仅「key 缺失 = 浅色」/「AppleInterfaceStyle = Dark = 深色」为已知结果；空/坏 plist、
   错类型、未知值、producer/extractor 非零退出都归 unknown。unknown 不伪装浅色，
   启动 fallback 深色（fail-closed），由后续成功的探测纠正。
@@ -197,7 +199,9 @@ appearance.register_colors("battery", apply_colors)   -- 主题切换时重放
     不靠扫描 `colors%.`（抓不到别名、status_widget、动态 spaces、状态回调）。
   - **反弹测试**：模拟电池低电、CPU 告警、git dirty、docker 部分运行、clash 各态，
     切主题后再触发状态刷新，断言写出的色值来自新色板。
-  - detect 解析三分支（Dark / 空输出 / 命令失败 → dark/light/light，mock sbar.exec）。
+  - 探针解析：`Dark` → dark，有效 plist 缺 key → light，空/坏输出或命令失败 → unknown；
+    启动入口才把 unknown 稳定回退为 dark。同步用例另覆盖精确 stdout 状态帧，
+    并验证 `popen:close()` 无法提供子进程状态时仍按帧判定。
 - 全部现有测试保持通过；`luac -p` 全量语法检查。
 
 ## 8. 实施步骤（Codex 修订批次，每阶段独立可提交）

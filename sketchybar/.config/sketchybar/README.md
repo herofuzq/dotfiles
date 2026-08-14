@@ -23,9 +23,9 @@ When debugging live behavior, inspect `~/.config/sketchybar` first. Source edits
 
 ### How It Works
 
-1. `sketchybarrc` loads `helpers/` first. One batched mtime scan skips fresh helpers, builds missing binaries synchronously, and rebuilds stale binaries in the background; the bar starts `hidden` to avoid the default-height flash.
+1. `sketchybarrc` loads `helpers/` first. One batched mtime scan builds missing binaries synchronously and stale binaries in the background; fresh daemon targets still reconcile their digest/applied marker when needed. The bar starts `hidden` to avoid the default-height flash.
 2. `init.lua` runs `begin_config` → appearance defaults, `bar.lua` (still hidden), `items/`.
-3. After `end_config`, `helpers/enter_animation.lua` records the fade set; `helpers/startup.lua` reveals the bar immediately, then item foregrounds and explicit backgrounds fade together.
+3. After `end_config`, `display_gate` asynchronously checks whether startup may become visible. Once authorized, `helpers/startup.lua` and `helpers/enter_animation.lua` fade the bar and items together, then hand visibility ownership to the runtime display gate.
 4. `sbar.event_loop()` receives SketchyBar native events and custom triggers from helper daemons.
 
 ### Boot self-heal
@@ -38,14 +38,15 @@ When the config loads within 120 seconds of boot, `init.lua` schedules one `sket
 |------|--------|----------|
 | `install()` | `enter_animation` | Before `begin_config`, wrap `sbar.add` and record main-bar item names (skip popup rows) |
 | `prepare()` | same | After `end_config`, snapshot declared foreground/background colors for tracked main-bar items (bar still hidden) |
-| `startup.reveal()` | `startup` | Unhide with transparent bar colors, then animate bar background/border to final alpha (~500ms) |
+| `request_startup_reveal()` | `display_gate` | Probe lock state asynchronously and authorize the one startup reveal only when policy allows it |
+| `startup.reveal()` | `startup` | After gate authorization, unhide with transparent bar colors, then animate bar background/border to final alpha (~500ms) |
 | `run()` | same | Single linear alpha animate for declared foreground, background, and border colors (~500ms, synchronized with bar) |
 
 - Color fade only: no `y_offset`, no stagger, does not force `drawing=true` or change geometry.
 - Popup rows are skipped (`position` starts with `popup`, or names containing `popup` / calendar grid / sys process rows).
 - Bar/item timing: `helpers/timing.lua` → `ENTER_BAR_FADE_FRAMES` / `ENTER_ITEM_FADE_FRAMES` (both 30 steps, about 500ms at SketchyBar's 60 steps/s).
 
-Main-bar icon/label colors and explicitly declared background/border colors are made transparent at `sbar.add` time. Only colors are restored, so later `drawing=false` changes used to join a shared bracket remain intact. Initial asynchronous status results are collected in parallel and their latest UI updates are released after the startup fade, preventing ordinary `set` calls from cancelling the animation halfway through.
+Main-bar icon/label colors and explicitly declared background/border colors are made transparent at `sbar.add` time. Only colors are restored, so later `drawing=false` changes used to join a shared bracket remain intact. Initial asynchronous status results are collected in parallel and their latest UI updates are released after the startup fade, preventing ordinary `set` calls from cancelling the animation halfway through. `display_gate` owns visibility throughout startup and runtime: a lock or sleep event arriving during the fade wins, and fade completion cannot reset that newer hidden session.
 
 ### Theme switching
 
@@ -67,12 +68,14 @@ Manual state-file edits take effect on the next `sketchybar --reload`. This is L
 
 - Makefiles write to relative `bin/` based on **cwd**. They are not “wrong files”; the bug is running `make` in the **repo** path.
 - Correct builds:
-  - preferred: `sketchybar --reload` → `helpers/helper_build.lua` builds only missing/stale targets under `$CONFIG_DIR`; stale binaries remain usable during the background build;
-  - manual: `cd ~/.config/sketchybar/helpers && make` (or `make -C ~/.config/sketchybar/helpers/event_providers/<name>`).
-- Helper recipes compile to `bin/<name>.new` and replace the active binary only after success. Swift recipes share `helpers/swift.mk`; `SKETCHYBAR_SWIFT_SDK` can override its compatible SDK fallback.
+  - preferred: `sketchybar --reload` → `helpers/helper_build.lua` builds missing/stale targets under `$CONFIG_DIR`; a fresh launchd target may still run digest/marker reconciliation so a previously missed restart is retried;
+  - manual: `cd ~/.config/sketchybar/helpers && make` (or `make -C ~/.config/sketchybar/helpers/event_providers/<name>`). These supported manual entry points stay inside the leaf makefile and `helper_compile.sh`, so manual and automatic builds share the same per-helper lock. Do not invoke the compiler or wrapper directly.
+- Helper recipes compile to a unique target-adjacent staging file and replace the active binary only after the declared sources remain stable. Swift recipes share `helpers/swift.mk`; `SKETCHYBAR_SWIFT_SDK` can override its compatible SDK fallback.
 - **Wrong:** `make -C ~/dotfiles/sketchybar/.config/sketchybar/helpers/...` — creates a **second** `bin/` under the repo tree. That binary is **not** what launchd loads (`exec $HOME/.config/sketchybar/helpers/.../bin/...`).
 - If `bin/` exists under the **dotfiles** checkout, treat it as a mistake: delete those `helpers/**/bin` dirs (they are gitignored) and rebuild under `~/.config`.
 - After editing Swift/C: confirm `ls -l ~/.config/sketchybar/helpers/**/bin/` mtimes, then `launchctl kickstart -k gui/$(id -u)/com.fuzhuoqun.<agent>` if needed.
+- Build/apply diagnostics are per helper at `$TMPDIR/sketchybar_make.<spec-id>.log` (or `/tmp/...` when `TMPDIR` is unset). Watcher stderr goes to `/tmp/sketchybar-{aerospace_watch,docker_watch,input_method_watch,media_watch}.stderr.log`.
+- launchd caches loaded plist definitions. After pulling and Stowing a new `StandardErrorPath`, existing jobs need an explicit `bootout` + `bootstrap` for each plist, or a new login session, before those stderr paths take effect; see the root `SETUP.md` for the manual commands.
 
 ### File Map
 
@@ -121,7 +124,7 @@ Manual state-file edits take effect on the next `sketchybar --reload`. This is L
 | Process | How it starts | How it stops / restarts |
 |---------|---------------|-------------------------|
 | `sketchybar` | brew service / manual / login | `sketchybar --reload` restarts the Lua config process |
-| `aerospace_watch`, `docker_watch`, `input_method_watch`, `media_watch` | launchd LaunchAgents (`KeepAlive`) | `helper_build.lua` runs `launchctl kickstart` only after the corresponding binary rebuild succeeds |
+| `aerospace_watch`, `docker_watch`, `input_method_watch`, `media_watch` | launchd LaunchAgents (`KeepAlive`) | `helper_apply.sh` kickstarts after a stable rebuild, or when a fresh target's digest/applied marker needs reconciliation; it publishes the marker only after a successful restart |
 | `cpu_load` | `items/widgets/sys.lua` schedules it from the event loop after the `cpu_update` subscription is active (pidfile under `$TMPDIR`); the provider warms up for 100ms before its first real sample | killed/replaced on next reload of `sys.lua` |
 | `sys_watch` | only while sys popup is open | stopped in popup `on_hidden` |
 | `borders` (jankyborders) | `helpers/window_border.lua` starts it with the active theme color during SketchyBar config | updated in place on theme changes; no KeepAlive |
@@ -153,16 +156,16 @@ Manual state-file edits take effect on the next `sketchybar --reload`. This is L
 
 ### Display topology sync (`display_change` / `system_woke` / `system_will_sleep` / `screen_unlocked`)
 
-SketchyBar rebuilds every bar window on wake/unlock and display reconfiguration *before* delivering the event to Lua (wake rebuilds twice, ~500ms apart; the unlock notification also becomes `SYSTEM_WOKE`). That native rebuild is the flicker source. `helpers/display_gate.lua` runs a four-state visibility gate (`idle / sleep_hidden / settling / revealing`) using bar-level `hidden`, which the bar manager preserves across rebuilds (alpha cannot); `items/spaces.lua` supplies the probe/apply callbacks:
+SketchyBar rebuilds every bar window on wake/unlock and display reconfiguration *before* delivering the event to Lua (wake rebuilds twice, ~500ms apart; the unlock notification also becomes `SYSTEM_WOKE`). That native rebuild is the flicker source. `helpers/display_gate.lua` is the single visibility owner from startup onward: it authorizes the startup fade, receives completion from `startup.lua`, and then continues with the four-state runtime gate (`idle / sleep_hidden / settling / revealing`). A lock/sleep event during the startup fade remains authoritative. The gate uses bar-level `hidden`, which the bar manager preserves across rebuilds (alpha cannot); `items/spaces.lua` supplies the probe/apply callbacks:
 
-- `system_will_sleep` → `hidden=on` immediately; device wake, the 500ms resent wake, and lock-screen time all stay hidden. A 75s failsafe (generation-bound) arms on the first wake and can only force `settling` — never `hidden=off` directly.
+- `system_will_sleep` → `hidden=on` immediately; device wake, the 500ms resent wake, and lock-screen time all stay hidden. Pure lock arms a 75s recheck immediately; system sleep arms it on the first wake/display event. On expiry it probes `IOConsoleLocked` asynchronously: only strict `unlocked` enters the normal unlock path, while `locked` or `unknown` stays hidden and rearms. The recheck never reveals directly.
 - Pure screen lock (without sleep) also enters the same hidden path via `com.apple.screenIsLocked`, so unlock never exposes a freshly rebuilt default bar.
 - Pure screen lock (no `system_will_sleep`) keeps the bar hidden after the first unlock and resets a 0.3s quiet timer on every later notification; it releases once the event storm stays quiet (4s safety cap). Real system sleep uses one fast probe, and `display_change` switches back to full settling.
 - `screen_unlocked` (custom event on `com.apple.screenIsUnlocked`) is the normal release gate: probe every 0.2s until two consecutive identical valid snapshots (height + workspace→display mapping + `aerospace list-monitors` topology) plus 0.8s of event silence, then apply the snapshot while still hidden and play one ~0.5s reload-style fade.
 - Awake `display_change` / `system_woke` → probe first while visible; only a confirmed height/topology change enters the hidden settling path, so duplicate/no-op events do not hide or fade (the first native rebuild frame is still unmaskable while awake).
 - After a sleep reveal, events in the first 3s are absorbed as the same storm; later wake/display clusters stay probe-only. An unchanged snapshot is ignored, while a real height/topology change re-enters the full hidden gate.
 - While gated, `enter_animation.hold` also zeroes `bar.blur_radius`; release restores it with the color fade so the blurred bar background cannot stay visible on its own.
-- Fault bounds: 0.8s quiet-window stability, a 10s settling-session ceiling, a 12s hidden-hold disaster fallback, and the 75s sleep failsafe; recovery is `sketchybar --bar hidden=off && sketchybar --reload`.
+- Fault bounds: 0.8s quiet-window stability, a 10s settling-session ceiling, a 12s hidden-hold disaster fallback, and the fail-closed 75s lock-state recheck; recovery is `sketchybar --bar hidden=off && sketchybar --reload`.
 - On a confirmed change from the `system_woke` path, spaces.lua triggers `display_topology_change`; `items/apple.lua` re-measures Dock width on it, but ignores it if a raw `display_change` arrived within the last 2 seconds.
 
 ### Input Method Widget
@@ -240,9 +243,9 @@ helper 的编译产物不进 git，而是在实际运行路径里生成，例如
 
 ### 工作流程
 
-1. `sketchybarrc` 先加载 `helpers/`：一次批量 mtime 扫描跳过新鲜产物，缺失 binary 同步定向编译，已有但过期的 binary 后台定向编译；bar 先 `hidden` 避免默认高度闪一下。
+1. `sketchybarrc` 先加载 `helpers/`：一次批量 mtime 扫描同步编译缺失 binary、后台编译过期 binary；已新鲜的 launchd target 在需要时仍会核对 digest/applied marker。bar 先 `hidden` 避免默认高度闪一下。
 2. `init.lua` 执行 `begin_config` → 外观默认、`bar.lua`（仍 hidden）、`items/`。
-3. `end_config` 之后：首屏查询并行完成即放行，最长等待 1 秒；先填入已返回的真实内容，再统一归零并渐入。
+3. `end_config` 之后：首屏查询最长等待 1 秒，`display_gate` 再异步检查锁屏状态并授权唯一一次启动渐入；渐入完成后交接给同一门控的运行期状态机。
 4. `sbar.event_loop()` 接收 SketchyBar 原生事件和 helper 守护进程的自定义 trigger。
 
 ### 开机自愈
@@ -256,14 +259,15 @@ helper 的编译产物不进 git，而是在实际运行路径里生成，例如
 | `install()` | `enter_animation` | `begin_config` 前劫持 `sbar.add`，只登记主条 item 名（跳过 popup） |
 | `track()` / `when_ready()` | `startup` | 等待首轮异步状态；全部完成立即继续，1 秒超时则用已完成数据降级显示 |
 | `prepare()` / `conceal()` | `enter_animation` | 记录显式目标颜色，并在真实字符串/计数填入后重新压到透明态 |
-| `startup.reveal()` | `startup` | 以透明 bar 背景/边框 unhide，再渐入到最终 alpha（约 500ms） |
+| `request_startup_reveal()` | `display_gate` | 异步探测锁屏状态，只在策略允许时授权启动渐入 |
+| `startup.reveal()` | `startup` | 门控授权后，以透明 bar 背景/边框 unhide，再渐入到最终 alpha（约 500ms） |
 | `run()` | 同上 | 所有显式前景、背景和边框颜色一次 linear alpha 渐入（约 500ms，与 bar 同步） |
 
 - 只插值颜色 alpha：不改 `y_offset`、不做 stagger、不强行 `drawing=true`，也不改变几何。
 - 跳过 popup 行（`position` 以 `popup` 开头，或名称含 `popup` / 月历格 / sys 进程行）。
 - bar/item 时长：`helpers/timing.lua` 的 `ENTER_BAR_FADE_FRAMES` / `ENTER_ITEM_FADE_FRAMES`，当前均为 30 steps（SketchyBar 按 60 steps/s 计算，约 500ms）。
 
-必须在 **end_config 之后** prepare。首屏屏障只等待状态，不串行执行外部命令；超时也不会取消晚到的查询。动画使用 `add` 时声明的目标颜色，不逐项调用同步 `query()`，避免 item 数量增长后拖慢 reload。首次 UI 结果在隐藏阶段先填充内容，并在渐入结束后以最新值收尾，避免普通 `set` 半途取消动画。
+必须在 **end_config 之后** prepare。首屏屏障只等待状态，不串行执行外部命令；超时也不会取消晚到的查询。动画使用 `add` 时声明的目标颜色，不逐项调用同步 `query()`，避免 item 数量增长后拖慢 reload。首次 UI 结果在隐藏阶段先填充内容，并在渐入结束后以最新值收尾，避免普通 `set` 半途取消动画。启动和运行期可见性始终由 `display_gate` 单一持有；渐入中新到的锁屏/睡眠事件优先，渐入完成不会把新的 hidden 会话重置掉。
 
 **坑：包装 `sbar.add` 时必须用 `raw_add(...)` 原样转发。**  
 不要对 3 参数的 `add("item", name, props)` 写成 `raw_add(kind, name, props, nil)`。多传的 `nil` 会让 SbarLua 按 4 参形态误解析，popup item 的 `position = "popup.…"` 丢失，Docker/Git 等 popup 行会整排铺到主条上。`install()` 故意用可变参数 `...`，改这段时务必保留。
@@ -278,12 +282,14 @@ helper 的编译产物不进 git，而是在实际运行路径里生成，例如
 
 - makefile 里是相对路径 `bin/`，跟 **当前 cwd** 走，不是 makefile「写错路径」。
 - 正确编译：
-  - 推荐：`sketchybar --reload` → `helpers/helper_build.lua` 只在 `$CONFIG_DIR` 下编译缺失或过期 target；后台编译期间旧 binary 仍可继续运行；
-  - 手动：`cd ~/.config/sketchybar/helpers && make`。
-- helper 先输出到 `bin/<name>.new`，成功后才替换现有 binary。Swift helper 共用 `helpers/swift.mk`；必要时可用 `SKETCHYBAR_SWIFT_SDK` 覆盖兼容 SDK fallback。
+  - 推荐：`sketchybar --reload` → `helpers/helper_build.lua` 在 `$CONFIG_DIR` 下编译缺失/过期 target；已新鲜的 launchd target 若 digest/marker 不一致，仍会 reconcile 并重试上次丢失的重启；
+  - 手动：`cd ~/.config/sketchybar/helpers && make`，或对某个 leaf 目录执行 `make -C ...`。这些受支持的手动入口都经 leaf makefile + `helper_compile.sh`，与自动编译共用同一把 per-helper 锁；不要直接调用编译器或 wrapper。
+- helper 先编译到唯一的 target 同目录临时文件，声明的源文件稳定后才原子替换 binary。Swift helper 共用 `helpers/swift.mk`；必要时可用 `SKETCHYBAR_SWIFT_SDK` 覆盖兼容 SDK fallback。
 - **错误：** `make -C ~/dotfiles/sketchybar/.config/sketchybar/helpers/...` — 会在**仓库树**下再生成一份 `bin/`，launchd 仍加载 `$HOME/.config/.../bin/...`，改了等于白改。
 - 若在 **dotfiles 检出目录**里看到 `helpers/**/bin`：当作误编译，删掉这些目录（本来就不进 git），再到 `~/.config` 下重编。
 - 改 Swift/C 后：看 `~/.config/sketchybar/helpers/**/bin/` 的 mtime，必要时 `launchctl kickstart -k gui/$(id -u)/com.fuzhuoqun.<agent>`。
+- 每个 helper 的 build/apply 日志在 `$TMPDIR/sketchybar_make.<spec-id>.log`（`TMPDIR` 未设置时落到 `/tmp/...`）；四个 watcher 的 stderr 在 `/tmp/sketchybar-{aerospace_watch,docker_watch,input_method_watch,media_watch}.stderr.log`。
+- launchd 会缓存已加载的 plist。拉取并 Stow 新 `StandardErrorPath` 后，现有 job 必须逐个 `bootout` + `bootstrap`，或等到下次新登录会话，新 stderr 路径才生效；手动命令见根目录 `SETUP.md`。
 
 ### 主题切换
 
@@ -341,7 +347,7 @@ Hammerspoon 按 `Hyper+Shift+T` 打开选择器。选中后先原子写入状态
 | 进程 | 如何启动 | 如何停止 / 重启 |
 |------|----------|-----------------|
 | `sketchybar` | brew service / 手动 / 登录项 | `sketchybar --reload` 重跑 Lua 配置进程 |
-| `aerospace_watch` / `docker_watch` / `input_method_watch` / `media_watch` | launchd LaunchAgents（`KeepAlive`） | `helper_build.lua` 仅在对应 binary 成功重建后 `launchctl kickstart` |
+| `aerospace_watch` / `docker_watch` / `input_method_watch` / `media_watch` | launchd LaunchAgents（`KeepAlive`） | `helper_apply.sh` 在稳定重建后 kickstart；新鲜 target 的 digest/applied marker 需 reconcile 时也会重启，成功后才发布 marker |
 | `cpu_load` | `items/widgets/sys.lua` 在 `cpu_update` 订阅生效后从事件循环启动（pidfile 在 `$TMPDIR`）；provider 预热 100ms 后发送首个真实采样 | 下次 reload `sys.lua` 时 kill 旧进程再起 |
 | `sys_watch` | 仅在 sys popup 打开期间 | popup `on_hidden` 时停止 |
 | `borders`（jankyborders） | SketchyBar 配置期由 `helpers/window_border.lua` 带当前主题色启动 | 主题切换时原进程热更新；不做 KeepAlive |
@@ -373,16 +379,16 @@ Hammerspoon 按 `Hyper+Shift+T` 打开选择器。选中后先原子写入状态
 
 ### 显示器拓扑同步（`display_change` / `system_woke` / `system_will_sleep` / `screen_unlocked`）
 
-SketchyBar 在唤醒/解锁和显示器重构时会**先把全部 bar 窗口销毁重建，再把事件投递给 Lua**（唤醒重建两次、间隔 ~500ms；解锁通知同样转成 `SYSTEM_WOKE`）。这种原生重建就是闪烁来源。`helpers/display_gate.lua` 用四态可见性门控（`idle / sleep_hidden / settling / revealing`），门控用 bar 级 `hidden`——bar_manager 会把它保留并应用到重建后的新窗口（alpha 做不到）；`items/spaces.lua` 提供 probe/apply 回调：
+SketchyBar 在唤醒/解锁和显示器重构时会**先把全部 bar 窗口销毁重建，再把事件投递给 Lua**（唤醒重建两次、间隔 ~500ms；解锁通知同样转成 `SYSTEM_WOKE`）。这种原生重建就是闪烁来源。`helpers/display_gate.lua` 从启动起就是唯一可见性 owner：它授权启动渐入、接收 `startup.lua` 的完成回调，然后继续持有四态运行期门控（`idle / sleep_hidden / settling / revealing`）。渐入中到来的锁屏/睡眠事件优先。门控用 bar 级 `hidden`——bar_manager 会把它保留并应用到重建后的新窗口（alpha 做不到）；`items/spaces.lua` 提供 probe/apply 回调：
 
-- `system_will_sleep` → 立即 `hidden=on`；设备唤醒、500ms 补发唤醒、锁屏期间全程保持。首次 wake 武装 75s failsafe（generation 绑定），只能强制进入 `settling`，绝不直接 `hidden=off`。
+- `system_will_sleep` → 立即 `hidden=on`；设备唤醒、500ms 补发唤醒、锁屏期间全程保持。纯锁屏立即武装 75s 复查，真睡眠在首个 wake/display 后武装。到期后异步探测 `IOConsoleLocked`：只有严格 `unlocked` 才走正常解锁路径，`locked`/`unknown` 继续 hidden 并重新排程；复查绝不直接 reveal。
 - 纯锁屏（不进入睡眠）也通过 `com.apple.screenIsLocked` 进入同一 hidden 路径，避免解锁时先露出重建后的默认 bar。
 - 纯锁屏（没有 `system_will_sleep`）从第一次解锁起保持 hidden，每次后续通知都重置 0.3s 安静计时；事件风暴连续安静后才一次性渐入（4s 兜底）。真睡眠用一次快速 probe，`display_change` 才切回完整 settling。
 - `screen_unlocked`（监听 `com.apple.screenIsUnlocked` 的自定义事件）是正常释放入口：每 0.2s probe，连续两份有效且相同的快照（高度 + workspace→显示器映射 + `aerospace list-monitors` 拓扑签名）+ 最后事件后 0.8s 静默判定稳定 → 在 hidden 状态下应用快照 → 播一次约 0.5s 的 reload 同款整体渐入。
 - 清醒 `display_change` / `system_woke` → 先保持可见并 probe，只有确认高度/拓扑变化才进入 hidden settling；重复/无变化事件不再隐藏或渐入（清醒态第一帧原生重建仍无法遮罩）。
 - 睡眠恢复第一次渐入完成后的 3s 内直接吸收同一事件风暴；之后 wake/display 事件同样保持 probe-only。快照无变化则忽略，确有高度/拓扑变化才重新进入完整 hidden 门控。
 - 门控期间 `enter_animation.hold` 同时把 `bar.blur_radius` 归零，release 时随颜色渐入一起恢复，避免毛玻璃背景单独残留在屏幕上。
-- 故障边界：0.8s 静默稳定窗、10s settling 会话上限、12s hidden hold 灾难兜底，以及 75s 睡眠 failsafe；恢复命令 `sketchybar --bar hidden=off && sketchybar --reload`。
+- 故障边界：0.8s 静默稳定窗、10s settling 会话上限、12s hidden hold 灾难兜底，以及 fail-closed 的 75s 锁状态复查；恢复命令 `sketchybar --bar hidden=off && sketchybar --reload`。
 - system_woke 路径确认变化后由 spaces.lua 触发 `display_topology_change`；`items/apple.lua` 据此重测 Dock 宽度，但若 2 秒内已收到 raw `display_change` 则忽略。
 
 ### 输入法 Widget

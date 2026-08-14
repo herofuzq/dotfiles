@@ -172,7 +172,7 @@ pgrep -fl BetterTouchTool
 |-----------|------|
 | `sketchybarrc` | 入口文件 |
 | `init.lua` | Lua 主控（加载所有模块 + 编译 helpers） |
-| `helpers/init.lua` | helper freshness 检查，只在 binary 缺失或源码更新时跑 make |
+| `helpers/init.lua` | helper freshness 检查：缺失/过期 binary 跑 make，已新鲜 daemon 仍可核对 digest/applied marker |
 | `helpers/event_providers/` | 后台守护进程源码（AeroSpace、输入法、媒体、CPU、系统信息） |
 | `items/` | 所有 bar widget 定义 |
 
@@ -181,7 +181,14 @@ pgrep -fl BetterTouchTool
 - AeroSpace / 输入法 / 媒体 / Docker 监听 → launchd 管理（见下方 Launchd 服务）
 - `cpu_load`：由 `items/widgets/sys.lua` 在 reload 时用 pidfile 拉起（非 launchd）
 - `sys_watch`：仅 sys popup 打开期间由 Lua 拉起，关闭 popup 时杀掉
-- helper 二进制在 `~/.config/sketchybar/helpers/.../bin/`，不进 git；源码更新后 reload 会 `make`，并只 kickstart **本次重建过** 的 launchd agent
+- helper 二进制在 `~/.config/sketchybar/helpers/.../bin/`，不进 git；源码更新后 reload 会 `make`。daemon target 即使 mtime 已新鲜，digest/applied marker 不一致时仍会 reconcile 并 kickstart，成功后才原子写 marker
+- bar 的启动与运行期可见性统一由 `helpers/display_gate.lua` 持有；锁屏/睡眠的 75 秒兜底是异步锁状态复查，`locked` 或 `unknown` 都只会继续 hidden 并重试，不会授权 reveal
+
+**Helper 编译与诊断：**
+
+- 支持的手动入口是 `cd ~/.config/sketchybar/helpers && make`，或 `make -C ~/.config/sketchybar/helpers/event_providers/<name>`。它们都经 leaf makefile + `helper_compile.sh`，与自动编译共用同一把 per-helper 锁；不要直接调用 compiler/wrapper。
+- 每个 helper 的 build/apply 日志在 `$TMPDIR/sketchybar_make.<spec-id>.log`（`TMPDIR` 未设置时落到 `/tmp/...`）。
+- launchd watcher stderr 在 `/tmp/sketchybar-aerospace_watch.stderr.log`、`/tmp/sketchybar-docker_watch.stderr.log`、`/tmp/sketchybar-input_method_watch.stderr.log`、`/tmp/sketchybar-media_watch.stderr.log`。
 
 **可选 / 推荐依赖：**
 - `jq`：Clash TUN 状态解析更准确（无 jq 时 `clash_status.sh` 用粗 grep；`brew install jq`）
@@ -240,7 +247,24 @@ launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.fuzhuoqun.input_meth
 launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.fuzhuoqun.media_watch.plist
 ```
 
-二进制由 `sketchybar --reload` 时自动编译（通过 `helpers/init.lua` + `make`）。
+**更新已加载的 plist：** launchd 会缓存 job 定义。拉取并 Stow 含新
+`StandardErrorPath` 的 plist 后，仅 kickstart 不会重读 plist；可等到下次新登录会话，
+或手动逐个 `bootout` + `bootstrap`：
+
+```bash
+# 以下命令仅供部署时手动执行；本次实施未执行这些命令。
+launchctl bootout gui/$(id -u)/com.fuzhuoqun.aerospace_watch
+launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.fuzhuoqun.aerospace_watch.plist
+launchctl bootout gui/$(id -u)/com.fuzhuoqun.docker_watch
+launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.fuzhuoqun.docker_watch.plist
+launchctl bootout gui/$(id -u)/com.fuzhuoqun.input_method_watch
+launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.fuzhuoqun.input_method_watch.plist
+launchctl bootout gui/$(id -u)/com.fuzhuoqun.media_watch
+launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.fuzhuoqun.media_watch.plist
+```
+
+二进制由 `sketchybar --reload` 时自动编译（通过 `helpers/init.lua` + `make`）；
+已新鲜的 daemon target 也会在 marker 不匹配时 reconcile。
 
 ---
 

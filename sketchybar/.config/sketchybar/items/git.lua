@@ -20,11 +20,17 @@ local colors = appearance.colors
 local item_name = (config.item or {}).name or "git_status"
 local config_dir = os.getenv("CONFIG_DIR") or ((os.getenv("HOME") or "") .. "/.config/sketchybar")
 local lua_bin = find_binary({ "/opt/homebrew/bin/lua", "/usr/local/bin/lua" }, "lua")
--- HOME 用于把仓库路径前的家目录折叠成 ~；转义成字面 pattern 并防护 HOME 缺失。
+-- HOME 用于把仓库路径前的家目录折叠成 ~。
 local home_prefix = os.getenv("HOME")
-local home_pattern = home_prefix
-	and ("^" .. home_prefix:gsub("[%(%)%.%%%+%-%*%?%[%]%^%$]", "%%%0"))
-	or nil
+local function display_path(path)
+	if not home_prefix or home_prefix == "" then return path end
+	if path == home_prefix then return "~" end
+	local child_prefix = home_prefix .. "/"
+	if path:sub(1, #child_prefix) == child_prefix then
+		return "~/" .. path:sub(#child_prefix + 1)
+	end
+	return path
+end
 local status_script = config_dir .. "/helpers/git/status.lua"
 local initial_ready = startup.track("git.status")
 
@@ -113,7 +119,7 @@ local function render_popup(state)
 		local pad_info = e.info .. string.rep(" ", state.max_info_len - vlen(e.info) + 2)
 		e.row:set({
 			drawing = true,
-			label = { string = icons.git .. "  " .. pad_label .. pad_branch .. pad_info .. (home_pattern and e.path:gsub(home_pattern, "~") or e.path), color = status_color(e.status) },
+			label = { string = icons.git .. "  " .. pad_label .. pad_branch .. pad_info .. display_path(e.path), color = status_color(e.status) },
 		})
 	end
 	for path, row in pairs(repo_rows) do
