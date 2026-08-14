@@ -3,6 +3,7 @@
 local sbar = require("sketchybar")
 local display_policy = require("helpers.display_policy")
 local enter_animation = require("helpers.enter_animation")
+local lock_state = require("helpers.lock_state")
 
 local M = {}
 local handlers = {}
@@ -29,7 +30,8 @@ local gate_session_id = 0
 local gate_token = nil
 local gate_revealed_at = 0
 local gate_had_wake = false
-local gate_failsafe_armed = false
+local gate_lock_recheck_armed = false
+local gate_lock_unknown_streak = 0
 local gate_session_from_sleep = false
 local gate_post_sleep_verify_until = 0
 local gate_aftershock_generation = 0
@@ -58,6 +60,7 @@ local gate_verify_post_sleep_event
 local gate_verify_awake_event
 local gate_on_will_sleep
 local gate_on_unlock
+local gate_schedule_lock_recheck
 
 local function close_popups()
 	if handlers.close_popups then
@@ -396,16 +399,8 @@ local function gate_on_display_event(source_event)
 			gate_enter_settling()
 			return
 		end
-		if not gate_failsafe_armed then
-			gate_failsafe_armed = true
-			local gen = gate_generation
-			sbar.delay(SLEEP_FAILSAFE_SECONDS, function()
-				if gate_state == "sleep_hidden" and gate_generation == gen then
-					io.stderr:write("display_gate: 75s failsafe fired, force settling\n")
-					gate_enter_settling()
-				end
-			end)
-		end
+		-- 睡眠路径在首次 wake/display 后才武装锁状态复查（纯锁路径在 on_lock 即武装）。
+		gate_schedule_lock_recheck()
 		return
 	end
 	if action == "verify_post_sleep" then
@@ -431,19 +426,24 @@ gate_on_will_sleep = function(from_system_sleep)
 	gate_settle_stable_key = nil
 	gate_fast_release_generation = gate_fast_release_generation + 1
 	gate_fast_release_scheduled = false
-	gate_failsafe_armed = false
+	gate_lock_recheck_armed = false
+	gate_lock_unknown_streak = 0
 	gate_had_wake = false
 	gate_had_display_change = false
 	gate_from_system_sleep = from_system_sleep == true
 	gate_cooldown_active = false
 	gate_quiet_generation = gate_quiet_generation + 1
 	gate_quiet_max_generation = gate_quiet_max_generation + 1
-	gate_session_from_sleep = true
+	gate_session_from_sleep = gate_from_system_sleep
 	gate_post_sleep_verify_until = 0
 	gate_aftershock_generation = gate_aftershock_generation + 1
 	close_popups()
 	trigger_transition_begin()
 	gate_token = enter_animation.hold({ hidden = true, no_timeout = true })
+	if not gate_from_system_sleep then
+		-- 纯锁屏：立即武装锁状态复查，不依赖 wake/display 事件。
+		gate_schedule_lock_recheck()
+	end
 end
 
 gate_on_unlock = function()
@@ -462,6 +462,46 @@ gate_on_unlock = function()
 			gate_schedule_fast_release()
 		end
 	end
+end
+
+-- ========== 锁状态复查（可恢复兜底）==========
+-- 锁定/睡眠期间，single notification 丢失不能导致 bar 永久隐藏，但也不能在
+-- 仍锁定时 reveal（旧实现直接 force settling，三条 reveal 路径都会在锁屏上
+-- 露出 bar）。这里改为每隔 SLEEP_FAILSAFE_SECONDS 复查屏幕锁状态：
+--   - unlocked → 走现有 gate_on_unlock()，不直接 settling；
+--   - locked   → 继续隐藏并重新排程；
+--   - unknown  → 继续隐藏并重新排程，连续 3 次只限频记一次日志。
+-- 未知绝不授权释放：只有 unlock 通知或严格 IOConsoleLocked=No 才能放行。
+gate_schedule_lock_recheck = function()
+	if gate_lock_recheck_armed then
+		return
+	end
+	gate_lock_recheck_armed = true
+	local generation = gate_generation
+	sbar.delay(SLEEP_FAILSAFE_SECONDS, function()
+		gate_lock_recheck_armed = false
+		if gate_state ~= "sleep_hidden" or gate_generation ~= generation then
+			return
+		end
+		local state = lock_state.detect_sync()
+		if state == "unlocked" then
+			gate_lock_unknown_streak = 0
+			gate_on_unlock()
+		else
+			if state ~= "locked" then
+				gate_lock_unknown_streak = gate_lock_unknown_streak + 1
+				if gate_lock_unknown_streak % 3 == 0 then
+					io.stderr:write(
+						"display_gate: lock recheck unknown (" .. gate_lock_unknown_streak
+						.. "x), bar stays hidden, retrying in " .. SLEEP_FAILSAFE_SECONDS .. "s\n"
+					)
+				end
+			else
+				gate_lock_unknown_streak = 0
+			end
+			gate_schedule_lock_recheck()
+		end
+	end)
 end
 
 function M.configure(options)
