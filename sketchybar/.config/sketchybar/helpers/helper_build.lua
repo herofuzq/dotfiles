@@ -32,6 +32,8 @@ function M.specs(cfg)
 			restart_label = "com.fuzhuoqun.aerospace_watch",
 			sources = {
 				h .. "/event_providers/aerospace_watch/aerospace_watch.swift",
+				h .. "/event_providers/sketchybar_mach.c",
+				h .. "/event_providers/sketchybar.h",
 				h .. "/event_providers/aerospace_watch/makefile",
 				swift_mk,
 				helper_compile,
@@ -44,6 +46,8 @@ function M.specs(cfg)
 			restart_label = "com.fuzhuoqun.docker_watch",
 			sources = {
 				h .. "/event_providers/docker_watch/docker_watch.swift",
+				h .. "/event_providers/sketchybar_mach.c",
+				h .. "/event_providers/sketchybar.h",
 				h .. "/event_providers/docker_watch/makefile",
 				swift_mk,
 				helper_compile,
@@ -56,6 +60,8 @@ function M.specs(cfg)
 			restart_label = "com.fuzhuoqun.input_method_watch",
 			sources = {
 				h .. "/event_providers/input_method/input_method_watch.swift",
+				h .. "/event_providers/sketchybar_mach.c",
+				h .. "/event_providers/sketchybar.h",
 				h .. "/event_providers/input_method/makefile",
 				swift_mk,
 				helper_compile,
@@ -68,6 +74,8 @@ function M.specs(cfg)
 			restart_label = "com.fuzhuoqun.media_watch",
 			sources = {
 				h .. "/event_providers/media_watch/media_watch.swift",
+				h .. "/event_providers/sketchybar_mach.c",
+				h .. "/event_providers/sketchybar.h",
 				h .. "/event_providers/media_watch/makefile",
 				swift_mk,
 				helper_compile,
@@ -79,6 +87,8 @@ function M.specs(cfg)
 			build_dir = h .. "/event_providers/sys_watch",
 			sources = {
 				h .. "/event_providers/sys_watch/sys_watch.swift",
+				h .. "/event_providers/sketchybar_mach.c",
+				h .. "/event_providers/sketchybar.h",
 				h .. "/event_providers/sys_watch/makefile",
 				swift_mk,
 				helper_compile,

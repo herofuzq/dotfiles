@@ -1,4 +1,26 @@
+import Darwin
 import Foundation
+
+@_silgen_name("sketchybar_send_args")
+func sketchybar_send_args(_ argc: Int32, _ argv: UnsafePointer<UnsafePointer<CChar>?>?)
+
+func sketchybarSend(_ arguments: [String]) {
+    guard !arguments.isEmpty else { return }
+    var cStrings: [UnsafeMutablePointer<CChar>] = []
+    cStrings.reserveCapacity(arguments.count)
+    for argument in arguments {
+        guard let copied = strdup(argument) else {
+            cStrings.forEach { free($0) }
+            return
+        }
+        cStrings.append(copied)
+    }
+    defer { cStrings.forEach { free($0) } }
+    let argv: [UnsafePointer<CChar>?] = cStrings.map { UnsafePointer($0) }
+    argv.withUnsafeBufferPointer { buffer in
+        sketchybar_send_args(Int32(arguments.count), buffer.baseAddress)
+    }
+}
 
 // Bridge Docker container events into a lightweight SketchyBar trigger.
 //
@@ -18,7 +40,7 @@ func waitPath(_ name: String, candidates: [String]) -> String {
 }
 
 let docker = waitPath("docker", candidates: ["/opt/homebrew/bin/docker", "/usr/local/bin/docker"])
-let sketchybar = waitPath("sketchybar", candidates: ["/opt/homebrew/bin/sketchybar", "/usr/local/bin/sketchybar"])
+_ = waitPath("sketchybar", candidates: ["/opt/homebrew/bin/sketchybar", "/usr/local/bin/sketchybar"])
 let triggerQueue = DispatchQueue(label: "com.fuzhuoqun.docker_watch.trigger")
 var triggerScheduled = false
 var shouldRun = true
@@ -45,13 +67,7 @@ func waitForProcess(_ task: Process, timeout: TimeInterval) -> Bool {
 }
 
 func runSketchybarTrigger() {
-    let task = Process()
-    task.launchPath = sketchybar
-    task.arguments = ["--trigger", "services_change", "SOURCE=docker_watch"]
-    task.standardOutput = FileHandle.nullDevice
-    task.standardError = FileHandle.nullDevice
-    guard (try? task.run()) != nil else { return }
-    _ = waitForProcess(task, timeout: commandTimeout)
+    sketchybarSend(["--trigger", "services_change", "SOURCE=docker_watch"])
 }
 
 func scheduleTrigger() {

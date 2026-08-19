@@ -1,6 +1,27 @@
 import Darwin
 import Foundation
 
+@_silgen_name("sketchybar_send_args")
+func sketchybar_send_args(_ argc: Int32, _ argv: UnsafePointer<UnsafePointer<CChar>?>?)
+
+func sketchybarSend(_ arguments: [String]) {
+    guard !arguments.isEmpty else { return }
+    var cStrings: [UnsafeMutablePointer<CChar>] = []
+    cStrings.reserveCapacity(arguments.count)
+    for argument in arguments {
+        guard let copied = strdup(argument) else {
+            cStrings.forEach { free($0) }
+            return
+        }
+        cStrings.append(copied)
+    }
+    defer { cStrings.forEach { free($0) } }
+    let argv: [UnsafePointer<CChar>?] = cStrings.map { UnsafePointer($0) }
+    argv.withUnsafeBufferPointer { buffer in
+        sketchybar_send_args(Int32(arguments.count), buffer.baseAddress)
+    }
+}
+
 struct AppUsage {
     let name: String
     let cpu: Double
@@ -18,7 +39,7 @@ guard CommandLine.arguments.count == 5 else {
 }
 
 let mactop = CommandLine.arguments[1]
-let sketchybar = CommandLine.arguments[2]
+_ = CommandLine.arguments[2]
 let interval = Double(CommandLine.arguments[3]) ?? 2000
 let cachePath = CommandLine.arguments[4]
 let queue = DispatchQueue(label: "com.fuzhuoqun.sys_watch")
@@ -30,22 +51,6 @@ var dataBuffer = Data()
 var sensorReceived = false
 var lastHeader = ""
 var lastRows = Array(repeating: "", count: 10)
-let commandTimeout: TimeInterval = 1.0
-
-@Sendable func waitForProcess(_ task: Process, timeout: TimeInterval) -> Bool {
-    let finished = DispatchSemaphore(value: 0)
-    task.terminationHandler = { _ in finished.signal() }
-    guard finished.wait(timeout: .now() + timeout) == .timedOut else {
-        task.terminationHandler = nil
-        return true
-    }
-    if task.isRunning { task.terminate() }
-    if finished.wait(timeout: .now() + 0.2) == .timedOut, task.isRunning {
-        kill(task.processIdentifier, SIGKILL)
-    }
-    task.terminationHandler = nil
-    return false
-}
 
 @Sendable func number(_ value: Any?) -> Double? {
     (value as? NSNumber)?.doubleValue
@@ -95,13 +100,7 @@ let commandTimeout: TimeInterval = 1.0
 }
 
 @Sendable func runSketchybar(_ arguments: [String]) {
-    let task = Process()
-    task.executableURL = URL(fileURLWithPath: sketchybar)
-    task.arguments = arguments
-    task.standardOutput = FileHandle.nullDevice
-    task.standardError = FileHandle.nullDevice
-    guard (try? task.run()) != nil else { return }
-    _ = waitForProcess(task, timeout: commandTimeout)
+    sketchybarSend(arguments)
 }
 
 /// Drop control characters so --set label=... is not split/corrupted by sketchybar parsing.

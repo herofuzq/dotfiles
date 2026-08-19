@@ -116,6 +116,32 @@ local function distribute(visible_workspace_names, focused_name, animated, works
 	end
 end
 
+-- 可见集合未变、只换焦点时只重绘上一个和当前分段。几何不依赖焦点，
+-- 其余分段保持 inactive。主题换色仍走完整 distribute。
+local function shift_focus(focused_name, animated)
+	if not last_distribute then
+		return
+	end
+	local previous = last_distribute.focused
+	last_distribute.focused = focused_name
+	if previous == focused_name then
+		return
+	end
+	local function apply()
+		if previous and previous ~= "" and previous ~= focused_name then
+			set_inactive(previous)
+		end
+		if focused_name and focused_name ~= "" then
+			set_focused(focused_name)
+		end
+	end
+	if animated then
+		sbar.animate("linear", timing.STANDARD_DURATION_FRAMES, apply)
+	else
+		apply()
+	end
+end
+
 -- ========== 主题热换色：按记忆的参数重放 distribute ==========
 -- animated=false：switch_theme 外层已有 animate；set_focused/set_inactive
 -- 内部会同步 enter_animation.update_target（reveal 目标色缓存）。
@@ -145,6 +171,7 @@ end
 
 return {
 	distribute = distribute,
+	shift_focus = shift_focus,
 	set_focused = set_focused,
 	sync_bar_height = sync_bar_height,
 	workspace_style = workspace_style,

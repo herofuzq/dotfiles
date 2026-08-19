@@ -2,29 +2,38 @@ import Carbon
 import Darwin
 import Foundation
 
-/// 循环等待 sketchybar 就绪，避免 launchd 无限重启
-func waitSketchybar() -> String {
+@_silgen_name("sketchybar_send_args")
+func sketchybar_send_args(_ argc: Int32, _ argv: UnsafePointer<UnsafePointer<CChar>?>?)
+
+func sketchybarSend(_ arguments: [String]) {
+    guard !arguments.isEmpty else { return }
+    var cStrings: [UnsafeMutablePointer<CChar>] = []
+    cStrings.reserveCapacity(arguments.count)
+    for argument in arguments {
+        guard let copied = strdup(argument) else {
+            cStrings.forEach { free($0) }
+            return
+        }
+        cStrings.append(copied)
+    }
+    defer { cStrings.forEach { free($0) } }
+    let argv: [UnsafePointer<CChar>?] = cStrings.map { UnsafePointer($0) }
+    argv.withUnsafeBufferPointer { buffer in
+        sketchybar_send_args(Int32(arguments.count), buffer.baseAddress)
+    }
+}
+
+/// 循环等待 sketchybar 已安装，避免 launchd 在 bar 尚未就位时反复重启。
+/// 真正投递走 Mach，不再需要二进制路径。
+func waitSketchybar() {
     let knownPaths = ["/opt/homebrew/bin/sketchybar", "/usr/local/bin/sketchybar"]
     while true {
-        for p in knownPaths where FileManager.default.isExecutableFile(atPath: p) { return p }
-        let proc = Process()
-        proc.launchPath = "/bin/sh"
-        proc.arguments = ["-c", "which sketchybar"]
-        let pipe = Pipe()
-        proc.standardOutput = pipe
-        proc.standardError = FileHandle.nullDevice
-        try? proc.run()
-        proc.waitUntilExit()
-        if let result = String(
-            data: pipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8
-        )?.trimmingCharacters(in: .whitespacesAndNewlines), !result.isEmpty {
-            return result
-        }
+        for p in knownPaths where FileManager.default.isExecutableFile(atPath: p) { return }
         fputs("input_method_watch: sketchybar not found, retrying in 5s\n", stderr)
         sleep(5)
     }
 }
-let sketchybarPath = waitSketchybar()
+waitSketchybar()
 let fcitx5SourcePrefix = "org.fcitx.inputmethod.Fcitx5."
 let fcitxPollInterval: TimeInterval = 1.0
 let sourceFallbackInterval: TimeInterval = 5.0
@@ -60,30 +69,9 @@ func loadBeastEndpoint() -> BeastEndpoint {
 }
 
 let beastEndpoint = loadBeastEndpoint()
-let commandTimeout: TimeInterval = 1.0
 let fcitxQueue = DispatchQueue(label: "com.fuzhuoqun.input_method_watch.fcitx")
 var fcitxQueryInFlight = false
 var fcitxQueryPending = false
-
-func waitForProcess(_ task: Process, timeout: TimeInterval) -> Bool {
-    let finished = DispatchSemaphore(value: 0)
-    task.terminationHandler = { _ in finished.signal() }
-
-    guard finished.wait(timeout: .now() + timeout) == .timedOut else {
-        task.terminationHandler = nil
-        return true
-    }
-
-    if task.isRunning {
-        task.terminate()
-    }
-    if finished.wait(timeout: .now() + 0.2) == .timedOut,
-       task.isRunning {
-        kill(task.processIdentifier, SIGKILL)
-    }
-    task.terminationHandler = nil
-    return false
-}
 
 func currentInputSourceID() -> String {
     guard let source = TISCopyCurrentKeyboardInputSource()?.takeRetainedValue(),
@@ -213,23 +201,13 @@ func publishInputMethodChange(inputSourceID: String, fcitxMode: String) {
     let signature = "\(inputSourceID)|\(fcitxMode)"
     guard signature != lastSignature else { return }
 
-    let task = Process()
-    task.launchPath = sketchybarPath
-    task.arguments = [
+    sketchybarSend([
         "--trigger", "input_method_change",
         "IM_ID=\(inputSourceID)",
         "FCITX5_ACTIVE=\(isFcitx ? "1" : "0")",
         "FCITX5_MODE=\(fcitxMode)",
-    ]
-    task.standardOutput = FileHandle.nullDevice
-    task.standardError = FileHandle.nullDevice
-    guard (try? task.run()) != nil else { return }
+    ])
     lastSignature = signature
-    // The watcher must not wait for SketchyBar; a slow reload should not delay
-    // input-source notifications on the main run loop.
-    DispatchQueue.global().async {
-        _ = waitForProcess(task, timeout: commandTimeout)
-    }
 }
 
 func refreshFcitxMode(inputSourceID: String) {

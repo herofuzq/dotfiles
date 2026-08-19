@@ -57,6 +57,7 @@ local _popup_render_gen = {} -- { [ws_name] = gen } 延迟渲染的代数，避�
 local _popup_query_gen = {} -- { [ws_name] = gen } 丢弃关闭 popup 后才返回的旧查询
 local _popup_animations = {}
 local _border_signature
+local _border_visible_signature
 local _workspace_content_signatures = {}
 local animations_ready = false
 local front_app_generation = 0
@@ -570,11 +571,18 @@ local function distribute_borders(focused_workspace, animated, visible_names)
 		end
 	end
 	local focused_name = "workspace." .. (focused_workspace or "")
-	local signature = focused_name .. "\0" .. table.concat(visible_names, "\0")
+	local visible_signature = table.concat(visible_names, "\0")
+	local signature = focused_name .. "\0" .. visible_signature
 	if _border_signature == signature then
 		return
 	end
+	local focus_only = _border_visible_signature == visible_signature
 	_border_signature = signature
+	_border_visible_signature = visible_signature
+	if focus_only then
+		borders.shift_focus(focused_name, animated)
+		return
+	end
 	borders.distribute(visible_names, focused_name, animated, workspace_order)
 end
 
