@@ -804,20 +804,38 @@ local function updateWorkspaceMonitor(on_complete)
 end
 
 -- 采集显示器快照（bar 高度 + 映射签名），只比对不应用。
+-- 高度 helper 和 AeroSpace 查询并行：不改 gate 的藏/静默时序，也不去掉
+-- bar_height 内部的 0.1s 稳定等待。
 local function probeDisplayState(on_done)
+	local height_ready, monitor_ready
+	local height_value, monitor_value
+	local finished = false
+
+	local function maybe_done()
+		if finished or not height_ready or not monitor_ready then
+			return
+		end
+		finished = true
+		on_done({
+			height = height_value,
+			height_changed = height_value and height_value > 0 and height_value ~= settings.height or false,
+			monitor_valid = monitor_value.monitor_valid,
+			monitor_changed = monitor_value.monitor_changed,
+			monitor_map = monitor_value.monitor_map,
+			monitor_signature = monitor_value.monitor_signature,
+			topology_signature = monitor_value.topology_signature,
+		})
+	end
+
 	settings.refresh_bar_height(function(height)
-		local snapshot = {
-			height = height,
-			height_changed = height and height > 0 and height ~= settings.height or false,
-		}
-		queryMonitorSnapshot(function(monitor)
-			snapshot.monitor_valid = monitor.monitor_valid
-			snapshot.monitor_changed = monitor.monitor_changed
-			snapshot.monitor_map = monitor.monitor_map
-			snapshot.monitor_signature = monitor.monitor_signature
-			snapshot.topology_signature = monitor.topology_signature
-			on_done(snapshot)
-		end)
+		height_value = height
+		height_ready = true
+		maybe_done()
+	end)
+	queryMonitorSnapshot(function(monitor)
+		monitor_value = monitor
+		monitor_ready = true
+		maybe_done()
 	end)
 end
 
@@ -1063,8 +1081,9 @@ sbar.delay(0, function()
 	end)
 
 	-- 全屏状态变化后刷新完整快照，并把标记显示在对应工作区编号左侧。
+	-- 走同一套合并入口，避免和刚到的 space_windows_change 连打两次。
 	root:subscribe("aerospace_fullscreen_change", function()
-		updateWindows()
+		scheduleUpdateWindows(0)
 	end)
 
 	local function set_mode_visibility(is_service)
@@ -1117,18 +1136,6 @@ sbar.delay(0, function()
 		sbar.exec("aerospace list-modes --current", function(result)
 			set_mode_visibility((result or ""):match("service") ~= nil)
 		end)
-	end)
-
-	-- 初始 focus
-	sbar.exec("aerospace list-workspaces --focused", function(focused_workspace)
-		if not focused_workspace then
-			return
-		end
-		focused_workspace = focused_workspace:match("^%s*(.-)%s*$")
-		focused_workspace_cache = focused_workspace
-		if workspaces[focused_workspace] then
-			distribute_borders(focused_workspace)
-		end
 	end)
 end)
 

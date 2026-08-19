@@ -423,7 +423,7 @@ func handleEvent(_ json: [String: Any]) {
             fields["APP_NAME"] = appName
         }
         trigger("space_windows_change", fields: fields)
-        scheduleFullscreenStateCheck(delay: 0.30)
+        // Lua 的窗口快照已带 window-is-fullscreen；这里不再另查一遍。
 
     case "binding-triggered":
         scheduleFullscreenStateCheck()
