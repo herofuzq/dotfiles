@@ -161,9 +161,11 @@ SketchyBar rebuilds every bar window on wake/unlock and display reconfiguration 
 - `system_will_sleep` → `hidden=on` immediately; device wake, the 500ms resent wake, and lock-screen time all stay hidden. Pure lock arms a 75s recheck immediately; system sleep arms it on the first wake/display event. On expiry it probes `IOConsoleLocked` asynchronously: only strict `unlocked` enters the normal unlock path, while `locked` or `unknown` stays hidden and rearms. The recheck never reveals directly.
 - Pure screen lock (without sleep) also enters the same hidden path via `com.apple.screenIsLocked`, so unlock never exposes a freshly rebuilt default bar.
 - Pure screen lock (no `system_will_sleep`) keeps the bar hidden after the first unlock and resets a 0.3s quiet timer on every later notification; it releases once the event storm stays quiet (4s safety cap). Real system sleep uses one fast probe, and `display_change` switches back to full settling.
-- `screen_unlocked` (custom event on `com.apple.screenIsUnlocked`) is the normal release gate: probe every 0.2s until two consecutive identical valid snapshots (height + workspace→display mapping + `aerospace list-monitors` topology) plus 0.8s of event silence, then apply the snapshot while still hidden and play one ~0.5s reload-style fade.
+- `screen_unlocked` (custom event on `com.apple.screenIsUnlocked`) is the normal release gate: probe every 0.3s until two consecutive identical valid snapshots (height + workspace→display mapping + `aerospace list-monitors` topology) plus 0.8s of event silence, then apply the snapshot while still hidden and play one ~0.5s reload-style fade.
 - Awake `display_change` / `system_woke` → probe first while visible; only a confirmed height/topology change enters the hidden settling path, so duplicate/no-op events do not hide or fade (the first native rebuild frame is still unmaskable while awake).
+- While a settle session is already active, later display/wake events only renew the quiet window; they do not re-apply the item/bar hide.
 - After a sleep reveal, events in the first 3s are absorbed as the same storm; later wake/display clusters stay probe-only. An unchanged snapshot is ignored, while a real height/topology change re-enters the full hidden gate.
+- After an awake settle reveal, a 10s cooldown absorbs display/wake events and schedules a single deferred verify at cooldown expiry, preventing repeated hidden → fade cycles during login/display handshake storms.
 - While gated, `enter_animation.hold` also zeroes `bar.blur_radius`; release restores it with the color fade so the blurred bar background cannot stay visible on its own.
 - Fault bounds: 0.8s quiet-window stability, a 10s settling-session ceiling, a 12s hidden-hold disaster fallback, and the fail-closed 75s lock-state recheck; recovery is `sketchybar --bar hidden=off && sketchybar --reload`.
 - On a confirmed change from the `system_woke` path, spaces.lua triggers `display_topology_change`; `items/apple.lua` re-measures Dock width on it, but ignores it if a raw `display_change` arrived within the last 2 seconds.
@@ -384,9 +386,11 @@ SketchyBar 在唤醒/解锁和显示器重构时会**先把全部 bar 窗口销�
 - `system_will_sleep` → 立即 `hidden=on`；设备唤醒、500ms 补发唤醒、锁屏期间全程保持。纯锁屏立即武装 75s 复查，真睡眠在首个 wake/display 后武装。到期后异步探测 `IOConsoleLocked`：只有严格 `unlocked` 才走正常解锁路径，`locked`/`unknown` 继续 hidden 并重新排程；复查绝不直接 reveal。
 - 纯锁屏（不进入睡眠）也通过 `com.apple.screenIsLocked` 进入同一 hidden 路径，避免解锁时先露出重建后的默认 bar。
 - 纯锁屏（没有 `system_will_sleep`）从第一次解锁起保持 hidden，每次后续通知都重置 0.3s 安静计时；事件风暴连续安静后才一次性渐入（4s 兜底）。真睡眠用一次快速 probe，`display_change` 才切回完整 settling。
-- `screen_unlocked`（监听 `com.apple.screenIsUnlocked` 的自定义事件）是正常释放入口：每 0.2s probe，连续两份有效且相同的快照（高度 + workspace→显示器映射 + `aerospace list-monitors` 拓扑签名）+ 最后事件后 0.8s 静默判定稳定 → 在 hidden 状态下应用快照 → 播一次约 0.5s 的 reload 同款整体渐入。
+- `screen_unlocked`（监听 `com.apple.screenIsUnlocked` 的自定义事件）是正常释放入口：每 0.3s probe，连续两份有效且相同的快照（高度 + workspace→显示器映射 + `aerospace list-monitors` 拓扑签名）+ 最后事件后 0.8s 静默判定稳定 → 在 hidden 状态下应用快照 → 播一次约 0.5s 的 reload 同款整体渐入。
 - 清醒 `display_change` / `system_woke` → 先保持可见并 probe，只有确认高度/拓扑变化才进入 hidden settling；重复/无变化事件不再隐藏或渐入（清醒态第一帧原生重建仍无法遮罩）。
+- settling 会话已在进行时，后续 display/wake 事件只续期静默窗口，不再重复隐藏整条 bar。
 - 睡眠恢复第一次渐入完成后的 3s 内直接吸收同一事件风暴；之后 wake/display 事件同样保持 probe-only。快照无变化则忽略，确有高度/拓扑变化才重新进入完整 hidden 门控。
+- 清醒 settling 渐入完成后进入 10s 冷却：期间吸收 display/wake 事件，并在冷却到期时安排一次延迟复核，避免登录/显示器握手风暴造成反复 hidden → fade 循环。
 - 门控期间 `enter_animation.hold` 同时把 `bar.blur_radius` 归零，release 时随颜色渐入一起恢复，避免毛玻璃背景单独残留在屏幕上。
 - 故障边界：0.8s 静默稳定窗、10s settling 会话上限、12s hidden hold 灾难兜底，以及 fail-closed 的 75s 锁状态复查；恢复命令 `sketchybar --bar hidden=off && sketchybar --reload`。
 - system_woke 路径确认变化后由 spaces.lua 触发 `display_topology_change`；`items/apple.lua` 据此重测 Dock 宽度，但若 2 秒内已收到 raw `display_change` 则忽略。

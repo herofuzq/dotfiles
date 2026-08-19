@@ -8,12 +8,16 @@ local lock_state = require("helpers.lock_state")
 local M = {}
 local handlers = {}
 
-local SETTLE_PROBE_INTERVAL = 0.2
+local SETTLE_PROBE_INTERVAL = 0.3
 local SETTLE_QUIET_SECONDS = 0.8
 local SLEEP_FAILSAFE_SECONDS = 75
 local SETTLE_ABSOLUTE_MAX_SECONDS = 10
 local GATE_HOLD_TIMEOUT_SECONDS = 12
 local REVEAL_GRACE_SECONDS = 3
+-- 清醒状态刚结束一次 settling 后的冷却期：登录/拔插显示器的事件可能
+-- 持续数秒以上。冷却期内吸收事件，只安排一次延迟复核，避免反复
+-- hidden → fade 循环；睡眠恢复不套用此冷却，仍走 post-sleep verify。
+local SETTLE_COOLDOWN_SECONDS = 10
 -- 第一次解锁后只等一个固定短窗口；后续重复 unlock 不再重置，
 -- 避免 macOS 分两波投递 screen_unlocked 时把等待拖到 1s 以上。
 local LOCK_FAST_RELEASE_DELAY_SECONDS = 0.5
@@ -51,6 +55,10 @@ local gate_settle_active_request = nil
 local gate_settle_pending_request = nil
 local gate_settle_quiet_generation = 0
 local gate_settle_stable_key = nil
+local gate_settle_cooldown_until = 0
+local gate_settle_cooldown_verify_scheduled = false
+local gate_settle_cooldown_pending_source = nil
+local gate_settle_cooldown_generation = 0
 
 -- startup hidden 与 runtime FSM 分开记账：上层已经隐藏 bar 时，
 -- 锁/睡事件只记录证据，不创建第二个 enter_animation hold。
@@ -81,6 +89,7 @@ local gate_verify_awake_event
 local gate_on_will_sleep
 local gate_on_unlock
 local gate_schedule_lock_recheck
+local gate_schedule_settle_cooldown_verify
 
 local function close_popups()
 	if handlers.close_popups then
@@ -137,9 +146,17 @@ gate_reveal = function(snapshot)
 			return
 		end
 		gate_revealed_at = os.time()
-		gate_post_sleep_verify_until = reveal_from_sleep
-			and (gate_revealed_at + POST_SLEEP_VERIFY_SECONDS)
-			or 0
+		if reveal_from_sleep then
+			gate_post_sleep_verify_until = gate_revealed_at + POST_SLEEP_VERIFY_SECONDS
+			gate_settle_cooldown_until = 0
+		else
+			gate_post_sleep_verify_until = 0
+			gate_settle_cooldown_until = gate_revealed_at + SETTLE_COOLDOWN_SECONDS
+		end
+		-- 任何旧的冷却复核定时器都随本次 reveal 作废；新冷却期按新会话计时。
+		gate_settle_cooldown_generation = gate_settle_cooldown_generation + 1
+		gate_settle_cooldown_verify_scheduled = false
+		gate_settle_cooldown_pending_source = nil
 		gate_session_from_sleep = false
 		gate_state = "idle"
 	end
@@ -229,7 +246,8 @@ gate_enter_settling = function()
 	if gate_state == "revealing" then
 		return
 	end
-	if gate_state ~= "settling" then
+	local new_session = gate_state ~= "settling"
+	if new_session then
 		gate_session_id = gate_session_id + 1
 		local session_id = gate_session_id
 		sbar.delay(SETTLE_ABSOLUTE_MAX_SECONDS, function()
@@ -242,10 +260,13 @@ gate_enter_settling = function()
 			gate_generation = gate_generation + 1
 			gate_reveal({ height_changed = false, monitor_changed = false, monitor_valid = true })
 		end)
+		-- 只有真正进入新 settling 会话时才隐藏一次。同一会话内的 renew
+		-- 只重置静默窗口/代数；否则每个 display_change/system_woke 都会
+		-- 对全部 item 重发一次透明 set，把事件风暴放大成 IPC 风暴。
+		gate_token = enter_animation.hold({ hidden = true, timeout = GATE_HOLD_TIMEOUT_SECONDS })
 	end
 	gate_state = "settling"
 	gate_generation = gate_generation + 1
-	gate_token = enter_animation.hold({ hidden = true, timeout = GATE_HOLD_TIMEOUT_SECONDS })
 	gate_settle_pending_request = nil
 	gate_settle_stable_key = nil
 	gate_settle_quiet_generation = gate_settle_quiet_generation + 1
@@ -393,9 +414,49 @@ gate_verify_awake_event = function(source_event)
 	end)
 end
 
+gate_schedule_settle_cooldown_verify = function(source_event)
+	if gate_state ~= "idle" or gate_settle_cooldown_until <= 0 then
+		return
+	end
+	local now = os.time()
+	if now > gate_settle_cooldown_until then
+		return
+	end
+	gate_settle_cooldown_pending_source = source_event
+	if gate_settle_cooldown_verify_scheduled then
+		return
+	end
+	gate_settle_cooldown_verify_scheduled = true
+	local generation = gate_settle_cooldown_generation
+	local delay_seconds = gate_settle_cooldown_until - now
+	if delay_seconds < 0 then
+		delay_seconds = 0
+	end
+	sbar.delay(delay_seconds, function()
+		if gate_settle_cooldown_generation ~= generation then
+			return
+		end
+		gate_settle_cooldown_verify_scheduled = false
+		local pending_source = gate_settle_cooldown_pending_source
+		gate_settle_cooldown_pending_source = nil
+		if gate_state ~= "idle" then
+			return
+		end
+		if pending_source then
+			gate_verify_awake_event(pending_source)
+		end
+	end)
+end
+
 local function gate_on_display_event(source_event)
 	if gate_cooldown_active and gate_state == "sleep_hidden" and not gate_from_system_sleep then
 		gate_schedule_quiet_release()
+		return
+	end
+	if gate_state == "idle" and gate_settle_cooldown_until > 0
+		and os.time() <= gate_settle_cooldown_until
+	then
+		gate_schedule_settle_cooldown_verify(source_event)
 		return
 	end
 	local action = display_policy.classify(
@@ -444,6 +505,7 @@ local function gate_on_display_event(source_event)
 end
 
 gate_on_will_sleep = function(from_system_sleep)
+	local already_hidden = gate_state == "sleep_hidden"
 	gate_state = "sleep_hidden"
 	gate_generation = gate_generation + 1
 	gate_lock_session_id = gate_lock_session_id + 1
@@ -463,9 +525,15 @@ gate_on_will_sleep = function(from_system_sleep)
 	gate_session_from_sleep = gate_from_system_sleep
 	gate_post_sleep_verify_until = 0
 	gate_aftershock_generation = gate_aftershock_generation + 1
-	close_popups()
-	trigger_transition_begin()
-	gate_token = enter_animation.hold({ hidden = true, no_timeout = true })
+	gate_settle_cooldown_until = 0
+	gate_settle_cooldown_generation = gate_settle_cooldown_generation + 1
+	gate_settle_cooldown_verify_scheduled = false
+	gate_settle_cooldown_pending_source = nil
+	if not already_hidden then
+		close_popups()
+		trigger_transition_begin()
+		gate_token = enter_animation.hold({ hidden = true, no_timeout = true })
+	end
 	if not gate_from_system_sleep then
 		-- 纯锁屏：立即武装锁状态复查，不依赖 wake/display 事件。
 		gate_schedule_lock_recheck()

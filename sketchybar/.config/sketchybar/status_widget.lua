@@ -96,11 +96,41 @@ return function(opts)
 	end
 
 	local initial_ready = startup.track(opts.name .. ".status")
+	local status_in_flight = false
+	local status_pending = false
 
 	local function check_status()
+		if status_in_flight then
+			status_pending = true
+			return
+		end
+		status_in_flight = true
+		local finished = false
+		local function finish()
+			if finished then
+				return
+			end
+			finished = true
+			status_in_flight = false
+			if status_pending then
+				status_pending = false
+				check_status()
+			end
+		end
+		sbar.delay(3.0, function()
+			if finished then
+				return
+			end
+			initial_ready()
+			finish()
+		end)
 		sbar.exec("lsappinfo -all info -only StatusLabel " .. safe_id, function(raw)
+			if finished then
+				return
+			end
 			update_display(raw and raw:match([["label"%s*=%s*"([^"]*)"]]))
 			initial_ready()
+			finish()
 		end)
 	end
 

@@ -176,12 +176,45 @@ local function update_battery_display(state)
 	end)
 end
 
+-- 防止 routine / power_source_change / system_woke 撞在一起时重复起 ioreg：
+-- 在飞期间只记 pending，完成后补跑一次；3s 超时兜底，迟到回调不再二次生效。
+local battery_update_in_flight = false
+local battery_update_pending = false
+
 local function update_battery()
+	if battery_update_in_flight then
+		battery_update_pending = true
+		return
+	end
+	battery_update_in_flight = true
+	local finished = false
+	local function finish()
+		if finished then
+			return
+		end
+		finished = true
+		battery_update_in_flight = false
+		if battery_update_pending then
+			battery_update_pending = false
+			update_battery()
+		end
+	end
+	sbar.delay(3.0, function()
+		if finished then
+			return
+		end
+		initial_ready()
+		finish()
+	end)
 	sbar.exec("ioreg -rn AppleSmartBattery", function(raw)
+		if finished then
+			return
+		end
 		last_state = parsers.parse_battery(raw)
 		update_battery_display(last_state)
 		initial_ready()
 		-- popup 内容由点击打开时直接刷新，这里只维护主条状态。
+		finish()
 	end)
 end
 

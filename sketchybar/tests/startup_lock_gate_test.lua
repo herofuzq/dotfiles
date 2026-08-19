@@ -202,12 +202,12 @@ do
 	lock_callbacks[1]("unlocked")
 	assert(authorized() == 1)
 	gate.finish_startup_reveal()
-	assert(#delays_with(0.2) == 1,
+	assert(#delays_with(0.3) == 1,
 		"handoff must replay one pending display event through normal verify-first logic")
-	delays_with(0.2)[1].callback()
+	delays_with(0.3)[1].callback()
 	assert(#calls.display_probe == 1, "pending display event must issue one runtime probe")
 	gate.finish_startup_reveal()
-	assert(#delays_with(0.2) == 1, "startup finish must be idempotent")
+	assert(#delays_with(0.3) == 1, "startup finish must be idempotent")
 end
 
 -- init wiring must establish gate ownership before item configuration and run

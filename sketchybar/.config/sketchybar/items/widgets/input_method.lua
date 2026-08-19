@@ -77,18 +77,55 @@ local function update_display(im_id, fcitx_mode)
 	end)
 end
 
+-- 防止 system_woke 与事件回退同时查询 macism/fcitx：在飞期间只记 pending，
+-- 完成后补跑一次；3s 总闸后迟到的嵌套回调不再生效。
+local input_method_check_in_flight = false
+local input_method_check_pending = false
+
 local function check_status()
+	if input_method_check_in_flight then
+		input_method_check_pending = true
+		return
+	end
+	input_method_check_in_flight = true
+	local finished = false
+	local function finish()
+		if finished then
+			return
+		end
+		finished = true
+		input_method_check_in_flight = false
+		if input_method_check_pending then
+			input_method_check_pending = false
+			check_status()
+		end
+	end
+	sbar.delay(3.0, function()
+		if finished then
+			return
+		end
+		initial_ready()
+		finish()
+	end)
 	sbar.exec("macism", function(im_id)
+		if finished then
+			return
+		end
 		im_id = im_id and im_id:match("^%s*(.-)%s*$")
 		if im_id == "org.fcitx.inputmethod.Fcitx5.zhHans" then
 			sbar.exec("'" .. FCITX_REMOTE .. "'", function(mode)
+				if finished then
+					return
+				end
 				local clean = mode and mode:match("^%s*(.-)%s*$")
 				update_display(im_id, (clean and clean:match("^[012]$")) and clean or nil)
 				initial_ready()
+				finish()
 			end)
 		else
 			update_display(im_id)
 			initial_ready()
+			finish()
 		end
 	end)
 end

@@ -71,17 +71,49 @@ local function update_display(state)
 end
 
 local last_state
+local clash_status_in_flight = false
+local clash_status_pending = false
 
 local function check_status()
+	if clash_status_in_flight then
+		clash_status_pending = true
+		return
+	end
+	clash_status_in_flight = true
+	local finished = false
+	local function finish()
+		if finished then
+			return
+		end
+		finished = true
+		clash_status_in_flight = false
+		if clash_status_pending then
+			clash_status_pending = false
+			check_status()
+		end
+	end
+	-- clash_status.sh 内含 curl --max-time 2；这里再加 3s 总闸，避免唤醒风暴时查询互相重叠。
+	sbar.delay(3.0, function()
+		if finished then
+			return
+		end
+		initial_ready()
+		finish()
+	end)
 	sbar.exec("$CONFIG_DIR/helpers/clash_status.sh", function(status)
+		if finished then
+			return
+		end
 		status = (status or ""):match("^%s*(.-)%s*$")
 		if status == last_state then
 			initial_ready()
+			finish()
 			return
 		end
 		last_state = status
 		update_display(status)
 		initial_ready()
+		finish()
 	end)
 end
 

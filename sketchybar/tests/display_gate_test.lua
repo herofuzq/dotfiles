@@ -66,7 +66,7 @@ gate.configure({
 gate.on_display_event("display_change")
 local verify_callback
 for _, entry in ipairs(calls.delay) do
-	if entry.seconds == 0.2 then
+	if entry.seconds == 0.3 then
 		verify_callback = entry.callback
 	end
 end
@@ -187,7 +187,7 @@ end
 
 local function start_settling(fresh)
 	fresh.on_display_event("display_change")
-	local verify = assert(last_delay(0.2), "display event must schedule a verify probe")
+	local verify = assert(last_delay(0.3), "display event must schedule a verify probe")
 	verify.callback()
 	local verify_probe = assert(calls.probe[#calls.probe], "verify delay must invoke the probe handler")
 	verify_probe({
@@ -241,13 +241,14 @@ do
 	local current_quiet = assert(last_delay(0.8), "renew must arm a new quiet timer")
 	assert(count_delays(10) == 1 and count_delays(0.8) == 2,
 		"renew must reset quiet time without arming another watchdog")
+	assert(#calls.hold == 1, "renew must not re-hold the whole bar")
 	old_quiet.callback()
 	assert(#calls.probe == 1, "superseded quiet timer must not launch a probe")
 	current_quiet.callback()
 	assert(#calls.probe == 2, "latest quiet timer must launch the settling probe")
 	watchdog.callback()
-	assert(#calls.release == 1 and calls.release[1].token == 2,
-		"original watchdog must release the token current after renew")
+	assert(#calls.release == 1 and calls.release[1].token == 1,
+		"original watchdog must release the original session token after renew")
 end
 
 -- 两个连续、有效且相同的 post-quiet snapshot 才能 reveal。
@@ -258,14 +259,14 @@ do
 	local first_probe = assert(calls.probe[2], "quiet timer must launch the first comparison")
 	first_probe(stable_snapshot)
 	assert(#calls.release == 0, "one valid post-quiet snapshot must not reveal")
-	local retry = assert(last_delay(0.2), "first valid snapshot must schedule a serialized retry")
+	local retry = assert(last_delay(0.3), "first valid snapshot must schedule a serialized retry")
 	retry.callback()
 	local second_probe = assert(calls.probe[3], "retry must launch the second comparison")
 	second_probe(stable_snapshot)
 	assert(#calls.release == 1, "two identical valid post-quiet snapshots must reveal")
 end
 
--- invalid 会打断连续性，mismatch 只更新候选 key；两者都串行 0.2s 重试。
+-- invalid 会打断连续性，mismatch 只更新候选 key；两者都串行 0.3s 重试。
 do
 	local fresh = fresh_gate()
 	local _, quiet = start_settling(fresh)
@@ -274,12 +275,12 @@ do
 	first_probe({ height_changed = false, monitor_changed = false, monitor_valid = false })
 	assert(#calls.release == 0 and #calls.probe == 2,
 		"invalid snapshot must not reveal or launch a parallel probe")
-	assert(last_delay(0.2), "invalid snapshot must schedule a retry").callback()
+	assert(last_delay(0.3), "invalid snapshot must schedule a retry").callback()
 	local valid_a = assert(calls.probe[3], "invalid retry must launch one probe")
 	valid_a(stable_snapshot)
 	assert(#calls.release == 0 and #calls.probe == 3,
 		"first valid snapshot after invalid must start a new pair")
-	assert(last_delay(0.2), "first valid snapshot must retry serially").callback()
+	assert(last_delay(0.3), "first valid snapshot must retry serially").callback()
 	local mismatch_snapshot = {
 		height = 30,
 		height_changed = false,
@@ -292,7 +293,7 @@ do
 	valid_b_first(mismatch_snapshot)
 	assert(#calls.release == 0 and #calls.probe == 4,
 		"mismatched valid snapshot must not reveal or launch a parallel probe")
-	assert(last_delay(0.2), "mismatched snapshot must schedule a retry").callback()
+	assert(last_delay(0.3), "mismatched snapshot must schedule a retry").callback()
 	local valid_b_second = assert(calls.probe[5], "mismatch retry must launch one probe")
 	valid_b_second(mismatch_snapshot)
 	assert(#calls.release == 1, "a consecutive identical pair after mismatch must reveal")
@@ -436,7 +437,7 @@ do
 	now = 109
 	invalid_probe({ height_changed = false, monitor_changed = false, monitor_valid = false })
 	assert(#calls.release == 0, "invalid snapshot before 10s watchdog must stay gated")
-	local retry = assert(last_delay(0.2), "invalid snapshot must keep retrying")
+	local retry = assert(last_delay(0.3), "invalid snapshot must keep retrying")
 	retry.callback()
 	assert(#calls.probe == 3 and #calls.release == 0,
 		"serialized retry must continue without an absolute probe timeout")
@@ -453,12 +454,12 @@ do
 	old_quiet.callback()
 	local first_probe = assert(calls.probe[#calls.probe], "quiet timer must launch the first comparison")
 	first_probe(stable_snapshot)
-	assert(last_delay(0.2), "first valid snapshot must schedule a retry").callback()
+	assert(last_delay(0.3), "first valid snapshot must schedule a retry").callback()
 	local second_probe = assert(calls.probe[#calls.probe], "retry must launch the second comparison")
 	second_probe(stable_snapshot)
 	assert(#calls.release == 1, "stable pair must end the old session")
 
-	now = 104
+	now = 111
 	local current_watchdog = start_settling(fresh)
 	old_watchdog.callback()
 	assert(#calls.release == 1, "old session watchdog must not release a newer session")
@@ -475,7 +476,7 @@ do
 	quiet.callback()
 	local first_probe = assert(calls.probe[#calls.probe], "quiet timer must launch the first comparison")
 	first_probe(stable_snapshot)
-	assert(last_delay(0.2), "first valid snapshot must schedule a retry").callback()
+	assert(last_delay(0.3), "first valid snapshot must schedule a retry").callback()
 	local second_probe = assert(calls.probe[#calls.probe], "retry must launch the second comparison")
 	second_probe(stable_snapshot)
 	assert(#calls.release == 1, "stable probes must reveal the first session")
@@ -528,6 +529,59 @@ for _, scenario in ipairs({
 	release_timer.callback()
 	assert(#calls.release == 1 and calls.release[1].token == 1,
 		"preserved runtime gate must release its own token after " .. scenario.name .. " unlock")
+end
+
+-- 清醒 settling reveal 后进入 10s 冷却：冷却期内事件不立即 probe/隐藏，
+-- 只安排一次到期复核；重复事件更新待复核来源，不叠加定时器。
+do
+	now = 300
+	local fresh = fresh_gate()
+	local _, quiet = start_settling(fresh)
+	quiet.callback()
+	local first_probe = assert(calls.probe[2], "quiet timer must launch the first comparison")
+	first_probe(stable_snapshot)
+	assert(last_delay(0.3), "first valid snapshot must schedule a retry").callback()
+	local second_probe = assert(calls.probe[3], "retry must launch the second comparison")
+	second_probe(stable_snapshot)
+	assert(#calls.release == 1, "stable pair must end the first session")
+
+	now = 303
+	fresh.on_display_event("display_change")
+	assert(#calls.probe == 3, "cooldown event must not probe immediately")
+	local cooldown_verify = assert(last_delay(7), "cooldown must arm one deferred verify")
+	fresh.on_display_event("system_woke")
+	assert(count_delays(7) == 1, "repeated cooldown events must reuse the deferred verify")
+
+	now = 310
+	cooldown_verify.callback()
+	local verify_delay = assert(last_delay(0.3), "cooldown expiry must run the normal verify path")
+	verify_delay.callback()
+	local verify_probe = assert(calls.probe[4], "cooldown expiry must issue one probe")
+	verify_probe({ height_changed = false, monitor_changed = false, monitor_valid = true })
+	assert(#calls.hold == 1 and #calls.release == 1,
+		"unchanged cooldown verify must not start another settle session")
+end
+
+-- 已处于 sleep_hidden 时重复 lock / will_sleep 只更新状态，不再重复隐藏整条 bar。
+do
+	local fresh = fresh_gate()
+	fresh.on_lock()
+	assert(#calls.hold == 1, "first lock must hold once")
+	fresh.on_lock()
+	assert(#calls.hold == 1, "duplicate lock must not re-hold")
+	fresh.on_will_sleep()
+	assert(#calls.hold == 1, "will_sleep while already hidden must not re-hold")
+end
+
+-- 从 settling 转睡眠时必须重新 hold（用 no_timeout 作废旧 12s 超时）。
+do
+	now = 400
+	local fresh = fresh_gate()
+	start_settling(fresh)
+	assert(#calls.hold == 1, "settling session must hold once")
+	fresh.on_will_sleep()
+	assert(#calls.hold == 2 and calls.hold[2].no_timeout == true,
+		"settling -> sleep transition must re-hold with no_timeout")
 end
 
 os.time = real_os_time

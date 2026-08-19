@@ -26,7 +26,7 @@ func waitSketchybar() -> String {
 }
 let sketchybarPath = waitSketchybar()
 let fcitx5SourcePrefix = "org.fcitx.inputmethod.Fcitx5."
-let fcitxPollInterval: TimeInterval = 0.5
+let fcitxPollInterval: TimeInterval = 1.0
 let sourceFallbackInterval: TimeInterval = 5.0
 var lastSignature = ""
 var currentSourceID = ""

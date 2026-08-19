@@ -137,15 +137,20 @@ local function updatePopupContent()
 	end
 end
 
+-- reload 后不等待第一个 routine tick，立即写一次日期时间。
+local function update_clock()
+	local t = os.date("*t")
+	popup_utils.defer(function()
+		cal:set({ icon = string.format("%d月%d日", t.month, t.day), label = string.format(" %02d:%02d", t.hour, t.min) })
+	end)
+end
+
 cal:subscribe(
 	{ "forced", "routine", "system_woke", "mouse.clicked" },
 	function(env)
 		local s = env.SENDER
 		if s == "forced" or s == "routine" or s == "system_woke" then
-			local t = os.date("*t")
-			popup_utils.defer(function()
-				cal:set({ icon = string.format("%d月%d日", t.month, t.day), label = string.format(" %02d:%02d", t.hour, t.min) })
-			end)
+			update_clock()
 		elseif s == "mouse.clicked" then
 			popup_visible = not popup_visible
 			local visible = popup_visible
@@ -161,6 +166,7 @@ cal:subscribe(
 		end
 	end
 )
+update_clock()
 
 -- 显示器拓扑变化渐入前统一关闭 popup（popup 不参与 alpha 遮罩）
 cal:subscribe("display_transition_begin", function()
