@@ -285,44 +285,6 @@ func runAeroSpaceCommand(arguments: [String]) -> CommandResult? {
     runAeroSpaceSocketCommand(arguments: arguments) ?? runAeroSpaceProcessCommand(arguments: arguments)
 }
 
-func moveTypelessToWorkspace(_ workspace: String) -> Bool {
-    // Typeless owns a hidden status window. Keep it in the active workspace
-    // without focus-follows-window so it never steals the user's focus.
-    let listArguments = [
-        "list-windows",
-        "--monitor",
-        "all",
-        "--app-bundle-id",
-        "now.typeless.desktop",
-        "--format",
-        "%{window-id}|%{workspace}|%{window-title}",
-    ]
-    guard let result = runAeroSpaceCommand(arguments: listArguments),
-          result.exitCode == 0 else {
-        return false
-    }
-
-    var moved = false
-    for line in result.stdout.split(whereSeparator: { $0.isNewline }) {
-        let fields = line.split(separator: "|", maxSplits: 2, omittingEmptySubsequences: false).map(String.init)
-        guard fields.count == 3,
-              !fields[0].isEmpty,
-              fields[2] == "Status",
-              fields[1] != workspace else {
-            continue
-        }
-        _ = runAeroSpaceCommand(arguments: [
-            "move-node-to-workspace",
-            "--window-id",
-            fields[0],
-            "--fail-if-noop",
-            workspace,
-        ])
-        moved = true
-    }
-    return moved
-}
-
 func boolValue(_ value: Any?) -> Bool {
     switch value {
     case let value as Bool:
@@ -406,7 +368,6 @@ func handleEvent(_ json: [String: Any]) {
     switch event {
     case "focused-workspace-changed":
         guard let workspace = stringValue(json["workspace"]) else { return }
-        let typelessMoved = moveTypelessToWorkspace(workspace)
         var fields = [
             "FOCUSED_WORKSPACE": workspace,
             "SOURCE": "aerospace_watch",
@@ -415,13 +376,6 @@ func handleEvent(_ json: [String: Any]) {
             fields["PREV_WORKSPACE"] = prevWorkspace
         }
         trigger("aerospace_workspace_change", fields: fields)
-        if typelessMoved {
-            // Programmatic workspace moves do not emit window-detected.
-            trigger("space_windows_change", fields: [
-                "WINDOW_EVENT": "moved",
-                "SOURCE": "aerospace_watch",
-            ])
-        }
         scheduleFullscreenStateCheck()
 
     case "focus-changed":

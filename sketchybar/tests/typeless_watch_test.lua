@@ -3,10 +3,11 @@ local file = assert(io.open(source_path, "r"))
 local source = file:read("*a")
 file:close()
 
+assert(not source:find("now.typeless.desktop", 1, true), "unused Typeless must not be queried on workspace change")
+assert(not source:find("moveTypelessToWorkspace", 1, true), "Typeless must not follow the focused workspace")
 assert(
-	source:find('"%{window-id}|%{workspace}|%{window-title}"', 1, true),
-	"Typeless query must include the window title"
+	not source:find('fields[2] == "Status"', 1, true),
+	"Typeless Status window must not be moved with focus"
 )
-assert(source:find('fields[2] == "Status"', 1, true), "only the Typeless Status window may follow focus")
 
 print("typeless_watch_test: ok")
