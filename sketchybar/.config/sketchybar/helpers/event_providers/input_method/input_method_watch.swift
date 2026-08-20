@@ -2,27 +2,6 @@ import Carbon
 import Darwin
 import Foundation
 
-@_silgen_name("sketchybar_send_args")
-func sketchybar_send_args(_ argc: Int32, _ argv: UnsafePointer<UnsafePointer<CChar>?>?)
-
-func sketchybarSend(_ arguments: [String]) {
-    guard !arguments.isEmpty else { return }
-    var cStrings: [UnsafeMutablePointer<CChar>] = []
-    cStrings.reserveCapacity(arguments.count)
-    for argument in arguments {
-        guard let copied = strdup(argument) else {
-            cStrings.forEach { free($0) }
-            return
-        }
-        cStrings.append(copied)
-    }
-    defer { cStrings.forEach { free($0) } }
-    let argv: [UnsafePointer<CChar>?] = cStrings.map { UnsafePointer($0) }
-    argv.withUnsafeBufferPointer { buffer in
-        sketchybar_send_args(Int32(arguments.count), buffer.baseAddress)
-    }
-}
-
 /// 循环等待 sketchybar 已安装，避免 launchd 在 bar 尚未就位时反复重启。
 /// 真正投递走 Mach，不再需要二进制路径。
 func waitSketchybar() {
@@ -201,12 +180,12 @@ func publishInputMethodChange(inputSourceID: String, fcitxMode: String) {
     let signature = "\(inputSourceID)|\(fcitxMode)"
     guard signature != lastSignature else { return }
 
-    sketchybarSend([
+    guard sketchybarSend([
         "--trigger", "input_method_change",
         "IM_ID=\(inputSourceID)",
         "FCITX5_ACTIVE=\(isFcitx ? "1" : "0")",
         "FCITX5_MODE=\(fcitxMode)",
-    ])
+    ]) else { return }
     lastSignature = signature
 }
 

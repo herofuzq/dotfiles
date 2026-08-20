@@ -1,27 +1,6 @@
 import Darwin
 import Foundation
 
-@_silgen_name("sketchybar_send_args")
-func sketchybar_send_args(_ argc: Int32, _ argv: UnsafePointer<UnsafePointer<CChar>?>?)
-
-func sketchybarSend(_ arguments: [String]) {
-    guard !arguments.isEmpty else { return }
-    var cStrings: [UnsafeMutablePointer<CChar>] = []
-    cStrings.reserveCapacity(arguments.count)
-    for argument in arguments {
-        guard let copied = strdup(argument) else {
-            cStrings.forEach { free($0) }
-            return
-        }
-        cStrings.append(copied)
-    }
-    defer { cStrings.forEach { free($0) } }
-    let argv: [UnsafePointer<CChar>?] = cStrings.map { UnsafePointer($0) }
-    argv.withUnsafeBufferPointer { buffer in
-        sketchybar_send_args(Int32(arguments.count), buffer.baseAddress)
-    }
-}
-
 struct MediaState {
     let title: String
     let artist: String
@@ -43,7 +22,6 @@ _ = waitPath("sketchybar", candidates: ["/opt/homebrew/bin/sketchybar", "/usr/lo
 let mediaControl = waitPath("media-control", candidates: ["/opt/homebrew/bin/media-control", "/usr/local/bin/media-control"])
 
 let stateQueue = DispatchQueue(label: "com.fuzhuoqun.media_watch.state")
-let processQueue = DispatchQueue(label: "com.fuzhuoqun.media_watch.process")
 var lastState = MediaState(title: "", artist: "", album: "", playing: false)
 let commandTimeout: TimeInterval = 1.0
 
@@ -62,12 +40,6 @@ func waitForProcess(_ task: Process, timeout: TimeInterval) -> Bool {
     return false
 }
 
-func runSketchybar(arguments: [String]) {
-    processQueue.async {
-        sketchybarSend(arguments)
-    }
-}
-
 /// Strip control chars / newlines and cap length so --trigger KEY=value stays parseable.
 func sanitizeField(_ value: String, maxLen: Int = 180) -> String {
     var out = String()
@@ -80,8 +52,8 @@ func sanitizeField(_ value: String, maxLen: Int = 180) -> String {
     return out
 }
 
-func applyUpdate(_ state: MediaState) {
-    runSketchybar(arguments: [
+func applyUpdate(_ state: MediaState) -> Bool {
+    sketchybarSend([
         "--trigger", "media_update",
         "TITLE=\(sanitizeField(state.title))",
         "ARTIST=\(sanitizeField(state.artist))",
@@ -112,8 +84,8 @@ func updateState(_ state: MediaState) {
             || state.playing != lastState.playing else {
         return
     }
+    guard applyUpdate(state) else { return }
     lastState = state
-    applyUpdate(state)
 }
 
 func updateFromCurrentState() {

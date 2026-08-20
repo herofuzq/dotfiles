@@ -1,27 +1,28 @@
 #include "sketchybar.h"
 
+#include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
 
 // Pack argv the same way SketchyBar's CLI does, then send it on the official
 // Mach bootstrap port. Callers must not spawn a `sketchybar` process just to
-// deliver --trigger / --set.
-void sketchybar_send_args(int argc, const char *const *argv) {
+// deliver --trigger / --set. Returns false when the message cannot be sent.
+bool sketchybar_send_args(int argc, const char *const *argv) {
 	if (argc <= 0 || argv == NULL) {
-		return;
+		return false;
 	}
 
 	size_t total = 1;
 	for (int i = 0; i < argc; i++) {
 		if (argv[i] == NULL) {
-			return;
+			return false;
 		}
 		total += strlen(argv[i]) + 1;
 	}
 
 	char *formatted = malloc(total);
 	if (formatted == NULL) {
-		return;
+		return false;
 	}
 
 	size_t caret = 0;
@@ -37,11 +38,14 @@ void sketchybar_send_args(int argc, const char *const *argv) {
 	if (!g_mach_port) {
 		g_mach_port = mach_get_bs_port();
 	}
-	if (!mach_send_message(g_mach_port, formatted, length)) {
+	bool ok = mach_send_message(g_mach_port, formatted, length);
+	if (!ok) {
 		g_mach_port = mach_get_bs_port();
-		if (!mach_send_message(g_mach_port, formatted, length)) {
+		ok = mach_send_message(g_mach_port, formatted, length);
+		if (!ok) {
 			fprintf(stderr, "sketchybar: mach message send failed, will retry\n");
 		}
 	}
 	free(formatted);
+	return ok;
 }

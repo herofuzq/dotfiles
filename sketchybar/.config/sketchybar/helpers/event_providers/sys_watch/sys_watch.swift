@@ -1,27 +1,6 @@
 import Darwin
 import Foundation
 
-@_silgen_name("sketchybar_send_args")
-func sketchybar_send_args(_ argc: Int32, _ argv: UnsafePointer<UnsafePointer<CChar>?>?)
-
-func sketchybarSend(_ arguments: [String]) {
-    guard !arguments.isEmpty else { return }
-    var cStrings: [UnsafeMutablePointer<CChar>] = []
-    cStrings.reserveCapacity(arguments.count)
-    for argument in arguments {
-        guard let copied = strdup(argument) else {
-            cStrings.forEach { free($0) }
-            return
-        }
-        cStrings.append(copied)
-    }
-    defer { cStrings.forEach { free($0) } }
-    let argv: [UnsafePointer<CChar>?] = cStrings.map { UnsafePointer($0) }
-    argv.withUnsafeBufferPointer { buffer in
-        sketchybar_send_args(Int32(arguments.count), buffer.baseAddress)
-    }
-}
-
 struct AppUsage {
     let name: String
     let cpu: Double
@@ -99,10 +78,6 @@ var lastRows = Array(repeating: "", count: 10)
     return Array(sorted.prefix(10))
 }
 
-@Sendable func runSketchybar(_ arguments: [String]) {
-    sketchybarSend(arguments)
-}
-
 /// Drop control characters so --set label=... is not split/corrupted by sketchybar parsing.
 @Sendable func sanitizeLabel(_ value: String, maxLen: Int = 64) -> String {
     var out = String()
@@ -118,8 +93,8 @@ var lastRows = Array(repeating: "", count: 10)
 func setHeader(_ label: String) {
     let safe = sanitizeLabel(label, maxLen: 80)
     guard safe != lastHeader else { return }
+    guard sketchybarSend(["--set", "widgets.sys.info", "label=\(safe)"]) else { return }
     lastHeader = safe
-    runSketchybar(["--set", "widgets.sys.info", "label=\(safe)"])
 }
 
 func header(for cache: SensorCache) -> String {
@@ -157,6 +132,7 @@ func applySensors(_ json: [String: Any]) -> Bool {
 
 func setApps(_ apps: [AppUsage]) {
     var arguments = [String]()
+    var pendingRows = [Int: String]()
     for index in 0..<10 {
         let label: String
         if index < apps.count {
@@ -169,12 +145,14 @@ func setApps(_ apps: [AppUsage]) {
         }
         let safe = sanitizeLabel(label, maxLen: 48)
         if safe != lastRows[index] {
-            lastRows[index] = safe
+            pendingRows[index] = safe
             arguments += ["--set", "widgets.sys.process.\(index + 1)", "label=\(safe)"]
         }
     }
-    if !arguments.isEmpty {
-        runSketchybar(arguments)
+    guard !arguments.isEmpty else { return }
+    guard sketchybarSend(arguments) else { return }
+    for (index, safe) in pendingRows {
+        lastRows[index] = safe
     }
 }
 
