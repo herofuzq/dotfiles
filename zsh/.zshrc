@@ -117,7 +117,8 @@ fi
 
 # Completions must be in fpath BEFORE Zim's completion module runs compinit.
 # - Docker CLI completions
-fpath=($HOME/.docker/completions $fpath)
+# - Grok CLI completions
+fpath=($HOME/.docker/completions $HOME/.grok/completions/zsh $fpath)
 
 # AI ghost text strategy — must be set BEFORE Zim loads zsh-autosuggestions
 ZSH_AUTOSUGGEST_STRATEGY=(history)
@@ -280,6 +281,6 @@ export PATH="$HOME/.local/bin:$PATH"
 
 # >>> grok installer >>>
 export PATH="$HOME/.grok/bin:$PATH"
-fpath=(~/.grok/completions/zsh $fpath)
-autoload -Uz compinit && compinit -C
+# fpath is set above, before Zim's completion module. Do not call
+# `compinit` here — Zim already ran it and will warn on a second call.
 # <<< grok installer <<<
