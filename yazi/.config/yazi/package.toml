@@ -1,26 +1,26 @@
 [[plugin.deps]]
 use = "yazi-rs/plugins:full-border"
-rev = "0be29a9"
-hash = "7b625412411be411153886894d9acaf"
+rev = "efa4d79"
+hash = "f281261ff04ad7ec867c3f802a50835f"
 
 [[plugin.deps]]
 use = "yazi-rs/plugins:git"
-rev = "0be29a9"
-hash = "fbb53c3c04f816d737f9f4b1d29f3310"
+rev = "efa4d79"
+hash = "5bb0bfab901d3601c370eafdd66edd31"
 
 [[plugin.deps]]
 use = "yazi-rs/plugins:piper"
-rev = "0be29a9"
-hash = "f23ecc89ce0f9eeefdd4cea14e2a9ba7"
+rev = "efa4d79"
+hash = "45a533508a9840cc5a10cf6129f63e6a"
 
 [[plugin.deps]]
 use = "Rolv-Apneseth/starship"
-rev = "159eaba"
-hash = "7de446280b1ba8c49ffd86dbc24bbbe6"
+rev = "ea92cf4"
+hash = "9776f378459072b6c2875eae5addc49d"
 
 [[plugin.deps]]
 use = "yazi-rs/plugins:no-status"
-rev = "0be29a9"
+rev = "efa4d79"
 hash = "3e023d31f29201efdac2a6ae35fedb78"
 
 [[plugin.deps]]
@@ -35,13 +35,13 @@ hash = "3c66d95bf63fa16178e98967fbae9429"
 
 [[plugin.deps]]
 use = "yazi-rs/plugins:diff"
-rev = "0be29a9"
-hash = "a2b67c52fc36d4c7d3ccb8940d9a140"
+rev = "efa4d79"
+hash = "14558d2829c0aa05e99c57de8f74d199"
 
 [[plugin.deps]]
 use = "yazi-rs/plugins:mactag"
-rev = "0be29a9"
-hash = "bca7e9afee0833da89b3eb6bbb228d1"
+rev = "efa4d79"
+hash = "34e3e12060f833cc21446f23a7ced8d1"
 
 [[plugin.deps]]
 use = "KKV9/compress"
@@ -75,7 +75,7 @@ hash = "1c0465351f2a344e842f065ab316f265"
 
 [[plugin.deps]]
 use = "yazi-rs/plugins:zoom"
-rev = "0be29a9"
+rev = "efa4d79"
 hash = "e8e279463ee99c940e6945a14cf4aa9e"
 
 [[flavor.deps]]
@@ -110,13 +110,13 @@ hash = "15ae5f83d3770b9ffc276af77f642e2b"
 
 [[flavor.deps]]
 use = "stellarjmr/everforest-dark"
-rev = "1c49888"
-hash = "2746a5cf07fcc0a524a10a9b36dd249b"
+rev = "1571580"
+hash = "eaad414e0592b9637b5af1449759c171"
 
 [[flavor.deps]]
 use = "stellarjmr/everforest-light"
-rev = "c16600e"
-hash = "3ed411e77936999db6f26cc7ad906c47"
+rev = "6a4a54a"
+hash = "3268fbd4d3596f2c82296d56c942010b"
 
 [[flavor.deps]]
 use = "dangooddd/kanagawa"
