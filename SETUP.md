@@ -308,6 +308,10 @@ defaults write -g NSAutomaticWindowAnimationsEnabled -bool false
 
 # ▸ 安装 yazi 插件（package.toml 里声明，需手动 fetch）
 ya pack -i
+# 本地插件（不走 ya pack；clippy/convert 已按 Yazi 26.8.15 File API 打过补丁）
+ln -sfn ~/dotfiles/yazi/local-plugins/theme-toggle.yazi ~/.config/yazi/plugins/theme-toggle.yazi
+ln -sfn ~/dotfiles/yazi/local-plugins/clippy.yazi ~/.config/yazi/plugins/clippy.yazi
+ln -sfn ~/dotfiles/yazi/local-plugins/convert.yazi ~/.config/yazi/plugins/convert.yazi
 
 # ▸ 初始化 Zim（Zsh 插件管理）
 curl -fsSL https://raw.githubusercontent.com/zimfw/install/master/install.zsh | zsh

@@ -24,11 +24,6 @@ rev = "efa4d79"
 hash = "3e023d31f29201efdac2a6ae35fedb78"
 
 [[plugin.deps]]
-use = "Gallardo994/clippy"
-rev = "8ce5541"
-hash = "977c6f4ffceada33ced20d941f1defab"
-
-[[plugin.deps]]
 use = "Rolv-Apneseth/bypass"
 rev = "4a0c70e"
 hash = "3c66d95bf63fa16178e98967fbae9429"
@@ -67,11 +62,6 @@ hash = "6ea5f37c7f219671ec504cb8311f889d"
 use = "barbanevosa/autosession"
 rev = "7a12b20"
 hash = "f9b76184511c983db7c6f719eea1e14d"
-
-[[plugin.deps]]
-use = "atareao/convert"
-rev = "ce060d9"
-hash = "1c0465351f2a344e842f065ab316f265"
 
 [[plugin.deps]]
 use = "yazi-rs/plugins:zoom"
