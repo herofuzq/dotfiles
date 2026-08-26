@@ -1,16 +1,16 @@
 [[plugin.deps]]
 use = "yazi-rs/plugins:full-border"
-rev = "efa4d79"
+rev = "c591a36"
 hash = "f281261ff04ad7ec867c3f802a50835f"
 
 [[plugin.deps]]
 use = "yazi-rs/plugins:git"
-rev = "efa4d79"
+rev = "c591a36"
 hash = "5bb0bfab901d3601c370eafdd66edd31"
 
 [[plugin.deps]]
 use = "yazi-rs/plugins:piper"
-rev = "efa4d79"
+rev = "c591a36"
 hash = "45a533508a9840cc5a10cf6129f63e6a"
 
 [[plugin.deps]]
@@ -20,7 +20,7 @@ hash = "9776f378459072b6c2875eae5addc49d"
 
 [[plugin.deps]]
 use = "yazi-rs/plugins:no-status"
-rev = "efa4d79"
+rev = "c591a36"
 hash = "3e023d31f29201efdac2a6ae35fedb78"
 
 [[plugin.deps]]
@@ -30,18 +30,18 @@ hash = "3c66d95bf63fa16178e98967fbae9429"
 
 [[plugin.deps]]
 use = "yazi-rs/plugins:diff"
-rev = "efa4d79"
+rev = "c591a36"
 hash = "14558d2829c0aa05e99c57de8f74d199"
 
 [[plugin.deps]]
 use = "yazi-rs/plugins:mactag"
-rev = "efa4d79"
+rev = "c591a36"
 hash = "34e3e12060f833cc21446f23a7ced8d1"
 
 [[plugin.deps]]
 use = "KKV9/compress"
-rev = "e60e122"
-hash = "fbaf0adc8efc59555b748d36aab62d40"
+rev = "80e5268"
+hash = "868db729374b97871bc30b96d0e9061f"
 
 [[plugin.deps]]
 use = "DreamMaoMao/sjch"
@@ -65,17 +65,17 @@ hash = "f9b76184511c983db7c6f719eea1e14d"
 
 [[plugin.deps]]
 use = "yazi-rs/plugins:zoom"
-rev = "efa4d79"
+rev = "c591a36"
 hash = "e8e279463ee99c940e6945a14cf4aa9e"
 
 [[flavor.deps]]
 use = "yazi-rs/flavors:catppuccin-mocha"
-rev = "be0b21d"
+rev = "20b47bf"
 hash = "ce320f877fe709b189433941aba747c4"
 
 [[flavor.deps]]
 use = "yazi-rs/flavors:catppuccin-latte"
-rev = "be0b21d"
+rev = "20b47bf"
 hash = "273ee53369ccfbf7feb9b0c65e387ed8"
 
 [[flavor.deps]]
