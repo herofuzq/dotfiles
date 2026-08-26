@@ -57,8 +57,12 @@ image = [
 	{ run = 'open -a XnViewMP %s', desc = "XnView MP", for = "macos", orphan = true },
 ]
 open_terminal = [
-	# %d1 = dirname of first selected file (= CWD when browsing a directory listing)
-	{ run = 'open -a Warp "%d1"', desc = "Terminal", for = "unix", orphan = true },
+	# Yazi auto-escapes % tokens — extra quotes become part of the path.
+	# Files: containing directory. Directories: the directory itself.
+	{ run = 'open -na Ghostty.app --args --working-directory=%d1', desc = "Terminal", for = "macos", orphan = true },
+]
+open_terminal_dir = [
+	{ run = 'open -na Ghostty.app --args --working-directory=%s1', desc = "Terminal", for = "macos", orphan = true },
 ]
 extract = [{ run = "ya pub extract --list %s", desc = "Extract here" }]
 extract_rar = [{ run = 'unar -output-directory %d %s', desc = "Extract RAR with unar", for = "unix" }]
@@ -70,7 +74,7 @@ download = [
 [open]
 rules = [
 	# Folder
-	{ url = "*/", use = ["edit", "open", "open_terminal", "reveal"] },
+	{ url = "*/", use = ["edit", "open", "open_terminal_dir", "reveal"] },
 	# HTML — Edit first, macOS association second
 	{ url = "*.{html,htm}", use = ["edit", "open", "open_terminal", "reveal"] },
 	# Text — Edit (nvim) first, macOS file association second, Terminal in this dir
