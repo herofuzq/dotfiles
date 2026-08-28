@@ -16,7 +16,7 @@ after-startup-command = [
   'layout --workspace 5̲AI --root tiles',
   'layout --workspace 6̲Play --root accordion',
   'exec-and-forget /bin/bash -c "sleep 0.3 && sketchybar --trigger space_windows_change"',
-] 
+]
 
 # Start AeroSpace at login
 start-at-login = true
@@ -161,7 +161,7 @@ outer.right = 7
     cmd-alt-ctrl-shift-down = 'move down'
     cmd-alt-ctrl-shift-up = 'move up'
     cmd-alt-ctrl-shift-right = 'move right'
-    
+
     cmd-alt-ctrl-shift-h = 'move left'
     cmd-alt-ctrl-shift-j = 'move down'
     cmd-alt-ctrl-shift-k = 'move up'
@@ -188,7 +188,7 @@ outer.right = 7
     cmd-alt-ctrl-shift-3 = ['move-node-to-workspace 3̲Chat --focus-follows-window', 'exec-and-forget sketchybar --trigger space_windows_change']
     cmd-alt-ctrl-shift-4 = ['move-node-to-workspace 4̲Work --focus-follows-window', 'exec-and-forget sketchybar --trigger space_windows_change']
     cmd-alt-ctrl-shift-5 = ['move-node-to-workspace 5̲AI --focus-follows-window', 'exec-and-forget sketchybar --trigger space_windows_change']
-    cmd-alt-ctrl-shift-6 = ['move-node-to-workspace 6̲Play --focus-follows-window', 'exec-and-forget sketchybar --trigger space_windows_change'] 
+    cmd-alt-ctrl-shift-6 = ['move-node-to-workspace 6̲Play --focus-follows-window', 'exec-and-forget sketchybar --trigger space_windows_change']
 
     # See: https://nikitabobko.github.io/AeroSpace/commands#workspace-back-and-forth
     # alt-tab = 'workspace-back-and-forth'
@@ -234,7 +234,7 @@ outer.right = 7
     cmd-alt-ctrl-shift-j = ['join-with down', 'mode main']
     cmd-alt-ctrl-shift-k = ['join-with up', 'mode main']
     cmd-alt-ctrl-shift-l = ['join-with right', 'mode main']
-    
+
 
 # 设置界面自动悬浮
 [[on-window-detected]]
@@ -361,6 +361,7 @@ run = ["move-node-to-workspace 3̲Chat --focus-follows-window"]
 if = """test %{app-bundle-id} = com.mac.utility.media.hub || \
         test %{app-bundle-id} = com.bilibili.bilibiliPC || \
         test %{app-bundle-id} = com.colliderli.iina || \
+        test %{app-bundle-id} = com.valvesoftware.steam || \
         test %{app-bundle-id} = com.xnview.XnView"""
 run = ["move-node-to-workspace 6̲Play --focus-follows-window"]
 
