@@ -19,7 +19,7 @@ after-startup-command = [
 ]
 
 # Start AeroSpace at login
-start-at-login = true
+start-at-login = false
 
 # Automatically reload this config after saving changes.
 # Requires one manual reload after toggling this option.
