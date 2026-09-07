@@ -1,3 +1,6 @@
+# The following lines were added by Docker Desktop to add commands to your PATH.
+export PATH="$PATH:/Users/fuzhuoqun/.docker/bin"
+# End of Docker Desktop section.
 
 # export HOMEBREW_BOTTLE_DOMAIN=https://mirrors.ustc.edu.cn/homebrew-bottles
 
