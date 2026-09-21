@@ -89,6 +89,11 @@ rules = [
 	{ mime = "{audio,video}/*", use = ["play", "open_terminal", "reveal"] },
 	# OFD
 	{ url = "*.ofd", use = ["open", "open_terminal", "reveal"] },
+	# Office Open XML files are ZIP containers and can be detected as application/zip.
+	# Match their extensions before archive MIME rules so they keep the system Open action.
+	{ url = "*.[dD][oO][cC][xX]", use = ["open", "open_terminal", "reveal"] },
+	{ url = "*.[xX][lL][sS][xX]", use = ["open", "open_terminal", "reveal"] },
+	{ url = "*.[pP][pP][tT][xX]", use = ["open", "open_terminal", "reveal"] },
 	# Archive
 	{ mime = "application/rar", use = ["extract_rar", "open_terminal", "reveal"] },
 	{ mime = "application/{zip,7z*,tar,gzip,xz,zstd,bzip*,lzma,compress,archive,cpio,arj,xar,ms-cab*}", use = ["extract", "open_terminal", "reveal"] },
