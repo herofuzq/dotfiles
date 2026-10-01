@@ -31,7 +31,7 @@ cd ~/dotfiles
 brew bundle install --file=Brewfile
 
 # 3. Stow 所有配置包（--no-folding 避免目录折叠）
-stow --no-folding aerospace bash bat borders btop cmux fastfetch fcitx5 fd \
+stow --no-folding aerospace aria2 bash bat borders btop cmux fastfetch fcitx5 fd \
      ghostty git hammerspoon karabiner kitty lazygit npm nvim \
      sketchybar ssh starship yazi zed zsh
 
@@ -77,6 +77,7 @@ brew bundle cleanup --file=Brewfile       # 清理未列出项
 | `zsh` | `~/.zprofile` `~/.zshenv` | Zsh 登录环境与 Cargo 环境入口 |
 | `bash` | `~/.bash_profile` `~/.bashrc` | Bash 配置与环境入口 |
 | `starship` | `~/.config/starship.toml` | Shell 提示符主题 |
+| `aria2` | `~/.config/aria2/aria2.conf` | 下载断点续传配置 |
 
 
 **新机器注意：**
@@ -280,7 +281,7 @@ xcode-select --install
 cd ~ && git clone <your-dotfiles-repo> dotfiles
 
 # ▸ Stow 所有配置
-cd dotfiles && stow --no-folding aerospace bash bat borders btop cmux fastfetch fcitx5 fd \
+cd dotfiles && stow --no-folding aerospace aria2 bash bat borders btop cmux fastfetch fcitx5 fd \
      ghostty git hammerspoon karabiner kitty lazygit npm nvim \
      sketchybar ssh starship yazi zed zsh
 
