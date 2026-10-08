@@ -39,7 +39,7 @@ M.SKIP_BUNDLE_IDS = {
 M.hud = {
 	width = 212,
 	height = 26,
-	bottom_offset = 30,
+	bottom_offset = 80,
 	corner_radius = 10,
 	fade_out_duration = 0.16,
 }
