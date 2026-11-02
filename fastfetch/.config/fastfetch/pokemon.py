@@ -292,6 +292,10 @@ def main():
         # 插在 logo 模块之后（logo 模块总在最前面）
         for i in range(top_blank):
             cfg["modules"].insert(1 + i, dict(blank))
+    elif info_height > sprite_height:
+        # Fastfetch 并排模式不支持 logo 顶部 padding，用图案前置空行垂直居中。
+        logo_top_blank = (info_height - sprite_height) // 2
+        sprite = "\n" * logo_top_blank + sprite
 
     tmp = os.path.join(tempfile.gettempdir(), "pokefetch_config.json")
     with open(tmp, 'w') as f:
